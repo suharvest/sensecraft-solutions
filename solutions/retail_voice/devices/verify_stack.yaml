@@ -1,0 +1,24 @@
+version: '1.0'
+id: verify_stack
+name: Try a recording
+name_i18n:
+  zh: 试录一段语音
+type: manual
+inherit_host_from: deploy_server_platform
+steps:
+- id: record
+  name: Record and upload
+  name_i18n:
+    zh: 录音并上传
+  description: Use Clip to record a short conversation and upload it through the phone app.
+  description_i18n:
+    zh: 用 Clip 录一小段对话，在手机 App 中上传。
+  optional: false
+- id: check_result
+  name: Check the result
+  name_i18n:
+    zh: 查看结果
+  description: Open the dashboard and check that the recording and its text appear.
+  description_i18n:
+    zh: 打开后台，确认能看到录音和对应文字。
+  optional: false

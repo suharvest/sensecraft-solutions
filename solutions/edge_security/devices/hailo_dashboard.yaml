@@ -1,0 +1,36 @@
+version: "1.0"
+id: hailo_dashboard
+name: Open the Alert Workbench
+name_i18n:
+  zh: 打开告警工作台
+type: web_dashboard
+
+# The hub runs on the same board the deploy step just installed, so its address
+# comes from that step rather than from a second question.
+inherit_host_from: deploy_edge_security_hailo
+
+web_dashboard:
+  url: "http://{{deploy.host}}:8090"
+  open_in: browser
+  title: Edge Security Workbench
+  title_i18n:
+    zh: 边缘安防工作台
+  description: >-
+    The hub generates a random password on first start. The deploy step above
+    prints it, but some CLI output modes truncate action output — if you did not
+    see it, read it off the device with
+    `docker exec edge_security_hailo-hub-1 cat /data/initial-password.txt`
+    (line 1 username, line 2 password). The hub forces a change on
+    first login. The
+    Devices page should list this board as online with decode "sw" and
+    `fallback_active` false. That is the correct reading here, not a
+    degradation: this board has no H.264 decoder, so FFmpeg on the CPU is the
+    primary path and there is no hardware path to fall back from. The CPU cost
+    of the detector therefore covers decode as well as inference.
+  description_i18n:
+    zh: >-
+      hub 首次启动会生成随机密码，写入 hub 容器内的 /data/initial-password.txt（第一行
+      用户名，第二行密码）。上面的部署步骤会打印出来，但部分 CLI 输出模式会截断动作输出——没看到的话在设备上执行 `docker exec edge_security_hailo-hub-1 cat /data/initial-password.txt` 取回。首次登录后 hub 会强制改密。设备页应能看到这块板卡在线、解码方式为
+      sw，且 `fallback_active` 为 false。这里的 sw 是正确状态，不是降级：该板卡没有
+      H.264 硬解，CPU 上的 FFmpeg 就是主路径，不存在可回落的硬解路径。因此检测器的
+      CPU 占用里同时包含了解码和推理。

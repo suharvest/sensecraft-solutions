@@ -1,0 +1,9 @@
+homekit:
+  - name: HA Whole Home Bridge
+    port: 21064
+    filter:
+      include_domains: [switch, light, sensor, binary_sensor, cover, climate]
+input_select:
+  voice_language:
+    name: Voice language
+    options: [zh-CN, en, ja]

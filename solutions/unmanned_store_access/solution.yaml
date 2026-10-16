@@ -1,0 +1,623 @@
+# Unmanned store face access. Upstream repo: ~/project/unmanned-store-access
+# (HEAD 95f314a at packaging time). Design spec: seeed-solutions-hub
+# docs/specs/f1-unmanned-store-access-spec.md.
+#
+# Hardware coverage, boundary status and the per-preset commissioning gaps are
+# recorded in docs/internal-status.md. Keep that file, not this comment, in
+# step with the evaluation runs.
+#
+# LICENCE, in one line so nobody has to go looking: the face detection and
+# embedding weights (InsightFace buffalo_l) are NON-COMMERCIAL. They are not
+# redistributed here, and a commercial deployment must replace the backbone and
+# rebuild every face library version. See gallery/ATTRIBUTION.md and the
+# licensing section of the description.
+#
+# SAFETY, likewise: the lock is always behind a relay or dry contact on its own
+# 12/24 V supply. active_high, pulse_ms, relay_contact and fail_mode are
+# configured per installation and deliberately have no defaults — a fail-safe
+# magnetic lock wired to the normally-open contact stands open permanently.
+version: "1.0"
+id: unmanned_store_access
+name: Unmanned Store Face Access
+name_i18n:
+  zh: 无人门店人脸门禁
+  ja: 無人店舗向け顔認証入退室
+
+intro:
+  summary: >-
+    Unlock the door with a face, reject photos and screen replays, and keep
+    opening when offline. The face library is managed in the cloud, and every
+    unlock is recorded.
+  summary_i18n:
+    zh: >-
+      刷脸开门，防照片和屏幕翻拍，断网照常开门。人脸库云端统一管理，每次开门都有记录。
+  description_file: description.md
+  description_file_i18n:
+    zh: description_zh.md
+  cover_image: gallery/cover-recognition.jpg
+  gallery:
+    - type: image
+      src: gallery/cover-recognition.jpg
+      caption: Two people walking through an office toward the camera — a green box on the person the face-matching template scored as enrolled, a red box on the one scored as not enrolled. A reCamera Pro produced both scores by running a stock clip through its face pipeline offline; this shows only the face-match step, not a door decision, and it is not a live capture at a door
+      caption_i18n:
+        zh: 办公区里两个人朝镜头走来——绿框是人脸模板判定为已登记的人，红框是判定为未登记的人。两个判定都由 reCamera Pro 离线跑一段素材视频得到；这里展示的只是人脸匹配这一步，不是门禁放行判定，也不是门口现场实拍
+    - type: image
+      src: gallery/console-devices-live.png
+      caption: The management console listing a live reCamera PoE unit — active face-library version and heartbeat per device
+      caption_i18n:
+        zh: 管理界面上的设备列表，数据来自一台在跑的 reCamera PoE——每台设备的人脸库版本与心跳
+    - type: image
+      src: gallery/console-persons-live.png
+      caption: The person library in the same console — enrol from 3-8 images, delete with a barrier, roll back only where the barrier allows
+      caption_i18n:
+        zh: 同一个管理界面里的人员库——3–8 张图注册、删除写入屏障、回滚受屏障约束
+    - type: image
+      src: gallery/ui-events.webp
+      caption: Access events with the decision reason and the audit chain hash. Synthetic demo data — the people, scores and events are fixtures, not field results
+      caption_i18n:
+        zh: 门禁事件列表，带判定原因与审计链哈希。合成演示数据——人员、分数与事件都是测试夹具，不是现场结果
+    - type: image
+      src: gallery/ui-events-en.webp
+      caption: The same event list in English — every row keeps its liveness verdict, decision, door action and face-library version
+      caption_i18n:
+        zh: 同一份事件列表的英文界面——每行保留活体判定、决策、门动作与人脸库版本
+    - type: image
+      src: gallery/ui-persons.png
+      caption: The person library — enrol from 3–8 images, delete with a barrier, roll back only where the barrier allows. Synthetic demo data; no face image was enrolled
+      caption_i18n:
+        zh: 人员库——3–8 张图注册、删除写入屏障、回滚受屏障约束。合成演示数据，没有注册过任何真实人脸
+    - type: image
+      src: gallery/ui-devices.webp
+      caption: Remote unlock — the reCamera door unit online with its actuator health, face-library version and fail-secure relay wiring, then a pulse issued at 1500 ms and the receipt that came back, executed, with its command id and timestamp. Synthetic demo data
+      caption_i18n:
+        zh: 远程开门——reCamera 门口设备在线，附执行器健康、人脸库版本与 fail_secure 继电器接法；下发 1500 ms 脉冲后拿到回执，状态 executed，带指令 ID 与时间。合成演示数据
+    - type: image
+      src: gallery/ui-devices-en.webp
+      caption: The same page in English — pulse width, hold-open duration and the command receipt with its id and status
+      caption_i18n:
+        zh: 同一页面的英文界面——脉宽、常开时长，以及带指令 ID 与状态的回执
+    - type: image
+      src: gallery/ui-status.jpg
+      caption: Device status — actuator health, liveness enforcement, face-library version and last heartbeat for every unit. Synthetic demo data
+      caption_i18n:
+        zh: 设备状态——每台设备的执行器健康、活体强制状态、人脸库版本与最近心跳。合成演示数据
+    - type: image
+      src: gallery/architecture.svg
+      caption: Cloud face library and console above the presets — every one of them ends at a relay's dry contact into the door controller's input; the lock and its supply stay with the door-control party
+      caption_i18n:
+        zh: 上方是云端人脸库与管理界面，下方是各个套餐——每一个都终结于继电器的干接点，接入门禁控制器输入端；门锁及其供电由门禁施工方负责
+  category: vision_video_ai
+  solution_type: solution
+  tags:
+    - access-control
+    - face-recognition
+    - liveness
+    - anti-spoofing
+    - mqtt
+    - relay
+    - unmanned-store
+    - audit-log
+
+  output_interfaces:
+    - type: mqtt
+      port: 8883
+      topic: access/v1/events
+      description: >-
+        One JSON message per recognition decision — allowed and denied alike.
+        Carries the event id, the corrected timestamp, the device, the person
+        or anonymous id, the similarity score, the liveness block, the decision
+        with its reason, the door action taken, the actuator id, the face
+        library version and the model sha. "facedb_version" is null before the
+        first successful sync — that is "no library at all", which is a
+        different thing from version 0 and is reported as the distinct denial
+        reason "no_facedb".
+      schema_type: json
+      payload_example: '{"schema":"access-event/v1","event_id":"6f1a2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d","time":"2026-09-06T03:20:11Z","device_id":"door-front-01","person_id":"p_alice","anonymous_id":null,"score":0.7412,"threshold":0.62,"liveness":{"passed":true,"score":0.958},"decision":{"allow":true,"reason":"allowed"},"door_action":"pulse","actuator_id":"door-front","facedb_version":3,"model_sha":"3a7f...","clock":{"valid":true,"reason":null,"offset_ms":12}}'
+      description_i18n:
+        zh: >-
+          每一次识别判定一条 JSON——放行与拒绝都发。内容包括事件 id、经修正的时间戳、
+          设备、人员或匿名 id、相似度分数、活体块、带原因的判定、执行的门控动作、
+          执行器 id、人脸库版本与模型 sha。首次同步成功之前 「facedb_version」 是
+          null——那是"根本没有库"，与版本 0 不是一回事，会以单独的拒绝原因
+          「no_facedb」 上报。
+    - type: mqtt
+      port: 8883
+      topic: access/v1/commands/{door_id}
+      description: >-
+        Remote unlock, hold-open and lock. The gate is strict: an exact field
+        set, a UUIDv4 command id, an RFC3339 "issued_at" with a timezone, a TTL
+        bound, and a per-identity replay table. A redelivered command does not
+        open the door a second time — it replays the original receipt, so the
+        caller still gets something to reconcile against. Never retained: a
+        retained unlock would replay on every reconnect.
+      schema_type: json
+      payload_example: '{"command_id":"6f1a2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d","door_id":"door-front","action":"unlock","params":{"pulse_ms":1500},"issued_at":"2026-09-06T03:20:11Z","ttl":30,"identity":"console-operator"}'
+      description_i18n:
+        zh: >-
+          远程开门、常开与锁定。闸门是严格的：字段集必须精确匹配、command_id 必须是
+          UUIDv4、「issued_at」 必须是带时区的 RFC3339、TTL 有上界，并有按身份隔离的
+          重放表。重复投递不会第二次开门——它回放原来那张回执，调用方仍拿得到可对账的
+          凭据。绝不 retained：retained 的开门指令会在每次重连时重放一遍。
+    - type: mqtt
+      port: 8883
+      topic: access/v1/status/{device_id}
+      description: >-
+        A 30-second heartbeat plus a retained last-will. The payload carries the
+        actuator health, the face library version and model tag, and whether
+        liveness is loaded. The last will is retained and says offline, so a
+        console that subscribes after a device drops still sees it as down
+        rather than as never-seen.
+      schema_type: json
+      description_i18n:
+        zh: >-
+          30 秒心跳加一条 retained 遗嘱。载荷带执行器健康、人脸库版本与 model tag，
+          以及活体是否已加载。遗嘱是 retained 的离线状态，因此设备掉线之后才订阅的
+          控制台看到的是"已离线"，而不是"从没见过这台设备"。
+    - type: http
+      port: 8080
+      endpoint: /v1/facedb/current, /v1/facedb/{version}
+      description: >-
+        The whole face library distribution surface — two endpoints, no MQTT
+        push. Devices poll "current", compare the version, and only then fetch
+        files, with "Range" for chunked and resumable downloads. Activation
+        latency therefore equals the poll period (30 s by default); that is the
+        price paid for a device side that needs nothing but an HTTP client, and
+        for never having a "notification lost but library changed" state.
+      schema_type: json
+      description_i18n:
+        zh: >-
+          人脸库下发的全部接口——两条，没有 MQTT 推送。设备轮询 「current」 比对版本，
+          变了才取文件，分块与断点续传走标准 「Range」。因此激活时延等于轮询周期
+          （默认 30 s）；换来的是设备侧只需要一个 HTTP 客户端，也不存在"通知丢了
+          但库已经变了"的不一致态。
+    - type: http
+      port: 8088
+      endpoint: /api/events, /api/devices, /api/persons, /api/audit/verify
+      description: >-
+        The management console's API behind a shared-token gate with three
+        roles — viewer reads, operator issues unlock/hold_open/lock, admin
+        enrols, deletes and rolls back. There is no anonymous read, and the
+        service refuses to start with no token configured. A shared token over
+        plain HTTP is not authentication: terminate TLS in front of it.
+      schema_type: json
+      description_i18n:
+        zh: >-
+          管理界面的 API，走共享 token 闸门，三档角色——viewer 只读，operator 可下发
+          unlock / hold_open / lock，admin 可注册、删除与回滚。没有匿名读，一个 token
+          都没配时服务直接拒绝启动。共享 token 走明文 HTTP 等于没有鉴权，必须在
+          反代后面终止 TLS。
+    - type: dry_contact
+      port: null
+      endpoint: 'COM / NO (NC on the SPDT alternative)'
+      description: >-
+        The physical output of every preset: a relay's mechanical contact, not
+        a voltage. Idle, mid-pulse and powered-off all read 0 V across
+        "COM"/"NO" on a meter — nothing on this side is ever driven or
+        pulled. A door controller wires its own input across those two
+        terminals; whoever owns that controller decides what a momentary
+        closure does, and the lock, the lock's supply and the controller
+        itself are outside this design's BOM. "relay_contact" ("NO"/"NC") and
+        "fail_mode" describe the state of this contact and of the
+        controller's input, not the lock, and neither has a default.
+      schema_type: null
+      description_i18n:
+        zh: >-
+          每个套餐真正对外的物理输出：一个继电器的机械触点，不是一路电压。
+          空闲、脉冲中、掉电三种状态，用万用表量 「COM」/「NO」 都读到 0
+          V——这一侧从不被我们驱动或拉低。门控控制器把自己的输入接到这两个端子上，
+          瞬时闭合之后怎么动作由控制器的所有者决定；锁、锁电源与门控控制器本身
+          都不在本方案 BOM 内。「relay_contact」（「NO」/「NC」）与 「fail_mode」
+          描述的是这个触点与门控输入端的状态，不是锁，因此都不设默认值。
+
+  input_requirements:
+    - type: rtsp
+      description: >-
+        A camera at the door at roughly face height, framed so one face fills a
+        usable part of the frame at the distance people actually stop. Route A uses
+        the reCamera's own sensor; route B accepts any RTSP stream. Backlit doorways and glass reflections
+        are the usual failure modes at a door — check the framing against both.
+      required: true
+      description_i18n:
+        zh: >-
+          门口一台大致齐面部高度的摄像头，取景要让人真正停下来的距离上，单张人脸
+          在画面里占到可用比例。路线 A 用 reCamera 自带传感器；路线 B 接任意 RTSP 流。逆光门口与玻璃反光是常见失效模式，
+          取景时要避开它们。
+    - type: usb
+      description: >-
+        A relay module (see "output_interfaces" type "dry_contact") between
+        the compute board's GPIO/DO and a door controller of the site's own
+        choosing. This design's BOM ends at the relay's "COM"/"NO" contact —
+        the door controller, the lock and the lock's supply are not part of
+        it and are not substitutable with a GPIO pin: a lock draws 300 mA to
+        1 A, while a GPIO pin or an opto-isolated DO carries milliamps.
+      required: true
+      description_i18n:
+        zh: >-
+          一个继电器模块（见 「output_interfaces」 里 「dry_contact」 那一条），
+          接在计算板的 GPIO/DO 与现场自选的门控控制器之间。本方案的 BOM 到继电器的
+          「COM」/「NO」 触点为止——门控控制器、锁与锁电源都不在其中，也不能用 GPIO
+          引脚替代：锁的工作电流 300 mA–1 A，而 GPIO 引脚和光隔 DO 只有 mA 级。
+    - type: network
+      description: >-
+        A host for the cloud side — the face library server, the management
+        console and an MQTT broker. Any amd64 or arm64 Linux box with Docker
+        works; it does not need a GPU. It must be reachable from every door
+        device, and its clock must be right, because devices with no RTC take
+        their time correction from its HTTP "Date" header.
+      required: true
+      description_i18n:
+        zh: >-
+          一台承载云端的主机——人脸库服务、管理界面与 MQTT broker。任意装了 Docker 的
+          amd64 或 arm64 Linux 机器都行，不需要 GPU。它必须对每一台门口设备可达，
+          并且自身时钟必须准确——没有 RTC 的设备靠它的 HTTP 「Date」 头做时间修正。
+
+  device_catalog:
+    external_cloud_host:
+      name: Cloud / On-Prem Host
+      name_i18n:
+        zh: 云端 / 本地服务器
+      description: Runs face library, management console and MQTT broker in containers
+      description_i18n:
+        zh: 容器运行人脸库、管理界面与 MQTT broker
+    recamera_pro:
+      description: Runs face recognition and door control on-camera (F1 Door Access app)
+      description_i18n:
+        zh: 识别与门控都跑在摄像头本机（F1 门禁应用）
+    recamera_2002:
+      description: On-device face recognition via MQTT; HQ PoE model has relay header
+      description_i18n:
+        zh: 机载人脸识别，MQTT 控制；HQ PoE 型号带继电器排针
+    recomputer_j20:
+      description: Industrial box; recognition in containers, door via opto-isolated DO
+      description_i18n:
+        zh: 工业盒子，容器跑识别，门控走光隔数字输出
+    recomputer_j40:
+      description: Compute host for the MQTT-relay preset; no local door wiring
+      description_i18n:
+        zh: MQTT 继电器套餐主机，本机无门控接线
+    recomputer_j30:
+      description: Smaller Orin Nano option for the same MQTT-relay role
+      description_i18n:
+        zh: 同一角色下更小的 Orin Nano 选项
+    recomputer_r10:
+      description: Relay option for the MQTT preset; unlock is a point write on gateway
+      description_i18n:
+        zh: MQTT 套餐继电器选项，开门写成网关点位
+    xiao_esp32s3:
+      description: MQTT relay node; drives a dry contact, pulse timed by firmware
+      description_i18n:
+        zh: MQTT 继电器节点，驱动干接点，脉冲由固件计时
+    generic_relay_module:
+      name: Grove Relay
+      name_i18n:
+        zh: Grove 继电器
+      product_url: https://www.seeedstudio.com/Grove-Relay.html
+      description: SPST-NO relay, 3.3-5V trigger; isolated dry contact, no NC terminal
+      description_i18n:
+        zh: SPST-NO 继电器，3.3–5V 触发，无 NC
+    generic_relay_module_spdt:
+      name: Grove - SPDT Relay(30A)
+      name_i18n:
+        zh: Grove - SPDT 继电器（30A）
+      product_url: https://www.seeedstudio.com/Grove-SPDT-Relay-30A.html
+      description: SPDT relay with NC terminal, for normally-closed door controllers
+      description_i18n:
+        zh: SPDT 继电器带 NC 端子，供常闭型门控使用
+    generic_relay_module_xiao:
+      name: XIAO 1-Channel Relay
+      name_i18n:
+        zh: XIAO 1-Channel Relay
+      product_url: https://www.seeedstudio.com/Relay-add-on-module-for-XIAO-p-6310.html
+      description: XIAO stackable relay board; SPST-NO only, active-high, no isolation
+      description_i18n:
+        zh: XIAO 叠板继电器，仅 SPST-NO，高电平触发，无隔离
+    generic_rtsp_camera:
+      name: RTSP / IP Camera
+      name_i18n:
+        zh: RTSP / IP 摄像头
+      description: Any RTSP camera at the door, for presets without their own sensor
+      description_i18n:
+        zh: 门口任意 RTSP 摄像头，供无自带传感器的套餐用
+
+  presets:
+    - id: a_ai_camera
+      name: A. reCamera Pro at the Door
+      name_i18n:
+        zh: A. reCamera Pro 直控
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: A reCamera Pro recognises and drives the relay from its own GPIO — no network hop.
+      description_i18n:
+        zh: reCamera Pro 自行识别、验活体、判定，用自身 GPIO 驱动继电器，不经网络。
+      device_groups:
+        - id: cloud
+          name: Cloud Host
+          name_i18n:
+            zh: 云端主机
+          type: single
+          required: true
+          options:
+            - device_ref: external_cloud_host
+          default: external_cloud_host
+        - id: door
+          name: Door Camera
+          name_i18n:
+            zh: 门口摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: recamera_pro
+          default: recamera_pro
+        - id: relay
+          name: Relay
+          name_i18n:
+            zh: 继电器
+          description: >-
+            The Grove Relay (SKU 103020005) is SPST-NO — "COM"/"NO" only, and
+            fail-secure is the only posture it can wire. A door controller whose
+            input is normally-closed needs an "NC" terminal: order the Grove
+            SPDT Relay 30 A (SKU 103020012) instead, and confirm its 3.3 V
+            trigger on hardware or feed its own VCC/GND from a separate 5 V
+            source. On the standard-reCamera route the relay hangs off the
+            XIAO's own pin, so the XIAO 1-Channel Relay add-on (SKU 114993555)
+            also fits; it is SPST-NO as well, so it carries the same
+            fail-secure-only limit.
+          description_i18n:
+            zh: >-
+              Grove Relay（SKU 103020005）是 SPST-NO——只有 「COM」/「NO」，
+              接法上只能做 fail-secure。门控输入是常闭型、需要 「NC」 端子的，
+              改订 Grove SPDT 继电器 30A（SKU 103020012），并在上板前确认它的
+              3.3 V 触发，或者给它的 VCC/GND 单独接一路 5 V 电源。标准版 reCamera
+              路线上继电器接在 XIAO 自己的引脚上，XIAO 1-Channel Relay 扩展板
+              （SKU 114993555）也适用；它同样是 SPST-NO，因此同样只能做
+              fail-secure。
+          type: single
+          required: true
+          options:
+            - device_ref: generic_relay_module
+          default: generic_relay_module
+
+    - id: a_recamera_poe
+      name: B. reCamera PoE
+      name_i18n:
+        zh: B. reCamera PoE
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: A 2002 HQ PoE recognises on-camera and drives the relay from header D1 — no network hop.
+      description_i18n:
+        zh: 2002 HQ PoE 在摄像头上识别判定，用排针 D1 驱动继电器，不经网络。
+      device_groups:
+        - id: cloud
+          name: Cloud Host
+          name_i18n:
+            zh: 云端主机
+          type: single
+          required: true
+          options:
+            - device_ref: external_cloud_host
+          default: external_cloud_host
+        - id: door
+          name: Door Camera
+          name_i18n:
+            zh: 门口摄像头
+          description: >-
+            The 2002 HQ PoE variant. Its baseboard carries the 6-pin header
+            this preset drives the relay from.
+          description_i18n:
+            zh: >-
+              2002 HQ PoE 型号。本套餐驱动继电器用的 6-pin 排针在它的底板上。
+          type: single
+          required: true
+          options:
+            - device_ref: recamera_2002
+          default: recamera_2002
+        - id: relay
+          name: Relay
+          name_i18n:
+            zh: 继电器
+          description: >-
+            The Grove Relay (SKU 103020005) is SPST-NO — "COM"/"NO" only, and
+            fail-secure is the only posture it can wire. A door controller whose
+            input is normally-closed needs an "NC" terminal: order the Grove
+            SPDT Relay 30 A (SKU 103020012) instead, and confirm its 3.3 V
+            trigger on hardware or feed its own VCC/GND from a separate 5 V
+            source. The header's level polarity and available drive current are
+            undocumented by the vendor, so confirm both with a meter and an LED
+            before wiring a lock.
+          description_i18n:
+            zh: >-
+              Grove Relay（SKU 103020005）是 SPST-NO——只有 「COM」/「NO」，
+              接法上只能做 fail-secure。门控输入是常闭型、需要 「NC」 端子的，
+              改订 Grove SPDT 继电器 30A（SKU 103020012），并在上板前确认它的
+              3.3 V 触发，或者给它的 VCC/GND 单独接一路 5 V 电源。排针的电平极性
+              与可供电流厂商没写，接锁之前先用万用表与 LED 确认。
+          type: single
+          required: true
+          options:
+            - device_ref: generic_relay_module
+          default: generic_relay_module
+
+    - id: a_recamera_std
+      name: C. Standard reCamera (2002 / 2002w)
+      name_i18n:
+        zh: C. 2002 / 2002w
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: A 2002/2002w recognises on-camera. No usable header; unlock goes via MQTT to a relay node.
+      description_i18n:
+        zh: 2002 / 2002w 在摄像头识别判定，无可用排针，开门经 MQTT 发给继电器节点。
+      device_groups:
+        - id: cloud
+          name: Cloud Host
+          name_i18n:
+            zh: 云端主机
+          type: single
+          required: true
+          options:
+            - device_ref: external_cloud_host
+          default: external_cloud_host
+        - id: door
+          name: Door Camera
+          name_i18n:
+            zh: 门口摄像头
+          description: >-
+            The 2002 or 2002w variant. Neither carries a usable header pin, so
+            the relay does not sit on the camera.
+          description_i18n:
+            zh: >-
+              2002 或 2002w 型号。两款都没有可用排针，继电器不接在摄像头上。
+          type: single
+          required: true
+          options:
+            - device_ref: recamera_2002
+          default: recamera_2002
+        - id: relay
+          name: Relay
+          name_i18n:
+            zh: 继电器
+          description: >-
+            The Grove Relay (SKU 103020005) is SPST-NO — "COM"/"NO" only, and
+            fail-secure is the only posture it can wire. A door controller whose
+            input is normally-closed needs an "NC" terminal: order the Grove
+            SPDT Relay 30 A (SKU 103020012) instead, and confirm its 3.3 V
+            trigger on hardware or feed its own VCC/GND from a separate 5 V
+            source. On this route the relay hangs off the relay node's own pin,
+            so the XIAO 1-Channel Relay add-on (SKU 114993555) also fits; it is
+            SPST-NO as well, so it carries the same fail-secure-only limit.
+          description_i18n:
+            zh: >-
+              Grove Relay（SKU 103020005）是 SPST-NO——只有 「COM」/「NO」，
+              接法上只能做 fail-secure。门控输入是常闭型、需要 「NC」 端子的，
+              改订 Grove SPDT 继电器 30A（SKU 103020012），并在上板前确认它的
+              3.3 V 触发，或者给它的 VCC/GND 单独接一路 5 V 电源。本路线上继电器
+              接在继电器节点自己的引脚上，XIAO 1-Channel Relay 扩展板
+              （SKU 114993555）也适用；它同样是 SPST-NO，因此同样只能做
+              fail-secure。
+          type: single
+          required: true
+          options:
+            - device_ref: generic_relay_module
+          default: generic_relay_module
+        - id: relay_node
+          name: Relay Node
+          name_i18n:
+            zh: 继电器节点
+          description: >-
+            The 2002 / 2002w have no usable header pin, so the relay is driven
+            from this node over MQTT. Without it the door has nothing to open
+            it.
+          description_i18n:
+            zh: >-
+              2002 / 2002w 没有可用排针，继电器由这个节点经 MQTT 驱动。
+              没有它这道门就没有东西能开。
+          type: single
+          required: true
+          options:
+            - device_ref: xiao_esp32s3
+            - device_ref: recomputer_r10
+          default: xiao_esp32s3
+
+    - id: b_ai_host
+      name: D. AI Host with Your Existing Cameras
+      name_i18n:
+        zh: D. AI 主机 + 现有摄像头
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: "For doors with existing cameras: reComputer pulls RTSP, recognises, and shuts a relay."
+      description_i18n:
+        zh: 适合已有摄像头的门口：reComputer 拉 RTSP 流，容器内识别，闭合继电器。
+      device_groups:
+        - id: cloud
+          name: Cloud Host
+          name_i18n:
+            zh: 云端主机
+          type: single
+          required: true
+          options:
+            - device_ref: external_cloud_host
+          default: external_cloud_host
+        - id: compute
+          name: Access Host
+          name_i18n:
+            zh: 门禁主机
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_j20
+            - device_ref: recomputer_j40
+            - device_ref: recomputer_j30
+            - device_ref: recomputer_r10
+          default: recomputer_j20
+        - id: camera
+          name: Camera
+          name_i18n:
+            zh: 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: generic_rtsp_camera
+          default: generic_rtsp_camera
+        - id: relay
+          name: Relay
+          name_i18n:
+            zh: 继电器
+          description: >-
+            The Grove Relay (SKU 103020005) is SPST-NO — "COM"/"NO" only, and
+            fail-secure is the only posture it can wire. A door controller whose
+            input is normally-closed needs an "NC" terminal: order the Grove
+            SPDT Relay 30 A (SKU 103020012) instead, and confirm its 3.3 V
+            trigger on hardware or feed its own VCC/GND from a separate 5 V
+            source. On the standard-reCamera route the relay hangs off the
+            XIAO's own pin, so the XIAO 1-Channel Relay add-on (SKU 114993555)
+            also fits; it is SPST-NO as well, so it carries the same
+            fail-secure-only limit.
+          description_i18n:
+            zh: >-
+              Grove Relay（SKU 103020005）是 SPST-NO——只有 「COM」/「NO」，
+              接法上只能做 fail-secure。门控输入是常闭型、需要 「NC」 端子的，
+              改订 Grove SPDT 继电器 30A（SKU 103020012），并在上板前确认它的
+              3.3 V 触发，或者给它的 VCC/GND 单独接一路 5 V 电源。标准版 reCamera
+              路线上继电器接在 XIAO 自己的引脚上，XIAO 1-Channel Relay 扩展板
+              （SKU 114993555）也适用；它同样是 SPST-NO，因此同样只能做
+              fail-secure。
+          type: single
+          required: true
+          options:
+            - device_ref: generic_relay_module
+          default: generic_relay_module
+        - id: relay_node
+          name: MQTT Relay Node (only when the host is not at the door)
+          name_i18n:
+            zh: MQTT 继电器节点（仅当主机不在门口时）
+          description: >-
+            Skip this when the relay hangs off the host's own DO or GPIO. Pick
+            one only when the compute is away from the door or serves several
+            doors — it adds a network hop to the unlock path.
+          description_i18n:
+            zh: >-
+              继电器接在主机自己的 DO 或 GPIO 上时不需要选。只有计算离门远、
+              或一台主机管好几道门时才选——它在开门路径上多一跳网络。
+          type: single
+          required: false
+          options:
+            - device_ref: recomputer_r10
+            - device_ref: xiao_esp32s3
+          default: xiao_esp32s3
+  stats:
+    difficulty: advanced
+    estimated_time: 60min
+
+  links:
+    wiki: https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/
+    wiki_i18n:
+      zh: https://wiki.seeedstudio.com/cn/solutions/unmanned-store-face-access/
+
+deployment:
+  guide_file: guide.md
+  guide_file_i18n:
+    zh: guide_zh.md
+  selection_mode: sequential

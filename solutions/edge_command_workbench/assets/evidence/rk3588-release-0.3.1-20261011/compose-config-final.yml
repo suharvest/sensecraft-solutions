@@ -1,0 +1,77 @@
+name: edge-command-workbench-rkllm
+services:
+  edge-command-workbench:
+    container_name: edge-command-workbench-rkllm
+    devices:
+      - source: /dev/dri
+        target: /dev/dri
+        permissions: rwm
+    environment:
+      DECISION_BACKEND: rkllm
+      EXPECTED_BACKEND: rkllm
+      EXPECTED_MAX_OPTIONS: "16"
+      EXPECTED_SEQ_LEN: "8192"
+      KEV_HEAD_PATH: /models/kev_head.npz
+      LD_LIBRARY_PATH: /opt/kev
+      MAX_OPTIONS: "16"
+      MODEL_ID: kev
+      MODEL_METADATA_PATH: /models/model_metadata.json
+      MODEL_PATH: /models/model.rkllm
+      MODEL_SERVICES_JSON: '{"laya":{"name":"Laya","url":"http://127.0.0.1:18771"}}'
+      PORT: "18768"
+      RKLLM_HELPER_PATH: /opt/kev/libkev_runtime.so
+      RKLLM_LIB_PATH: /opt/kev/librkllmrt.so
+      SEQ_LEN: "8192"
+      TOKENIZER_PATH: /models/tokenizer
+      VOICE_SERVICE_URL: ""
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - /app/docker/healthcheck.py
+      timeout: 5s
+      interval: 10s
+      retries: 18
+      start_period: 1m0s
+    image: edge-command-workbench:rockchip-rkllm-0.3.1-review
+    network_mode: host
+    pull_policy: never
+    restart: unless-stopped
+    security_opt:
+      - systempaths=unconfined
+    volumes:
+      - type: bind
+        source: /home/radxa/edge-command-workbench-rkllm/model.rkllm
+        target: /models/model.rkllm
+        read_only: true
+        bind: {}
+      - type: bind
+        source: /home/radxa/edge-command-workbench-rkllm/tokenizer
+        target: /models/tokenizer
+        read_only: true
+        bind: {}
+      - type: bind
+        source: /home/radxa/edge-command-workbench-rkllm/kev_head.npz
+        target: /models/kev_head.npz
+        read_only: true
+        bind: {}
+      - type: bind
+        source: /home/radxa/edge-command-workbench-rkllm/model_metadata.json
+        target: /models/model_metadata.json
+        read_only: true
+        bind: {}
+      - type: bind
+        source: /home/radxa/edge-command-workbench-rkllm/runtime/librkllmrt.so
+        target: /opt/kev/librkllmrt.so
+        read_only: true
+        bind: {}
+      - type: bind
+        source: /proc/device-tree/compatible
+        target: /proc/device-tree/compatible
+        read_only: true
+        bind: {}
+      - type: bind
+        source: /sys/firmware/devicetree/base
+        target: /sys/firmware/devicetree/base
+        read_only: true
+        bind: {}

@@ -104,6 +104,336 @@ user_inputs:
     description_i18n:
       zh: "设备开机后自动全屏打开仪表盘（适用于展览/展示场景）"
 
+actions:
+  before:
+    - name: Check Speech service (port 8621)
+      env:
+        INPUT_VOICE_ASSISTANT_HOST: "{{VOICE_ASSISTANT_HOST}}"
+      run: |
+        set -e
+        HOST="${INPUT_VOICE_ASSISTANT_HOST:-127.0.0.1}"
+        if curl -sf "http://$HOST:8621/health" >/dev/null 2>&1; then
+          echo "Speech service is running on $HOST"
+        else
+          echo "ERROR: Speech service ($HOST:8621) is not reachable."
+          echo "Please deploy the 'Jetson Local Voice Assistant' solution first,"
+          echo "then re-run this deployment."
+          exit 1
+        fi
+      name_i18n:
+        zh: 检查语音服务（端口 8621）
+    - name: Check LLM endpoint
+      fail_fast: false
+      env:
+        INPUT_LLM_ENDPOINT: "{{LLM_ENDPOINT}}"
+        INPUT_VOICE_ASSISTANT_HOST: "{{VOICE_ASSISTANT_HOST}}"
+      run: |
+        URL="$INPUT_LLM_ENDPOINT"
+        if [ -z "$URL" ]; then
+          HOST="${INPUT_VOICE_ASSISTANT_HOST:-127.0.0.1}"
+          URL="http://$HOST:11435"
+          echo "LLM_ENDPOINT not set — defaulting to ${URL}"
+        fi
+        echo "Probing LLM endpoint: $URL"
+        for path in "" "/api/tags" "/v1/models"; do
+          code=$(curl -sf -o /dev/null -w "%{http_code}" --max-time 5 "${URL}${path}" 2>/dev/null || echo "")
+          if [ -n "$code" ] && [ "$code" -ge 200 ] && [ "$code" -lt 500 ] 2>/dev/null; then
+            echo "LLM endpoint reachable (HTTP ${code} from ${URL}${path})"
+            exit 0
+          fi
+        done
+        echo "WARN: LLM endpoint $URL did not respond. Deployment will continue,"
+        echo "but reachy-voice will fail to chat until the endpoint is reachable."
+      name_i18n:
+        zh: 检查 LLM 服务地址
+    - name: Verify or install Hailo stack (hardware + driver + userspace)
+      sudo: true
+      timeout: 900
+      run: |
+        set -e
+        HAILO_PY=/usr/lib/python3/dist-packages/hailo_platform
+        HAILO_LIB=/usr/lib/aarch64-linux-gnu/libhailort.so.4
+
+        if [ -e /dev/hailo0 ] && [ -d "$HAILO_PY" ] && [ -e "$HAILO_LIB" ] \
+           && lsmod | grep -q "^hailo_pci"; then
+          INSTALLED=$(dpkg-query -W -f='${Version}' hailort 2>/dev/null || echo "?")
+          echo "Hailo stack ready: HailoRT ${INSTALLED}, /dev/hailo0 present, userspace OK."
+          exit 0
+        fi
+
+        echo "Hailo stack not fully installed — bootstrapping..."
+
+        if ! lspci 2>/dev/null | grep -qi "hailo"; then
+          echo "ERROR: No Hailo PCIe device detected via lspci."
+          echo "  - Is the Hailo-8 AI HAT seated in the M.2 slot?"
+          echo "  - Did you enable PCIe Gen3 in /boot/firmware/config.txt?"
+          echo "    (dtparam=pciex1_gen=3)"
+          echo "Power off, reseat the HAT, reboot, then retry."
+          exit 1
+        fi
+
+        SUDO=""
+        if [ "$(id -u)" -ne 0 ]; then
+          if sudo -n true 2>/dev/null; then
+            SUDO="sudo -n"
+          else
+            echo "ERROR: Root privileges are required to install the Hailo stack, and non-interactive sudo is unavailable." >&2
+            echo "Please install Hailo manually in a terminal (sudo apt-get update && sudo apt-get install -y hailo-all && sudo reboot) or configure passwordless sudo, then retry." >&2
+            exit 1
+          fi
+        fi
+
+        if ! apt-cache policy hailo-all 2>/dev/null | grep -q "Candidate:" \
+           || apt-cache policy hailo-all 2>/dev/null | grep -q "Candidate: (none)"; then
+          echo "Raspberry Pi apt source not active — adding it..."
+          $SUDO apt-get install -y --no-install-recommends gnupg curl ca-certificates
+          curl -fsSL http://archive.raspberrypi.com/debian/raspberrypi.gpg.key \
+            | $SUDO gpg --dearmor -o /usr/share/keyrings/raspberrypi-archive-keyring.gpg
+          echo "deb [signed-by=/usr/share/keyrings/raspberrypi-archive-keyring.gpg] http://archive.raspberrypi.com/debian bookworm main" \
+            | $SUDO tee /etc/apt/sources.list.d/raspberrypi.list >/dev/null
+          $SUDO apt-get update
+        fi
+
+        echo "Running: sudo apt-get install -y hailo-all  (this may take 5-10 min for DKMS build)"
+        $SUDO apt-get install -y hailo-all || {
+          echo "ERROR: hailo-all install failed."
+          echo "Check: apt-cache policy hailo-all"
+          exit 1
+        }
+
+        $SUDO apt-mark hold hailort hailort-pcie-driver || true
+
+        HAILO_MODPROBE_CONF=/etc/modprobe.d/hailo.conf
+        if [ ! -f "$HAILO_MODPROBE_CONF" ] || ! grep -q "force_desc_page_size=4096" "$HAILO_MODPROBE_CONF" 2>/dev/null; then
+          echo "Setting hailo_pci kernel module option: force_desc_page_size=4096"
+          $SUDO mkdir -p /etc/modprobe.d
+          echo 'options hailo_pci force_desc_page_size=4096' | $SUDO tee "$HAILO_MODPROBE_CONF" >/dev/null
+        fi
+        $SUDO rmmod hailo_pci 2>/dev/null || true
+        $SUDO modprobe hailo_pci
+        if ! lsmod | grep -q "^hailo_pci"; then
+          echo "WARN: hailo_pci kernel module not loaded after install."
+          echo "  This usually means a reboot is required for DKMS to finalize."
+          echo "  Reboot the device and re-run this deployment."
+          exit 1
+        fi
+
+        for i in $(seq 1 10); do
+          [ -e /dev/hailo0 ] && break
+          sleep 1
+        done
+
+        MISSING=0
+        for p in /dev/hailo0 "$HAILO_PY" "$HAILO_LIB"; do
+          if [ ! -e "$p" ]; then
+            echo "MISSING after install: $p"
+            MISSING=1
+          fi
+        done
+        if [ "$MISSING" -eq 1 ]; then
+          echo "ERROR: Hailo install completed but required paths missing — try rebooting."
+          exit 1
+        fi
+        INSTALLED=$(dpkg-query -W -f='${Version}' hailort 2>/dev/null || echo "?")
+        echo "Hailo stack installed: HailoRT ${INSTALLED}, /dev/hailo0 present, userspace OK."
+      name_i18n:
+        zh: 检测或安装 Hailo 软硬件栈（硬件 + 驱动 + 用户态）
+    - name: Configure USB power (disable autosuspend on Reachy devices)
+      run: |
+        set -e
+        SUDO=""
+        CAN_SUDO=0
+        if [ "$(id -u)" -eq 0 ]; then
+          CAN_SUDO=1
+        elif sudo -n true 2>/dev/null; then
+          SUDO="sudo -n"
+          CAN_SUDO=1
+        fi
+        RULE_FILE=/etc/udev/rules.d/99-reachy-usb-no-autosuspend.rules
+        if [ ! -f "$RULE_FILE" ] || ! grep -q '38fb' "$RULE_FILE"; then
+          if [ "$CAN_SUDO" -eq 1 ]; then
+            echo "Installing udev rule: $RULE_FILE"
+            $SUDO tee "$RULE_FILE" >/dev/null << 'EOF'
+        # Reachy Mini — keep USB peripherals powered (no autosuspend).
+        # Managed by sensecraft provisioning. Do not edit by hand.
+        SUBSYSTEM=="usb", ATTR{idVendor}=="38fb", ATTR{idProduct}=="1002", ATTR{power/control}="on", ATTR{power/autosuspend_delay_ms}="-1"
+        SUBSYSTEM=="usb", ATTR{idVendor}=="38fb", ATTR{idProduct}=="1001", ATTR{power/control}="on", ATTR{power/autosuspend_delay_ms}="-1"
+        EOF
+            $SUDO udevadm control --reload-rules 2>/dev/null || true
+            $SUDO udevadm trigger --subsystem-match=usb 2>/dev/null || true
+          else
+            echo "WARNING: Non-interactive sudo is not available; skipping udev rule installation ($RULE_FILE)."
+            echo "To install manually, run in a terminal:"
+            echo "  sudo tee $RULE_FILE <<'EOF'"
+            echo 'SUBSYSTEM=="usb", ATTR{idVendor}=="38fb", ATTR{idProduct}=="1002", ATTR{power/control}="on", ATTR{power/autosuspend_delay_ms}="-1"'
+            echo 'SUBSYSTEM=="usb", ATTR{idVendor}=="38fb", ATTR{idProduct}=="1001", ATTR{power/control}="on", ATTR{power/autosuspend_delay_ms}="-1"'
+            echo "EOF"
+            echo "  sudo udevadm control --reload-rules && sudo udevadm trigger --subsystem-match=usb"
+            exit 0
+          fi
+        fi
+        if [ "$CAN_SUDO" -eq 1 ]; then
+          for dev in /sys/bus/usb/devices/*/idVendor; do
+            [ "$(cat "$dev" 2>/dev/null)" = "38fb" ] || continue
+            devdir=$(dirname "$dev")
+            printf 'on\n' | $SUDO tee "$devdir/power/control" >/dev/null 2>&1 || true
+          done
+        fi
+        echo "USB autosuspend disabled for Reachy Mini (VID 38fb)"
+      name_i18n:
+        zh: 配置 USB 电源（禁用 Reachy 设备的自动挂起）
+    - name: Auto-reconnect reachy-daemon when the robot is plugged in (udev)
+      run: |
+        set -e
+        SUDO=""
+        CAN_SUDO=0
+        if [ "$(id -u)" -eq 0 ]; then
+          CAN_SUDO=1
+        elif sudo -n true 2>/dev/null; then
+          SUDO="sudo -n"
+          CAN_SUDO=1
+        fi
+        RULE_FILE=/etc/udev/rules.d/99-reachy-daemon-reconnect.rules
+        if [ ! -f "$RULE_FILE" ] || ! grep -q 'reachy-daemon' "$RULE_FILE"; then
+          if [ "$CAN_SUDO" -eq 1 ]; then
+            echo "Installing udev rule: $RULE_FILE"
+            $SUDO tee "$RULE_FILE" >/dev/null << 'EOF'
+        # Reachy Mini — auto-restart reachy-daemon when the servo serial bus appears.
+        # Managed by sensecraft provisioning. Do not edit by hand.
+        ACTION=="add", SUBSYSTEM=="tty", ENV{ID_VENDOR_ID}=="1a86", ENV{ID_MODEL_ID}=="55d3", RUN+="/usr/bin/systemd-run --no-block /usr/bin/docker restart reachy-daemon"
+        EOF
+            $SUDO udevadm control --reload-rules 2>/dev/null || true
+            $SUDO udevadm trigger --subsystem-match=tty 2>/dev/null || true
+          else
+            echo "WARNING: Non-interactive sudo is not available; skipping udev rule installation ($RULE_FILE)."
+            echo "To install manually, run in a terminal:"
+            echo "  echo 'ACTION==\"add\", SUBSYSTEM==\"tty\", ENV{ID_VENDOR_ID}==\"1a86\", ENV{ID_MODEL_ID}==\"55d3\", RUN+=\"/usr/bin/systemd-run --no-block /usr/bin/docker restart reachy-daemon\"' | sudo tee $RULE_FILE"
+            echo "  sudo udevadm control --reload-rules && sudo udevadm trigger --subsystem-match=tty"
+          fi
+        fi
+        if ls /dev/ttyACM* >/dev/null 2>&1 && docker ps --format '{{.Names}}' | grep -qx reachy-daemon; then
+          echo "Reachy serial present — restarting reachy-daemon to (re)scan the port..."
+          docker restart reachy-daemon >/dev/null 2>&1 || true
+        fi
+        echo "reachy-daemon auto-reconnect rule checked (serial VID 1a86/55d3)"
+      name_i18n:
+        zh: 机器人插入时自动重连 reachy-daemon（udev）
+    - name: Create data directories
+      env:
+        DATA_DIR: "{{DATA_DIR}}"
+      run: |
+        set -e
+        DATA_DIR="${DATA_DIR:-$HOME/reachy-data}"
+        case "$DATA_DIR" in
+          "~") DATA_DIR="$HOME" ;;
+          "~/"*) DATA_DIR="$HOME/${DATA_DIR#\~/}" ;;
+        esac
+        mkdir -p "$DATA_DIR/reachy-voice" "$DATA_DIR/vision"
+        echo "Data directories ready: $DATA_DIR"
+      name_i18n:
+        zh: 创建数据目录
+    - name: Make Reachy voice entrypoint executable
+      run: |
+        set -e
+        if [ -f "assets/docker/reachy_hailo/entrypoint.sh" ]; then
+          chmod +x "assets/docker/reachy_hailo/entrypoint.sh"
+        elif [ -f "entrypoint.sh" ]; then
+          chmod +x "entrypoint.sh"
+        fi
+        echo "Entrypoint executable set"
+      name_i18n:
+        zh: 设置 Reachy voice 启动脚本可执行
+  after:
+    - name: Install kiosk auto-start
+      when:
+        field: ENABLE_KIOSK
+        value: "true"
+      run: |
+        set -e
+        cat > "$HOME/reachy-kiosk.sh" << 'KIOSK_SCRIPT'
+        #!/usr/bin/env bash
+        DASHBOARD_URL="${DASHBOARD_URL:-http://localhost:8042}"
+        MAX_WAIT=300
+
+        echo "Waiting for dashboard at $DASHBOARD_URL ..."
+        for ((i=1; i<=MAX_WAIT/5; i++)); do
+            curl -s --max-time 2 "$DASHBOARD_URL/" > /dev/null 2>&1 && break
+            sleep 5
+        done
+
+        echo "Launching kiosk: $DASHBOARD_URL"
+        BROWSER=""
+        for cmd in chromium-browser chromium google-chrome firefox; do
+            if command -v "$cmd" > /dev/null 2>&1; then
+                BROWSER="$cmd"
+                break
+            fi
+        done
+
+        if [ -z "$BROWSER" ]; then
+            echo "ERROR: No browser found"
+            exit 1
+        fi
+
+        case "$BROWSER" in
+            *chromium*|*chrome*)
+                exec "$BROWSER" --kiosk --no-first-run --disable-translate --disable-infobars \
+                    --disable-session-crashed-bubble --noerrdialogs \
+                    --disable-features=TranslateUI \
+                    "$DASHBOARD_URL"
+                ;;
+            *firefox*)
+                exec "$BROWSER" --kiosk "$DASHBOARD_URL"
+                ;;
+        esac
+        KIOSK_SCRIPT
+        chmod +x "$HOME/reachy-kiosk.sh"
+
+        mkdir -p "$HOME/.config/autostart"
+        cat > "$HOME/.config/autostart/reachy-kiosk.desktop" << DESKTOP_EOF
+        [Desktop Entry]
+        Type=Application
+        Name=Reachy Dashboard Kiosk
+        Comment=Auto-launch Reachy dashboard in fullscreen on login
+        Exec=$HOME/reachy-kiosk.sh
+        X-GNOME-Autostart-enabled=true
+        X-GNOME-Autostart-Delay=10
+        DESKTOP_EOF
+
+        GDM_CONF="/etc/gdm3/custom.conf"
+        if [ -f "$GDM_CONF" ]; then
+          LOGIN_USER="${USER:-$(whoami)}"
+          if grep -Eq '^[[:space:]]*AutomaticLoginEnable[[:space:]]*=[[:space:]]*(true|True|1)[[:space:]]*$' "$GDM_CONF" && \
+             grep -Eq "^[[:space:]]*AutomaticLogin[[:space:]]*=[[:space:]]*${LOGIN_USER}[[:space:]]*$" "$GDM_CONF"; then
+            echo "GDM auto-login already configured for $LOGIN_USER"
+          else
+            SUDO=""
+            CAN_SUDO=0
+            if [ "$(id -u)" -eq 0 ]; then
+              CAN_SUDO=1
+            elif sudo -n true 2>/dev/null; then
+              SUDO="sudo -n"
+              CAN_SUDO=1
+            fi
+            if [ "$CAN_SUDO" -eq 1 ]; then
+              $SUDO sed -i \
+                -e '/^[[:space:]]*AutomaticLoginEnable[[:space:]]*=/d' \
+                -e '/^[[:space:]]*AutomaticLogin[[:space:]]*=/d' \
+                -e "/^[[:space:]]*\\[daemon\\]/a AutomaticLoginEnable=true\\nAutomaticLogin=$LOGIN_USER" \
+                "$GDM_CONF"
+              echo "GDM auto-login enabled for $LOGIN_USER"
+            else
+              echo "WARNING: Non-interactive sudo is not available; skipping GDM auto-login update ($GDM_CONF)."
+              echo "To enable manually, run: sudo sed -i '/\\[daemon\\]/a AutomaticLoginEnable=true\\nAutomaticLogin=$LOGIN_USER' $GDM_CONF"
+            fi
+          fi
+        fi
+
+        echo "Kiosk auto-start installed"
+      ignore_error: true
+      name_i18n:
+        zh: 安装全屏展示模式自启动
+
 remote_overrides:
   compose_dir: assets/docker/reachy_hailo
   actions:

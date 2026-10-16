@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="referrer" content="no-referrer">
+  <link rel="icon" href="data:,">
+<title>reSpeaker Audio Lab</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script type="module" src="./app.mjs"></script>
+</head>
+<body>
+<main id="lab">
+  <header class="masthead">
+    <div class="brand"><span class="brand-mark" aria-hidden="true">▥</span><div><h1>reSpeaker Audio Lab</h1><p>AUDIO INTELLIGENCE · LIVE WORKSPACE</p></div></div>
+    <div class="toolbar"><button id="connection-toggle" aria-expanded="false" aria-controls="connection-panel">连接设备</button><button id="control-mode" aria-haspopup="dialog" aria-controls="workbench">全部参数</button></div>
+  </header>
+  <div id="notice" class="notice" role="status">未连接 · 连接 reSpeaker 开始观察声音</div>
+  <p id="signal-health" class="signal-health" role="status"></p>
+  <section id="connection-panel" class="connection panel hidden" aria-label="连接设备">
+    <div><span class="eyebrow">01 / DEVICE CONTROL</span><h2 id="device-name">连接 reSpeaker</h2><p id="usb-info">XVF3000 / XVF3800 / Flex / Lite · 按型号与固件识别能力</p><div class="actions"><button id="connect-usb" class="primary">连接 USB 控制</button><button id="disconnect-usb" disabled>断开控制</button></div><p id="usb-status" class="meta" aria-live="polite">USB 控制未连接</p><p id="control-capability-note" class="meta hidden" aria-live="polite"></p></div>
+    <div><span class="eyebrow">02 / AUDIO INPUT</span><h2>选择同一台设备的声音</h2><p>浏览器分别授权 USB 控制和音频，请核对设备名称。</p><div class="actions"><button id="authorize-audio">授权麦克风</button><select id="audio-input" aria-label="音频输入设备"><option value="">先授权，再选择 reSpeaker</option></select><button id="start-audio" class="primary" disabled>开始采集</button><button id="stop-audio" disabled>停止</button></div><p id="audio-status" class="meta" aria-live="polite">音频未连接</p></div>
+  </section>
+  <nav class="workspace-tabs" role="tablist" aria-label="音频实验单元">
+    <button id="tab-noise" data-workspace="noise" role="tab" aria-selected="true" aria-controls="signal-panel" tabindex="0">降噪对比</button>
+    <button id="tab-echo" data-workspace="echo" role="tab" aria-selected="false" aria-controls="signal-panel" tabindex="-1">回声实验</button>
+    <button id="tab-spatial" data-workspace="spatial" role="tab" aria-selected="false" aria-controls="spatial-panel" tabindex="-1">声源与通道</button>
+    <button id="tab-transcription" data-workspace="transcription" role="tab" aria-selected="false" aria-controls="transcription" tabindex="-1">录音与转录</button>
+  </nav>
+  <section class="signal panel" id="signal-panel" role="tabpanel" aria-labelledby="tab-noise">
+    <div class="section-head"><div><span class="eyebrow">LIVE SIGNAL</span><h2 id="signal-title">声音对比</h2></div><div class="toolbar"><button type="button" data-signal-view="energy" class="active" aria-pressed="true">强弱对比</button><button type="button" data-signal-view="frequency" aria-pressed="false">频段分布</button><button type="button" data-signal-view="spectrum" aria-pressed="false">声谱瀑布</button><span id="stream-info" class="meta">等待音频流</span></div></div>
+    <div class="experiment-switch"><span id="experiment-guide" class="meta">说一句话，再停顿：比较人声起伏和停顿时的声音强度。</span></div>
+    <div class="inline-controls hidden" id="echo-tools"><div class="section-head"><div><span class="eyebrow">ECHO EXPERIMENT</span><h3>回声实验</h3></div><span class="meta">参考播放 → 设备处理 → 下方两路对比</span></div><div class="echo-steps"><div class="echo-step"><b>1</b><label class="file-picker"><span class="file-picker-button">选择测试音频</span><input id="reference-file" type="file" accept="audio/*" tabindex="0"><span id="reference-filename" class="meta">尚未选择文件</span></label></div><div class="echo-step"><b>2</b><div><span>选择 reSpeaker 播放输出</span><button id="choose-output">选择播放输出</button><p id="reference-status" class="meta">需要确认播放设备为 reSpeaker</p></div></div><div class="echo-step"><b>3</b><div><span>播放并观察</span><audio id="reference-player" controls preload="none"></audio><p id="reference-indicator" class="meta" aria-live="polite">参考音频未播放</p></div></div></div><p class="meta">扬声器需连接 reSpeaker 输出。先只播放观察，再边播放边说话，比较下方两路变化。</p><div class="echo-tuning" id="echo-tuning"><h3>播放时切换回声抑制，观察下方两路变化</h3><div id="echo-parameters" class="parameter-grid"></div><p id="aec-diagnostic" class="meta"></p></div><a class="experiment-link" href="#transcription">录下当前实验并试听 →</a></div>
+    <details class="routing" aria-labelledby="routing-title"><summary><span class="eyebrow">DEVICE OUTPUT</span><strong id="routing-title">设备输出</strong><span id="routing-summary" class="meta">等待采集</span></summary><div class="routing-body"><p id="stereo-routing-note" class="meta">浏览器两路输入固定为左、右；此处配置设备送入左右声道的信号。</p><div id="signal-output-slot"><section id="output-routing-panel" class="panel"><div class="section-head"><div><span class="eyebrow">OUTPUT ROUTING</span><h2>左右信号</h2></div><span class="meta">设备输出</span></div><div class="output-routing-grid"><label>左声道<select id="output-left"><option value="">等待 USB 控制</option></select></label><label>右声道<select id="output-right"><option value="">等待 USB 控制</option></select></label></div><div class="actions"><button id="apply-output-routing">应用到设备</button><button id="restore-output-routing" disabled>恢复原路由</button></div><p id="output-routing-status" class="meta" aria-live="polite">切换设备实际输出，图表、录音与试听会一起改变。</p></section></div><div id="channel-selection" class="channel-map hidden"><label>观察通道<select id="original-channel" disabled><option>等待采集</option></select></label><label>对比通道<select id="processed-channel" disabled><option value="">不比较</option></select></label></div><div class="routing-actions"><button id="setup-comparison">左：处理前 / 右：处理后</button><button id="restore-routing" disabled>恢复原路由</button></div><p id="routing-status" class="meta">仅修改运行路由，不保存到 Flash。</p><label class="check"><input id="confirm-map" type="checkbox" disabled>我已确认两路分别为原声与处理后输出</label><p id="mapping-note" class="meta">USB 通道数不等于麦克风数。通道用途需结合当前固件与路由确认。</p></div></details>
+    <p id="hardware-route-note" class="meta"></p><div class="spectra"><div><div class="chart-label"><h3 id="original-title">观察通道</h3><span id="original-level">— dBFS</span></div><div class="live-meter" aria-hidden="true"><i id="original-meter"></i></div><canvas id="original-spectrum" role="img" aria-label="观察通道实时声谱图"></canvas><div class="axis"><span>过去 8 秒</span><span>时间 → 现在</span></div></div><div><div class="chart-label"><h3 id="processed-title">对比通道</h3><span id="processed-level">— dBFS</span></div><div class="live-meter" aria-hidden="true"><i id="processed-meter"></i></div><canvas id="processed-spectrum" role="img" aria-label="对比通道实时声谱图"></canvas><div class="axis"><span>过去 8 秒</span><span>时间 → 现在</span></div></div></div>
+    <div id="spectrum-legend" class="legend hidden"><span>−90 dBFS</span><i></i><span>0 dBFS</span><span>频率：底部 0 Hz → 顶部 8 kHz 或实际奈奎斯特频率</span></div><p id="energy-guide" class="meta">柱子越高，输入声音越强。两路共用 −60 至 0 dBFS 刻度，不代表音质评分。</p><p id="frequency-guide" class="meta hidden">左侧是低频，右侧是高频；曲线越高，该频率的成分越强。两路共用 −90 至 0 dBFS 刻度。</p><p id="comparison-note" class="meta">选择两路输入，观察同一时刻的声音强弱。</p>
+    <div class="inline-controls" id="noise-tools"><h3>降噪处理</h3><div id="noise-parameters" class="parameter-grid"></div></div>
+  </section>
+  <dialog class="panel workbench" id="workbench" aria-labelledby="all-parameters-title"><button id="close-parameters" class="dialog-close" aria-label="关闭全部参数">关闭</button>
+    <div class="section-head"><div><span class="eyebrow">CONTROL WORKBENCH</span><h2 id="all-parameters-title">全部设备参数</h2></div><span id="parameter-status" class="meta" aria-live="polite">连接 USB 后读取可用参数</span></div>
+    <div id="parameters">
+      <section class="parameter-section" id="all-noise-section"><h3>降噪处理</h3><div id="all-noise-parameters" class="parameter-grid"></div></section>
+      <section class="parameter-section" id="all-echo-section"><h3>回声消除</h3><div id="all-echo-parameters" class="parameter-grid"></div></section>
+      <section class="parameter-section" id="all-gain-section"><h3>增益与滤波</h3><div id="all-gain-parameters" class="parameter-grid"></div></section>
+    </div>
+    <div class="actions"><button id="save-a" disabled>记录配置 A</button><button id="restore-a" disabled>恢复配置 A</button><button id="save-flash" disabled>保存到设备 Flash</button><span class="meta">滑杆只应用运行参数；Flash 保存为单独操作。</span></div>
+    <ol id="parameter-events" class="event-list" aria-label="参数变化记录"></ol>
+  </dialog>
+  <div class="monitor-grid hidden" id="spatial-panel" role="tabpanel" aria-labelledby="tab-spatial">
+    <div id="spatial-output-slot"></div>
+    <section class="panel"><div class="section-head"><div><span class="eyebrow">DIRECTION OF ARRIVAL</span><h2>声源方向</h2></div><span id="doa-value" class="angle">—</span></div><canvas id="doa-chart" role="img" aria-label="设备报告的实时声源方向"></canvas><p id="doa-status" class="meta">等待支持 DOA 的设备。此图不表示声源距离。</p></section>
+    <section class="panel"><div class="section-head"><div><span class="eyebrow">CHANNEL MONITOR</span><h2>输入通道</h2></div><label>显示放大<select id="wave-zoom"><option value="1">1×</option><option value="8">8×</option><option value="16" selected>16×</option><option value="32">32×</option></select></label></div><div id="channel-monitor" class="empty">开始采集后显示浏览器实际提供的通道。</div><p id="monitor-note" class="meta">电平条使用真实电平；波形显示 ×16，不改变录音或设备增益。</p><div class="inline-controls" id="gain-tools"><h3>增益与滤波</h3><div id="gain-parameters" class="parameter-grid"></div><p id="gain-diagnostic" class="meta"></p></div></section>
+  </div>
+  <section class="panel transcript-panel hidden" id="transcription" role="tabpanel" aria-labelledby="tab-transcription">
+    <div class="section-head"><div><span class="eyebrow">CAPTURE &amp; LISTEN</span><h2>录音与试听</h2></div><p id="record-status" class="meta" aria-live="polite">等待真实录音</p></div>
+    <div class="record-primary"><button id="record" class="primary" disabled>开始录音 · 6 秒</button><progress id="record-progress" aria-label="录音进度，共 6 秒" max="6" value="0">0 / 6</progress><p id="record-input-note" class="meta">开始采集后显示当前观察与对比通道。</p></div>
+    
+    
+    <div id="recordings" class="transcripts recordings" aria-live="polite"></div>
+    <section id="transcription-tools" class="transcription-tools"><div class="section-head"><div><span class="eyebrow">OPTIONAL · LOCAL</span><h3>文字转录 · 可选</h3></div><span id="model-status" class="meta" aria-live="polite">点击转录时才加载 Tiny 模型</span></div><div class="transcript-results"><article><h4 id="record-original-title">观察通道 · 转录结果</h4><p id="original-text" class="transcript">等待真实录音</p></article><article><h4 id="record-processed-title">对比通道 · 转录结果</h4><p id="processed-text" class="transcript">尚未选择第二路</p></article></div><div class="actions"><label>语言<select id="language"><option value="zh">中文</option><option value="en">English</option><option value="auto">自动识别</option></select></label><button id="transcribe" disabled>转录这段录音</button></div><p class="meta">录完后分别识别两个声道，按顺序处理。首次使用下载并缓存模型，录音与试听无需模型。</p></section>
+    <p class="meta">使用耳机试听，避免扬声器回放再次进入麦克风。转录差异不等于音质评分。</p>
+  </section>
+  <footer><span>reSpeaker Audio Lab</span><span>不同固件具有不同输出与控制能力 · 未完成实机认证</span></footer>
+</main>
+</body>
+</html>

@@ -1,0 +1,164 @@
+# Cloud side — the face library server, the management console and a broker.
+# Derived from the upstream skeleton platforms/compose/docker-compose.yml
+# (unmanned-store-access @ 95f314a); the `web` service is copied from it almost
+# verbatim, `facedb` and `mosquitto` are added here because the upstream
+# skeleton assumed both were already provided by the site.
+#
+# `unmanned-store-access-cloud:0.1.0-c1` was pushed on 2026-09-07 as a two-arch
+# manifest (linux/amd64 + linux/arm64), index digest
+# sha256:b2157882f0e15da53663387c8f5d48a9d10463bc84fee52764bbbcb2aaf69096.
+# Pull-tested and started on both architectures. To rebuild it from source:
+#
+#   git clone <unmanned-store-access> && cd unmanned-store-access
+#   docker buildx build --platform linux/amd64,linux/arm64 \
+#     -f platforms/compose/web.Dockerfile \
+#     -t sensecraft-missionpack.seeed.cn/solution/unmanned-store-access-cloud:0.1.0-c1 --push .
+#
+# The image carries no face weights: the `embed` extra (onnxruntime + local
+# InsightFace weights, non-commercial licence) is deliberately not installed.
+# Enrolment takes its embedding from the recognition service over
+# USA_FACE_REC_API.
+#
+# One image serves both services: the console and the library server are the
+# same Python package with different entrypoints, and shipping one image avoids
+# two builds that must not drift apart — the console writes library versions
+# that the server then publishes, and a version-format mismatch between them
+# would be discovered by devices rather than by CI.
+#
+# Both services share the `facedb` volume deliberately: enrolment and deletion
+# mint new versions, and the server publishes whatever `current` points at.
+
+name: unmanned-store-access-cloud
+
+x-image: &cloud_image
+  image: ${CLOUD_IMAGE:-sensecraft-missionpack.seeed.cn/solution/unmanned-store-access-cloud:0.1.0-c1}
+
+x-logging: &bounded_logs
+  # Bounded logs. An access-control box runs for months; unbounded json-file
+  # logging fills the rootfs and takes the door with it.
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "5"
+
+services:
+  facedb:
+    <<: [*cloud_image, *bounded_logs]
+    container_name: usa-facedb
+    restart: unless-stopped
+    # `facedb.server` exposes FaceDbServer as a library and has no console
+    # entry point of its own (checked against the upstream module), so the
+    # command constructs it directly rather than naming a `-m` target that
+    # would fail at start with an unhelpful message.
+    #
+    # This service signs nothing. It serves whatever version directories are on
+    # the shared volume; the manifests were signed by the console when it minted
+    # them, which is why the signing key is configured on `web` and not here.
+    command:
+      - python
+      - -c
+      - |
+        from facedb.server import FaceDbServer
+        FaceDbServer("/var/lib/unmanned-store-access/facedb",
+                     host="0.0.0.0", port=8080, quiet=False).start()._thread.join()
+    ports: ["${FACEDB_PORT:-8080}:8080"]
+    volumes:
+      - facedb:/var/lib/unmanned-store-access/facedb
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8080/v1/facedb/current')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      # A brand-new server has no published version and answers 404 there. That
+      # is correct, not unhealthy — start_period covers the window before the
+      # first enrolment.
+      start_period: 60s
+
+  web:
+    <<: [*cloud_image, *bounded_logs]
+    container_name: usa-web
+    restart: unless-stopped
+    ports: ["${WEB_PORT:-8088}:8088"]
+    environment:
+      # token table -> viewer / operator / admin. No tokens, no service: the
+      # config layer refuses to start rather than fall back to anonymous.
+      USA_WEB_TOKENS: ${USA_WEB_TOKENS:?set USA_WEB_TOKENS as <token>:<role>[,...]}
+      USA_WEB_DB: /var/lib/unmanned-store-access/web/events.sqlite3
+      USA_FACEDB_ROOT: /var/lib/unmanned-store-access/facedb
+      USA_AUDIT_PATH: /var/lib/unmanned-store-access/audit/access.ndjson
+      USA_WEB_UI_DIST: /app/web/ui/dist
+      # The signing material. `build_facedb_store()` refuses to assemble a
+      # library without it, at startup — devices reject unsigned manifests, and
+      # discovering that at the device is much worse than failing here. The
+      # key id is compared byte for byte on the device, so rotating a key means
+      # changing both sides.
+      USA_FACEDB_KEY_ID: ${USA_FACEDB_KEY_ID:?set USA_FACEDB_KEY_ID}
+      USA_FACEDB_SECRET_FILE: /run/secrets/facedb.key
+      # The single source of the match threshold: it is written into
+      # gallery.json's `_meta.threshold` and the .fdb1 header, and every device
+      # config's `match_threshold` must equal it. Two numbers in two places is
+      # the same as having no threshold at all.
+      USA_MATCH_THRESHOLD: ${USA_MATCH_THRESHOLD:?set USA_MATCH_THRESHOLD}
+      # Written into each manifest and compared byte for byte by devices, so a
+      # library built for one embedding model cannot be loaded by another.
+      USA_MODEL_TAG: ${USA_MODEL_TAG:?set USA_MODEL_TAG}
+      # Without these two the console refuses to start: FaceDbStore rejects
+      # a version whose model or weights provenance is "unknown".
+      USA_MODEL_SHA: ${USA_MODEL_SHA:?set USA_MODEL_SHA}
+      USA_WEB_CONFIG: /app/config/web-config.json
+      # MQTT control-plane endpoints for the device pages: a JSON list of
+      # {device_id, host, port, cmd_topic, ack_topic, timeout_s}. Empty means
+      # the device control and status pages have nothing to show.
+      USA_DEVICE_ENDPOINTS: ${USA_DEVICE_ENDPOINTS:-[]}
+      # Enrolment takes its embedding from a recognition service. Leave this
+      # unset only on a bench: without it, and with USA_ALLOW_FAKE unset, the
+      # app now hard-fails startup (embedder=auto -> FakeEmbedder is refused
+      # unless explicitly allowed) rather than silently degrading. Set
+      # USA_ALLOW_FAKE=1 to let it start anyway; a library built that way
+      # cannot recognise anyone.
+      USA_FACE_REC_API: ${USA_FACE_REC_API:-}
+      USA_ALLOW_FAKE: ${USA_ALLOW_FAKE:-0}
+      USA_MQTT_HOST: ${MQTT_HOST:?set MQTT_HOST}
+      USA_MQTT_PORT: ${MQTT_PORT:-8883}
+      USA_MQTT_TLS: ${MQTT_TLS:-1}
+    volumes:
+      - web:/var/lib/unmanned-store-access/web
+      # Not read-only: enrolment and deletion create new versions under facedb.
+      - facedb:/var/lib/unmanned-store-access/facedb
+      - audit:/var/lib/unmanned-store-access/audit:ro
+      # The signing secret as a file rather than an environment variable: an
+      # environment variable is readable from `docker inspect` and lands in
+      # process listings. The deployment step writes it with mode 600.
+      - ./secret/facedb.key:/run/secrets/facedb.key:ro
+      # license_block has no environment variable of its own.
+      - ./config/web-config.json:/app/config/web-config.json:ro
+    depends_on:
+      facedb:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8088/api/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  mosquitto:
+    image: eclipse-mosquitto:2.0
+    container_name: usa-mosquitto
+    restart: unless-stopped
+    <<: *bounded_logs
+    ports: ["${MQTT_PORT_PUBLISHED:-1883}:1883"]
+    volumes:
+      - ./config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto_data:/mosquitto/data
+    # The bundled config is anonymous plaintext on 1883. That is a bench
+    # configuration and the file says so at the top: an access-control system
+    # whose unlock topic accepts anonymous publishes has no access control.
+
+volumes:
+  facedb:
+  audit:
+  web:
+  mosquitto_data:

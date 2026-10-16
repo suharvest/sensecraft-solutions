@@ -1,0 +1,20 @@
+version: "1.0"
+id: network_face_database
+name: Face Library Distribution and Device Status
+name_i18n:
+  zh: 人脸库下发与设备状态
+type: web_dashboard
+inherit_host_from: cloud_facedb
+
+web_dashboard:
+  url: "http://{{deploy.host}}:8088/devices"
+  title: Management Console — Devices and Library Versions
+  title_i18n:
+    zh: 管理界面 —— 设备与人脸库版本
+  description: >-
+    For each door device, check that `active_version` equals the version you
+    just published. If it lags, `last_error` shows the reason.
+  description_i18n:
+    zh: >-
+      逐台门口设备核对 `active_version` 是否等于刚发布的版本。落后时看
+      `last_error` 里的原因。

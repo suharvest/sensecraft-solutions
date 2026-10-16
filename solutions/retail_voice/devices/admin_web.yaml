@@ -1,0 +1,13 @@
+version: '1.0'
+id: admin_web
+name: Open the Admin Console
+name_i18n:
+  zh: 打开管理后台
+type: web_dashboard
+inherit_host_from: deploy_server_platform
+web_dashboard:
+  url: http://{{deploy.host}}:3000/
+  title: Voice Admin Console
+  description: Sign in to view and manage your recordings.
+  description_i18n:
+    zh: 登录后即可查看和管理录音。

@@ -362,6 +362,11 @@
           "title": "Name",
           "type": "string"
         },
+        "omit_if_empty": {
+          "default": false,
+          "title": "Omit If Empty",
+          "type": "boolean"
+        },
         "type": {
           "default": "str",
           "title": "Type",
@@ -411,6 +416,36 @@
         }
       },
       "title": "ConflictServiceConfig",
+      "type": "object"
+    },
+    "CountingConfigPanelConfig": {
+      "description": "People-counting setup panel (``type: counting_config``).\n\nThe panel draws crossing lines and quadrilateral regions on the live\npreview, normalizes them against the current frame resolution and\npushes them with ``AT+CNTLINE`` / ``AT+CNTROI`` / ``AT+CNTCFG``.",
+      "properties": {
+        "default_anchor_mode": {
+          "default": 0,
+          "enum": [
+            0,
+            1
+          ],
+          "title": "Default Anchor Mode",
+          "type": "integer"
+        },
+        "max_lines": {
+          "default": 4,
+          "maximum": 4,
+          "minimum": 1,
+          "title": "Max Lines",
+          "type": "integer"
+        },
+        "max_rois": {
+          "default": 4,
+          "maximum": 4,
+          "minimum": 1,
+          "title": "Max Rois",
+          "type": "integer"
+        }
+      },
+      "title": "CountingConfigPanelConfig",
       "type": "object"
     },
     "DebPackageConfig": {
@@ -795,6 +830,84 @@
       "title": "DockerService",
       "type": "object"
     },
+    "FaceDatabasePanelConfig": {
+      "description": "Face database panel configuration (``type: face_database``).\n\nTwo transports:\n\n``serial`` (default, and what every already-published solution uses)\n    CRUD rides the ``database_port`` serial link opened by the\n    serial-camera session.\n\n``network``\n    CRUD is proxied by the FastAPI sidecar to a facedb management API\n    (``management_base_url`` + ``device_id``). The WebView never talks\n    to that API directly — see ``routers/network_face.py`` for the why\n    (CORS, mixed content, and keeping the token out of the browser).",
+      "properties": {
+        "auth_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Auth Ref"
+        },
+        "database_port": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SerialPortRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "device_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Device Id"
+        },
+        "enrollment_duration": {
+          "default": 5.0,
+          "title": "Enrollment Duration",
+          "type": "number"
+        },
+        "management_base_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Management Base Url"
+        },
+        "min_confidence": {
+          "default": 0.5,
+          "title": "Min Confidence",
+          "type": "number"
+        },
+        "min_samples": {
+          "default": 3,
+          "title": "Min Samples",
+          "type": "integer"
+        },
+        "transport": {
+          "default": "serial",
+          "enum": [
+            "serial",
+            "network"
+          ],
+          "title": "Transport",
+          "type": "string"
+        }
+      },
+      "title": "FaceDatabasePanelConfig",
+      "type": "object"
+    },
     "FileUploadConfig": {
       "description": "File to download locally and upload to device via SFTP.\n\nUse this when the target device may not have internet access.\nThe provisioning station downloads the file first, then uploads via SSH.",
       "properties": {
@@ -802,6 +915,12 @@
           "anyOf": [
             {
               "type": "string"
+            },
+            {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
             },
             {
               "type": "null"
@@ -1023,12 +1142,75 @@
       "title": "FlashConfig",
       "type": "object"
     },
+    "HAConfigEntryConfig": {
+      "description": "A config entry added through HA's config flow API from the deployer\n(no files copied to the HA host).",
+      "properties": {
+        "data": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ConfigFlowField"
+          },
+          "title": "Data",
+          "type": "array"
+        },
+        "domain": {
+          "title": "Domain",
+          "type": "string"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "skip_if_empty": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Skip If Empty",
+          "type": "array"
+        },
+        "subentries": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/HASubentryConfig"
+          },
+          "title": "Subentries",
+          "type": "array"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        }
+      },
+      "required": [
+        "id",
+        "domain"
+      ],
+      "title": "HAConfigEntryConfig",
+      "type": "object"
+    },
     "HAIntegrationConfig": {
-      "description": "Home Assistant custom integration deployment configuration",
+      "description": "Home Assistant integration deployment configuration.\n\nEither installs a custom component (``domain`` + ``components_dir``,\noptional single-step ``config_flow_data``), or only configures HA over\nits API (``entries`` / ``pipeline``), or both.",
       "properties": {
         "components_dir": {
-          "title": "Components Dir",
-          "type": "string"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Components Dir"
         },
         "config_flow_data": {
           "default": [],
@@ -1039,8 +1221,24 @@
           "type": "array"
         },
         "domain": {
-          "title": "Domain",
-          "type": "string"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Domain"
+        },
+        "entries": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/HAConfigEntryConfig"
+          },
+          "title": "Entries",
+          "type": "array"
         },
         "include_patterns": {
           "default": [
@@ -1053,13 +1251,162 @@
           },
           "title": "Include Patterns",
           "type": "array"
+        },
+        "pipeline": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HAPipelineConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "restart": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Restart"
+        }
+      },
+      "title": "HAIntegrationConfig",
+      "type": "object"
+    },
+    "HAPipelineConfig": {
+      "description": "Assist pipeline created or updated by name over HA's WebSocket API.",
+      "properties": {
+        "conversation": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Conversation"
+        },
+        "language": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Language"
+        },
+        "language_from": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Language From"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "prefer_local_intents": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Prefer Local Intents"
+        },
+        "set_preferred": {
+          "default": true,
+          "title": "Set Preferred",
+          "type": "boolean"
+        },
+        "stt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Stt"
+        },
+        "tts": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tts"
         }
       },
       "required": [
-        "domain",
-        "components_dir"
+        "name"
       ],
-      "title": "HAIntegrationConfig",
+      "title": "HAPipelineConfig",
+      "type": "object"
+    },
+    "HASubentryConfig": {
+      "description": "A config subentry created under an ``HAConfigEntryConfig`` entry\n(``/api/config/config_entries/subentries/flow``), e.g. a LiteLLM\n``conversation`` agent.",
+      "properties": {
+        "data": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ConfigFlowField"
+          },
+          "title": "Data",
+          "type": "array"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "title_from_field": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title From Field"
+        },
+        "type": {
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "type"
+      ],
+      "title": "HASubentryConfig",
       "type": "object"
     },
     "HimaxModelConfig": {
@@ -1565,6 +1912,65 @@
       "title": "ModelFileConfig",
       "type": "object"
     },
+    "NetworkCameraConfig": {
+      "description": "Network camera step configuration (``type: network_camera``).\n\nThe serial twin of this block is :class:`SerialCameraConfig`. The two\ndiffer only in how a panel reaches the device: a serial camera step\nopens ports on this machine, a network camera step has the sidecar\nproxy HTTP to a management API. Panels are the same objects, so\n``face_database`` renders identically under both.",
+      "properties": {
+        "display": {
+          "$ref": "#/$defs/SerialCameraDisplayConfig"
+        },
+        "panels": {
+          "default": [],
+          "items": {
+            "allOf": [
+              {
+                "$ref": "#/$defs/SerialCameraPanelConfig"
+              },
+              {
+                "if": {
+                  "properties": {
+                    "type": {
+                      "const": "face_database"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                },
+                "then": {
+                  "$ref": "#/$defs/FaceDatabasePanelConfig"
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "type": {
+                      "const": "counting_config"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                },
+                "then": {
+                  "$ref": "#/$defs/CountingConfigPanelConfig"
+                }
+              }
+            ]
+          },
+          "title": "Panels",
+          "type": "array"
+        },
+        "poll_interval": {
+          "default": 1.5,
+          "maximum": 10.0,
+          "minimum": 1.0,
+          "title": "Poll Interval",
+          "type": "number"
+        }
+      },
+      "title": "NetworkCameraConfig",
+      "type": "object"
+    },
     "NodeRedConfig": {
       "description": "Node-RED deployment configuration for reCamera",
       "properties": {
@@ -1677,6 +2083,73 @@
         }
       },
       "title": "OfflineDockerConfig",
+      "type": "object"
+    },
+    "OptionsSourceConfig": {
+      "description": "Remote source for a ``remote_select`` user input's options.\n\nThe options of a plain ``select`` are baked into the device YAML, so a\nsolution release is required to change them. A ``remote_select`` instead\nnames a JSON URL the engine fetches at page-load / deploy-info time\n(the machine running the App has internet even when the target device\ndoes not), so the dropdown reflects what the source offers *now* —\ne.g. the reCamera console app catalog gains an entry the moment the\ncatalog is republished, no solution release needed.\n\n``options`` on the same input stay meaningful: they are the offline\nfallback, used verbatim whenever the URL cannot be fetched.",
+      "properties": {
+        "cache_ttl": {
+          "default": 300,
+          "title": "Cache Ttl",
+          "type": "integer"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "description_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Description I18N",
+          "type": "object"
+        },
+        "items": {
+          "default": "",
+          "title": "Items",
+          "type": "string"
+        },
+        "label": {
+          "default": "name",
+          "title": "Label",
+          "type": "string"
+        },
+        "label_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Label I18N",
+          "type": "object"
+        },
+        "timeout": {
+          "default": 8.0,
+          "title": "Timeout",
+          "type": "number"
+        },
+        "url": {
+          "title": "Url",
+          "type": "string"
+        },
+        "value": {
+          "default": "id",
+          "title": "Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "url"
+      ],
+      "title": "OptionsSourceConfig",
       "type": "object"
     },
     "PackageConfig": {
@@ -1893,6 +2366,65 @@
       "title": "PreCheck",
       "type": "object"
     },
+    "PreconditionProbe": {
+      "description": "A probe asserting the deployment has *already* been applied.\n\nDeliberately the INVERSE of :class:`DeviceDetectionProbe`:\n\n* ``DeviceDetectionProbe``: exit 0 = \"right hardware, keep going\";\n  non-zero aborts the deployment as a failure.\n* ``PreconditionProbe``: exit 0 = \"already satisfied, this step has\n  nothing left to do\"; non-zero simply means \"not satisfied, run the\n  deployment normally\". A failing precondition is never an error.\n\nMotivating case: a reCamera solution whose only job is to bump the\non-device console/supervisor to 0.5.5. If the device already runs\n0.5.5, ``opkg install --force-reinstall`` would burn minutes and\nchurn the device for no change. A precondition probe such as::\n\n    preconditions:\n      - command: \"opkg list-installed | grep -q 'supervisor - 0.5.5'\"\n        description: \"Supervisor already at 0.5.5\"\n        satisfied_message: \"Supervisor is already 0.5.5, nothing to do.\"\n        satisfied_message_i18n:\n          zh: \"Supervisor 已是 0.5.5，无需重复安装。\"\n\nshort-circuits the whole deployment into ``skipped``.\n\nAll probes must exit 0 for the deployment to count as satisfied (AND\nsemantics), matching how ``device_detection`` treats its list.\n\nToday only ``type: shell`` is supported; the schema stays\ndiscriminated so ``http`` / ``file_exists`` variants can be added\nwithout breaking existing solutions.",
+      "properties": {
+        "command": {
+          "title": "Command",
+          "type": "string"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "description_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Description I18N",
+          "type": "object"
+        },
+        "satisfied_message": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Satisfied Message"
+        },
+        "satisfied_message_i18n": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "title": "Satisfied Message I18N",
+          "type": "object"
+        },
+        "type": {
+          "default": "shell",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "command"
+      ],
+      "title": "PreconditionProbe",
+      "type": "object"
+    },
     "PreviewBehaviorConfig": {
       "description": "Behavior configuration for preview interactions",
       "properties": {
@@ -1920,6 +2452,30 @@
         }
       },
       "title": "PreviewBehaviorConfig",
+      "type": "object"
+    },
+    "PreviewDataConfig": {
+      "description": "HTTP polling data source for preview overlays",
+      "properties": {
+        "http_url_template": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Http Url Template"
+        },
+        "interval_ms": {
+          "default": 1000,
+          "title": "Interval Ms",
+          "type": "integer"
+        }
+      },
+      "title": "PreviewDataConfig",
       "type": "object"
     },
     "PreviewDisplayConfig": {
@@ -2130,6 +2686,74 @@
         }
       },
       "title": "PreviewVideoConfig",
+      "type": "object"
+    },
+    "RecameraConsoleAppConfig": {
+      "description": "Configuration for the ``recamera_console_app`` deployer.\n\nTargets the reCamera (sg200x) console — the ``supervisor`` package whose\ngallery installs apps from a cloud catalog. Unlike the Pro's App Center,\nthe packages here are ordinary unsigned .deb files published next to the\ncatalog, so this deployer CAN install: it downloads the app's package and\nmodels on the deploying machine (the camera itself usually has no route\nto the internet), pushes them through the console's chunked file upload\nAPI, then installs and activates the app via appMgr.\n\nWhich app is NOT fixed here: it is the step's ``app_id`` user input (a\n``remote_select`` whose options come from the same catalog), so the user\npicks from the live list on the deploy page.",
+      "properties": {
+        "activation_timeout": {
+          "default": 90,
+          "title": "Activation Timeout",
+          "type": "integer"
+        },
+        "catalog_url": {
+          "title": "Catalog Url",
+          "type": "string"
+        },
+        "force_reinstall": {
+          "default": false,
+          "title": "Force Reinstall",
+          "type": "boolean"
+        },
+        "install_timeout": {
+          "default": 180,
+          "title": "Install Timeout",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "catalog_url"
+      ],
+      "title": "RecameraConsoleAppConfig",
+      "type": "object"
+    },
+    "RecameraProAppConfig": {
+      "description": "Configuration for the ``recamera_pro_app`` deployer.\n\nThe App Center on reCamera Pro is a single-active supervisor: appmgr runs\nexactly one app at a time. This deployer therefore configures an app that\nis already installed on the device and makes it the active one; it does not\nupload or install packages, because installation requires a release-signed\narchive produced by a private packaging chain.",
+      "properties": {
+        "activation_timeout": {
+          "default": 60,
+          "title": "Activation Timeout",
+          "type": "integer"
+        },
+        "app_id": {
+          "title": "App Id",
+          "type": "string"
+        },
+        "config": {
+          "additionalProperties": true,
+          "default": {},
+          "title": "Config",
+          "type": "object"
+        },
+        "config_when": {
+          "default": [],
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Config When",
+          "type": "array"
+        },
+        "require_installed": {
+          "default": true,
+          "title": "Require Installed",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "app_id"
+      ],
+      "title": "RecameraProAppConfig",
       "type": "object"
     },
     "RobotInspectConfig": {
@@ -2489,13 +3113,84 @@
         "display": {
           "$ref": "#/$defs/SerialCameraDisplayConfig"
         },
+        "frame_formats": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Frame Formats"
+        },
         "panels": {
           "default": [],
           "items": {
-            "$ref": "#/$defs/SerialCameraPanelConfig"
+            "allOf": [
+              {
+                "$ref": "#/$defs/SerialCameraPanelConfig"
+              },
+              {
+                "if": {
+                  "properties": {
+                    "type": {
+                      "const": "face_database"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                },
+                "then": {
+                  "$ref": "#/$defs/FaceDatabasePanelConfig"
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "type": {
+                      "const": "counting_config"
+                    }
+                  },
+                  "required": [
+                    "type"
+                  ]
+                },
+                "then": {
+                  "$ref": "#/$defs/CountingConfigPanelConfig"
+                }
+              }
+            ]
           },
           "title": "Panels",
           "type": "array"
+        },
+        "startup_commands": {
+          "anyOf": [
+            {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "$ref": "#/$defs/SerialCameraStartupCommand"
+                  }
+                ]
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Startup Commands"
         }
       },
       "required": [
@@ -2527,8 +3222,21 @@
       "type": "object"
     },
     "SerialCameraPanelConfig": {
-      "description": "A panel attached to the serial camera step",
+      "additionalProperties": true,
+      "description": "A panel attached to the serial camera step.\n\nPanels are polymorphic on ``type``; the concrete shape is owned by the\nmodule that registers that panel type (see\n:class:`FaceDatabasePanelConfig`). Unknown keys are **kept**\n(``extra=\"allow\"``) so a new panel type needs no kernel change.\n\nThe four ``database_port`` / ``enrollment_duration`` / ``min_samples`` /\n``min_confidence`` fields below are **deprecated** flat face fields.\nThey stay declared so existing ``face_enroll.yaml`` files keep\nvalidating with their documented defaults.",
       "properties": {
+        "auth_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Auth Ref"
+        },
         "database_port": {
           "anyOf": [
             {
@@ -2540,10 +3248,34 @@
           ],
           "default": null
         },
+        "device_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Device Id"
+        },
         "enrollment_duration": {
           "default": 5.0,
           "title": "Enrollment Duration",
           "type": "number"
+        },
+        "management_base_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Management Base Url"
         },
         "min_confidence": {
           "default": 0.5,
@@ -2555,6 +3287,15 @@
           "title": "Min Samples",
           "type": "integer"
         },
+        "transport": {
+          "default": "serial",
+          "enum": [
+            "serial",
+            "network"
+          ],
+          "title": "Transport",
+          "type": "string"
+        },
         "type": {
           "title": "Type",
           "type": "string"
@@ -2564,6 +3305,42 @@
         "type"
       ],
       "title": "SerialCameraPanelConfig",
+      "type": "object"
+    },
+    "SerialCameraStartupCommand": {
+      "description": "One entry of ``serial_camera.startup_commands``\n\n``cmd`` is re-validated at the transport (``write_command``); the bounds\nhere exist so a malformed sequence is rejected at the API/schema edge\ninstead of inside the serial reader thread.",
+      "properties": {
+        "cmd": {
+          "maxLength": 256,
+          "minLength": 3,
+          "pattern": "^\\s*AT\\+[ -~]*$",
+          "title": "Cmd",
+          "type": "string"
+        },
+        "delay": {
+          "default": 0.3,
+          "maximum": 60,
+          "minimum": 0,
+          "title": "Delay",
+          "type": "number"
+        },
+        "status": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Status"
+        }
+      },
+      "required": [
+        "cmd"
+      ],
+      "title": "SerialCameraStartupCommand",
       "type": "object"
     },
     "SerialPortRef": {
@@ -2876,6 +3653,19 @@
           "title": "Description I18N",
           "type": "object"
         },
+        "generate": {
+          "anyOf": [
+            {
+              "const": "hex32",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Generate"
+        },
         "id": {
           "title": "Id",
           "type": "string"
@@ -2900,6 +3690,17 @@
           },
           "title": "Options",
           "type": "array"
+        },
+        "options_source": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OptionsSourceConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "placeholder": {
           "anyOf": [
@@ -3068,7 +3869,7 @@
       "type": "object"
     }
   },
-  "contract_version": 1,
+  "contract_version": 5,
   "description": "Complete device configuration",
   "properties": {
     "actions": {
@@ -3115,6 +3916,31 @@
         }
       ],
       "default": null
+    },
+    "data": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PreviewDataConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "deploy_timeout": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Maximum wall-clock seconds for this device's entire deployment. None (the default) means unlimited.",
+      "title": "Deploy Timeout"
     },
     "detection": {
       "anyOf": [
@@ -3294,6 +4120,17 @@
       "title": "Name I18N",
       "type": "object"
     },
+    "network_camera": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/NetworkCameraConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
     "network_region": {
       "default": "auto",
       "enum": [
@@ -3347,6 +4184,36 @@
       },
       "title": "Pre Checks",
       "type": "array"
+    },
+    "preconditions": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/PreconditionProbe"
+      },
+      "title": "Preconditions",
+      "type": "array"
+    },
+    "recamera_console_app": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RecameraConsoleAppConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "recamera_pro_app": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RecameraProAppConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "robot_inspect": {
       "anyOf": [

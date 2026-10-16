@@ -1,0 +1,31 @@
+# RTSP is what every detector in this solution can already give you: the
+# reCamera runs its own RTSP server, and the RK / Hailo / Jetson presets watch
+# an IP camera that serves one. What no browser can do is play RTSP, and
+# Grafana has no panel that speaks it — so go2rtc sits in the middle and
+# re-publishes each source as WebRTC.
+#
+# It is also an ONVIF client (GET /api/onvif runs a WS-Discovery probe), which
+# is why the deploy step can fill in `streams` by itself instead of asking for
+# every camera URL by hand.
+#
+# Stream names must match the camera id the detector publishes, so the
+# dashboard's $stream variable selects the matching video without a lookup
+# table. The deploy step writes them.
+streams: {}
+
+api:
+  listen: ":1984"
+
+rtsp:
+  listen: ":8554"
+
+webrtc:
+  listen: ":8555"
+  candidates:
+    # Browsers reach the backend on the same host they loaded Grafana from.
+    # stun:8555 makes go2rtc advertise the address the client actually sees,
+    # which is what makes this work unchanged on a LAN box or a VPN.
+    - stun:8555
+
+log:
+  level: info

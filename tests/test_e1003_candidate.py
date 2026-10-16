@@ -1,0 +1,129 @@
+"""Packaging boundaries: reject wrong/private inputs, preserve the review gate."""
+
+import hashlib
+import importlib.util
+import json
+from pathlib import Path
+import shutil
+import tempfile
+import unittest
+
+import yaml
+
+
+REPO = Path(__file__).resolve().parents[1]
+SPEC = importlib.util.spec_from_file_location(
+    "stage_e1003_candidate", REPO / "scripts/stage_e1003_candidate.py"
+)
+staging = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(staging)
+
+
+class CandidatePackagingTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        self.source = self.root / "source"
+        shutil.copytree(staging.SOURCE, self.source)
+        # Synthetic fixture. The actual artifact is checked separately during
+        # acceptance; no binary or real configuration belongs in test fixtures.
+        self.payload = b"public synthetic factory image"
+        self.firmware = self.root / "firmware.factory.bin"
+        self.firmware.write_bytes(self.payload)
+        manifest_path = self.source / "assets/firmware/manifest.json"
+        manifest = json.loads(manifest_path.read_text())
+        manifest.update(
+            size_bytes=len(self.payload),
+            sha256=hashlib.sha256(self.payload).hexdigest(),
+        )
+        manifest_path.write_text(json.dumps(manifest))
+        self.output = self.root / "review/reterminal_e1003_ha"
+
+    def test_materializes_flash_payload_without_enabling_or_adding_setup_forms(self):
+        staging.stage(self.firmware, self.output, source=self.source)
+        solution = yaml.safe_load((self.output / "solution.yaml").read_text())
+        self.assertFalse(solution["enabled"])
+        self.assertTrue((self.output / solution["intro"]["cover_image"]).is_file())
+        self.assertFalse(solution["intro"].get("gallery"))
+        images = {
+            p.relative_to(self.output).as_posix()
+            for p in self.output.rglob("*")
+            if p.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"}
+        }
+        self.assertEqual(images, {solution["intro"]["cover_image"]})
+        self.assertEqual(
+            (self.output / "assets/firmware/firmware.factory.bin").read_bytes(),
+            self.payload,
+        )
+        # Local review exports carry one cover image and its source note.
+        for name in ("e1003-keyless-cover.png", "README.md"):
+            relative = Path("gallery") / name
+            self.assertEqual(
+                (self.output / relative).read_bytes(),
+                (self.source / relative).read_bytes(),
+            )
+        for lang in ("guide.md", "guide_zh.md"):
+            self.assertIn(staging.NEW_STEP, (self.output / lang).read_text())
+            self.assertNotIn(staging.OLD_STEP, (self.output / lang).read_text())
+        flash = yaml.safe_load((self.output / "devices/e1003_usb.yaml").read_text())
+        self.assertEqual(flash["firmware"]["flash_config"]["partitions"][0]["offset"], "0x0")
+        self.assertFalse(next(s for s in flash["steps"] if s["id"] == "erase")["default"])
+        self.assertEqual(
+            {p.name for p in (self.output / "devices").glob("*.yaml")},
+            {"e1003_usb.yaml"},
+        )
+        self.assertEqual(flash["firmware"]["flash_config"]["baud_rate"], 115200)
+        for path in (self.output / "devices").glob("*.yaml"):
+            self.assertFalse(yaml.safe_load(path.read_text()).get("user_inputs"))
+
+    def test_release_manifest_and_review_template_reference_the_same_image(self):
+        manifest = json.loads((staging.SOURCE / "assets/firmware/manifest.json").read_text())
+        flash = yaml.safe_load((staging.SOURCE / "assets/firmware/esp32_usb.yaml.in").read_text())
+        self.assertEqual(flash["firmware"]["source"]["checksum"]["sha256"], manifest["sha256"])
+        self.assertEqual(flash["firmware"]["source"]["path"], manifest["package_path"])
+        self.assertEqual(flash["firmware"]["flash_config"]["chip"], manifest["chip"])
+        self.assertEqual(
+            flash["firmware"]["flash_config"]["partitions"][0]["offset"],
+            manifest["flash_offset"],
+        )
+        self.assertIs(manifest["full_chip_erase"], False)
+        self.assertIsNone(manifest["download_url"])
+        solution = yaml.safe_load((staging.SOURCE / "solution.yaml").read_text())
+        self.assertFalse(solution["enabled"])
+        self.assertEqual(solution["intro"]["solution_type"], "technical")
+        self.assertEqual(len(solution["intro"]["presets"]), 1)
+        for lang in ("guide.md", "guide_zh.md"):
+            guide = (staging.SOURCE / lang).read_text()
+            self.assertEqual(guide.count("type=manual"), 1)
+            self.assertEqual(guide.count(staging.OLD_STEP), 1)
+
+    def test_rejects_same_size_corruption_before_creating_output(self):
+        self.firmware.write_bytes(b"x" * len(self.payload))
+        with self.assertRaisesRegex(ValueError, "SHA-256"):
+            staging.stage(self.firmware, self.output, source=self.source)
+        self.assertFalse(self.output.parent.exists())
+
+    def test_rejects_wrong_size_before_creating_output(self):
+        self.firmware.write_bytes(b"wrong size")
+        with self.assertRaisesRegex(ValueError, "size mismatch"):
+            staging.stage(self.firmware, self.output, source=self.source)
+        self.assertFalse(self.output.exists())
+
+    def test_private_paths_are_rejected_without_reading_them(self):
+        for directory in ("provisioning", "verification"):
+            with self.assertRaisesRegex(ValueError, "Private"):
+                staging.stage(self.root / ".esphome" / directory / "absent.bin", self.output)
+
+    def test_refuses_git_checkout_output_and_existing_review_directory(self):
+        with self.assertRaisesRegex(ValueError, "outside"):
+            staging.stage(self.firmware, staging.SOURCE, source=self.source)
+        self.output.mkdir(parents=True)
+        (self.output / "keep.txt").write_text("reviewer work")
+        with self.assertRaisesRegex(ValueError, "already exists"):
+            staging.stage(self.firmware, self.output, source=self.source)
+        self.assertEqual((self.output / "keep.txt").read_text(), "reviewer work")
+
+
+if __name__ == "__main__":
+    unittest.main()

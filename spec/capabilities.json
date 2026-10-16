@@ -1,5 +1,5 @@
 {
-  "contract_version": 1,
+  "contract_version": 5,
   "deployers": {
     "docker_deploy": {
       "category": "deploy",
@@ -29,9 +29,7 @@
     "ha_integration": {
       "category": "deploy",
       "required": [
-        "ha_integration",
-        "ha_integration.domain",
-        "ha_integration.components_dir"
+        "ha_integration"
       ]
     },
     "himax_usb": {
@@ -64,8 +62,19 @@
         "steps[]"
       ]
     },
+    "network_camera": {
+      "category": "verify",
+      "required": [
+        "network_camera",
+        "network_camera.panels[]"
+      ]
+    },
     "preview": {
       "category": "verify",
+      "required": []
+    },
+    "recamera_console_app": {
+      "category": "deploy",
       "required": []
     },
     "recamera_cpp": {
@@ -80,6 +89,10 @@
         "nodered",
         "nodered.flow_file"
       ]
+    },
+    "recamera_pro_app": {
+      "category": "deploy",
+      "required": []
     },
     "robot_inspect": {
       "category": "verify",
@@ -132,5 +145,12 @@
       "category": "verify",
       "required": []
     }
-  }
+  },
+  "device_classes": [
+    "hailo",
+    "jetson",
+    "recamera",
+    "rk3576",
+    "rk3588"
+  ]
 }

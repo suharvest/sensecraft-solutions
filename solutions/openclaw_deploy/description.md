@@ -1,6 +1,6 @@
 ## What This Solution Does
 
-Want to use AI chatbots on WeChat, Telegram, or Discord — but don't want to juggle multiple integrations or worry about data privacy? OpenClaw connects 20+ messaging apps to any AI model through one simple gateway, running entirely on your own reComputer device.
+OpenClaw connects 20+ messaging apps — including WeChat, Telegram and Discord — to any AI model through one gateway running on your own reComputer device. There is one integration to maintain instead of one per platform. Two presets are available: with the local-model preset the AI runs on the device and message content is not sent to an AI provider; with the cloud-provider preset message content goes to the cloud AI service you configure.
 
 ## Core Value
 
@@ -18,7 +18,7 @@ Want to use AI chatbots on WeChat, Telegram, or Discord — but don't want to ju
 | Personal AI assistant | Connect your WeChat or Telegram to ChatGPT/DeepSeek — chat with AI right in your messaging app |
 | Team chatbot | Set up a shared AI assistant in your Slack or Discord workspace for the whole team |
 | Privacy-first AI | Run AI models locally on your device so conversations never leave your network |
-| Edge AI on Jetson | Deploy on reComputer Jetson for GPU-accelerated local AI with messaging integration |
+| Edge AI on Jetson | Deploy on reComputer J40 for GPU-accelerated local AI with messaging integration |
 
 ## What You Need
 
@@ -36,7 +36,7 @@ Want to use AI chatbots on WeChat, Telegram, or Discord — but don't want to ju
 
 | Option | AI Mode | Core Device | Best For |
 |--------|---------|-------------|----------|
-| **OpenClaw AI Compute Gateway** | Local AI model | reComputer Jetson | Privacy-first, offline environments, high concurrent chats |
+| **OpenClaw AI Compute Gateway** | Local AI model | reComputer J40 | Privacy-first, offline environments, high concurrent chats |
 | **OpenClaw Gateway** | Cloud AI providers | reComputer R1100 / R2000 | Lightweight setup, stable network, cost-conscious |
 
 ### Performance and Cost Reference

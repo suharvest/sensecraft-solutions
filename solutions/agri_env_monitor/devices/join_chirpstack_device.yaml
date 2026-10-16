@@ -1,0 +1,120 @@
+version: "1.0"
+id: join_chirpstack_device
+name: Join the Sensors to ChirpStack
+type: manual
+
+# Provisioning happens in the ChirpStack web interface and on the node itself
+# (NFC or the SenseCAP Mate app), neither of which a deployment step can reach.
+#
+# NOT VERIFIED ON HARDWARE. No node was joined to ChirpStack during packaging.
+
+steps:
+  - id: device_profile
+    name: Check the device profile and its codec
+    name_i18n:
+      zh: 检查 device profile 与 codec
+    description: >-
+      Open the device profile you will attach the node to and confirm two
+      things: the LoRaWAN version and regional parameters match the node's
+      datasheet, and the codec field holds the SenseCAP decoder for this node's
+      series. A profile with no codec produces uplinks that carry raw bytes and
+      no `object` — the bridge maps `object.messages[].measurementId`, so with
+      no codec it sees nothing to map.
+    description_i18n:
+      zh: >-
+        打开准备挂载节点的 device profile，确认两件事：LoRaWAN 版本与区域参数和节点数据手册一致；
+        codec 字段里是这一系列节点对应的 SenseCAP decoder。
+        没有 codec 的 profile 解出来的上行只有原始字节、没有 `object`——
+        桥映射的是 `object.messages[].measurementId`，没有 codec 就无从映射。
+    optional: false
+
+  - id: register_node
+    name: Register the node with OTAA
+    name_i18n:
+      zh: 用 OTAA 注册节点
+    description: >-
+      Add a device to the application: DevEUI, then JoinEUI (ChirpStack labels
+      it Join EUI) and the AppKey under the device's Keys tab. The values are
+      printed on the node or readable with the SenseCAP Mate app over NFC.
+      ChirpStack rejects a DevEUI that already exists in another tenant, which
+      is the usual surprise when a node is being moved off another network.
+    description_i18n:
+      zh: >-
+        在 application 下添加设备：先填 DevEUI，再在设备的 Keys 标签页里填 JoinEUI
+        （ChirpStack 里叫 Join EUI）与 AppKey。这些值印在节点上，也可以用 SenseCAP Mate app
+        通过 NFC 读出。如果 DevEUI 已经存在于另一个 tenant，ChirpStack 会拒绝——
+        把节点从别的网络迁过来时最常撞到这一条。
+    optional: false
+
+  - id: force_join
+    name: Power the node and watch the join
+    name_i18n:
+      zh: 给节点上电并观察入网
+    description: >-
+      Power the node on, or press its button to force a rejoin. The device's
+      LoRaWAN frames tab should show a join request, a join accept, and then
+      uplinks. A join request with no accept means the keys or the band do not
+      match; no join request at all means the gateway is not hearing the node —
+      check the gateway's Last seen before re-checking the keys.
+    description_i18n:
+      zh: >-
+        给节点上电，或按按钮强制重新入网。设备的 LoRaWAN frames 标签页里应当依次出现
+        join request、join accept，然后是上行。只有 request 没有 accept，说明密钥或频段不匹配；
+        连 request 都没有，说明网关根本没听到节点——先看网关的 Last seen，再回头查密钥。
+    optional: false
+
+  - id: check_object
+    name: Confirm the uplink decodes
+    name_i18n:
+      zh: 确认上行能解出来
+    description: >-
+      Open an uplink event and check that `object.messages` is present and that
+      its entries carry `measurementId` and `measurementValue`. That is what the
+      bridge reads and maps into entities. Fix a missing `object` here — the
+      bridge cannot recover measurements the network server did not decode.
+    description_i18n:
+      zh: >-
+        打开一条上行事件，确认 `object.messages` 存在，且其中每项带 `measurementId`
+        与 `measurementValue`——桥读取并映射成实体的就是这两个字段。
+        `object` 缺失要在这里解决：网络服务器没解出来的测量项，桥恢复不了。
+    optional: false
+
+# Collected so the values are in front of the operator while they fill the
+# ChirpStack form, and so the AppKey is masked. No step writes them anywhere.
+user_inputs:
+  - id: dev_eui
+    name: DevEUI
+    type: text
+    required: true
+    placeholder: "2CF7F1C044300001"
+    description: 16 hex characters, printed on the node and readable with the SenseCAP Mate app
+    validation:
+      pattern: "^[0-9A-Fa-f]{16}$"
+    name_i18n:
+      zh: DevEUI
+    description_i18n:
+      zh: 16 位十六进制，印在节点上，也可用 SenseCAP Mate app 读出
+  - id: join_eui
+    name: JoinEUI (AppEUI)
+    type: text
+    required: true
+    placeholder: "0000000000000000"
+    description: 16 hex characters. Some nodes ship with all zeros; enter what the node reports rather than assuming.
+    validation:
+      pattern: "^[0-9A-Fa-f]{16}$"
+    name_i18n:
+      zh: JoinEUI（AppEUI）
+    description_i18n:
+      zh: 16 位十六进制。部分节点出厂是全零；按节点实际值填，不要想当然。
+  - id: app_key
+    name: AppKey
+    type: password
+    required: true
+    description: 32 hex characters. This is the root key that protects the node's session — anyone holding it can impersonate the node.
+    name_i18n:
+      zh: AppKey
+    description_i18n:
+      zh: 32 位十六进制。这是保护节点会话的根密钥——拿到它就能冒充这台节点。
+
+name_i18n:
+  zh: 让传感器接入 ChirpStack

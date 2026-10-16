@@ -1,0 +1,305 @@
+version: "1.0"
+id: retail_voice
+# The Smart Retail Voice Collection package (smart_retail_voice_ai) was merged
+# into this one on 2026-09-08 and its directory deleted: same topic, different
+# deployment routes, so one solution with several presets rather than two
+# pages. Its reRouter CM4 + reSpeaker capture kit is the local_transcribe
+# preset here; its cloud reporting path is superseded by the self-hosted
+# cloud_stack preset.
+#
+# `replaces` is NOT a spec field and resolves nothing. It is absent from
+# spec/solution.schema.json and from every model in packages/, so the loader
+# drops it silently (see CONTRACT.md). It is a written record of where the old
+# package went, not an alias: nothing redirects smart_retail_voice_ai to this
+# id. The retirement itself is recorded in solutions/.deprecated.json, which
+# generate_solution_manifest.py copies into the manifest's `deprecated` array.
+replaces: smart_retail_voice_ai
+name: Retail Voice
+name_i18n:
+  zh: 零售语音
+  ja: 小売音声
+
+intro:
+  summary: >-
+    Turn in-store conversations into searchable text, with personal details redacted before storage and per-person hard deletion.
+  summary_i18n:
+    zh: >-
+      把门店对话转成可查询的文字，个人信息入库前脱敏，可按人彻底删除。
+  description_file: description.md
+  description_file_i18n:
+    zh: description_zh.md
+  cover_image: gallery/recordings-console.webp
+  gallery:
+    - type: image
+      src: gallery/recordings-console.webp
+      caption: The server-stack recordings console (demo data) — transcripts with speaker labels and per-record status, shown with the [[NAME]]/[[PHONE]] placeholder format the redaction step outputs
+      caption_i18n:
+        zh: 服务端栈的录音管理控制台（演示数据）——带说话人标签和逐条状态的转写列表，[[NAME]]、[[PHONE]] 是脱敏步骤输出的占位符格式
+    - type: image
+      src: gallery/architecture.png
+      caption: The capture kit as it ships — a reRouter CM4, its power supply, a USB cable and a reSpeaker XVF3800 microphone array
+      caption_i18n:
+        zh: 采集套件的全部东西——reRouter CM4、电源、USB 线，以及 reSpeaker XVF3800 麦克风阵列
+    - type: image
+      src: gallery/respeaker.jpg
+      caption: reSpeaker XVF3800 — 4-mic array with AEC, beamforming and noise suppression, used by both deployment paths
+      caption_i18n:
+        zh: reSpeaker XVF3800——4 麦阵列，带回声消除、波束成形和噪声抑制，两种部署方式都用它
+    - type: image
+      src: gallery/rerouter.webp
+      caption: reRouter CM4 — the CPU board, Paraformer streaming ASR on four Cortex-A72 cores
+      caption_i18n:
+        zh: reRouter CM4——CPU 板，Paraformer 流式 ASR 跑在 4 个 Cortex-A72 核上
+    - type: image
+      src: gallery/recomputer-rk3576.jpg
+      caption: reComputer RK3576 — the NPU board, and the host for the server stack
+      caption_i18n:
+        zh: reComputer RK3576——NPU 板，也是服务端栈的主机
+  category: acoustic_audio_ai
+  solution_type: solution
+  tags:
+    - voice
+    - asr
+    - retail
+    - edge-ai
+    - offline
+    - privacy
+    - pii-redaction
+    - data-deletion
+    - respeaker
+    - rerouter
+    - rk3576
+    - npu
+
+  output_interfaces:
+    - type: file
+      endpoint: <output-dir>/cache/asr/<id>.json
+      description: Device transcription and upload preset. One JSON file per finalized utterance is cached locally — transcript, timestamps, and the speaker label when voiceprint matching is on — and the record is uploaded when an upload endpoint is configured.
+      schema_type: json
+      payload_example: '{"id":"20260905T101233-0007","text":"这个多少钱","lang":"zh","start_ms":1200,"end_ms":2840,"speaker":"用户1"}'
+      description_i18n:
+        zh: 设备转录并上传套餐。每句断句后在本地缓存一个 JSON 文件——转写文本、时间戳，开启声纹匹配时还带说话人标签；配置上传端点后同时上传记录。
+    - type: file
+      endpoint: <output-dir>/voice/*.wav
+      description: Local transcription preset. Raw 16 kHz mono WAV segments, kept only when file output is enabled. Disable it if the deployment must not retain audio at all.
+      schema_type: binary
+      description_i18n:
+        zh: 本地转写套餐。16 kHz 单声道 WAV 原始音频片段，仅在开启文件输出时保留。若部署要求完全不留音频，把它关掉。
+    - type: websocket
+      port: 8621
+      endpoint: /asr/stream?vad=none&punctuate=true&speaker_embedding=true
+      description: OpenVoiceStream streaming ASR for the device and local STT paths. Send 16 kHz mono PCM frames, finalize an utterance with an empty frame. Each result carries the transcript, punctuation, and a 192-dim CAM++ embedding.
+      schema_type: json
+      description_i18n:
+        zh: OpenVoiceStream 流式 ASR，用于设备端和本地 STT 路径。发送 16 kHz 单声道 PCM 帧，用空帧结束一句。每条结果包含转写文本、标点和 192 维 CAM++ 声纹向量。
+    - type: http
+      port: 8621
+      endpoint: /asr
+      method: POST
+      description: Offline transcription of a whole WAV file. Used by the acceptance check in the guide.
+      schema_type: json
+      payload_example: '{"text":"这个多少钱","backend":"rk:sensevoice_rknn"}'
+      description_i18n:
+        zh: 整段 WAV 文件的离线转写接口。指南中的验收步骤用的就是它。
+    - type: http
+      port: 8090
+      endpoint: /
+      description: Local transcription preset. Local web page of the voice client — live transcript view, microphone status, voiceprint registry. Reachable only on the store LAN.
+      schema_type: html
+      description_i18n:
+        zh: 本地转写套餐。语音客户端的本地网页——实时转写、麦克风状态、声纹注册库。仅门店局域网内可访问。
+    - type: websocket
+      port: 8080
+      endpoint: /ws?token=<operator-token>
+      description: Server stack preset. ASR endpoint the mobile app connects to. Client sends raw PCM binary frames (16 kHz, mono, signed 16-bit little-endian); server replies with JSON messages of type connection / vad / final / error.
+      schema_type: json
+      payload_example: '{"type":"final","text":"我想找[[NAME]]咨询一下","timestamp":1757030400000,"textLength":12,"wordCount":2,"sessionID":"a1b2","audioID":"c3d4","speaker":{"identified":true,"speaker_id":"spk-7","speaker_name":"staff-a","confidence":0.83}}'
+      description_i18n:
+        zh: 服务端栈套餐。供手机 App 接入的 ASR 端点。客户端发送原始 PCM 二进制帧（16 kHz、单声道、有符号 16 位小端），服务端回 JSON 消息，type 为 connection / vad / final / error。
+    - type: http
+      port: 8081
+      endpoint: /api/v1/recordings
+      description: Server stack preset. Transcript ingest and query. POST requires an operator token, GET requires viewer. Text is redacted before it is written to MySQL.
+      schema_type: json
+      description_i18n:
+        zh: 服务端栈套餐。转写上报与查询。POST 需要 operator 令牌，GET 需要 viewer。文本在写入 MySQL 之前完成脱敏。
+    - type: http
+      port: 8081
+      endpoint: /api/v1/privacy/erase
+      description: Server stack preset. Hard delete by subject / device / session. Cascades MySQL rows, MinIO objects and the voiceprint, leaves a PII-free tombstone. Requires an admin token.
+      schema_type: json
+      description_i18n:
+        zh: 服务端栈套餐。按主体 / 设备 / 会话硬删除。级联 MySQL 行、MinIO 对象与声纹，只留无 PII 的墓碑。需要 admin 令牌。
+    - type: http
+      port: 8081
+      endpoint: /api/v1/privacy/export
+      description: Server stack preset. Subject export — redacted transcripts as JSON plus an audio manifest (manifest only, not the audio itself). Requires an admin token.
+      schema_type: json
+      description_i18n:
+        zh: 服务端栈套餐。按主体导出——脱敏文本 JSON 加音频清单（只给清单，不给音频本体）。需要 admin 令牌。
+    - type: http
+      port: 3000
+      endpoint: /
+      description: Server stack preset. Admin console — recordings, keywords, devices, export and delete.
+      schema_type: html
+      description_i18n:
+        zh: 服务端栈套餐。管理后台——录音记录、关键词、设备、导出与删除。
+
+  input_requirements:
+    - type: audio
+      required: true
+      description: 16 kHz mono PCM. From a reSpeaker XVF3800 on a USB host port, with the talking area within about 3 m and steady background noise at or below 70 dB; or, on the server stack preset, from your existing mobile app over the ASR endpoint. The array does AEC, beamforming and noise suppression on its own DSP.
+      description_i18n:
+        zh: 16 kHz 单声道 PCM。来自 USB 主机口上的 reSpeaker XVF3800（说话区域在 3 m 以内，稳态背景噪声不高于 70 dB）；服务端栈套餐也可以来自你现有的手机 App，经 ASR 端点上传。回声消除、波束成形和噪声抑制在阵列自带 DSP 上完成。
+    - type: storage
+      required: true
+      description: Local transcription — a writable directory on the device for transcripts and, optionally, audio; everything the preset produces stays there. Server stack — 20 GB free on the stack host for MySQL, MinIO objects and container images.
+      description_i18n:
+        zh: 本地转写——设备上一个可写目录，用于存放转写结果和（可选的）音频，本套餐产生的全部数据都留在这里。服务端栈——栈主机需 20 GB 可用空间，用于 MySQL、MinIO 对象与容器镜像。
+    - type: network
+      required: false
+      description: Local transcription needs an uplink only while images and models are pulled. The server stack preset needs the app or the collector to reach the stack host on the ASR port; across an untrusted network put a TLS terminator in front of it — the token travels in the URL query string.
+      description_i18n:
+        zh: 本地转写只在拉取镜像和模型时需要外网。服务端栈套餐需要 App 或采集端能访问到栈主机的 ASR 端口；跨不受信网络时前面要加 TLS 终结——令牌是走 URL 查询参数的。
+
+  device_catalog:
+    rerouter_cm4:
+      description: CPU-only box (BCM2711, 4-core); runs Paraformer ASR, no NPU/TTS
+      description_i18n:
+        zh: CPU 盒子，跑 Paraformer，无 NPU/TTS
+    recomputer_rk3576:
+      description: Runs SenseVoice on RK3576 NPU; server preset also hosts MySQL/MinIO
+      description_i18n:
+        zh: RK3576 跑 SenseVoice，套餐带存储
+    recomputer_rk3588:
+      description: Runs SenseVoice RKNN profile; Whisper optional English backend
+      description_i18n: {zh: 跑 SenseVoice，可选 Whisper 英文}
+    recomputer_j30:
+      description: Runs Jetson SenseVoice profile; Whisper optional English backend
+      description_i18n: {zh: 跑 Jetson SenseVoice，可选 Whisper}
+    recomputer_j40:
+      description: Runs Jetson SenseVoice profile; Whisper optional English backend
+      description_i18n: {zh: 跑 Jetson SenseVoice，可选 Whisper}
+    recomputer_r20_industrial:
+      description: Hailo-8 box; runs SenseVoice on CPU or Whisper on Hailo-8
+      description_i18n: {zh: Hailo-8 整机，SenseVoice/Whisper}
+    respeaker_xvf3800:
+      description: 4-mic array with DSP AEC, beamforming, noise suppression; USB audio
+      description_i18n:
+        zh: 4 麦阵列，DSP 回声消除、波束成形、降噪，USB 音频
+    respeaker_clip:
+      description: Capture device; sends recordings via gateway to voice-service/OVS
+      description_i18n: {zh: 采集设备，转发录音到 voice-service}
+    generic_linux_host:
+      description: Any arm64 Docker host; bundled ASR image targets RK3576 NPU
+      description_i18n:
+        zh: arm64 主机，自带 RK3576 ASR 镜像
+    external_mobile_app:
+      description: Your existing mobile app; preset only exposes the ASR endpoint
+      description_i18n:
+        zh: 已有手机 App，套餐只对外暴露 ASR 端点
+
+  presets:
+    - id: local_transcribe
+      name: Transcribe on the device
+      name_i18n:
+        zh: 设备转写并上传
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: The device turns speech into text and sends it to your retail voice dashboard.
+      description_i18n:
+        zh: 设备将语音转成文字，再上传到零售语音后台统一查看。
+      device_groups:
+        - id: edge_device
+          name: Edge Device
+          name_i18n:
+            zh: 边缘设备
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_rk3576
+            - device_ref: recomputer_rk3588
+            - device_ref: recomputer_j30
+            - device_ref: recomputer_j40
+            - device_ref: recomputer_r20_industrial
+            - device_ref: rerouter_cm4
+          default: recomputer_rk3576
+        - id: microphone
+          name: Microphone Array
+          name_i18n:
+            zh: 麦克风阵列
+          type: single
+          required: true
+          options:
+            - device_ref: respeaker_xvf3800
+
+    - id: cloud_stack
+      name: Clip and phone, server transcription
+      name_i18n:
+        zh: Clip＋手机，后台转写
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: Clip records audio, your phone uploads it, and the platform transcribes it to text.
+      description_i18n:
+        zh: Clip 负责录音，手机上传音频，零售语音后台自动转成文字。
+      device_groups:
+        - id: stack_host
+          name: Stack Host
+          name_i18n:
+            zh: 栈主机
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_rk3576
+            - device_ref: recomputer_rk3588
+            - device_ref: recomputer_j30
+            - device_ref: recomputer_j40
+            - device_ref: recomputer_r20_industrial
+            - device_ref: generic_linux_host
+          default: recomputer_rk3576
+        - id: capture
+          name: Capture Source
+          name_i18n:
+            zh: 采集来源
+          type: single
+          required: true
+          options:
+            - device_ref: respeaker_clip
+            - device_ref: external_mobile_app
+          default: external_mobile_app
+        - id: microphone
+          name: Microphone Array
+          name_i18n:
+            zh: 麦克风阵列
+          type: single
+          required: false
+          options:
+            - device_ref: respeaker_clip
+          default: respeaker_clip
+
+  stats:
+    difficulty: intermediate
+    estimated_time: 60min
+
+  # `github` is absent: the upstream OpenVoiceStream repository is not public.
+  # The old hosted console (test-voice-web.seeed.cn) is also absent — neither
+  # preset here uses it; the cloud_stack preset ships its own admin console.
+  # The wiki and purchase links are carried over from the retired
+  # smart_retail_voice_ai package: both describe the reRouter CM4 + reSpeaker
+  # XVF3800 capture kit that the local_transcribe preset deploys.
+  links:
+    wiki: https://wiki.seeedstudio.com/solutions/retail-voice/
+    wiki_i18n:
+      zh: https://wiki.seeedstudio.com/cn/solutions/retail-voice/
+    purchase: https://www.seeedstudio.com.cn/solutions/voicecollectionanalysis-zh-hans
+
+deployment:
+  auto_detect: false
+  guide_file: guide.md
+  guide_file_i18n:
+    zh: guide_zh.md
+  selection_mode: sequential
+
+enabled: true

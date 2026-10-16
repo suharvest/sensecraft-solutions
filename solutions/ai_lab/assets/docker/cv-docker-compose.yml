@@ -12,4 +12,14 @@ services:
       - /dev/dri:/dev/dri
     volumes:
       - /proc/device-tree/compatible:/proc/device-tree/compatible
-    command: python web_detection.py --model_path model/${MODEL_VARIANT:-yolo11n}.rknn --host 0.0.0.0 --port 8000
+    # VIDEO_SOURCE=sample (default) plays the clip bundled in the image at
+    # /app/video/test.mp4 in a loop; a number N opens the USB camera at
+    # /dev/videoN. Without a readable source web_detection.py returns from
+    # main() and the container exits, taking the image-upload predict API
+    # with it, so the default must not depend on a camera being attached.
+    command: >-
+      sh -c "if [ '${VIDEO_SOURCE:-sample}' = sample ];
+      then SRC='--video_path video/test.mp4';
+      else SRC='--camera_id ${VIDEO_SOURCE:-sample}'; fi;
+      exec python web_detection.py --model_path model/${MODEL_VARIANT:-yolo11n}.rknn
+      --host 0.0.0.0 --port 8000 $$SRC"

@@ -1,372 +1,348 @@
-## 套餐: 零售人流热力图 {#simple}
+## 套餐: reCamera {#recamera}
 
-只用一台 reCamera，在网页上直接看零售场景的人流热力图——顾客在哪里停留、哪些区域被冷落，一目了然。
+在 reCamera 的控制台里安装目标检测、文字识别、人脸分析、跌倒检测或客流统计应用，在浏览器里切换，并可把结果通过 MQTT 发到 Home Assistant。
 
-| 设备 | 用途 |
-|------|------|
-| reCamera | AI 摄像头，识别并追踪画面中的人，生成人流热力图 |
+- **设备：** reCamera；第 4 到 6 步接入 Home Assistant 时，另需一台电脑或 reComputer R1100。
+- **网络：** 安装应用时，这台电脑需要联网。
+- **限制：** 同一时间只运行一个应用。切换应用会停掉前一个及其 RTSP 和 MQTT 输出，不会卸载。
 
-**部署完成后你可以：**
-- 看到叠加人流热力图的实时视频（热力图在网页端实时生成，按人体位置累积）
-- 直观看出货架前、过道里哪些位置人多、哪些被冷落
-- 隐私保护（人脸自动打码）
+## 步骤 1: 升级 reCamera 控制台 {#deploy_console type=recamera_cpp required=true config=devices/recamera_console.yaml}
 
-**前提条件：** 新设备需先开启 SSH——用 USB 连接电脑，等设备开机（约 2 分钟），访问 [192.168.42.1/#/security](http://192.168.42.1/#/security)，输入初始账号 `recamera` / `recamera`，打开 SSH 开关
+安装 0.5.6 版控制台，已经是这个版本会自动跳过。
 
-## 步骤 1: 让摄像头能识别人 {#deploy_detector type=recamera_cpp required=true config=devices/recamera_yolo11.yaml}
+### 前置条件
 
-给 reCamera 安装人员识别程序，让它能在画面中找到人。
-
-### 接线
-
-1. USB 连接：IP 地址 `192.168.42.1`，即插即用
-2. 网线/WiFi：在路由器管理页面查找 reCamera 的 IP
-3. 输入用户名 `recamera`，默认密码 `recamera`（若已修改请用新密码）
+1. 用 USB 连接摄像头（地址 `192.168.42.1`），或让它和这台电脑处于同一网络（用路由器上显示的 IP）。
+2. 用户名 `recamera`，默认密码 `recamera`（较早的机器是 `recamera.2`）。
+3. 新设备需要先打开 SSH：USB 连接后等约两分钟，打开 `http://192.168.42.1/#/security` 登录，打开 SSH 开关。
 
 ### 故障排查
 
-| 问题 | 解决方法 |
-|------|----------|
-| 连不上 | USB 连接用 `192.168.42.1`；网络连接去路由器查 IP |
-| 密码错误 | 初始密码 `recamera`，若改过请用新密码 |
-| 安装失败 | 重启摄像头再试一次 |
+| 现象 | 处理 |
+|------|------|
+| 连不上 | USB 用 `192.168.42.1`；走网络到路由器里查 IP |
+| 密码不对 | 默认是 `recamera`，较早固件的机器是 `recamera.2` |
+| 安装失败 | 重启摄像头后重新执行这一步 |
+| Node-RED 用不了了 | 控制台接管了摄像头，可在控制台的系统设置里切回 |
+| 想恢复原来的面板 | 按住 **User** 键再插电，红灯停止闪烁并常亮后松开，摄像头恢复出厂设置 |
 
 ---
 
-## 步骤 2: 查看实时人流热力图 {#preview type=preview required=false config=devices/preview.yaml}
+## 步骤 2: 选择并安装应用 {#install_app type=recamera_console_app required=true config=devices/recamera_console_app.yaml}
 
-点击 **连接** 查看带人流热力图叠加的实时视频。
+从下拉框里选一个应用，点**部署**，自动完成下载、安装和启用。
 
-**提示：** 热力图按行人位置随时间累积，等几分钟人流分布会更清晰。
+### 前置条件
 
-### 故障排查
-
-| 问题 | 解决方法 |
-|------|----------|
-| 黑屏 | 等 10 秒让视频流加载；检查摄像头 IP 是否正确 |
-| 没有热力图叠加 | 等几分钟让数据积累；确认步骤 1 已完成 |
+1. 这台电脑能访问互联网；摄像头不需要联网。
+2. 地址和密码沿用上一步。
+3. 应用连同模型可能有几百 MB，部署页会显示进度。
 
 ### 部署完成
 
-摄像头已就绪！点击上方 **连接** 查看实时人流热力图。
+摄像头正在运行你选的应用。应用支持 ONVIF，NVR 或视频管理平台可以自动发现这台摄像头并拉流。
 
-热力图按人体位置随时间累积——顾客停留越久、经过越多的区域会越亮，可用于识别零售门店中的"热区"和"冷区"。
+第 4 到 6 步可选，用于把结果接入 Home Assistant。
 
----
+### 故障排查
 
-## 套餐: Home Assistant 集成 {#ha_integration}
-
-将 reCamera 接入 Home Assistant，统一管理智能家居设备。
-
-| 设备 | 用途 |
+| 现象 | 处理 |
 |------|------|
-| reCamera | AI 摄像头，支持 YOLO 识别 + RTSP 视频流 |
-| 电脑 或 reComputer R1100 | 运行 Home Assistant |
-
-**部署完成后你可以：**
-- 在 HA 面板中查看实时 RTSP 视频流
-- 看到 AI 识别计数传感器，包含各类别明细（人、车等）
-- 在 reCamera 上使用 FlowFuse Dashboard 进行本地调试
-
-**前提条件：** Docker 已安装 · 所有设备在同一局域网
+| 下拉框是空的或很短 | 这台电脑访问不了 `sensecraft-statics.seeed.cc`，解决网络后点刷新 |
+| 登录被拒 | 用摄像头的账号密码，默认 `recamera` / `recamera`（较早的机器是 `recamera.2`）。连续失败会锁定 60 秒 |
+| 控制台不回应 | 摄像头可能还在重启，等一分钟再部署 |
+| 提示 busy | 控制台正在处理另一个应用操作，完成后再试 |
+| 存储空间不足 | 先到控制台卸载用不到的应用 |
+| 装了但起不来 | 在控制台「应用」页查看状态；文件缺失就重新部署这一步 |
+| 开启隐私打码后摄像头起不来 | 拔掉电源再插上，软件重启无效 |
 
 ---
 
-## 步骤 1: 部署 Home Assistant {#deploy_ha type=docker_deploy required=false config=devices/homeassistant_deploy.yaml}
+## 步骤 3: 打开控制台查看 {#open_console type=web_dashboard required=true config=devices/console_dashboard.yaml}
 
-启动 Home Assistant。如果你已有 HA，可以跳过这一步。
+打开摄像头的控制台，查看应用的检测结果。
+
+### 前置条件
+
+1. 用第 1 步的摄像头账号密码登录。
+2. 在**应用**页点当前应用的**调试**，查看实时画面和检测结果。
+3. 换应用在**应用**页切换，**从云端安装**里有目录中的其他应用。
+
+### 部署完成
+
+控制台地址 `http://<摄像头 IP>/`，可以安装和切换应用、查看实时画面、修改网络、隐私和系统设置。
+
+### 故障排查
+
+| 现象 | 处理 |
+|------|------|
+| 页面打不开 | 等一分钟让摄像头重启完成，再刷新 |
+| 登录被拒 | 用摄像头的账号密码，默认 `recamera` / `recamera` |
+| 实时画面是黑的 | 没有应用在运行，回上一步部署一个应用 |
+
+---
+
+## 步骤 4: 部署 Home Assistant {#deploy_ha type=docker_deploy required=false config=devices/homeassistant_deploy.yaml}
+
+启动 Home Assistant 和一个 MQTT broker。两者都已在运行就跳过。
 
 ### 部署目标 {#ha_local type=local config=devices/homeassistant_deploy.yaml default=true}
 
-### 接线
+### 前置条件
 
-1. 确保 Docker Desktop 已安装并运行
-2. 至少 2GB 可用磁盘空间
+1. 已安装并启动 Docker Desktop。
+2. 至少 2 GB 可用磁盘。
+3. 8123 和 1883 端口空闲。
 
 ### 部署完成
 
-1. 在浏览器打开 **http://localhost:8123**
-2. 按照引导向导创建管理员账号
-3. 请记住用户名和密码——步骤 3 需要用到
+1. 打开 **http://localhost:8123**，按向导创建管理员账号。
+2. MQTT broker 在这台机器的 1883 端口，第 5 步填它的地址。
 
 ### 故障排查
 
-| 问题 | 解决方法 |
-|------|----------|
-| 端口 8123 被占用 | 关闭占用 8123 端口的程序，或修改 docker-compose.yml 中的端口 |
-| Docker 启动不了 | 打开 Docker Desktop 应用 |
-| 容器反复重启 | 确保电脑有至少 2GB 可用内存 |
+| 现象 | 处理 |
+|------|------|
+| 8123 或 1883 端口被占用 | 停掉现有的 Home Assistant 或 Mosquitto，或跳过这一步直接用现有的 |
+| Docker 起不来 | 打开 Docker Desktop 应用 |
+| 容器反复重启 | 确认至少有 2 GB 可用内存 |
 
 ### 部署目标 {#ha_remote type=remote config=devices/homeassistant_deploy.yaml}
 
-### 接线
+### 前置条件
 
-1. 将目标设备连接到网络
-2. 在下方输入 IP 地址、用户名和密码
-
-### 部署完成
-
-1. 在浏览器打开 **http://\<设备IP\>:8123**
-2. 按照引导向导创建管理员账号
-3. 请记住用户名和密码——步骤 3 需要用到
-
-### 故障排查
-
-| 问题 | 解决方法 |
-|------|----------|
-| 连接超时 | 检查网线是否插好，用 ping 测试 |
-| SSH 认证失败 | 确认用户名密码正确 |
-
----
-
-## 步骤 2: 部署 AI 识别流程 {#deploy_flow type=recamera_nodered required=true config=devices/recamera.yaml}
-
-给 reCamera 安装 YOLO 识别 + RTSP 视频流程序。
-
-### 接线
-
-1. USB 连接：IP 地址 `192.168.42.1`，即插即用
-2. 网线/WiFi：在路由器管理页面查找 reCamera 的 IP
-3. 输入用户名 `recamera`，默认密码 `recamera`（若已修改请用新密码）
-
-### 故障排查
-
-| 问题 | 解决方法 |
-|------|----------|
-| 连不上 | USB 连接用 `192.168.42.1`；网络连接去路由器查 IP |
-| 密码错误 | 初始密码 `recamera`，若改过请用新密码 |
-| 安装失败 | 重启摄像头再试一次 |
-
----
-
-## 步骤 3: 在 Home Assistant 中添加 reCamera {#configure_ha type=ha_integration required=true config=devices/homeassistant_existing.yaml}
-
-安装 reCamera 集成并连接到 Home Assistant。
-
-### 接线
-
-1. 输入 Home Assistant 的 **IP 地址**（如 `192.168.1.100`）
-2. 输入 HA 设置时创建的**登录用户名和密码**
-3. 输入 **reCamera 的 IP 地址** — USB 连接用 `192.168.42.1`，或路由器中查到的 WiFi IP
-4. **HA OS 用户**：SSH 相关字段留空 — 系统会自动安装配置 SSH
-5. **Docker HA 用户**：还需要填写**宿主机**的 SSH 用户名和密码（不是 HA 的登录密码）
-
-### 故障排查
-
-| 问题 | 解决方法 |
-|------|----------|
-| HA 登录失败 | 这里填的是 HA 网页登录的用户名密码，不是 SSH 的。请确认是否正确 |
-| 重启时间很长 | HA OS 会重启整个系统，可能需要 30-90 秒，请耐心等待 |
-| SSH 插件安装失败 | HA OS 需要联网才能下载 SSH 插件，检查网络连接 |
-| 文件复制失败 | HA OS 检查磁盘空间；Docker 确认 SSH 凭据是**宿主机**的 |
-| 添加后显示 `setup_retry` | HA 无法访问 reCamera — 确保两者在同一局域网 |
-| 摄像头缩略图空白，但直播正常 | 已知问题：ffmpeg 截图可能超时，面板中的实时画面不受影响 |
-| 传感器显示 0 | 摄像头视野内没有可识别物体时属正常；可访问 http://\<reCamera IP\>:1880/data 验证 |
-
-## 步骤 4: 打开面板 {#dashboard type=web_dashboard required=true config=devices/dashboard.yaml}
-
-Home Assistant 面板已经运行。点击下方按钮在浏览器中打开。
-
-### 故障排查
-| 问题 | 解决方法 |
-|------|----------|
-| 页面无法加载 | 请确认前一个部署步骤已经成功，服务运行正常 |
-| 主机/端口错误 | 如果你部署到远程设备，请用实际的设备 IP 更新地址 |
+1. 目标设备 SSH 可达，已安装并启动 Docker。
+2. 在下面填入它的 IP 地址、用户名和密码。
 
 ### 部署完成
 
-reCamera 已成功接入 Home Assistant！
+1. 打开 **http://\<设备 IP\>:8123**，按向导创建管理员账号。
+2. MQTT broker 在同一台设备的 1883 端口，第 5 步填它的地址。
 
-#### 快速验证
+### 故障排查
 
-1. 打开 **http://\<服务器IP\>:8123**
-2. 进入 **设置 → 设备与服务** — 应该能看到 **reCamera (你的IP)** 设备
-3. 点击进入设备查看两个实体
-4. 在面板中添加 **图片实体** 卡片来显示摄像头画面
-
-#### 访问地址
-
-- **Home Assistant**：http://\<服务器IP\>:8123 — 统一智能家居面板
-- **FlowFuse Dashboard**：http://\<reCamera IP\>:1880/dashboard — reCamera 本地调试界面
-- **识别数据 API**：http://\<reCamera IP\>:1880/data — 原始识别 JSON 数据
-
-#### 后续玩法
-
-- 用识别传感器创建**自动化**（例如检测到人时自动开灯）
-- 在面板中用 **图片实体** 或 **图片概览** 卡片添加摄像头画面
-- 设置**手机通知**，检测到特定物体时推送提醒
-
-**遇到问题？**
-- 看不到画面？检查 reCamera IP，确认步骤 2 已完成
-- 没有识别数据？确保视野内有物体；访问 http://\<reCamera IP\>:1880 检查 Node-RED
-
----
-
-## 套餐: OCR 文字识别 {#ocr_reader}
-
-把 reCamera 对准任何文字——标牌、标签、仪表显示屏——识别出的字符实时显示在画面上。全部在摄像头上处理，不需要联网。
-
-| 设备 | 用途 |
+| 现象 | 处理 |
 |------|------|
-| reCamera | AI 摄像头，识别画面中的文字 |
-
-**部署完成后你可以：**
-- 实时看到画面中被识别出的文字
-- 支持印刷文字、标牌、标签、电子显示屏
-- 全部在设备上处理——不需要联网，不需要额外设备
-
-**前提条件：** 新设备需先开启 SSH——用 USB 连接电脑，等设备开机（约 2 分钟），访问 [192.168.42.1/#/security](http://192.168.42.1/#/security)，输入初始账号 `recamera` / `recamera`，打开 SSH 开关
-
-## 步骤 1: 安装文字识别程序 {#deploy_ppocr type=recamera_cpp required=true config=devices/recamera_ppocr.yaml}
-
-给 reCamera 安装文字识别程序，让它能读取画面中的文字。
-
-### 接线
-
-1. USB 连接：IP 地址 `192.168.42.1`，即插即用
-2. 网线/WiFi：在路由器管理页面查找 reCamera 的 IP
-3. 输入用户名 `recamera`，默认密码 `recamera`（若已修改请用新密码）
-
-### 故障排查
-
-| 问题 | 解决方法 |
-|------|----------|
-| 连不上 | USB 连接用 `192.168.42.1`；网络连接去路由器查 IP |
-| 密码错误 | 初始密码 `recamera`，若改过请用新密码 |
-| 安装失败 | 重启摄像头再试一次 |
+| 连接超时 | 检查网络，用 ping 测试 |
+| SSH 认证失败 | 核对用户名和密码 |
+| 目标机 1883 被占用 | 那里已有 broker，保留它，第 5 步直接填它 |
 
 ---
 
-## 步骤 2: 查看 OCR 文字叠加 {#preview_ocr type=preview required=false config=devices/preview_ocr.yaml}
+## 步骤 5: 把摄像头接入 Home Assistant {#connect_ha type=manual required=false config=devices/connect_ha_recamera.yaml}
 
-点击 **连接** 查看带文字识别叠加的实时视频。
+让 Home Assistant 和摄像头连同一个 broker，实体会自动出现。
 
-**提示：** 将摄像头对准文字——标牌、标签、屏幕——效果最佳。
+### 前置条件
 
-### 故障排查
-
-| 问题 | 解决方法 |
-|------|----------|
-| 黑屏 | 等 10 秒让视频流加载；检查摄像头 IP 是否正确 |
-| 没有识别到文字 | 确保文字清晰可见且光线充足；确认步骤 1 已完成 |
+1. Home Assistant 已运行并能登录。
+2. 有一个摄像头可访问的 MQTT broker（第 4 步部署的，或你自己的）。
+3. 摄像头上有应用在运行。
 
 ### 部署完成
 
-摄像头已就绪！点击上方 **连接** 查看实时 OCR 文字叠加。
+检测结果通过 MQTT 自动发现出现在 Home Assistant 里；换应用后实体集合会跟着变。自动发现不含视频，画面在第 6 步单独添加。
 
-将摄像头对准印刷文字——识别出的字符会显示在每个检测区域上方。
+### 故障排查
 
----
-
-## 套餐: 人脸分析 {#face_analysis}
-
-把 reCamera 对准人——实时检测人脸并分析年龄、性别、表情。全部在摄像头上处理，不需要联网。
-
-| 设备 | 用途 |
+| 现象 | 处理 |
 |------|------|
-| reCamera | AI 摄像头，分析画面中的人脸 |
-
-**部署完成后你可以：**
-- 实时看到人脸框和分析标签
-- 每张检测到的人脸都显示年龄、性别和表情
-- 全部在设备上处理——不需要联网，不需要额外设备
-
-**前提条件：** 新设备需先开启 SSH——用 USB 连接电脑，等设备开机（约 2 分钟），访问 [192.168.42.1/#/security](http://192.168.42.1/#/security)，输入初始账号 `recamera` / `recamera`，打开 SSH 开关
-
-## 步骤 1: 安装人脸分析程序 {#deploy_face_analysis type=recamera_cpp required=true config=devices/recamera_face_analysis.yaml}
-
-给 reCamera 安装人脸分析程序，让它能检测人脸并分析年龄、性别和表情。
-
-### 接线
-
-1. USB 连接：IP 地址 `192.168.42.1`，即插即用
-2. 网线/WiFi：在路由器管理页面查找 reCamera 的 IP
-3. 输入用户名 `recamera`，默认密码 `recamera`（若已修改请用新密码）
-
-### 故障排查
-
-| 问题 | 解决方法 |
-|------|----------|
-| 连不上 | USB 连接用 `192.168.42.1`；网络连接去路由器查 IP |
-| 密码错误 | 初始密码 `recamera`，若改过请用新密码 |
-| 安装失败 | 重启摄像头再试一次 |
+| 摄像头上「测试连接」失败 | broker 地址填 broker 所在机器的 IP，不要填 `localhost` |
+| 保存了，但 Home Assistant 里什么都没有 | 确认 Home Assistant 的 MQTT 集成连的是同一个 broker 和端口，然后在控制台里重启当前应用 |
+| 实体出现了但一直不可用 | 摄像头上没有应用在运行，到控制台启用一个 |
+| 换应用之后实体消失了 | 正常，每个应用发布自己的一套实体 |
 
 ---
 
-## 步骤 2: 查看人脸分析结果 {#preview_face_analysis type=preview required=false config=devices/preview_face_analysis.yaml}
+## 步骤 6: 在 Home Assistant 里查看结果 {#ha_dashboard type=web_dashboard required=false config=devices/ha_dashboard.yaml}
 
-点击 **连接** 查看带人脸分析叠加的实时视频。
+把画面和检测结果放到同一张卡片上。
 
-**提示：** 将摄像头对准人——每张检测到的人脸都会显示年龄、性别和表情。
+### 前置条件
 
-### 故障排查
-
-| 问题 | 解决方法 |
-|------|----------|
-| 黑屏 | 等 10 秒让视频流加载；检查摄像头 IP 是否正确 |
-| 没有检测到人脸 | 确保人脸清晰可见且光线充足；确认步骤 1 已完成 |
+1. **查看实体。** 「设置 → 设备与服务 → MQTT」，点进这台摄像头的设备，记下要放到仪表盘上的实体。
+2. **添加视频。** 「设置 → 设备与服务 → 添加集成」，选 **Generic Camera**：
+   - Stream Source URL：`rtsp://<摄像头 IP>:8554/live0`（控制台「集成」页可复制）
+   - RTSP transport protocol：选 **TCP**
+   - Verify SSL certificate 不要勾
+3. **搭卡片。** 「设置 → 仪表盘」→ 打开仪表盘 → 点铅笔编辑 → **添加卡片** → **Picture glance**（图片一览）。Camera Entity 选刚加的 Generic Camera，再把检测实体加进 Entities 列表。
+4. **分开显示（可选）。** 用 **Entities**（实体）卡片按行列出数值，用 **History**（历史）卡片看变化。
+5. **自动化（可选）。** 「设置 → 自动化与场景 → 创建自动化」，触发器选**实体 → 状态**，指向某个检测实体。
 
 ### 部署完成
 
-摄像头已就绪！点击上方 **连接** 查看实时人脸分析叠加。
+仪表盘上能看到摄像头画面和检测实体。换应用后 MQTT 实体会变，Generic Camera 画面不受影响。
 
-每张检测到的人脸都会显示年龄、性别和表情——全部在设备上实时分析。
+### 故障排查
 
----
-
-## 套餐: 困倦检测 {#facemesh_drowsiness}
-
-把 reCamera 对准驾驶员——实时监测闭眼时长、哈欠频率和 PERCLOS 困倦指数。全部在摄像头上处理，不需要联网。
-
-| 设备 | 用途 |
+| 现象 | 处理 |
 |------|------|
-| reCamera | AI 摄像头，监测驾驶员警觉状态 |
-
-**部署完成后你可以：**
-- 实时看到人脸框和困倦检测指标
-- 实时追踪 EAR（眼宽比）和 MAR（嘴宽比）
-- PERCLOS 困倦评分和持续闭眼时长监控
-- 哈欠检测，含 5 分钟频率统计
-- 颜色编码的困倦状态：正常、疲劳、困倦、危险
-- 全部在设备上处理——不需要联网，不需要额外设备
-
-**前提条件：** 新设备需先开启 SSH——用 USB 连接电脑，等设备开机（约 2 分钟），访问 [192.168.42.1/#/security](http://192.168.42.1/#/security)，输入初始账号 `recamera` / `recamera`，打开 SSH 开关
-
-## 步骤 1: 安装困倦检测程序 {#deploy_facemesh_drowsiness type=recamera_cpp required=true config=devices/recamera_facemesh_drowsiness.yaml}
-
-给 reCamera 安装 FaceMesh 困倦检测程序，让它能追踪眼睛和嘴部的运动。
-
-### 接线
-
-1. USB 连接：IP 地址 `192.168.42.1`，即插即用
-2. 网线/WiFi：在路由器管理页面查找 reCamera 的 IP
-3. 输入用户名 `recamera`，默认密码 `recamera`（若已修改请用新密码）
-
-### 故障排查
-
-| 问题 | 解决方法 |
-|------|----------|
-| 连不上 | USB 连接用 `192.168.42.1`；网络连接去路由器查 IP |
-| 密码错误 | 初始密码 `recamera`，若改过请用新密码 |
-| 安装失败 | 重启摄像头再试一次 |
+| Generic Camera 提示连不上 | 先用 VLC 测试这条地址；VLC 能播而 Home Assistant 不行时，把 RTSP transport 设为 TCP |
+| 画面是黑的，或者放几秒就卡住 | 关掉控制台的实时画面和所有 VLC 窗口 |
+| 卡片上有画面，但没有检测图标 | 先在「设置 → 设备与服务 → MQTT」里确认实体存在，再加到卡片上 |
+| 实体显示 `unknown` | 摄像头前发生变化后才会有值 |
+| Picture glance 不接受某个实体 | 添加具体实体，不要添加设备 |
 
 ---
 
-## 步骤 2: 查看困倦检测结果 {#preview_facemesh_drowsiness type=preview required=false config=devices/preview_facemesh_drowsiness.yaml}
+## 套餐: reCamera Pro {#recamera_pro}
 
-点击 **连接** 查看带困倦检测叠加的实时视频。
+在 reCamera Pro 的应用中心安装应用，并可把结果通过 MQTT 发到 Home Assistant。
 
-**提示：** 将摄像头对准人脸——每张检测到的人脸都会显示 EAR、MAR 和困倦状态。
+- **设备：** reCamera Pro；第 3 到 5 步接入 Home Assistant 时，另需一台电脑或 reComputer R1100。
+- **网络：** 摄像头和这台电脑在同一网络，安装应用时这台电脑需要联网。
+- **限制：** 摄像头不自带 MQTT broker，第 4 步填入 broker 地址前结果只留在设备上；broker 地址按应用分别配置。同一时间只运行一个推理应用。
+
+## 步骤 1: 检查并更新固件 {#firmware_pro type=manual required=false config=devices/recamera_pro_firmware.yaml}
+
+摄像头页面上还没有应用中心时才需要做，只做一次。
+
+![设备管理、嵌入式标签页，以及填写地址和 ADB 端口的 reCamera Pro 条目](https://files.seeedstudio.com/Solution/landpage_asset/fall-detection/recamera-pro-firmware-update-a9539b3d.gif)
+
+### 前置条件
+
+1. 打开摄像头的页面，已有**应用中心**就跳过这一步。
+2. 在本应用里：**设备管理 → 嵌入式 → reCamera Pro**，填入摄像头地址，点**检查更新设备**。
+3. 更新走网络上的 ADB 5555 端口，只插 USB 不够。
+4. 更新时摄像头会重启，需要几分钟，中途不要断电。同一页的**恢复出厂设置**可以回滚。
 
 ### 故障排查
 
-| 问题 | 解决方法 |
-|------|----------|
-| 黑屏 | 等 10 秒让视频流加载；检查摄像头 IP 是否正确 |
-| 没有检测到人脸 | 确保人脸清晰可见且光线充足；确认步骤 1 已完成 |
+| 现象 | 处理 |
+|------|------|
+| 测试连接失败 | 检查地址，以及这台电脑能否访问 5555 端口 |
+| 点了检查更新设备没反应 | 摄像头可能已是最新，到它的页面上找应用中心 |
+| 之后应用中心还是没出现 | 等摄像头重启完成后刷新页面 |
+
+---
+
+## 步骤 2: 挑选并安装应用 {#open_appcenter_pro type=web_dashboard required=true config=devices/recamera_pro_apps.yaml}
+
+打开应用中心，安装并启动一个应用。
+
+### 前置条件
+
+1. 用摄像头控制面板的账号密码登录（不是 SSH 账号）。
+2. 在左侧打开**应用中心**，点 **+** 打开安装对话框，选择应用安装。
+3. 应用需要运行时组件时，对话框会询问是否一并下载；取消则不安装该应用。
+4. 在应用卡片上点**启动**。启动一个推理应用会停掉另一个。
+5. 在左侧**实时预览**或**实时画面**页查看画面和检测结果。
 
 ### 部署完成
 
-摄像头已就绪！点击上方 **连接** 查看实时困倦检测叠加。
+摄像头正在运行你选的应用。第 3 到 5 步可选，用于把结果接入 Home Assistant。
 
-每张检测到的人脸都会显示 EAR/MAR 值和颜色编码的困倦状态——全部在设备上实时分析。
+### 故障排查
+
+| 现象 | 处理 |
+|------|------|
+| 页面打不开 | 地址用 `http://` 开头输入，让浏览器跟随跳转 |
+| 证书告警 | 开启 HTTPS 时摄像头使用自签证书，继续访问即可 |
+| 应用中心是空的，或提示要登录 | 先登录控制面板，再重新打开这个标签页 |
+| 加载目录失败 | 这台电脑访问不了 `sensecraft-statics.seeed.cc`；自建目录时在安装对话框里修改目录地址 |
+| 校验和不匹配，拒绝安装 | 重新加载目录再试一次 |
+| 应用在列表里但启动不了 | 模型缺失，重新安装该应用 |
+| 实时预览里没有检测结果 | 确认正在运行的是你装的应用 |
+
+---
+
+## 步骤 3: 部署 Home Assistant {#deploy_ha_pro type=docker_deploy required=false config=devices/homeassistant_deploy.yaml}
+
+启动 Home Assistant 和一个 MQTT broker。两者都已在运行就跳过。
+
+### 部署目标 {#ha_local_pro type=local config=devices/homeassistant_deploy.yaml default=true}
+
+### 前置条件
+
+1. 已安装并启动 Docker Desktop。
+2. 至少 2 GB 可用磁盘。
+3. 8123 和 1883 端口空闲。
+
+### 部署完成
+
+1. 打开 **http://localhost:8123**，按向导创建管理员账号。
+2. MQTT broker 在这台机器的 1883 端口，第 4 步填它的地址。
+
+### 故障排查
+
+| 现象 | 处理 |
+|------|------|
+| 8123 或 1883 端口被占用 | 停掉现有的 Home Assistant 或 Mosquitto，或跳过这一步直接用现有的 |
+| Docker 起不来 | 打开 Docker Desktop 应用 |
+| 容器反复重启 | 确认至少有 2 GB 可用内存 |
+
+### 部署目标 {#ha_remote_pro type=remote config=devices/homeassistant_deploy.yaml}
+
+### 前置条件
+
+1. 目标设备 SSH 可达，已安装并启动 Docker。
+2. 在下面填入它的 IP 地址、用户名和密码。
+
+### 部署完成
+
+1. 打开 **http://\<设备 IP\>:8123**，按向导创建管理员账号。
+2. MQTT broker 在同一台设备的 1883 端口，第 4 步填它的地址。
+
+### 故障排查
+
+| 现象 | 处理 |
+|------|------|
+| 连接超时 | 检查网络，用 ping 测试 |
+| SSH 认证失败 | 核对用户名和密码 |
+| 目标机 1883 被占用 | 那里已有 broker，保留它，第 4 步直接填它 |
+
+---
+
+## 步骤 4: 把摄像头接入 Home Assistant {#connect_ha_pro type=manual required=false config=devices/connect_ha_recamera_pro.yaml}
+
+在应用的配置里填入 broker 地址，实体会自动出现在 Home Assistant。
+
+### 前置条件
+
+1. Home Assistant 已运行并能登录。
+2. 有一个摄像头可访问的 MQTT broker（第 3 步部署的，或你自己的）。
+3. 摄像头上有应用在运行。
+
+### 部署完成
+
+检测结果已出现在 Home Assistant 里。这份配置只属于当前应用：以后装的其他应用 MQTT 输出默认关闭，需要在它的「配置」里再做一遍。
+
+### 故障排查
+
+| 现象 | 处理 |
+|------|------|
+| 「配置」里没有「结果输出」分组 | 这个应用不支持 MQTT 输出，结果只留在设备上 |
+| broker 上收不到任何数据 | 确认 broker 地址不为空，且摄像头能访问到 |
+| 保存被拒绝 | Broker 地址不能为空；「主题(base)」不能为空，不能含 `+` `#` 或空格 |
+| 保存了，但 Home Assistant 里什么都没有 | 「输出模式」选 **Home Assistant**，并确认 Home Assistant 的 MQTT 集成连的是同一个 broker 和端口 |
+| 实体出现了但一直不可用 | 摄像头上没有应用在运行，到应用中心启动一个 |
+| 启动别的应用之后实体消失了 | 正常，每个应用发布自己的一套实体，没配过 MQTT 的应用不发布 |
+
+---
+
+## 步骤 5: 在 Home Assistant 里查看结果 {#ha_dashboard_pro type=web_dashboard required=false config=devices/ha_dashboard_pro.yaml}
+
+把画面和检测结果放到同一张卡片上。
+
+### 前置条件
+
+1. **查看实体。** 「设置 → 设备与服务 → MQTT」，点进这台摄像头的设备，记下要放到仪表盘上的实体。
+2. **打开 RTSP。** 在摄像头上：**画面设置 → 推流设置**，协议选 RTSP 并开启，复制显示的视频流地址。需要认证时在同一页设置用户名和密码。
+3. **添加视频。** 在 Home Assistant 里：「设置 → 设备与服务 → 添加集成」，选 **Generic Camera**，粘贴地址，RTSP transport protocol 选 **TCP**。开了认证时地址写成 `rtsp://用户名:密码@…`。
+4. **搭卡片。** 「设置 → 仪表盘」→ 打开仪表盘 → 点铅笔编辑 → **添加卡片** → **Picture glance**（图片一览）。Camera Entity 选 Generic Camera，再把检测实体加进 Entities 列表。
+5. **分开显示（可选）。** 用 **Entities**（实体）卡片按行列出数值，用 **History**（历史）卡片看变化。
+6. **自动化（可选）。** 「设置 → 自动化与场景 → 创建自动化」，触发器选**实体 → 状态**，指向某个检测实体。
+
+### 部署完成
+
+仪表盘上能看到摄像头画面和检测实体。换应用后 MQTT 实体换成新应用发布的那套，Generic Camera 画面不受影响。
+
+### 故障排查
+
+| 现象 | 处理 |
+|------|------|
+| 推流设置里没有视频流地址 | RTSP 未开启或选了别的协议；选 RTSP 会关闭 RTMP 和 ONVIF |
+| Generic Camera 提示连不上 | 先用 VLC 测试这条地址；VLC 能播而 Home Assistant 不行时，把 RTSP transport 设为 TCP。设了凭据时写进地址 |
+| 画面是黑的，或者放几秒就卡住 | 关掉摄像头的实时预览和所有 VLC 窗口 |
+| 卡片上有画面，但没有检测图标 | 确认当前应用配过 MQTT（第 4 步），且实体在「设置 → 设备与服务 → MQTT」里存在 |
+| 实体显示 `unknown` | 摄像头前发生变化后才会有值 |

@@ -1,0 +1,6 @@
+### Result
+[{"url":"http://192.0.2.16:18775/api/decide","method":"POST","postData":"{\"input_text\":\"把三号输送带速度降到 60%\",\"prompt\":\"You route production line instructions. Choose the best matching candidate.\",\"options\":[{\"id\":\"cmd-1\",\"label\":\"Reduce conveyor speed\",\"description\":\"Adjust the specified conveyor to the target speed\"},{\"id\":\"cmd-2\",\"label\":\"Pause equipment\",\"description\":\"Safely pause the current production equipment\"},{\"id\":\"cmd-3\",\"label\":\"Query equipment status\",\"description\":\"Return the current equipment status\"}],\"model_id\":\"laya\",\"model_service_url\":\"\"}"}]
+### Ran Playwright code
+```js
+await (async page => { const seen=[]; const h=r=>{if(r.method()==='POST'&&r.url().includes('/api/decide'))seen.push({url:r.url(),method:r.method(),postData:r.postData()})}; page.on('request',h); await page.getByRole('textbox',{name:'Text or voice transcript'}).press('Control+Enter'); await page.waitForTimeout(900); page.off('request',h); return seen; })(page);
+```

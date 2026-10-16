@@ -1,0 +1,75 @@
+version: '1.0'
+id: sensecraft_data_mcp
+name: SenseCAP PaaS MCP Bridge
+name_i18n:
+  zh: SenseCAP PaaS MCP 数据桥
+  ja: SenseCAP PaaS MCP ブリッジ
+intro:
+  summary: Give any MCP-compatible voice assistant or LLM a spoken, anomaly-first report on your SenseCAP PaaS device fleet — ask "how are my devices doing" or "what's the greenhouse reading right now" and get a real answer, no app or dashboard needed.
+  summary_i18n:
+    zh: 让任意兼容 MCP 的语音助手/LLM 直接把你的 SenseCAP PaaS 设备情况念给你听——问一句"我的设备怎么样了"或"大棚现在读数多少"就有答案，不用打开 App，不用看仪表盘。
+  description_file: description.md
+  description_file_i18n:
+    zh: description_zh.md
+  cover_image: gallery/cover.svg
+  repo_url: https://github.com/Love4yzp/sensecraft-data-mcp
+  category: interactive_smart_display
+  solution_type: technical
+  tags:
+    - mcp
+    - voice-ai
+    - sensecap
+    - paas
+    - xiaozhi
+    - docker
+
+  output_interfaces:
+    - type: websocket
+      endpoint: "{{mcp_endpoint}} (user-supplied XiaoZhi/MCP access-point URL, set during deployment)"
+      description: Outbound MCP (Model Context Protocol) JSON-RPC bridge. Dials out to a XiaoZhi voice-assistant MCP access point (or any MCP-compatible host) and exposes 9 tools — get_farm_overview, get_device_reading, register_device, get_device_key, view_latest_telemetry_data, list_telemetry_data, aggregate_chart_points, list_all_code, read_code_file.
+      schema_type: json
+      payload_example: '{"method":"tools/call","params":{"name":"get_farm_overview","arguments":{}}}'
+      description_i18n:
+        zh: 出站 MCP（Model Context Protocol）JSON-RPC 桥接。主动连接小智语音助手的 MCP 接入点（或任意兼容 MCP 的宿主），暴露 9 个工具——get_farm_overview、get_device_reading、register_device、get_device_key、view_latest_telemetry_data、list_telemetry_data、aggregate_chart_points、list_all_code、read_code_file。
+
+  input_requirements: []
+
+  device_catalog:
+    recomputer_r11:
+      description: Edge device with Docker, runs the MCP bridge container
+      description_i18n:
+        zh: 支持 Docker 的边缘计算设备，运行 MCP 桥接容器
+
+  presets:
+    - id: default
+      verify_exempt: true
+      name: SenseCAP PaaS MCP Bridge
+      description: Deploy the MCP bridge and connect it to your XiaoZhi voice-assistant MCP access point.
+      device_groups:
+        - id: host
+          name: Docker Host
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_r11
+          default: recomputer_r11
+          name_i18n:
+            zh: Docker 主机
+      name_i18n:
+        zh: SenseCAP PaaS MCP 数据桥
+      description_i18n:
+        zh: 部署 MCP 数据桥，并连接到你的小智语音助手 MCP 接入点。
+
+  stats:
+    difficulty: beginner
+    estimated_time: 10min
+
+  links:
+    github: https://github.com/Love4yzp/sensecraft-data-mcp
+
+deployment:
+  guide_file: guide.md
+  guide_file_i18n:
+    zh: guide_zh.md
+  selection_mode: sequential
+

@@ -1,0 +1,47 @@
+version: "1.0"
+id: ha_dashboard_pro
+name: See the Results in Home Assistant
+type: web_dashboard
+
+# Opens Home Assistant so the user can build the view. Two things have to be
+# assembled there, and they arrive by different routes:
+#
+#   * the entities come from MQTT discovery, so they already exist by this point
+#     and only need putting on a card;
+#   * the video does NOT — discovery carries detection results, not a stream, so
+#     the camera has to be added separately as a Generic Camera against its RTSP
+#     URL (rtsp://<camera>:8554/live0 on this generation, shown with a copy
+#     button on the console's Integrations page).
+#
+# inherit_host_from points at the Home Assistant deploy step, so the address is
+# filled in for anyone who ran it. That step is optional, so the input below
+# stays typeable for anyone pointing at a Home Assistant they already had.
+inherit_host_from: deploy_ha_pro
+
+user_inputs:
+  - id: host
+    name: Home Assistant Address
+    type: text
+    required: true
+    default: "localhost"
+    default_template: "{{host}}"
+    placeholder: "192.168.1.50"
+    description: Address of the machine running Home Assistant
+    name_i18n:
+      zh: Home Assistant 地址
+    description_i18n:
+      zh: 运行 Home Assistant 的机器地址
+
+web_dashboard:
+  url: "http://{{host}}:8123"
+  title: Home Assistant
+  description: >-
+    Add the camera's RTSP stream as a Generic Camera, then build a Picture
+    Glance card that puts the detection entities over the live picture.
+  description_i18n:
+    zh: >-
+      先用 Generic Camera 添加摄像头的 RTSP 视频流，再建一张 Picture Glance 卡片，
+      把检测实体叠在实时画面上。
+
+name_i18n:
+  zh: 在 Home Assistant 里查看结果

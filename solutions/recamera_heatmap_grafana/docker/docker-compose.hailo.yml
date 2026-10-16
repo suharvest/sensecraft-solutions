@@ -1,0 +1,50 @@
+# Raspberry Pi 5 / reComputer R + Hailo-8 detector.
+#
+# Native C++ runtime: GStreamer decodes the RTSP stream, the hailonet plugin
+# runs YOLOv8n on the accelerator, and the process decodes the on-chip NMS
+# output, tracks each shopper and publishes VisionPayload. No Torch,
+# Ultralytics, ONNX Runtime or Python in the deployed hot path.
+#
+# ABI lock: the GStreamer plugin, the HailoRT user library and the kernel
+# driver must all be the same HailoRT version. The image contains none of them
+# — the host's are mounted read-only so they cannot drift apart. The deploy
+# step fails loudly if the expected version is not on the host.
+#
+# This stack is the detector only. The dashboard backend (InfluxDB, Grafana,
+# MQTT broker, heatmap) comes from docker-compose.yml and can run on this same
+# board or on another machine.
+services:
+  retail-vision:
+    image: sensecraft-missionpack.seeed.cn/solution/retail-vision-hailo:0.1.0
+    container_name: retail-vision-hailo
+    network_mode: host
+    restart: unless-stopped
+    devices:
+      - /dev/hailo0:/dev/hailo0
+    environment:
+      HEF_PATH: /models/yolov8n.hef
+      # Semicolon-separated camera-id|url entries.
+      STREAMS: "${STREAMS}"
+      RTSP_LATENCY_MS: ${RTSP_LATENCY_MS:-100}
+      INSTALLATION_ID: ${INSTALLATION_ID:-store-01}
+      MQTT_HOST: ${MQTT_HOST:-127.0.0.1}
+      MQTT_PORT: ${MQTT_PORT:-1883}
+      MQTT_USERNAME: ${MQTT_USERNAME:-}
+      MQTT_PASSWORD: ${MQTT_PASSWORD:-}
+      # One batched message per cycle, per camera. Publishing per frame puts
+      # the broker's message rate at people x cameras x frame rate.
+      PUBLISH_HZ: ${PUBLISH_HZ:-1.0}
+      SCORE_THRESHOLD: ${SCORE_THRESHOLD:-0.4}
+      DWELL_SPEED_THRESHOLD: ${DWELL_SPEED_THRESHOLD:-10.0}
+      DWELL_MIN_DURATION: ${DWELL_MIN_DURATION:-1.5}
+      DWELL_ASSISTANCE_THRESHOLD: ${DWELL_ASSISTANCE_THRESHOLD:-20.0}
+      ZONE_WINDOW_SEC: ${ZONE_WINDOW_SEC:-60}
+    volumes:
+      - ./hailo-models:/models:ro
+      - /usr/lib/aarch64-linux-gnu/gstreamer-1.0/libgsthailo.so:/usr/lib/aarch64-linux-gnu/gstreamer-1.0/libgsthailo.so:ro
+      - /usr/lib/libhailort.so.4.21.0:/usr/lib/libhailort.so.4.21.0:ro
+    healthcheck:
+      test: ["CMD-SHELL", "test -c /dev/hailo0 && test -r /models/yolov8n.hef"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

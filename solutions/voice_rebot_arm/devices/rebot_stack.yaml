@@ -1,0 +1,166 @@
+version: "1.0"
+id: rebot_stack
+name: Voice Grasping Stack
+type: docker_deploy
+device_class: jetson
+
+# Single source-of-truth device YAML (docker_local / docker_remote views are
+# derived). Deploys the FULL 4-service stack via one compose file:
+#   edge-llm (Qwen3.5-4B-AWQ GDN+MTP, TensorRT-Edge-LLM)
+#   + seeed-voice (Qwen3 ASR + MOSS-TTS-Nano, edgellm v0.9.0)
+#   + rebot-arm (voice_rebot_arm agent: detection → grasp pipeline)
+# plus two one-shot init services: gpu-libs-init (curates host TensorRT/cuDNN
+# libraries) and model-init (fetches the embin detector + text encoder, and
+# picks the native-TensorRT or onnxruntime backend for THIS host).
+#
+# Target: reComputer J40 series (Jetson Orin NX 16GB, JetPack 6). The compose
+# mounts host CUDA/TensorRT libraries — other hosts are unsupported.
+#
+# First boot downloads ~8.5 GB of models (LLM engine 4.9 GB, MOSS TTS 1.9 GB,
+# ASR engines 1.3 GB, detector + text encoder 330 MB) on top of ~1.4 GB of
+# container images, then warms up TensorRT. Budget 30-45 min on a fast link
+# before the stack answers; health checks below allow for it. Engines live in
+# named volumes, so recreating a container re-verifies rather than re-downloads.
+#
+# Detector backend: the prebuilt TensorRT engine is bound to sm87 / TRT 10.3 /
+# JetPack 6.2. model-init deserializes it to prove it loads here; if it does
+# not, the stack silently continues on onnxruntime (slower, same detections).
+# Which one won is printed by rebot-arm at startup as "detector backend: ...".
+#
+# NOTE the one step one-click cannot do: hand-eye calibration. The arm grasps
+# only after /opt/rebot-models/hand_eye.npz exists for THIS unit (printed
+# ArUco board, one-time, ~30 min — see the guide). Voice chat, detection and
+# the dashboard all work before calibration; only grasping needs it.
+
+detection:
+  method: local
+  requirements:
+    - docker_installed
+    - docker_running
+
+docker:
+  compose_file: assets/docker/docker-compose.yml
+  environment:
+    HF_ENDPOINT: "{{hf_endpoint}}"
+    PULSE_UID: "{{pulse_uid}}"
+  options:
+    project_name: voice-rebot-arm
+    remove_orphans: true
+  services:
+    - name: rebot-arm
+      port: 8776
+      health_check_endpoint: "/api/state"
+      required: true
+    - name: edge-llm
+      port: 8000
+      required: true
+    - name: seeed-voice
+      port: 8621
+      required: true
+
+ssh:
+  port: 22
+  default_user: seeed
+
+user_inputs:
+  - id: hf_endpoint
+    name: HuggingFace Endpoint
+    type: text
+    required: false
+    reconfigurable: true
+    default: "https://huggingface.co"
+    description: "Model download endpoint. On China networks use https://hf-mirror.com. First boot pulls ~8.5 GB from here: the Qwen3.5-4B LLM engine, the MOSS-TTS-Nano and ASR speech engines, and the grasp detector."
+    description_i18n:
+      zh: 模型下载端点。中国大陆网络请填 https://hf-mirror.com。首次启动会从这里下载约 8.5 GB：Qwen3.5-4B 大模型引擎、MOSS-TTS-Nano 语音合成与语音识别引擎、抓取检测模型
+    name_i18n:
+      zh: HuggingFace 端点
+  - id: pulse_uid
+    name: Host Audio User ID
+    type: text
+    required: false
+    reconfigurable: true
+    default: "1000"
+    description: "Numeric uid of the Jetson desktop user that owns PulseAudio (run: id -u). Default 1000 fits a standard single-user JetPack install."
+    description_i18n:
+      zh: Jetson 桌面用户的数字 uid（运行 id -u 查看），PulseAudio 属于该用户。标准单用户 JetPack 系统默认为 1000
+    name_i18n:
+      zh: 音频用户 ID
+
+name_i18n:
+  zh: 语音抓取全栈
+
+remote_overrides:
+  remote_path: /home/{{username}}/voice-rebot-arm
+  # Opt OUT of whole-directory upload: every volume in the compose file is an
+  # absolute system path (/dev, /usr/local/cuda, /opt/rebot-models, ...) or a
+  # named volume; nothing under assets/docker/ is needed at runtime beyond
+  # the compose file itself.
+  compose_dir: ""
+  user_inputs:
+    - id: host
+      name: Jetson IP Address
+      type: text
+      required: true
+      placeholder: "192.168.1.100"
+      description: IP address or hostname of the Jetson Orin NX target.
+      name_i18n:
+        zh: Jetson IP 地址
+      description_i18n:
+        zh: Jetson Orin NX 目标设备的 IP 地址或主机名。
+    - id: port
+      name: SSH Port
+      type: text
+      default: "22"
+      required: false
+      description: SSH port, default 22.
+      name_i18n:
+        zh: SSH 端口
+      description_i18n:
+        zh: SSH 端口，默认 22。
+    - id: username
+      name: SSH Username
+      type: text
+      default: seeed
+      required: true
+      description: SSH login username on the Jetson.
+      name_i18n:
+        zh: SSH 用户名
+      description_i18n:
+        zh: Jetson 上的 SSH 登录用户名。
+    - id: password
+      name: SSH Password
+      type: password
+      required: true
+      description: SSH login password for the Jetson.
+      name_i18n:
+        zh: SSH 密码
+      description_i18n:
+        zh: Jetson 的 SSH 登录密码。
+    - id: hf_endpoint
+      name: HuggingFace Endpoint
+      type: text
+      required: false
+      reconfigurable: true
+      default: "https://huggingface.co"
+      description: "Model download endpoint. On China networks use https://hf-mirror.com. First boot pulls ~8.5 GB from here: the Qwen3.5-4B LLM engine, the MOSS-TTS-Nano and ASR speech engines, and the grasp detector."
+      description_i18n:
+        zh: 模型下载端点。中国大陆网络请填 https://hf-mirror.com。首次启动会从这里下载约 8.5 GB：Qwen3.5-4B 大模型引擎、MOSS-TTS-Nano 语音合成与语音识别引擎、抓取检测模型
+      name_i18n:
+        zh: HuggingFace 端点
+    - id: pulse_uid
+      name: Host Audio User ID
+      type: text
+      required: false
+      reconfigurable: true
+      default: "1000"
+      description: "Numeric uid of the Jetson desktop user that owns PulseAudio (run: id -u). Default 1000 fits a standard single-user JetPack install."
+      description_i18n:
+        zh: Jetson 桌面用户的数字 uid（运行 id -u 查看），PulseAudio 属于该用户。标准单用户 JetPack 系统默认为 1000
+      name_i18n:
+        zh: 音频用户 ID
+  detection:
+    method: network_scan
+    manual_entry: true
+    requirements:
+      - docker_installed
+      - docker_running

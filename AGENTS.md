@@ -2,17 +2,20 @@
 
 This document is for **AI agents** (Claude Code and similar assistants). It defines the standard workflows an agent should follow when helping different kinds of SenseCraft Solution users.
 
-This open-source repository contains the **solution content** (YAML / Markdown / assets) and the **authoring & validation tooling** (`spec/`, `packages/`, `skills/`). The deployment engine itself (the desktop app / headless binary) is distributed separately as the **SenseCraft Solution app**. The workflows below assume the user already has that app (or the `provisioning-station` engine binary) installed.
+This open-source repository contains the **solution content** (YAML / Markdown / assets) and the **authoring & validation tooling** (`spec/`, `packages/`, `skills/`). The deployment engine is distributed separately, in two forms:
+
+- **`sensecraft-engine`** — a single command-line binary (`curl -fsSL https://sensecraft-statics.seeed.cc/solution-app/engine/install.sh | sh -s -- --with-content`). It downloads the solutions from the CDN (`sensecraft-engine content pull`), carries the device catalog inside the binary, and deploys without starting any Python process. **This is the engine agents use to deploy** (the `solution-cli` skill).
+- The **SenseCraft Solution desktop app** (Python backend `provisioning-station`). Content preview (Part A), the app HTTP API (Part C) and the legacy `solutionctl deploy` / `manage` / `stage` commands (Part D, appendix) need it.
 
 ## Four user roles, four workflows
 
 | Part | User role | Typical need | Key artifact |
 |---|---|---|---|
 | **A** | Non-technical user (operations, AE, marketing) | Edit copy, add images, tweak intro/guide, then **preview** in the app | Solution import API (preview flow) |
-| **C** | End user with the app installed | "One-click deploy a solution" | HTTP API `/api/solutions/*` boost flow |
-| **D** | DevOps / CI / scripted | Headless batch deploy, CI automation, single-device debugging | **`solutionctl` CLI** (`solutionctl deploy …`) + **headless engine binary** (`provisioning-station serve --headless`) |
-| **E** | DevOps / agent operating deployed devices | List deployed apps, start/stop/update, firmware OTA, factory restore, content updates, Docker ops | **headless engine binary** `serve --headless` + device-management endpoints |
-| **F** | Solution author / AE turning a project into a solution | Convert an existing project into a one-click solution, then submit it | `author-solution` skill + `solutionctl validate` + PR |
+| **C** | End user, deploying with an agent | "One-click deploy a solution" | **`solution-cli` skill** + `sensecraft-engine` CLI; the desktop app's HTTP API boost flow is the app-only alternative |
+| **D** | DevOps / CI / scripted | Headless batch deploy, CI automation, single-device debugging | **`sensecraft-engine` CLI** (`deploy --detach`, `status`, `logs`); legacy: `solutionctl deploy` (starts the Python backend) |
+| **E** | DevOps / agent operating deployed devices | List deployed apps, start/stop/update, firmware OTA, factory restore, content updates, Docker ops | `sensecraft-engine docker` / `content` / `api`; the remaining endpoints need `serve --headless` (Python backend) or the desktop app |
+| **F** | Solution author / AE turning a project into a solution | Convert an existing project into a one-click solution, then submit it | `author-solution` / `author-cli` skills + `solutionctl validate` / `steps` (offline) + PR |
 
 > Note: a sixth role — second-development of the engine itself (adding deployers / frontend handlers / plugins) — lives in the closed-source engine repository and is intentionally out of scope here.
 
@@ -27,13 +30,28 @@ a skill when its job comes up:
 
 | Skill | Load it when… |
 |---|---|
-| `solution-cli` | Driving the engine from the command line / CI — `solutionctl` for deploy, validate, discover solutions, device ops (Part D). |
-| `deploy-solution` | Deploying via the running backend's REST API (Part C boost flow). |
+| `solution-cli` | **Agent-neutral entry point for deploying** (any agent that can run shell commands): consultation & hardware BOM selection, install `sensecraft-engine`, pull solutions, deploy, follow status / logs, finish `verify_required` steps (counting lines, face enrollment, servo setup, robot arm), diagnose failures. No desktop app and no Python process. Editing a solution's configuration in an edit copy needs the desktop app (`references/app-only.md`). |
+| `author-cli` | **Content authors:** `solutionctl validate` / `steps` / `export` (offline, no engine). Not for deploying — use `solution-cli`. |
+| `deploy-solution` | Deploying via the desktop app's REST API (Part C app flow; requires the desktop app). |
 | `author-solution` | Creating a new solution from source material (reproduce → validate → document). |
 | `solution-copywriting` | Polishing a solution's intro / guide copy. |
 | `preview-solution-content` | Previewing locally-edited content in the installed app (Part A). |
 | `prepare-docker-images` / `prepare-deb-package` / `prepare-esp32-firmware` / `prepare-himax-firmware` / `prepare-recamera-nodered` | Preparing the deploy artifacts for the matching deployer type. |
 | `integrate-jetson-solution` | Building a Jetson `docker_remote` solution package. |
+
+> **Using `solution-cli` without cloning this repo:** in the SenseCraft Solution
+> app open **Settings → Advanced → AI agent skill** and click Install for your agent (the
+> app ships the skill matching its own version). Or install via npm:
+> `npm install -g @seeed-studio/solution-cli && solution-cli install --agent <doubao|claude|codex|all>`.
+> For manual setup, copy the `skills/solution-cli/` folder into your agent's skills directory:
+> - 豆包工作 (Doubao Work): `~/Doubao/skills/` (Windows: `%USERPROFILE%\Doubao\skills`；及 `~/.agents/skills`)
+> - Claude Code: `~/.claude/skills/`
+> - CodeBuddy / WorkBuddy: `~/.codebuddy/skills/` per the CodeBuddy docs (check your version's settings)
+> - Other agents: point them at `skills/solution-cli/SKILL.md`.
+> It installs `sensecraft-engine` on first use (SKILL.md Step 0) and does not
+> need the app. Only `references/app-only.md` (config editing, the app's API)
+> needs the SenseCraft Solution app running on the same computer (app contract
+> 6+ for config editing); that part finds the app via `~/.sensecraft/runtime.json`.
 
 > Windows note: the `.claude/skills` symlink needs `git config core.symlinks true`
 > (and Developer Mode) to clone as a real link; otherwise point your agent at
@@ -55,7 +73,7 @@ This flow is a **local preview**, not a release. Changes land only on the curren
 - Change `bundled_hashes.json`
 - Trigger any git operation
 
-If the user actually wants "everyone to see it" — stop. That is a separate release flow that runs `scripts/generate_solution_manifest.py` and commits `bundled_hashes.json`, and requires explicit confirmation.
+If the user actually wants "everyone to see it" — stop. That is a separate release flow: the App Engine Build signs `manifest.json` and `bundled_hashes.json`, with `manifest.base_url` set to the exact `https://sensecraft-statics.seeed.cc/solution-app/solutions/releases/<40-hex-content-pin>` URL and `RELEASE_STATUS.content_pin` matching it. An approved operator runs `scripts/generate_solution_manifest.py --publish-artifact-dir DIR --no-upload` to print and review the exact inventory before explicitly adding `--upload-signed`; solution zips publish under that immutable URL prefix and the four metadata objects remain at the root. After the approved signed artifact is published, refresh the submodule's `solutions/bundled_hashes.json` from that same artifact at a reviewed content commit, then update the App pin and the root hashbook. Publication does not update any checkout.
 
 ## Standard flow
 
@@ -94,6 +112,8 @@ Invoke the skill `preview-solution-content`. Full steps:
 ---
 
 # Part C — AI-driven deployment (boost flow)
+
+> **Agents deploying for a user: load the `solution-cli` skill** (`skills/solution-cli/SKILL.md`). It uses only the `sensecraft-engine` CLI: `content pull` → `solution list` → `deploy-info` → `deploy --detach` → `status` / `logs` → `verify_required` handling → cancel / retry. The rest of this Part documents the **desktop app's HTTP API** and **requires the desktop app**.
 
 This Part tells an AI agent how to drive a **one-shot deployment ("boost")** of a solution through the SenseCraft Solution app's HTTP backend, after the app has been installed on the user's machine.
 
@@ -285,7 +305,23 @@ else:
 > "No app installed on this machine, can I deploy from the command line?"
 > "Debug a single device without clicking through the UI"
 
-## Set boundaries first
+## Default: `sensecraft-engine`
+
+Install once (`curl -fsSL https://sensecraft-statics.seeed.cc/solution-app/engine/install.sh | sh -s -- --with-content`; Windows: `install.ps1 -WithContent`), then:
+
+```bash
+sensecraft-engine content update                                # refresh solutions
+sensecraft-engine deploy-info smart_warehouse --preset sensecraft_cloud
+sensecraft-engine deploy --params body.json --yes --detach      # body = filled request_template
+sensecraft-engine status <deployment_id> --json                 # exit 1 on failed / cancelled / interrupted
+sensecraft-engine logs <deployment_id> --since <N> [--follow]   # NDJSON events, resume by seq
+```
+
+For unattended CI add `--skip-verify` (verify steps are reported as `step_skipped`, `reason: ui_only`). Exit codes: `0` success, `1` deployment failed / cancelled / interrupted, `2` missing parameters (`missing[]` on stdout), `3` environment or conflict (no solutions, device busy), `4` step needs the desktop app, `5` internal error. Full flow, verify handling and offline packages: `skills/solution-cli/`.
+
+The sections below (usage ① and ②) describe **`solutionctl` with the `provisioning-station` Python backend**. They start a Python process; agents deploying for a user use `sensecraft-engine` instead.
+
+## Set boundaries first (solutionctl / provisioning-station)
 
 The headless engine shares the desktop app's deployment code. One-shot deployment (usage ①) covers **deployment-related** capabilities only; `serve --headless` (usage ②) additionally exposes the **full device-management surface** (see Part E). It does **not** do:
 - Content editing (use Part A)
@@ -296,7 +332,7 @@ If the user's need exceeds deployment / device operations, stop and guide them t
 
 ## Two usages
 
-Drive the engine through **`solutionctl`** — the thin CLI client in `packages/solutionctl/`. **`solutionctl` auto-locates the engine binary** (env `$SENSECRAFT_ENGINE_BIN` → `~/.sensecraft/engine.json` handshake → platform-native lookup), so the agent never needs to know the binary's path. Calling the bare `provisioning-station <cmd>` directly still works if you already know the path, but `solutionctl` is recommended.
+Drive the Python engine through **`solutionctl`** — the thin CLI client in `packages/solutionctl/`. **`solutionctl` auto-locates the engine binary** (env `$SENSECRAFT_ENGINE_BIN` → `~/.sensecraft/engine.json` handshake → platform-native lookup), so the agent never needs to know the binary's path. Calling the bare `provisioning-station <cmd>` directly also works if you know the path.
 
 The engine has two GUI-less usages:
 
@@ -353,6 +389,33 @@ Key flags:
 - `--replace-existing` auto stop + replace when a same-named container already exists (default behavior fails and asks the user to confirm)
 - `--yes` / `-y` skips confirmation prompts (required for CI)
 - `--solutions-dir` only when running outside a repo clone and the default location is wrong (normally auto-discovered, see note above)
+
+### Deploying where there is no internet — `stage`
+
+Prepare on a machine that has the network, deploy on site without one. The unit is
+**step x target**: stage one step only, or several device models for the same step.
+
+```bash
+solutionctl stage plan <solution_id> --preset <preset>          # what it needs, what is here
+solutionctl stage prepare <solution_id> --preset <preset> \
+    --target <step>=<target> --arch <step>=aarch64              # download it here
+solutionctl stage list --check                                  # what is prepared, what changed
+solutionctl stage export kit.tar                                # carry it to the deploying machine
+solutionctl stage import kit.tar                                # there
+solutionctl stage delete --entry <solution>/<preset>/<step>     # free space
+```
+
+Then deploy with `force_offline` in the connection; the engine checks the offline package
+**before touching the device** and stops with what is missing:
+
+```bash
+--connection '{"<step>":{...,"target_type":"remote","force_offline":true}}'
+```
+
+Exit codes: `0` everything the manifest lists is here, `1` something is missing,
+`2` the manifest could not be derived (e.g. a target with no device class needs `--arch`).
+`--require-full` additionally fails when the solution does not declare that its services
+need nothing else on site.
 
 ### 4. Interpret the result
 
@@ -431,7 +494,9 @@ provisioning-station serve --headless
 
 ## Prerequisite
 
-First start `serve --headless` per **Part D usage ②** to get `base_url` (or reuse the port of an already-running desktop app, see Part C §1). All calls below are `$base_url + <endpoint>`. Local requests are auth-free; passwords for remote SSH operations must be **requested from the user**.
+With `sensecraft-engine` only: containers are covered by `sensecraft-engine docker ps|logs|restart|start|stop` (local, or `--host` for an SSH device), content updates by `sensecraft-engine content status|pull|update`, and any endpoint below can be sent with `sensecraft-engine api <METHOD> <path> [--data JSON]`. An endpoint the engine does not serve itself returns 501 `requires_desktop_app` (exit code 4): use the Python backend or the desktop app for it.
+
+Otherwise first start `serve --headless` per **Part D usage ②** to get `base_url` (or reuse the port of an already-running desktop app, see Part C §1). All calls below are `$base_url + <endpoint>`. Local requests are auth-free; passwords for remote SSH operations must be **requested from the user**.
 
 ## Operation → endpoint quick reference
 

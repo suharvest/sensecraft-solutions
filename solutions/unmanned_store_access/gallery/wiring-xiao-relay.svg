@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 380" width="900" height="380" role="img" aria-label="XIAO ESP32-S3 → Relay → Door controller">
+<title>XIAO ESP32-S3 → Relay → Door controller</title>
+<style>.b{fill:#fff;stroke:#1f2733;stroke-width:2}.p{fill:#1f2733}.w{stroke:#1f2733;stroke-width:2.5;fill:none}.t{font-family:-apple-system,"Segoe UI",Roboto,"PingFang SC","Noto Sans CJK SC","Microsoft YaHei",sans-serif;fill:#1f2733}.h{font-size:17px;font-weight:600}.s{font-size:13px}.m{font-size:12px;fill:#5b6472}</style>
+<rect x="0" y="0" width="900" height="380" fill="#fff"/>
+<rect class="b" x="30" y="60" width="250" height="220" rx="8"/>
+<text class="t h" x="155" y="92" text-anchor="middle">XIAO ESP32-S3</text>
+<text class="t m" x="155" y="112" text-anchor="middle">Relay node / 继电器节点</text>
+<rect class="b" x="380" y="60" width="180" height="220" rx="8"/>
+<text class="t h" x="470" y="92" text-anchor="middle">Grove Relay</text>
+<text class="t m" x="470" y="112" text-anchor="middle">继电器模块</text>
+<rect class="b" x="660" y="60" width="210" height="220" rx="8"/>
+<text class="t h" x="765" y="92" text-anchor="middle">Door controller</text>
+<text class="t m" x="765" y="112" text-anchor="middle">门禁控制器</text>
+<text class="t s" x="262" y="164" text-anchor="end">GPIO (按实测)</text>
+<circle class="p" cx="280" cy="160" r="5"/>
+<circle class="p" cx="380" cy="160" r="5"/>
+<text class="t s" x="394" y="164">SIG</text>
+<line class="w" x1="280" y1="160" x2="380" y2="160"/>
+<text class="t s" x="262" y="204" text-anchor="end">3V3</text>
+<circle class="p" cx="280" cy="200" r="5"/>
+<circle class="p" cx="380" cy="200" r="5"/>
+<text class="t s" x="394" y="204">VCC</text>
+<line class="w" x1="280" y1="200" x2="380" y2="200"/>
+<text class="t s" x="262" y="244" text-anchor="end">GND</text>
+<circle class="p" cx="280" cy="240" r="5"/>
+<circle class="p" cx="380" cy="240" r="5"/>
+<text class="t s" x="394" y="244">GND</text>
+<line class="w" x1="280" y1="240" x2="380" y2="240"/>
+<text class="t s" x="546" y="184" text-anchor="end">COM</text>
+<circle class="p" cx="560" cy="180" r="5"/>
+<circle class="p" cx="660" cy="180" r="5"/>
+<line class="w" x1="560" y1="180" x2="660" y2="180"/>
+<text class="t s" x="546" y="224" text-anchor="end">NO</text>
+<circle class="p" cx="560" cy="220" r="5"/>
+<circle class="p" cx="660" cy="220" r="5"/>
+<line class="w" x1="560" y1="220" x2="660" y2="220"/>
+<text class="t s" x="676" y="184">开门输入 1 / Unlock input 1</text>
+<text class="t s" x="676" y="224">开门输入 2 / Unlock input 2</text>
+<text class="t m" x="470" y="268" text-anchor="middle">Fail-safe maglock: COM/NC</text>
+<text class="t m" x="765" y="268" text-anchor="middle">断电开电磁锁接 COM/NC</text>
+<text class="t h" x="30" y="36">XIAO ESP32-S3 → Relay → Door controller</text>
+<text class="t m" x="30" y="320">按实测 = the GPIO used by the relay firmware / 继电器固件使用的 GPIO</text>
+</svg>

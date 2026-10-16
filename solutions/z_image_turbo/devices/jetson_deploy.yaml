@@ -65,12 +65,51 @@ user_inputs:
 
 actions:
   before:
+    - name: Validate Jetson environment
+      run: |
+        set -e
+
+        if ! command -v docker >/dev/null 2>&1; then
+          echo "Docker is not installed on this device."
+          echo "Install Docker first, then retry deployment."
+          exit 1
+        fi
+
+        if ! DOCKER_INFO="$(docker info 2>&1)"; then
+          if echo "$DOCKER_INFO" | grep -qi "permission denied"; then
+            CURRENT_USER="$(whoami)"
+            echo "Docker permission denied for user '$CURRENT_USER'."
+            echo "Run: sudo usermod -aG docker $CURRENT_USER && newgrp docker"
+          else
+            echo "Docker is not available: $DOCKER_INFO"
+          fi
+          exit 1
+        fi
+
+        echo "$DOCKER_INFO" | grep -Eq "Runtimes:.*nvidia| nvidia" || {
+          echo "NVIDIA docker runtime is not detected"
+          exit 1
+        }
+
+        FREE_GB=$(df -BG / | awk 'NR==2{gsub(/G/,"",$4); print $4}')
+        [ "${FREE_GB:-0}" -ge 5 ] || {
+          echo "Need at least 5GB free disk, current: ${FREE_GB:-0}GB"
+          exit 1
+        }
+
+        echo "Jetson environment validated."
+      name_i18n:
+        zh: 校验 Jetson 运行环境
     - name: Resolve paths and patch compose
+      env:
+        INPUT_MODEL_ROOT: "{{model_root}}"
+        INPUT_OUTPUT_DIR: "{{output_dir}}"
+        INPUT_RESOLUTION: "{{resolution}}"
       run: |
         set -e  # fail-fast: any step below (HF download, compose patch, mkdir) failing must abort deploy
-        MODEL_ROOT='{{model_root}}'
-        OUTPUT_DIR='{{output_dir}}'
-        RES='{{resolution}}'
+        MODEL_ROOT="$INPUT_MODEL_ROOT"
+        OUTPUT_DIR="$INPUT_OUTPUT_DIR"
+        RES="$INPUT_RESOLUTION"
 
         if [ "$RES" = "384" ]; then
           ENGINE_SUBDIR="trt-engines-384-bf16"
@@ -91,13 +130,34 @@ actions:
         mkdir -p "$OUTPUT_DIR" "$UPLOAD_DIR"
 
         # Patch compose file defaults for derived paths not set via env
-        sed -i "s|__ENGINE_SUBDIR__|$ENGINE_SUBDIR|g" assets/docker/docker-compose.yml
-        sed -i "s|__CACHE_LAYERS__|$CACHE_LAYERS|g" assets/docker/docker-compose.yml
+        for COMPOSE_TARGET in assets/docker/docker-compose.yml assets/docker/.sensecraft-compose.yml; do
+          if [ -f "$COMPOSE_TARGET" ]; then
+            sed -i "s|__ENGINE_SUBDIR__|$ENGINE_SUBDIR|g" "$COMPOSE_TARGET"
+            sed -i "s|__CACHE_LAYERS__|$CACHE_LAYERS|g" "$COMPOSE_TARGET"
+          fi
+        done
 
         echo "Engine: $ENGINE_DIR"
         echo "Output: $OUTPUT_DIR"
       name_i18n:
         zh: 解析路径并更新配置
+  after:
+    - name: Verify API service
+      run: |
+        set -e
+        echo "Waiting for API to be ready..."
+        for i in $(seq 1 60); do
+          if curl -sf http://127.0.0.1:8000/health >/dev/null 2>&1; then
+            echo "API service is healthy."
+            exit 0
+          fi
+          sleep 2
+        done
+        echo "API service failed to become healthy within 120s."
+        docker logs --tail 30 z-image-api || true
+        exit 1
+      name_i18n:
+        zh: 验证 API 服务
 
 pre_checks:
   - type: disk_space
@@ -180,7 +240,7 @@ remote_overrides:
         name_i18n:
           zh: 校验 Jetson 运行环境
       # The deployer only uploads compose_dir contents (assets/docker/) into
-      # remote_dir. The HF download script + its _shared/ helper are NOT
+      # remote_dir. The HF download script + its hf_download.sh helper are NOT
       # in compose_dir, so we SCP them explicitly here, side-by-side with
       # docker-compose.yml. download_hf_artifacts.sh respects
       # HF_DOWNLOAD_HELPER (see the export in the next action).
@@ -191,13 +251,13 @@ remote_overrides:
           mode: "0755"
         name_i18n:
           zh: 上传 HF 下载脚本
-      - name: Upload shared HF helper
+      - name: Upload HF helper
         copy:
-          src: ../_shared/scripts/hf_download.sh
+          src: assets/scripts/hf_download.sh
           dest: /home/{{username}}/z-image-turbo/jetson_deploy/hf_download.sh
           mode: "0755"
         name_i18n:
-          zh: 上传共享 HF 辅助脚本
+          zh: 上传 HF 辅助脚本
       # NOTE: "Resolve paths and patch compose" lives in `after_upload`
       # below, NOT in `before`. The sed step targets the remote
       # docker-compose.yml that the deployer uploads in its own
@@ -236,8 +296,8 @@ remote_overrides:
           # `Upload HF download scripts` action above copies the script
           # plus its shared helper alongside the compose file.
           SCRIPT="/home/{{username}}/z-image-turbo/jetson_deploy/download_hf_artifacts.sh"
-          # Tell the script where to find hf_download.sh on the remote (no
-          # _shared/ tree on the device; both files sit next to each other).
+          # Tell the script where to find hf_download.sh on the remote (both
+          # files sit next to each other on the device).
           export HF_DOWNLOAD_HELPER="/home/{{username}}/z-image-turbo/jetson_deploy/hf_download.sh"
           bash "$SCRIPT" "$MODEL_ROOT" "$RES"
 

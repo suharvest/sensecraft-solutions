@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 620" width="1500" height="620" font-family="Inter, Helvetica, Arial, sans-serif">
+  <rect width="1500" height="620" fill="#ffffff"/>
+  <defs>
+    <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#2f6f8f"/>
+    </marker>
+  </defs>
+  <text x="40" y="50" fill="#12232e" font-size="26" font-weight="700">One machine per site — broker, hub and detector together</text>
+  <text x="40" y="78" fill="#5c7280" font-size="16">Each preset is self-contained. Nothing below requires a second machine.</text>
+
+  <rect x="40" y="104" width="457" height="250" rx="12" fill="#f2f7fa" stroke="#c3d6e0"/>
+  <text x="62" y="136" fill="#12232e" font-size="19" font-weight="700">Preset A — Jetson Single Box</text>
+  <text x="62" y="166" fill="#42606f" font-size="15">camera :554 → TensorRT detector → mosquitto → hub</text>
+  <text x="62" y="190" fill="#42606f" font-size="15">all three containers on the same Jetson</text>
+  <rect x="62" y="206" width="413" height="44" rx="8" fill="#ffffff" stroke="#c3d6e0"/>
+  <text x="80" y="234" fill="#2f6f8f" font-size="14">detector · mosquitto · hub — workbench on :8090</text>
+  <text x="62" y="278" fill="#7d94a1" font-size="14">4.13 ms p50 inference, 8.5-12.5% of one core</text>
+  <text x="62" y="300" fill="#7d94a1" font-size="14">decode on NVDEC, confirmed in-kernel</text>
+
+  <rect x="521" y="104" width="457" height="250" rx="12" fill="#eef7f3" stroke="#a9d6c4"/>
+  <text x="543" y="136" fill="#12232e" font-size="19" font-weight="700">Preset B — RK3588 Single Box</text>
+  <text x="543" y="166" fill="#42606f" font-size="15">camera :554 → NPU detector → mosquitto → hub</text>
+  <text x="543" y="190" fill="#42606f" font-size="15">all three containers on the same RK3588 board</text>
+  <rect x="543" y="206" width="413" height="44" rx="8" fill="#ffffff" stroke="#a9d6c4"/>
+  <text x="561" y="234" fill="#2f6f8f" font-size="14">detector · mosquitto · hub — workbench on :8090</text>
+  <text x="543" y="278" fill="#7d94a1" font-size="14">41.9 ms p50 inference, NPU 8%, 21% of one core</text>
+  <text x="543" y="300" fill="#7d94a1" font-size="14">the hub adds 3.7% of one core and 52.8 MB here</text>
+
+  <rect x="1002" y="104" width="457" height="250" rx="12" fill="#f6f3fa" stroke="#c8bede"/>
+  <text x="1024" y="136" fill="#12232e" font-size="19" font-weight="700">Preset C — Hailo Single Box</text>
+  <text x="1024" y="166" fill="#42606f" font-size="15">camera :554 → Hailo-8 detector → mosquitto → hub</text>
+  <text x="1024" y="190" fill="#42606f" font-size="15">all three containers on the same Pi 5 + Hailo-8</text>
+  <rect x="1024" y="206" width="413" height="44" rx="8" fill="#ffffff" stroke="#c8bede"/>
+  <text x="1042" y="234" fill="#2f6f8f" font-size="14">detector · mosquitto · hub — workbench on :8090</text>
+  <text x="1024" y="278" fill="#7d94a1" font-size="14">7.7 ms p50 inference, 8.7-13.0% of one core</text>
+  <text x="1024" y="300" fill="#7d94a1" font-size="14">no H.264 decoder here, so decode runs on the CPU</text>
+
+  <rect x="40" y="384" width="1419" height="126" rx="12" fill="#ffffff" stroke="#c3d6e0" stroke-dasharray="7 5"/>
+  <text x="62" y="416" fill="#5c7280" font-size="19" font-weight="700">Optional expansion — Shared Hub</text>
+  <text x="62" y="444" fill="#7d94a1" font-size="16">Only when several detector boxes already run and you want one alert list across them: repoint each detector's</text>
+  <text x="62" y="468" fill="#7d94a1" font-size="16">mqtt_host at a separate always-on machine running broker + hub. Detectors do not have to match: a TensorRT Jetson</text>
+  <text x="62" y="492" fill="#7d94a1" font-size="16">and an RKNN RK3588 were verified reporting into one device list, one alert list and one preview proxy.</text>
+
+  <line x1="749" y1="384" x2="749" y2="360" stroke="#2f6f8f" stroke-width="2" marker-end="url(#a2)"/>
+  <text x="764" y="376" fill="#2f6f8f" font-size="15">optional: detections + status over MQTT to a shared hub</text>
+
+  <text x="40" y="548" fill="#42606f" font-size="16">Topics: sensecraft/security/&lt;device_id&gt;/detections/&lt;stream_id&gt; · /status · /snapshot/&lt;event_id&gt; · /events/&lt;stream_id&gt;</text>
+  <text x="40" y="572" fill="#7d94a1" font-size="15">The hub judges rules only for detectors that carry track ids. Devices that judge on their own publish events directly.</text>
+</svg>

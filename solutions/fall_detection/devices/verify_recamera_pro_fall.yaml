@@ -1,0 +1,22 @@
+version: "1.0"
+id: verify_recamera_pro_fall
+name: Watch Fall Status
+type: web_dashboard
+inherit_host_from: deploy_recamera_pro_fall
+
+# Not the video_stream preview the other presets use, and deliberately so. The
+# app's MQTT output is a field mapping — person_count, fallen_count, fall_event
+# on <device-name>/fall-detection/{summary,fall} — which is what Home Assistant
+# needs but carries no skeleton, so the overlay renderer would have nothing to
+# draw. The app's own page in the App Center already renders the live view with
+# skeletons and per-person state, so this step opens that rather than
+# reproducing it against data that does not exist.
+web_dashboard:
+  url: "https://{{deploy.host}}/"
+  title: reCamera Pro Console
+  description: Open the App Center and select Fall Detection to see the live view with skeletons and per-person state. The browser will warn about the device's own certificate — expected on a local address.
+  description_i18n:
+    zh: 打开应用中心并选择 Fall Detection，即可看到带骨架和每人状态的实时画面。浏览器会提示设备自签证书不受信任，本地地址下属正常现象。
+
+name_i18n:
+  zh: 查看跌倒状态

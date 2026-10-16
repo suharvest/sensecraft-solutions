@@ -1,0 +1,298 @@
+version: "1.0"
+id: agri_env_monitor
+name: Agricultural Environment Monitoring
+name_i18n:
+  zh: 农业环境监测
+  ja: 農業環境モニタリング
+
+intro:
+  summary: >-
+    See SenseCAP soil and air readings on a Home Assistant dashboard, with alerts when a value crosses a threshold. Works through the SenseCAP cloud or fully offline.
+  summary_i18n:
+    zh: >-
+      在 Home Assistant 看板上查看 SenseCAP 土壤和空气读数，数值越界自动告警。可走 SenseCAP 云，也可完全不联外网。
+  description_file: description.md
+  description_file_i18n:
+    zh: description_zh.md
+  cover_image: gallery/ha-overview-local-20260907.jpg
+  gallery:
+    - type: image
+      src: gallery/ha-overview-local-20260907.jpg
+      caption: Home Assistant overview after a local replay of the fixture MQTT payloads — real decoded values for all three demo devices, captured on a Mac Docker Compose run
+      caption_i18n:
+        zh: 本机 Docker Compose 回放 fixture MQTT 数据后的 Home Assistant 总览——三台示例设备的真实解码数值
+    - type: image
+      src: gallery/ha-history-graph-local-20260907.jpg
+      caption: History-graph cards for air, soil and rainfall entities, captured right after a fixture replay on the local stack
+      caption_i18n:
+        zh: 空气、土壤与降雨实体的历史曲线卡片，紧随本机回放 fixture 数据后截取
+    - type: image
+      src: gallery/ha-alert-triggered-local-20260907.jpg
+      caption: A real threshold automation firing on replayed fixture data — high air temperature alert
+      caption_i18n:
+        zh: 回放 fixture 数据触发的真实阈值自动化——空气温度过高告警
+    - type: image
+      src: gallery/agri-env-refresh-local-20260907.gif
+      caption: Before/after a fixture replay — cards go from unavailable to populated with live values, showing the bridge-to-Home-Assistant pipeline actually refreshing state
+      caption_i18n:
+        zh: 回放 fixture 数据前后对比——卡片从"不可用"变为实时数值，展示桥接到 Home Assistant 的真实刷新链路
+    - type: image
+      src: gallery/architecture.svg
+      caption: Three ingest paths, one bridge, one set of entity ids in Home Assistant
+      caption_i18n:
+        zh: 三条接入路径、一个桥、Home Assistant 里同一套实体 ID
+    - type: image
+      src: gallery/custom-dashboard-ops.png
+      caption: The Custom Ops Dashboard preset — a standalone receive-only console (live readings, trends, wind rose, map, mesh messages) served by a single container subscribed to your own MQTT broker
+      caption_i18n:
+        zh: 自定义运维看板套餐——一个独立的仅接收控制台（实时读数、趋势、风向玫瑰、地图、Mesh 消息），由订阅你自己 MQTT broker 的单个容器提供
+  category: environmental_sensing
+  solution_type: solution
+  tags:
+    - agriculture
+    - lorawan
+    - sensecap
+    - soil-moisture
+    - mqtt
+    - home-assistant
+    - chirpstack
+
+  output_interfaces:
+    - type: mqtt
+      port: 1883
+      topic: homeassistant/sensor/sensecap_<deveui>/<entity_key>/config
+      description: Home Assistant MQTT discovery config, one retained message per entity. Entities appear on their own — nothing is added by hand.
+      schema_type: json
+      payload_example: '{"name":"Soil Moisture","unique_id":"sensecap_2cf7f1c0000000aa_soil_moisture","object_id":"sensecap_2cf7f1c0000000aa_soil_moisture","state_topic":"agri_env/sensecap_2cf7f1c0000000aa/soil_moisture/state","availability_topic":"agri_env/sensecap_2cf7f1c0000000aa/availability","unit_of_measurement":"%","state_class":"measurement","device":{"identifiers":["sensecap_2cf7f1c0000000aa"],"name":"SenseCAP 2CF7F1C0000000AA","manufacturer":"Seeed Studio"}}'
+      description_i18n:
+        zh: Home Assistant MQTT 自动发现配置，每个实体一条 retained 消息。实体自动出现，不需要手工添加。
+    - type: mqtt
+      port: 1883
+      topic: agri_env/sensecap_<deveui>/<entity_key>/state
+      description: The value of one measurement, retained so a restarted Home Assistant picks up the last reading immediately
+      schema_type: json
+      payload_example: '33.8'
+      description_i18n:
+        zh: 单个测量项的值，retained，Home Assistant 重启后能立刻拿到最后一次读数
+    - type: mqtt
+      port: 1883
+      topic: agri_env/sensecap_<deveui>/availability
+      description: online / offline, retained. Flips to offline when a node has been silent longer than the configured threshold; the last value is kept and the entity shows as unavailable.
+      schema_type: json
+      payload_example: 'offline'
+      description_i18n:
+        zh: online / offline，retained。节点静默超过设定时长就翻成 offline；最后一个值保留，实体显示为不可用。
+
+  input_requirements:
+    - type: lorawan
+      description: SenseCAP LoRaWAN nodes and a gateway that covers them, both configured for the same regional band. The nodes' DevEUI, JoinEUI and AppKey are needed for the two self-hosted presets.
+      required: true
+      description_i18n:
+        zh: SenseCAP LoRaWAN 节点，以及能覆盖它们的网关，两者频段一致。两个自建套餐需要节点的 DevEUI、JoinEUI 与 AppKey。
+    - type: mqtt
+      description: A Linux host with Docker for Home Assistant, the broker and the bridge. It needs no inbound internet access — the offline scenario keeps it entirely on the local network.
+      required: true
+      description_i18n:
+        zh: 一台装了 Docker 的 Linux 主机，跑 Home Assistant、broker 和桥。不需要外网入站访问——无公网场景下它完全留在局域网内。
+
+  device_catalog:
+    sensecap_s21xx_sensor:
+      description: LoRaWAN sensor node for soil and air; params vary by model
+      description_i18n:
+        zh: LoRaWAN 土壤/空气传感节点，参数因型号而异
+    sensecap_s2100_data_logger:
+      description: LoRaWAN data logger for third-party RS485/analogue probes
+      description_i18n:
+        zh: LoRaWAN 数据记录仪，接第三方 RS485/模拟探头
+    sensecap_t1000_tracker:
+      description: LoRaWAN tracker; GPS position plus temperature and light
+      description_i18n:
+        zh: LoRaWAN 追踪器，定位加温度、光照
+    sensecap_m2_gateway:
+      description: LoRaWAN gateway; choose the regional frequency variant
+      description_i18n:
+        zh: LoRaWAN 网关，购买时选对应地区频段
+    recomputer_r12:
+      description: LoRaWAN gateway with built-in concentrator and network server
+      description_i18n:
+        zh: 内置集中器的 LoRaWAN 网关，可自建网络服务器
+    recomputer_r10:
+      description: Linux host for the custom ops dashboard; runs the dashboard container in Docker
+      description_i18n:
+        zh: 运行自定义运维看板的 Linux 主机，Docker 部署看板容器
+    rerouter_cm4:
+      description: Linux host running the network server or dashboard in Docker
+      description_i18n:
+        zh: 跑网络服务器或看板的 Linux 主机，Docker 部署
+    generic_arm64_host:
+      name: Linux Host
+      name_i18n:
+        zh: Linux 主机
+      description: Linux host with Docker; runs Home Assistant, MQTT broker, bridge
+      description_i18n:
+        zh: 任意 Docker 主机，跑 HA、MQTT 和桥
+
+  presets:
+    - id: cloud
+      name: SenseCAP Cloud
+      name_i18n:
+        zh: SenseCAP 云
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: Uses sensor nodes already reporting to SenseCAP cloud — no gateway or radio setup.
+      description_i18n:
+        zh: 传感节点已接入 SenseCAP 云，无需网关和射频配置。
+      device_groups:
+        - id: sensors
+          name: Sensor Nodes
+          name_i18n:
+            zh: 传感节点
+          type: quantity
+          required: true
+          device_ref: sensecap_s21xx_sensor
+          min_count: 1
+          max_count: 50
+          default_count: 3
+        - id: gateway
+          name: LoRaWAN Gateway
+          name_i18n:
+            zh: LoRaWAN 网关
+          type: single
+          required: true
+          options:
+            - device_ref: sensecap_m2_gateway
+          default: sensecap_m2_gateway
+        - id: host
+          name: Dashboard Host
+          name_i18n:
+            zh: 看板主机
+          type: single
+          required: true
+          options:
+            - device_ref: generic_arm64_host
+          default: generic_arm64_host
+
+    - id: tts_local
+      name: Self-hosted The Things Stack
+      name_i18n:
+        zh: 自建 The Things Stack
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: Self-hosted LoRaWAN network server on reComputer R12 — full control, most setup.
+      description_i18n:
+        zh: 自建 LoRaWAN 网络服务器（reComputer R12），控制更多，配置也更多。
+      device_groups:
+        - id: sensors
+          name: Sensor Nodes
+          name_i18n:
+            zh: 传感节点
+          type: quantity
+          required: true
+          device_ref: sensecap_s21xx_sensor
+          min_count: 1
+          max_count: 50
+          default_count: 3
+        - id: gateway_host
+          name: Gateway and Network Server Host
+          name_i18n:
+            zh: 网关与网络服务器主机
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_r12
+          default: recomputer_r12
+        - id: host
+          name: Dashboard Host
+          name_i18n:
+            zh: 看板主机
+          type: single
+          required: true
+          options:
+            - device_ref: generic_arm64_host
+          default: generic_arm64_host
+
+    - id: chirpstack_local
+      name: Local ChirpStack
+      name_i18n:
+        zh: 本地 ChirpStack
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: ChirpStack network server, built into the M2 gateway or run on reComputer R12.
+      description_i18n:
+        zh: 用 ChirpStack 做网络服务器，跑在 M2 或 reComputer R12 上。
+      device_groups:
+        - id: sensors
+          name: Sensor Nodes
+          name_i18n:
+            zh: 传感节点
+          type: quantity
+          required: true
+          device_ref: sensecap_s21xx_sensor
+          min_count: 1
+          max_count: 50
+          default_count: 3
+        - id: network_server
+          name: Network Server
+          name_i18n:
+            zh: 网络服务器
+          type: single
+          required: true
+          description: The M2 runs ChirpStack itself; the reComputer R12 Series gateway runs it in Docker
+          description_i18n:
+            zh: M2 自己就能跑 ChirpStack；reComputer R12 系列网关则用 Docker 跑
+          options:
+            - device_ref: sensecap_m2_gateway
+            - device_ref: recomputer_r12
+          default: sensecap_m2_gateway
+        - id: host
+          name: Dashboard Host
+          name_i18n:
+            zh: 看板主机
+          type: single
+          required: true
+          options:
+            - device_ref: generic_arm64_host
+          default: generic_arm64_host
+
+    - id: custom_dashboard
+      name: Custom Ops Dashboard
+      name_i18n:
+        zh: 自定义运维看板
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: A dedicated ops console that renders the normalized data from the agri-env bridge as a purpose-built dashboard — a focused alternative view alongside Home Assistant.
+      description_i18n:
+        zh: 一个专门的运维控制台，把 agri-env 桥发布的规范化数据渲染成专门的看板——与 Home Assistant 并行的专注视图。
+      device_groups:
+        - id: host
+          name: Dashboard Host
+          name_i18n:
+            zh: 看板主机
+          type: single
+          required: true
+          description: Any Linux host with Docker; the reComputer R1000 Series works as a kiosk
+          description_i18n:
+            zh: 任意装了 Docker 的 Linux 主机；reComputer R1000 系列可当作信息亭使用
+          options:
+            - device_ref: recomputer_r10
+            - device_ref: generic_arm64_host
+          default: recomputer_r10
+
+  stats:
+    difficulty: intermediate
+    estimated_time: 45min
+
+  links:
+    wiki: https://wiki.seeedstudio.com/solutions/agri-env-monitoring/
+    wiki_i18n:
+      zh: https://wiki.seeedstudio.com/cn/solutions/agri-env-monitoring/
+
+deployment:
+  guide_file: guide.md
+  guide_file_i18n:
+    zh: guide_zh.md
+  selection_mode: sequential

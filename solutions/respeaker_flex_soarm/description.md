@@ -38,7 +38,7 @@ These endpoints are polled by the verify panel during deployment, but any extern
 | Part | Purpose |
 |------|---------|
 | SO-ARM101 Follower Arm | 6-DoF arm — receives `send_action` calls from the container |
-| reComputer Super J4012 | Jetson Orin NX 16GB — runs the voice + arm container |
+| reComputer J40 series | Jetson Orin NX 16GB — runs the voice + arm container |
 | reSpeaker Flex XVF3800 | 4-microphone array for far-field voice capture |
 | Speaker | Audio output for the assistant's voice replies |
 | USB-C cables | Jetson ↔ SO-ARM, Jetson ↔ reSpeaker |

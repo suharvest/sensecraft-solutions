@@ -1,0 +1,163 @@
+version: "1.0"
+id: recamera_cpp
+name: reCamera Retail Analytics
+type: recamera_cpp
+device_class: recamera
+
+detection:
+  method: network_scan
+  manual_entry: true
+  requirements: []
+
+ssh:
+  port: 22
+  default_user: recamera
+  default_host: 192.168.42.1
+  connection_timeout: 30
+  command_timeout: 300
+
+# Native C++ app: YOLO11n INT8 on the SG2002 NPU at ~10 fps, two-pass tracking
+# (IoU with velocity prediction, then centre-distance fallback), dwell state
+# machine and entry/exit counting, all on the camera. Replaces the Node-RED
+# flow this preset used to deploy — that ran at 1 Hz, tracked by centre point
+# only, and needed an npm module installed on the device to publish.
+binary:
+  deb_package:
+    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/retail-vision_1.5.1_riscv64.deb
+    name: retail-vision
+    includes_init_script: true
+    checksum:
+      sha256: de070d1edaa6711346888b03efaa168147beb170e01d70f3b0959ce10f712df0
+
+  models:
+    - path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/yolo11n_detection_cv181x_int8.cvimodel
+      target_path: /userdata/local/models
+      filename: yolo11n_detection_cv181x_int8.cvimodel
+      checksum:
+        sha256: bf8a6ffaec83c512c497384b922ba292f4005f2c7dc1424c905c683d01e3bb40
+
+  service_name: retail-vision
+  service_priority: 92
+  auto_start: true
+
+actions:
+  after:
+    - name: Point the camera at the dashboard
+      # The init script turns MQTT_HOST / MQTT_PORT / MQTT_TOPIC into command
+      # line flags and appends DAEMON_OPTS verbatim.
+      #
+      # --mqtt-interval-ms 1000: without it the app publishes once per frame
+      # (~10 msg/s per camera). One batched message per second is what keeps
+      # the broker usable once a site runs several cameras.
+      run: |
+        set -e
+        {
+          echo "MQTT_HOST={{mqtt_host}}"
+          echo "MQTT_PORT={{mqtt_port}}"
+          echo "MQTT_TOPIC={{device_name}}/retail-vision/results/{{stream_id}}"
+          echo "DAEMON_OPTS=\"\$DAEMON_OPTS --mqtt-interval-ms 1000\""
+        } > /etc/retail-vision.conf
+      sudo: true
+      name_i18n:
+        zh: 让摄像头连上看板
+    - name: Disable Node-RED autostart
+      # fail_fast: false — glob no-match returns literal string, set -e would kill the loop
+      fail_fast: false
+      # sscma-supervisor is deliberately NOT in this list. On a console device
+      # S93sscma-supervisor is the sole boot-time orchestrator: it keeps every
+      # gallery app K-prefixed and starts the selected one via app_restore.
+      # Demoting it leaves the device with nothing to start at boot.
+      run: |
+        for svc in node-red sscma-node; do
+          for f in /etc/init.d/S*${svc}*; do
+            [ -f "$f" ] && mv "$f" "$(echo "$f" | sed 's|/S|/K|')" 2>/dev/null
+          done
+        done
+        true
+      sudo: true
+      name_i18n:
+        zh: 禁用 Node-RED 自启动
+
+user_inputs:
+  - id: host
+    name: Device IP Address
+    type: text
+    default: "192.168.42.1"
+    placeholder: "192.168.42.1"
+    description: IP address of your reCamera (USB default 192.168.42.1)
+    required: true
+    validation:
+      pattern: "^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$"
+    name_i18n:
+      zh: 设备 IP 地址
+    description_i18n:
+      zh: reCamera 的 IP 地址（USB 默认 192.168.42.1）
+  - id: password
+    name: SSH Password
+    type: password
+    default: "recamera"
+    description: SSH password (try 'recamera' or 'recamera.2')
+    required: true
+    name_i18n:
+      zh: SSH 密码
+    description_i18n:
+      zh: SSH 密码（尝试 'recamera' 或 'recamera.2'）
+  - id: device_name
+    name: Installation Name
+    type: text
+    default: "recamera"
+    required: true
+    row: 1
+    description: First segment of the MQTT topic — a store, floor or room name keeps several installations apart on one broker
+    validation:
+      pattern: "^[A-Za-z0-9_-]+$"
+      message: Letters, digits, hyphen and underscore only
+    name_i18n:
+      zh: 安装点名称
+    description_i18n:
+      zh: MQTT 主题的第一段——用门店、楼层或房间名区分同一 broker 上的多个安装点
+  - id: stream_id
+    name: Camera ID
+    type: text
+    default: "cam-01"
+    required: true
+    row: 1
+    description: Identifies this camera on the dashboard when an installation has several
+    validation:
+      pattern: "^[A-Za-z0-9_-]+$"
+      message: Letters, digits, hyphen and underscore only
+    name_i18n:
+      zh: 摄像头编号
+    description_i18n:
+      zh: 一个安装点有多台摄像头时，用它在看板上区分
+  - id: mqtt_host
+    name: MQTT Broker
+    type: text
+    default: "192.168.1.100"
+    default_template: "{{host}}"
+    required: true
+    row: 2
+    description: Address of the backend from step 1 (auto-filled if you deployed it remotely)
+    validation:
+      pattern: "^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$"
+    name_i18n:
+      zh: MQTT 服务器
+    description_i18n:
+      zh: 步骤 1 那台后端的地址（远程部署时自动填入）
+  - id: mqtt_port
+    name: MQTT Port
+    type: text
+    default: "1883"
+    required: true
+    row: 2
+    validation:
+      pattern: "^[0-9]{1,5}$"
+      message: Port number only
+    name_i18n:
+      zh: MQTT 端口
+
+post_deployment:
+  open_browser: false
+
+name_i18n:
+  zh: reCamera 零售分析

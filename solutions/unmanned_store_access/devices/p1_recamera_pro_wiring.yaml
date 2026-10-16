@@ -1,0 +1,22 @@
+version: "1.0"
+id: p1_recamera_pro_wiring
+name: Wire the Relay
+name_i18n:
+  zh: 接继电器
+type: manual
+
+steps:
+  - id: wire_relay
+    name: Wire the relay
+    name_i18n:
+      zh: 接继电器
+    description: >-
+      Confirm with a multimeter which header pin is GPIO 130 and that it is
+      3.3 V. Wire GPIO → relay SIG, 3.3 V → VCC, GND → GND. Connect relay
+      COM/NO to the door controller's unlock input (COM/NC for a fail-safe
+      magnetic lock).
+    description_i18n:
+      zh: >-
+        先用万用表确认 GPIO 130 是排针上哪个脚、电平为 3.3 V。接 GPIO → 继电器 SIG，
+        3.3 V → VCC，GND → GND。继电器 COM/NO 接门禁控制器开门输入（断电开的电磁锁接 COM/NC）。
+    optional: false

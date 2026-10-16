@@ -1,0 +1,148 @@
+version: "1.0"
+id: conversational_voice_ai
+name: Interruptible Conversational Voice AI
+name_i18n:
+  zh: 可打断对话式语音 AI
+  ja: 割り込み可能な対話型音声AI
+
+intro:
+  summary: Plug in an AEC microphone array and build a hands-free voice application with Qwen3-ASR, Matcha-TTS, real barge-in, and either a cloud or local LLM across RK3576, RK3588, Jetson Orin Nano, Orin NX, and the reComputer Industrial R20 series. Pick the conversation language at deploy time and the speech models are selected for you.
+  summary_i18n:
+    zh: 插上支持 AEC 的麦克风阵列，即可在 RK3576、RK3588、Jetson Orin Nano、Orin NX 或 reComputer Industrial R20 系列上运行支持实时打断的语音应用；语音使用 Qwen3-ASR + Matcha-TTS，对话模型可接云端，也可全本地运行。部署时选择对话语言，语音模型自动匹配。
+  description_file: description.md
+  description_file_i18n:
+    zh: description_zh.md
+  cover_image: gallery/hero.webp
+  gallery:
+    - type: image
+      src: gallery/architecture.png
+      src_i18n:
+        zh: gallery/architecture_zh.png
+      caption: System architecture — on-site capture from an AEC microphone array into the edge voice host (ASR / TTS / Agent), out to an OpenAI-compatible LLM endpoint and a speaker for playback and the conversation model
+      caption_i18n:
+        zh: 系统架构——AEC 麦克风阵列采集的现场拾音接入边缘语音主机（ASR / TTS / Agent），输出到 OpenAI 兼容对话模型接口，并驱动音箱完成回复播放
+  category: acoustic_audio_ai
+  solution_type: solution
+  tags: [voice-ai, barge-in, aec, qwen3-asr, matcha-tts, rk3576, rk3588, jetson, orin, rk1828, local-llm, raspberry-pi-5, multilingual]
+
+  input_requirements:
+    - type: audio
+      required: true
+      description: A USB microphone array that exposes a hardware AEC/processed capture channel. reSpeaker XVF3800 is the validated default.
+      description_i18n:
+        zh: 必须使用能输出硬件 AEC/已处理采集通道的 USB 麦克风阵列；默认按已验证的 reSpeaker XVF3800 配置。
+    - type: audio
+      required: true
+      description: A speaker connected to the same edge device for voice replies.
+      description_i18n:
+        zh: 一个连接到同一台设备的音箱，用于播放语音回复。
+    - type: network
+      required: true
+      description: Internet is needed for first-run images and model artifacts. The cloud preset also needs ongoing API access; local presets can run offline after artifacts are cached.
+      description_i18n:
+        zh: 首次启动需要联网下载镜像和模型；云端套餐运行时仍需访问 API，本地套餐缓存完成后可离线运行。
+
+  device_catalog:
+    recomputer_rk3576:
+      description: Runs Qwen3 ASR and Matcha TTS on RK3576
+      description_i18n:
+        zh: RK3576 上运行 Qwen3 语音识别与合成
+    recomputer_rk3588:
+      description: Runs the speech stack on RK3588; pair with RK1828 for local Qwen3-4B
+      description_i18n:
+        zh: RK3588 语音链路+RK1828 本地 Qwen3-4B
+    recomputer_j30:
+      description: Runs Qwen3 ASR/TTS on Jetson Orin Nano; use cloud LLM for chat
+      description_i18n:
+        zh: Orin Nano 跑 Qwen3 语音，对话接云端
+      purchase:
+        require:
+          module: [orin_nano_8]
+    recomputer_j40:
+      description: Runs speech stack plus optional local Qwen3.5-4B on Orin NX 16GB
+      description_i18n:
+        zh: NX 16GB 语音链路+本地 Qwen3.5-4B
+      purchase:
+        require:
+          module: [orin_nx_16]
+    # external_ prefix: not a Seeed catalogue product, so it is declared
+    # local-only and carries no purchase constraints. It is here because it is
+    # the board this preset was measured on. The Seeed board of the same class
+    # is the reComputer Industrial R20 series (Raspberry Pi CM5); nothing has
+    # been run on one.
+    external_raspberry_pi_5:
+      description: CPU speech stack, English only; no Qwen3-ASR backend for Chinese
+      description_i18n:
+        zh: CPU 语音链路，仅支持英文——没有中文 ASR 后端
+    respeaker_xvf3800:
+      description: USB mic array with hardware AEC, noise suppression, beamforming
+      description_i18n:
+        zh: USB 麦克风阵列，硬件回声消除、降噪、波束成形
+  presets:
+    - id: cloud_llm
+      name: Cloud or OpenAI-Compatible LLM
+      name_i18n: {zh: 云端或 OpenAI 兼容模型}
+      badge: Recommended
+      badge_i18n: {zh: 推荐}
+      description: Use Qwen API defaults or enter any OpenAI-compatible base URL, key, and model ID.
+      description_i18n: {zh: 默认连接 Qwen API，也可填自定义 OpenAI 兼容接口和模型。}
+      device_groups:
+        - id: cloud_compute
+          name: Compute Device
+          name_i18n: {zh: 运行设备}
+          type: single
+          required: true
+          options:
+            - {device_ref: recomputer_rk3576}
+            - {device_ref: recomputer_rk3588}
+            - {device_ref: recomputer_j30}
+            - {device_ref: recomputer_j40}
+            - {device_ref: external_raspberry_pi_5}
+          default: recomputer_rk3576
+        - id: cloud_mic
+          name: AEC Microphone
+          name_i18n: {zh: AEC 麦克风}
+          type: single
+          required: true
+          options:
+            - {device_ref: respeaker_xvf3800}
+          default: respeaker_xvf3800
+
+    - id: local_llm
+      name: Fully Local Conversation
+      name_i18n: {zh: 全本地对话}
+      description: Keep audio and text on-device with RK3588 + RK1828 Qwen3-4B or Orin NX 16GB + Qwen3.5-4B.
+      description_i18n: {zh: RK3588+RK1828 或 Orin NX 本地跑模型，音频文字不出设备。}
+      device_groups:
+        - id: local_compute
+          name: Local AI Device
+          name_i18n: {zh: 本地 AI 设备}
+          type: single
+          required: true
+          options:
+            - {device_ref: recomputer_rk3588}
+            - {device_ref: recomputer_j40}
+          default: recomputer_j40
+        - id: local_mic
+          name: AEC Microphone
+          name_i18n: {zh: AEC 麦克风}
+          type: single
+          required: true
+          options:
+            - {device_ref: respeaker_xvf3800}
+          default: respeaker_xvf3800
+
+  stats:
+    difficulty: intermediate
+    estimated_time: 30min
+  links:
+    wiki: https://wiki.seeedstudio.com/solutions/conversational-voice-ai/
+    wiki_i18n:
+      zh: https://wiki.seeedstudio.com/cn/solutions/conversational-voice-ai/
+    github: https://github.com/suharvest/openvoicestream
+
+deployment:
+  guide_file: guide.md
+  guide_file_i18n:
+    zh: guide_zh.md
+  selection_mode: sequential

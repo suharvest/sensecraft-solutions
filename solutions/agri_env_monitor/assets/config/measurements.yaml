@@ -1,0 +1,548 @@
+# measurementId → HA 实体语义。
+#
+# 数据来源（见 docs/DECODER-PROVENANCE.md）：
+#   ID → 物理量名：Seeed-Solution/SenseCAP-Decoder @ d0a234205fb9574dd03abd49561b60c243c0d1e3
+#     S210X 系列：third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js
+#     T1000    ：third_party/SenseCAP-Decoder/T1000/TTN/SenseCAP_T1000_TTN_Decoder.js
+#   device_class / unit_of_measurement / state_class：decoder 源码里没有这些信息，
+#     由本项目按 Home Assistant sensor 文档补齐（docs/IMPL-NOTES.md 第 2 条）。
+#     每条 ID 的 decoder 行号写在该条目末尾的注释里。
+#
+# 每条字段：
+#   entity_key            HA 实体后缀，与 state topic 一致
+#   name                  实体显示名
+#   device_class          HA sensor device_class，缺省不写
+#   unit_of_measurement   单位
+#   state_class           measurement / total_increasing
+#   value_type            float | int | bool | json | str
+#   enabled               false 则解析但不建实体
+
+measurements:
+  "4097":
+    entity_key: temperature
+    name: Temperature
+    device_class: temperature
+    unit_of_measurement: "°C"
+    state_class: measurement
+    value_type: float
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:145 -> TEMPERATURE
+
+  "4098":
+    entity_key: humidity
+    name: Humidity
+    device_class: humidity
+    unit_of_measurement: "%"
+    state_class: measurement
+    value_type: float
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:150 -> HUMIDITY
+
+  "4099":
+    entity_key: light_intensity
+    name: Light Intensity
+    device_class: illuminance
+    unit_of_measurement: "lx"
+    state_class: measurement
+    value_type: float
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:155 -> LIGHT_INTENSITY
+
+  "4100":
+    entity_key: co2
+    name: CO2
+    device_class: carbon_dioxide
+    unit_of_measurement: "ppm"
+    state_class: measurement
+    value_type: float
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:160 -> CO2
+
+  "4101":
+    entity_key: barometric_pressure
+    name: Barometric Pressure
+    device_class: atmospheric_pressure
+    unit_of_measurement: "Pa"
+    state_class: measurement
+    value_type: float
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:165 -> BAROMETRIC_PRESSURE
+
+  "4102":
+    entity_key: soil_temperature
+    name: Soil Temperature
+    device_class: temperature
+    unit_of_measurement: "°C"
+    state_class: measurement
+    value_type: float
+    icon: mdi:thermometer-water
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:170 -> SOIL_TEMPERATURE
+
+  "4103":
+    entity_key: soil_moisture
+    name: Soil Moisture
+    unit_of_measurement: "%"
+    state_class: measurement
+    value_type: float
+    icon: mdi:water-percent
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:175 -> SOIL_MOISTURE
+
+  "4104":
+    entity_key: wind_direction
+    name: Wind Direction
+    unit_of_measurement: "°"
+    state_class: measurement
+    value_type: float
+    icon: mdi:compass-outline
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:180 -> WIND_DIRECTION
+
+  "4105":
+    entity_key: wind_speed
+    name: Wind Speed
+    device_class: wind_speed
+    unit_of_measurement: "m/s"
+    state_class: measurement
+    value_type: float
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:185 -> WIND_SPEED
+
+  "4106":
+    entity_key: ph
+    name: pH
+    device_class: ph
+    state_class: measurement
+    value_type: float
+    icon: mdi:ph
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:190 -> PH
+
+  "4107":
+    entity_key: light_quantum
+    name: Light Quantum
+    unit_of_measurement: "umol/m2/s"
+    state_class: measurement
+    value_type: float
+    icon: mdi:white-balance-sunny
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:195 -> LIGHT_QUANTUM
+
+  "4108":
+    entity_key: electrical_conductivity
+    name: Electrical Conductivity
+    unit_of_measurement: "dS/m"
+    state_class: measurement
+    value_type: float
+    icon: mdi:flash-outline
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:200 -> ELECTRICAL_CONDUCTIVITY
+
+  "4109":
+    entity_key: dissolved_oxygen
+    name: Dissolved Oxygen
+    unit_of_measurement: "mg/L"
+    state_class: measurement
+    value_type: float
+    icon: mdi:gas-cylinder
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:205 -> DISSOLVED_OXYGEN
+
+  "4110":
+    entity_key: soil_volumetric_water_content
+    name: Soil Volumetric Water Content
+    unit_of_measurement: "%"
+    state_class: measurement
+    value_type: float
+    icon: mdi:water-percent
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:210 -> SOIL_VOLUMETRIC_WATER_CONTENT
+
+  "4111":
+    entity_key: soil_electrical_conductivity
+    name: Soil Electrical Conductivity
+    unit_of_measurement: "dS/m"
+    state_class: measurement
+    value_type: float
+    icon: mdi:flash-outline
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:215 -> SOIL_ELECTRICAL_CONDUCTIVITY
+
+  "4112":
+    entity_key: soil_temperature_vwc_ec_sensor
+    name: Soil Temperature Vwc EC Sensor
+    device_class: temperature
+    unit_of_measurement: "°C"
+    state_class: measurement
+    value_type: float
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:220 -> SOIL_TEMPERATURE_VWC_EC_SENSOR
+
+  "4113":
+    entity_key: rainfall_hourly
+    name: Rainfall Hourly
+    device_class: precipitation
+    unit_of_measurement: "mm"
+    state_class: measurement
+    value_type: float
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:225 -> RAINFALL_HOURLY
+
+  "4115":
+    entity_key: distance
+    name: Distance
+    device_class: distance
+    unit_of_measurement: "mm"
+    state_class: measurement
+    value_type: float
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:230 -> DISTANCE
+
+  "4116":
+    entity_key: water_leak
+    name: Water Leak
+    value_type: bool
+    icon: mdi:water-alert
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:235 -> WATER_LEAK
+
+  "4117":
+    entity_key: liquid_level
+    name: Liquid Level
+    unit_of_measurement: "cm"
+    state_class: measurement
+    value_type: float
+    icon: mdi:cup-water
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:240 -> LIQUID_LEVEL
+
+  "4118":
+    entity_key: nh3
+    name: NH3
+    unit_of_measurement: "ppm"
+    state_class: measurement
+    value_type: float
+    icon: mdi:molecule
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:245 -> NH3
+
+  "4119":
+    entity_key: h2s
+    name: H2S
+    unit_of_measurement: "ppm"
+    state_class: measurement
+    value_type: float
+    icon: mdi:molecule
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:250 -> H2S
+
+  "4120":
+    entity_key: flow_rate
+    name: Flow Rate
+    device_class: volume_flow_rate
+    unit_of_measurement: "m³/h"
+    state_class: measurement
+    value_type: float
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:255 -> FLOW_RATE
+
+  "4121":
+    entity_key: total_flow
+    name: Total Flow
+    device_class: water
+    unit_of_measurement: "m³"
+    state_class: total_increasing
+    value_type: float
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:260 -> TOTAL_FLOW
+
+  "4122":
+    entity_key: oxygen_concentration
+    name: Oxygen Concentration
+    unit_of_measurement: "%"
+    state_class: measurement
+    value_type: float
+    icon: mdi:gas-cylinder
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:265 -> OXYGEN_CONCENTRATION
+
+  "4123":
+    entity_key: water_electrical_conductivity
+    name: Water Electrical Conductivity
+    unit_of_measurement: "uS/cm"
+    state_class: measurement
+    value_type: float
+    icon: mdi:flash-outline
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:270 -> WATER_ELECTRICAL_CONDUCTIVITY
+
+  "4124":
+    entity_key: water_temperature
+    name: Water Temperature
+    device_class: temperature
+    unit_of_measurement: "°C"
+    state_class: measurement
+    value_type: float
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:275 -> WATER_TEMPERATURE
+
+  "4125":
+    entity_key: soil_heat_flux
+    name: Soil Heat Flux
+    unit_of_measurement: "W/m2"
+    state_class: measurement
+    value_type: float
+    icon: mdi:heat-wave
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:280 -> SOIL_HEAT_FLUX
+
+  "4126":
+    entity_key: sunshine_duration
+    name: Sunshine Duration
+    device_class: duration
+    unit_of_measurement: "h"
+    state_class: measurement
+    value_type: float
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:285 -> SUNSHINE_DURATION
+
+  "4127":
+    entity_key: total_solar_radiation
+    name: Total Solar Radiation
+    device_class: irradiance
+    unit_of_measurement: "W/m²"
+    state_class: measurement
+    value_type: float
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:290 -> TOTAL_SOLAR_RADIATION
+
+  "4128":
+    entity_key: water_surface_evaporation
+    name: Water Surface Evaporation
+    unit_of_measurement: "mm"
+    state_class: measurement
+    value_type: float
+    icon: mdi:water-outline
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:295 -> WATER_SURFACE_EVAPORATION
+
+  "4129":
+    entity_key: par
+    name: PAR
+    unit_of_measurement: "umol/m2/s"
+    state_class: measurement
+    value_type: float
+    icon: mdi:sun-wireless-outline
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:300 -> PAR
+
+  "4130":
+    entity_key: accelerometer
+    name: Accelerometer
+    value_type: json
+    icon: mdi:axis-arrow
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:305 -> ACCELEROMETER
+
+  "4131":
+    entity_key: volume
+    name: Volume
+    device_class: volume
+    unit_of_measurement: "m³"
+    state_class: measurement
+    value_type: float
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:310 -> VOLUME
+
+  "4133":
+    entity_key: soil_tension
+    name: Soil Tension
+    unit_of_measurement: "kPa"
+    state_class: measurement
+    value_type: float
+    icon: mdi:gauge
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:315 -> SOIL_TENSION
+
+  "4134":
+    entity_key: salinity
+    name: Salinity
+    unit_of_measurement: "ppt"
+    state_class: measurement
+    value_type: float
+    icon: mdi:shaker-outline
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:320 -> SALINITY
+
+  "4135":
+    entity_key: tds
+    name: TDS
+    unit_of_measurement: "ppm"
+    state_class: measurement
+    value_type: float
+    icon: mdi:water-opacity
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:325 -> TDS
+
+  "4136":
+    entity_key: leaf_temperature
+    name: Leaf Temperature
+    device_class: temperature
+    unit_of_measurement: "°C"
+    state_class: measurement
+    value_type: float
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:330 -> LEAF_TEMPERATURE
+
+  "4137":
+    entity_key: leaf_wetness
+    name: Leaf Wetness
+    unit_of_measurement: "%"
+    state_class: measurement
+    value_type: float
+    icon: mdi:leaf
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:335 -> LEAF_WETNESS
+
+  "4138":
+    entity_key: soil_moisture_10cm
+    name: Soil Moisture 10Cm
+    unit_of_measurement: "%"
+    state_class: measurement
+    value_type: float
+    icon: mdi:water-percent
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:340 -> SOIL_MOISTURE_10CM
+
+  "4139":
+    entity_key: soil_moisture_20cm
+    name: Soil Moisture 20Cm
+    unit_of_measurement: "%"
+    state_class: measurement
+    value_type: float
+    icon: mdi:water-percent
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:345 -> SOIL_MOISTURE_20CM
+
+  "4140":
+    entity_key: soil_moisture_30cm
+    name: Soil Moisture 30Cm
+    unit_of_measurement: "%"
+    state_class: measurement
+    value_type: float
+    icon: mdi:water-percent
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:350 -> SOIL_MOISTURE_30CM
+
+  "4141":
+    entity_key: soil_moisture_40cm
+    name: Soil Moisture 40Cm
+    unit_of_measurement: "%"
+    state_class: measurement
+    value_type: float
+    icon: mdi:water-percent
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:355 -> SOIL_MOISTURE_40CM
+
+  "4142":
+    entity_key: soil_temperature_10cm
+    name: Soil Temperature 10Cm
+    device_class: temperature
+    unit_of_measurement: "°C"
+    state_class: measurement
+    value_type: float
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:360 -> SOIL_TEMPERATURE_10CM
+
+  "4143":
+    entity_key: soil_temperature_20cm
+    name: Soil Temperature 20Cm
+    device_class: temperature
+    unit_of_measurement: "°C"
+    state_class: measurement
+    value_type: float
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:365 -> SOIL_TEMPERATURE_20CM
+
+  "4144":
+    entity_key: soil_temperature_30cm
+    name: Soil Temperature 30Cm
+    device_class: temperature
+    unit_of_measurement: "°C"
+    state_class: measurement
+    value_type: float
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:370 -> SOIL_TEMPERATURE_30CM
+
+  "4145":
+    entity_key: soil_temperature_40cm
+    name: Soil Temperature 40Cm
+    device_class: temperature
+    unit_of_measurement: "°C"
+    state_class: measurement
+    value_type: float
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:375 -> SOIL_TEMPERATURE_40CM
+
+  "4146":
+    entity_key: pm2_5
+    name: PM2.5
+    device_class: pm25
+    unit_of_measurement: "µg/m³"
+    state_class: measurement
+    value_type: float
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:380 -> PM2_5
+
+  "4147":
+    entity_key: pm10
+    name: PM10
+    device_class: pm10
+    unit_of_measurement: "µg/m³"
+    state_class: measurement
+    value_type: float
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:385 -> PM10
+
+  "4148":
+    entity_key: noise
+    name: Noise
+    device_class: sound_pressure
+    unit_of_measurement: "dB"
+    state_class: measurement
+    value_type: float
+    # decoder: third_party/SenseCAP-Decoder/S210X/Helium/SenseCAP_S210X_Helium_Decoder.js:390 -> NOISE
+  # ---- T1000 tracker ----
+  "3000":
+    entity_key: battery
+    name: Battery
+    device_class: battery
+    unit_of_measurement: "%"
+    state_class: measurement
+    value_type: float
+    # decoder: third_party/SenseCAP-Decoder/T1000/TTN/SenseCAP_T1000_TTN_Decoder.js:278 -> 'Battery'
+
+  "4197":
+    entity_key: longitude
+    name: Longitude
+    value_type: float
+    icon: mdi:longitude
+    # decoder: third_party/SenseCAP-Decoder/T1000/TTN/SenseCAP_T1000_TTN_Decoder.js:289 -> 'Longitude'
+
+  "4198":
+    entity_key: latitude
+    name: Latitude
+    value_type: float
+    icon: mdi:latitude
+    # decoder: third_party/SenseCAP-Decoder/T1000/TTN/SenseCAP_T1000_TTN_Decoder.js:290 -> 'Latitude'
+
+  "4199":
+    entity_key: light
+    name: Light
+    device_class: illuminance
+    unit_of_measurement: "%"
+    state_class: measurement
+    value_type: float
+    # decoder: third_party/SenseCAP-Decoder/T1000/TTN/SenseCAP_T1000_TTN_Decoder.js:292 -> 'Light'
+
+  "4200":
+    entity_key: event_status
+    name: Event Status
+    value_type: json
+    icon: mdi:alert-circle-outline
+    # decoder: third_party/SenseCAP-Decoder/T1000/TTN/SenseCAP_T1000_TTN_Decoder.js:288 -> 'Event Status'
+
+  "5001":
+    entity_key: wifi_scan
+    name: Wi-Fi Scan
+    value_type: json
+    enabled: false
+    # decoder: third_party/SenseCAP-Decoder/T1000/TTN/SenseCAP_T1000_TTN_Decoder.js:302 -> 'Wi-Fi Scan'
+
+  "5002":
+    entity_key: ble_scan
+    name: BLE Scan
+    value_type: json
+    enabled: false
+    # decoder: third_party/SenseCAP-Decoder/T1000/TTN/SenseCAP_T1000_TTN_Decoder.js:313 -> 'BLE Scan'
+
+  "5003":
+    entity_key: event_list
+    name: Event List
+    value_type: json
+    enabled: false
+    # decoder: third_party/SenseCAP-Decoder/T1000/TTN/SenseCAP_T1000E_TTN_Decoder.js:672
+
+# 型号 → 该型号会上报哪些 measurementId。
+#
+# decoder 仓库按平台（TTN/ChirpStack/Helium/AWS）分目录，S210X 全系列共用一份
+# decoder，源码里没有「哪个型号发哪些 ID」的对照。因此除 T1000 外全部留空并标 TODO，
+# 不按物理量猜。桥的运行不依赖这一节——实体是按收到的 measurementId 动态建的，
+# 这里只用于文档与打包时的清单核对。
+models:
+  T1000:
+    # decoder: third_party/SenseCAP-Decoder/T1000/TTN/SenseCAP_T1000_TTN_Decoder.js:278-344
+    - "3000"
+    - "4097"
+    - "4197"
+    - "4198"
+    - "4199"
+    - "4200"
+    - "5001"
+    - "5002"
+  S2100: []   # TODO Day-0：decoder 仓库无型号级对照，需实机上行或官方 datasheet 确认
+  S2103: []   # TODO 同上
+  S2104: []   # TODO 同上
+  S2105: []   # TODO 同上

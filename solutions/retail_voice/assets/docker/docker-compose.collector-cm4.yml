@@ -1,0 +1,282 @@
+# reRouter CM4 采集端用的编排。基线是同目录的 docker-compose.yml（C4 冻结版），
+# 差异只有 ovs-asr 一个服务，逐条列在下面它自己的注释里：
+#   1. 镜像换成 arm64 CPU 构建：冻结版固定的是 RK3576 NPU 构建，CM4 上跑不了。
+#      默认值是 solution/seeed-local-voice:rpi-20260721 的 digest，可用 OVS_ASR_IMAGE 覆盖。
+#   2. ASR_BACKEND / ASR_PLATFORM / OVS_PROFILE_DEFAULT 默认值改成 CPU 侧的取值。
+# 其余服务与冻结版逐字相同。
+#
+# 未验证：这条路径没有在 CM4 上实机跑过。ovs-asr 的 mem_limit 原来固定写 7500m，
+# 那是按 8 GB LubanCat 的内存写的（见 docker-compose.local-rk3576.yml 同一条注释），
+# CM4/reRouter 只有 4 GB，跑不满会被 OOM kill。现在改成
+# OVS_ASR_MEM_LIMIT / OVS_ASR_MEMSWAP_LIMIT 两个环境变量（默认值仍是 7500m，
+# 不带该变量的部署行为不变），CM4 采集端的 .env 里把它们下调到
+# 3000m/3600m——数值比照 docker-compose.local-rk3576.yml 里同为 4 GB 级 reComputer
+# RK3576 板子的取值，不是在 CM4 上实测出来的，上架前仍需实测这个 CPU/Sherpa 构建
+# 在 CM4 上的实际 RSS 并按需调整。
+#
+# 原样复制自 sensecraft_voice `deploy/edge-frozen/docker-compose.yml`
+# （四子仓 feature/c4-harden 分支），仅追加本段来源说明与下方 asr-voiceprint 的状态更新。
+# 这一份含 voice-client（本机麦克风采集），用于「一台机器既跑栈又采音」的边缘采集端。
+# 只跑服务端栈（音频来自手机 App）时用同目录的 docker-compose.cloud.yml。
+#
+# C4 语音采集 Demo —— 版本冻结部署
+#
+# 与 deploy/edge/docker-compose.yml 的区别，逐条对应 spec §2：
+#   1. 镜像全部按 digest 固定，不用 :latest。tag 会漂，digest 不会。
+#   2. 去掉 watchtower。原来那份每 60 s 拉一次镜像，等于「冻结的版本」
+#      随时可能被上游一次 push 换掉——版本冻结和自动更新是互斥的。
+#   3. ASR 后端换成 OpenVoiceStream（只引用它已发布的镜像，不改它的仓库）。
+#   4. 补上 MySQL 与 MinIO：转写文本和音频原本落在这两处，
+#      删除证明要覆盖它们，就必须把它们纳进同一份编排。
+#   5. 云端分析移到 optional profile，默认不启动。
+#
+# 四个子仓的冻结提交（spec §2）：
+#   sensecraft-asr-service   10dd6b8e9061
+#   sensecraft-voice-client  a2f7b09385f8
+#   sensecraft-voice-service 67ac9dbf76cb
+#   sensecraft-voice-web     b154c0a956ac
+# 本次 C4 加固在各子仓的 feature/c4-harden 分支上，镜像 digest 见 IMAGE-DIGESTS.md。
+#
+# 重新发布（2026-09-08）：respeaker/ 项目下原先引用的四个 artifact 已被清理，
+# 且当前 Harbor 账号在 respeaker/ 项目无写权限，无法推回原路径，因此改推到
+# solution/ 项目。镜像在 spark（GB10, aarch64）用各子仓现有 Dockerfile 原生构建：
+#   solution/sensecraft-asr-server   @sha256:d8c87cee…  ← sensecraft-asr-service  feature/c4-harden 0e30d80
+#   solution/sensecraft-voice-client @sha256:136ae96c…  ← sensecraft-voice-client feature/c4-harden 0917415
+#   solution/sensecraft-voice-service@sha256:0f424773…  ← sensecraft-voice-service feature/c4-harden a896868
+#   solution/sensecraft-voice-web    @sha256:95e3a794…  ← sensecraft-voice-web    feature/ui-kit    502756e
+# 除 voice-service 为 arm64+amd64 外，其余均为 linux/arm64 单架构。
+# 语音/声纹模型不打进镜像，按各服务的挂载点在部署时提供。
+#
+# 用法：
+#   cp .env.example .env      # 填数据库密码与 API 令牌，.env 不入库
+#   docker compose -f deploy/edge-frozen/docker-compose.yml up -d
+#   docker compose -f deploy/edge-frozen/docker-compose.yml --profile cloud-analytics up -d
+#
+# 目标设备：cat-remote(RK3576) 或 RPi5，均为 arm64。
+
+name: sensecraft-voice-c4
+
+services:
+  # ── 数据面 ───────────────────────────────────────────────────────────
+  mysql:
+    image: mysql@sha256:7dcddc01f13bab2f15cde676d44d01f61fc9f99fe7785e86196dfc07d358ae2b
+    container_name: c4-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in .env}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-voice}
+      TZ: ${TZ:-Asia/Shanghai}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - mysql-data:/var/lib/mysql
+    ports:
+      # 只绑本机：数据库不对局域网开放。要远程连就走 SSH 隧道。
+      - "127.0.0.1:${MYSQL_PORT:-3306}:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+
+  minio:
+    image: minio/minio@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
+    container_name: c4-minio
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?set MINIO_ROOT_USER in .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD in .env}
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio-data:/data
+    ports:
+      - "127.0.0.1:${MINIO_PORT:-9000}:9000"
+      - "127.0.0.1:${MINIO_CONSOLE_PORT:-9001}:9001"
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  # ── 语音链路 ─────────────────────────────────────────────────────────
+  # OpenVoiceStream 作为 ASR 后端。
+  #
+  # 只引用 ~/project/openvoicestream 已发布的镜像与它自己的运行约定
+  # （deploy/docker-compose.rk.yml、deploy/IMAGE-TAGS.md），不改那个仓库。
+  # 下面的 digest 是 arm64 CPU 构建 seeed-local-voice:rpi-20260721 的，不是 RK 那一行。
+  ovs-asr:
+    # 冻结版这里写死的是 RK3576 NPU 构建。CM4 没有 RKNN，那个镜像跑不了。
+    # 默认改为 OpenVoiceStream 的 arm64 CPU 构建 seeed-local-voice:rpi-20260721
+    # （deploy/docker/Dockerfile.rpi，sherpa-onnx + onnxruntime CPU EP，无 NPU 依赖），
+    # 按 index digest 固定。Paraformer ASR / Matcha TTS 模型不在镜像里，
+    # 首次启动由 server/core/model_downloader.py 从 sensecraft-statics CDN 拉到
+    # 下面的 ovs-asr-models / ovs-tts-models 卷。
+    # 要换别的构建时用环境变量覆盖：OVS_ASR_IMAGE=<repo>@sha256:<digest>
+    image: ${OVS_ASR_IMAGE:-sensecraft-missionpack.seeed.cn/solution/seeed-local-voice@sha256:b7c492ac24712264a32ce92e8a10b5160540de1188bba2d9ff85f99a96668eef}
+    container_name: c4-ovs-asr
+    restart: unless-stopped
+    # CM4 上没有 NPU 字符设备要透传，但保留 privileged 与 /dev 挂载
+    # 是为了让声卡与冻结版走同一条路径，减少与冻结版的差异面。
+    privileged: true
+    init: true
+    network_mode: host
+    command: ["python3", "-m", "uvicorn", "server.main:app", "--host", "0.0.0.0", "--port", "8621"]
+    mem_limit: ${OVS_ASR_MEM_LIMIT:-7500m}
+    memswap_limit: ${OVS_ASR_MEMSWAP_LIMIT:-7500m}
+    volumes:
+      - /dev:/dev
+      - ovs-asr-models:/opt/asr/models
+      - ovs-tts-models:/opt/tts/models
+      - ovs-data:/opt/seeed-local-voice/data
+    environment:
+      - TZ=${TZ:-Asia/Shanghai}
+      - OVS_LOG_FORMAT=json
+      - OVS_PROFILE_DEFAULT=${OVS_PROFILE_DEFAULT:-rpi4-asr-zh-en}
+      # 远程 admin 端点默认关闭（不设 key 即 403）。
+      - OVS_ADMIN_KEY=${OVS_ADMIN_KEY:-}
+      # CM4 走 CPU/Sherpa 的 ASR-only profile，不是 RK 的 qwen3_asr_rk。
+      - ASR_BACKEND=${ASR_BACKEND:-sherpa}
+      - ASR_PLATFORM=${ASR_PLATFORM:-cpu}
+      - ASR_MODEL_DIR=/opt/asr/models
+    healthcheck:
+      test: ["CMD", "sh", "-c", "curl -sf http://localhost:8621/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 120s
+
+  # 端侧声纹服务。C4 加固后 /ws 与声纹接口都要令牌。
+  #
+  # 状态（2026-09-08）：镜像已在 spark 上按 sensecraft-asr-service
+  # feature/c4-harden(0e30d80) 构建并推送，linux/arm64，digest 见下。
+  # tag 别名：solution/sensecraft-asr-server:c4-frozen 与 :c4-0e30d80。
+  # 项目路径从 respeaker/ 改为 solution/：respeaker/ 上的旧 artifact 已被清理，
+  # 且本账号在该项目无写权限，无法重新发布到原路径。
+  # 服务仍留在 voiceprint profile 里默认不启动。
+  # 开启条件：.env 里配了 ASR_API_TOKENS；声纹模型按 download_models.sh 放到
+  # /data-iot/respeaker/models（模型不打进镜像）。
+  #   docker compose --profile voiceprint up -d asr-voiceprint
+  asr-voiceprint:
+    image: sensecraft-missionpack.seeed.cn/solution/sensecraft-asr-server@sha256:d8c87cee8fed366b7384c8814fd1859b724a0d22cc75cd0aba871f15af8d7713
+    container_name: c4-asr-voiceprint
+    profiles: ["voiceprint"]
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - TZ=${TZ:-Asia/Shanghai}
+      # name:role:token，逗号分隔。令牌值只在 .env 里，不入库不入镜像。
+      - ASR_API_TOKENS=${ASR_API_TOKENS:?set ASR_API_TOKENS in .env}
+    volumes:
+      - /data-iot/respeaker/models:/app/models
+      - /data-iot/respeaker/voiceprints:/app/data
+    healthcheck:
+      test: ["CMD", "sh", "-c", "curl -sf http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+
+  voice-client:
+    image: sensecraft-missionpack.seeed.cn/solution/sensecraft-voice-client@sha256:136ae96c400f7ec45a3197d0686ac1b7fcf9b706afee27083a77abf8dfad2af5
+    container_name: c4-voice-client
+    restart: unless-stopped
+    depends_on:
+      ovs-asr:
+        condition: service_healthy
+    privileged: true
+    network_mode: host
+    devices:
+      - /dev/snd
+    environment:
+      - TZ=${TZ:-Asia/Shanghai}
+      - AUDIO_CARD_ID=${AUDIO_CARD_ID:-1}
+      - AUDIO_DEVICE_ID=${AUDIO_DEVICE_ID:-0}
+      # 上报到 voice-service 时带的令牌（operator 档）。
+      - VOICE_API_TOKEN=${VOICE_CLIENT_TOKEN:?set VOICE_CLIENT_TOKEN in .env}
+      - ASR_API_TOKEN=${ASR_CLIENT_TOKEN:-}
+    volumes:
+      - /data-iot/respeaker/recordings:/app/recordings
+      - /data-iot/respeaker/voiceprints:/app/voiceprints
+      - /data-iot/respeaker/logs:/app/logs
+      - /dev:/dev
+    group_add:
+      - audio
+      - video
+    cap_add:
+      - SYS_ADMIN
+      - SYS_RAWIO
+
+  voice-service:
+    image: sensecraft-missionpack.seeed.cn/solution/sensecraft-voice-service@sha256:0f4247739f8264c743d0c049207fadcb55fbdf34615f0230869c79bc1808f627
+    container_name: c4-voice-service
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    ports:
+      - "${VOICE_SERVICE_PORT:-8081}:8081"
+    environment:
+      - TZ=${TZ:-Asia/Shanghai}
+      # 静态令牌表：name:role:token，逗号分隔。角色为 viewer|operator|admin。
+      # 走环境变量而不是配置文件，令牌值就不会进镜像层也不会进 git。
+      - VOICE_API_TOKENS=${VOICE_API_TOKENS:?set VOICE_API_TOKENS in .env}
+    volumes:
+      - ./config/voice-service.yaml:/etc/goExample/config.yaml:ro
+      - voice-service-logs:/app/logs
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8081/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  voice-web:
+    image: sensecraft-missionpack.seeed.cn/solution/sensecraft-voice-web@sha256:aee33275764b16ac2f5f2d884b66538db1de0c859ef3ec3dae873dfc94e6b044
+    container_name: c4-voice-web
+    restart: unless-stopped
+    # 镜像默认 CMD 是纯静态 serve（无 /api 代理）：SPA 的相对路径 API 调用会拿到
+    # index.html，管理后台登录必败。用零依赖 node 代理覆盖 CMD；镜像 package.json
+    # 是 "type":"module"，脚本必须用 .cjs。只覆盖 command + 挂脚本，digest 不动。
+    command: ["node", "/app/proxy-server.cjs"]
+    volumes:
+      - ./voice-web-proxy.cjs:/app/proxy-server.cjs:ro
+    depends_on:
+      voice-service:
+        condition: service_healthy
+    ports:
+      - "${VOICE_WEB_PORT:-3000}:3000"
+    environment:
+      - TZ=${TZ:-Asia/Shanghai}
+
+  # ── 云端分析：可选，默认不启动 ───────────────────────────────────────
+  # 启用会把转写文本发到设备之外。虽然文本已经过入库前脱敏，
+  # 但「离线」这条卖点在启用后就不成立了，所以做成显式 opt-in。
+  #   docker compose --profile cloud-analytics up -d
+  cloud-analytics:
+    image: sensecraft-missionpack.seeed.cn/solution/sensecraft-voice-service@sha256:0f4247739f8264c743d0c049207fadcb55fbdf34615f0230869c79bc1808f627
+    container_name: c4-cloud-analytics
+    profiles: ["cloud-analytics"]
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "${CLOUD_ANALYTICS_PORT:-8082}:8081"
+    environment:
+      - TZ=${TZ:-Asia/Shanghai}
+      - VOICE_API_TOKENS=${VOICE_API_TOKENS:?set VOICE_API_TOKENS in .env}
+    volumes:
+      - ./config/cloud-analytics.yaml:/etc/goExample/config.yaml:ro
+
+volumes:
+  mysql-data:
+  minio-data:
+  ovs-asr-models:
+  ovs-tts-models:
+  ovs-data:
+  voice-service-logs:

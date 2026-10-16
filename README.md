@@ -21,26 +21,52 @@
 
 ## 方案列表
 
-| Solution | Hardware | 分类 |
+### 完整落地方案（Reference Designs）
+
+| 方案名称 | 支持硬件 | 行业场景 |
+|----------|----------|----------|
+| [车牌识别与道闸联动](solutions/edge-anpr-plate-recognition/) | Jetson Orin · RK3588 · RK3576 | 智慧交通 / 车牌道闸 |
+| [停车场出入口车辆进出计数](solutions/parking-entry-exit-counting/) | Jetson Orin · RK3588 · RK3576 | 智慧停车 / 车辆进出 |
+| [停车场车位占用检测与空闲引导](solutions/parking-space-occupancy-detection/) | Jetson Orin · RK3588 · RK3576 | 智慧停车 / 车位占用 |
+| [智能工牌私有化语音转写](solutions/smart-badge-voice-transcription/) | reComputer J40/J30 · RK3588 · RK3576 | 线下对话 / 语音转写质检 |
+| [可打断对话式语音 AI](solutions/conversational_voice_ai/) | Jetson Orin · RK3576 · RK3588 | 语音交互 / 实时打断 |
+| [零售对话采集与分析](solutions/retail_voice/) | reComputer RK3576 · reRouter CM4 | 智慧零售 / 语音分析 |
+| [语音操作仓储管理系统](solutions/smart_warehouse/) | Jetson Orin · reComputer RK3576 | 智慧物流 / 语音出入库 |
+| [Home Assistant 本地语音中枢](solutions/home-assistant-local-voice-hub/) | Raspberry Pi 5 · Jetson Orin NX | 全屋智能 / 本地语音联动 |
+| [暖通自动化控制](solutions/smart_hvac_control/) | reComputer R11 · 工业边缘网关 | 楼宇自动化 / 暖通控制 |
+| [多协议工业网关](solutions/multi_protocol_gateway/) | reComputer R11 · 工业边缘网关 | 工业物联网 / 协议转换 |
+| [边缘安全防护与越界预警](solutions/edge_security/) | Jetson Orin · RK3588 · Hailo | 智能安防 / 越界与徘徊 |
+| [边缘端跌倒检测](solutions/fall_detection/) | reCamera · Jetson Orin · Hailo | 康养看护 / 跌倒告警 |
+| [智慧零售人流热力图](solutions/recamera_heatmap_grafana/) | reCamera · 边缘计算盒子 | 智慧零售 / 客流看板 |
+| [无人门店人脸门禁](solutions/unmanned_store_access/) | reCamera D1001 · 边缘主机 | 智慧零售 / 刷脸开门 |
+| [超市商品图像识别](solutions/edge_retail_recognition/) | Jetson Orin · RK3588 | 智慧零售 / 货架商品 |
+| [投放点垃圾分类](solutions/edge_waste_sorting/) | reCamera · RK3588 · Jetson Orin | 智慧环保 / 垃圾分类 |
+| [表面缺陷质检](solutions/edge_inspection_surface/) | Jetson Orin · RK3588 | 工业制造 / 表面质检 |
+| [装配质检：缺件与尺寸](solutions/edge_inspection_assembly/) | Jetson Orin · RK3588 | 工业制造 / 装配质检 |
+| [农业环境监测](solutions/agri_env_monitor/) | SenseCAP LoRaWAN · 边缘网关 | 智慧农业 / 环境传感 |
+| [园区级蓝牙信标定位系统](solutions/indoor_positioning_ble_lorawan/) | 追踪信标 · 边缘网关 | 物联网 / 室内外定位 |
+
+### 技术与工具演示（Technical Demos）
+
+| 演示项目 | 适用硬件 | 说明 |
 |----------|----------|------|
-| [Local Voice Service](solutions/jetson_voice_assistant/) | Jetson Orin · RK3576 · RK3588 · RPi | 语音 AI（ASR + TTS，≤180ms，离线） |
-| [Smart Retail Voice AI](solutions/smart_retail_voice_ai/) | Jetson | 零售 / 语音 |
-| [Smart Space Assistant](solutions/smart_space_assistant/) | Jetson | 语音 AI |
-| [GPT OSS 20B](solutions/gpt_oss_20b/) | Jetson | 本地大模型 |
-| [AI Lab](solutions/ai_lab/) | Jetson | AI 开发环境 |
-| [Depth Anything v3](solutions/depth_anything_v3/) | Jetson | 深度估计 |
-| [Industrial Security](solutions/industrial_security_jetson/) | Jetson | 安防 / 视觉 |
-| [Gun Detection (Frigate)](solutions/gun_detection_frigate/) | Jetson | 安防 / 视觉 |
-| [NVBlox + Orbbec](solutions/nvblox_orbbec/) | Jetson | 三维重建 |
-| [reCamera Heatmap (Grafana)](solutions/recamera_heatmap_grafana/) | reCamera | 分析 / 看板 |
-| [reCamera Parking Monitor](solutions/recamera_parking_monitor/) | reCamera | 智慧停车 |
-| [reCamera Ecosystem](solutions/recamera_ecosystem/) | reCamera | 平台工具 |
-| [Reachy Claw Voice Robot](solutions/reachy_claw_voice_robot/) | Reachy Mini + Jetson | 机器人 + 语音 |
-| [ReSpeaker Flex + SO-ARM100](solutions/respeaker_flex_soarm/) | ReSpeaker + ARM | 机器人 + 音频 |
-| [OpenClaw Deploy](solutions/openclaw_deploy/) | Jetson | 机器人 |
-| [Smart Warehouse](solutions/smart_warehouse/) | Jetson | 物流 / 视觉 |
-| [Smart HVAC Control](solutions/smart_hvac_control/) | Jetson | 楼宇自动化 |
-| [Indoor Positioning (BLE + LoRaWAN)](solutions/indoor_positioning_ble_lorawan/) | Edge | 定位 / IoT |
+| [Local Voice Service](solutions/jetson_voice_assistant/) | Jetson Orin · RK3576 · RK3588 · RPi | 本地离线语音服务（ASR + TTS，≤180ms） |
+| [Plug & Play AI Camera](solutions/recamera_ecosystem/) | reCamera | 即插即用 AI 摄像头应用中心 |
+| [AI Lab](solutions/ai_lab/) | Rockchip NPU | 瑞芯微边缘 AI 模型中心 |
+| [Depth Anything v3](solutions/depth_anything_v3/) | Jetson | 单目深度估计 |
+| [GPT OSS 20B](solutions/gpt_oss_20b/) | Jetson | 本地大模型推理 |
+| [Gun Detection (Frigate)](solutions/gun_detection_frigate/) | Jetson | 视觉枪支检测演示 |
+| [reCamera ONVIF Gateway](solutions/recamera_onvif_nvr/) | reCamera | ONVIF / RTSP 网关支持 |
+| [reCamera Parking Monitor](solutions/recamera_parking_monitor/) | reCamera | 轻量停车位检测 |
+| [Sheep Counter (LoRa)](solutions/recamera_sheep_counter_lora/) | reCamera + LoRa | 绵羊计数与无线回传 |
+| [Reachy Claw Voice Robot](solutions/reachy_claw_voice_robot/) | Reachy Mini + Jetson | 桌面对话机器人 |
+| [ReSpeaker Flex + SO-ARM100](solutions/respeaker_flex_soarm/) | ReSpeaker + ARM | 语音机械臂控制 |
+| [OpenClaw Deploy](solutions/openclaw_deploy/) | Jetson | 龙虾机器人 AI 网关 |
+| [reBot B601-DM](solutions/voice_rebot_arm/) | Jetson | 语音抓取机械臂 |
+| [LeKiwi Robot](solutions/voice_robot_lekiwi/) | Jetson | 语音轮式机器人 |
+| [SenseCAP PaaS MCP Bridge](solutions/sensecraft_data_mcp/) | 通用主机 | MCP 数据桥接 |
+| [Smart Space Assistant](solutions/smart_space_assistant/) | Jetson | 空间 AI 对话大屏 |
+| [Z-Image-Turbo](solutions/z_image_turbo/) | Jetson | Jetson 端侧生图 |
 
 ---
 

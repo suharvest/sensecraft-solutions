@@ -1,12 +1,12 @@
 ## What This Solution Does
 
-Turn your Reachy Mini desktop robot into a real-time voice companion. The robot listens to its surroundings, thinks with a local AI model, speaks back, and expresses emotions through head movements and antenna poses — all with under 1 second end-to-end latency, running entirely on your Jetson device.
+Turn your Reachy Mini desktop robot into a voice-interactive robot. It listens, generates a reply with a local AI model, speaks it back, and moves its head and antennas with the reply — end-to-end latency under 1 second, running entirely on your Jetson device.
 
 ## Core Value
 
 | Value | Description |
 |-------|-------------|
-| Real-time Conversation | Under 1 second from hearing your voice to speaking back — fast enough for natural dialogue |
+| Real-time Conversation | Under 1 second from hearing your voice to speaking back |
 | Emotional Expressions | 14 distinct emotions (happy, curious, surprised, etc.) shown through head movements and antenna poses |
 | Fully Local | Everything runs on your Jetson — no cloud, no subscription, no internet required after setup |
 | Monologue Mode | Robot automatically generates "inner thoughts" for exhibition/demo scenarios without any user interaction |
@@ -27,7 +27,7 @@ Pick one based on your hardware budget and deployment needs:
 | Preset | Hardware | When to choose |
 |--------|----------|----------------|
 | **Jetson All-in-One** | 1× Jetson Orin NX 16GB | Simplest setup. Speech, vision, and brain on one box. |
-| **R2000 + Hailo-8** | 1× reComputer R2000 (Pi 5 + Hailo-8) | Low-power NPU-accelerated vision. Speech and LLM on a remote Jetson via VOICE_ASSISTANT_HOST. |
+| **AI Industrial R21 + Hailo-8** | 1× reComputer AI Industrial R21 (Hailo-8) | Low-power NPU-accelerated vision. Speech and LLM on a remote Jetson via VOICE_ASSISTANT_HOST. |
 | **Reachy Mini Wireless (CM4)** | 1× Reachy Mini Wireless with onboard CM4 | Self-contained edge deployment on the robot itself. Speech and LLM on a remote Jetson via VOICE_ASSISTANT_HOST. |
 
 ## What You Need
@@ -40,13 +40,13 @@ Pick one based on your hardware budget and deployment needs:
 | NVIDIA Jetson Orin NX 16GB | Runs all AI services — conversation, speech, vision, and robot control |
 | USB cable | Connects Reachy Mini to Jetson |
 
-**Hardware (R2000 + Hailo-8 preset):**
+**Hardware (AI Industrial R21 + Hailo-8 preset):**
 
 | Device | Purpose |
 |--------|---------|
-| Reachy Mini (by Pollen Robotics) | Desktop robot, USB-connected to the R2000 |
-| reComputer R2000 (Pi 5 + Hailo-8) | Robot control, conversation, Hailo-accelerated vision |
-| USB camera | Plugged into the R2000 |
+| Reachy Mini (by Pollen Robotics) | Desktop robot, USB-connected to the AI Industrial R21 |
+| reComputer AI Industrial R21 (Hailo-8) | Robot control, conversation, Hailo-accelerated vision |
+| USB camera | Plugged into the AI Industrial R21 |
 
 **Hardware (Reachy Mini Wireless CM4 preset):**
 

@@ -1,0 +1,43 @@
+version: "1.0"
+id: preview_inspection
+name: Watch the Live Inspection
+type: web_dashboard
+
+# Not the video_stream preview other solutions use, and deliberately so. That
+# preview renders an overlay from an MQTT skeleton/box feed pulled separately
+# from RTSP. Here the runtime already draws the boxes itself and serves the
+# result on its own MJPEG endpoint, so this step opens that page rather than
+# reproducing it from the event payload.
+#
+# `host` is asked for again rather than inherited, because this same step is
+# shared byte-for-byte by both presets and can therefore not name a single
+# deploy step to inherit from.
+
+web_dashboard:
+  url: "http://{{host}}:8080/"
+  title: Inspection Preview
+  description: >-
+    The runtime's own page. It carries the MJPEG preview with the detection
+    boxes drawn on it (/preview.mjpg), the health endpoint (/healthz) with the
+    inference time, capture-to-coil latency, MQTT and Modbus counters, and the
+    most recent verdicts (/events). Plain HTTP on the device's own address.
+  description_i18n:
+    zh: >-
+      运行时自带的页面。上面有画了检测框的 MJPEG 预览（/preview.mjpg）、
+      带推理耗时与 capture→coil 时延和 MQTT / Modbus 计数的健康接口（/healthz），
+      以及最近的判定记录（/events）。设备本机地址上的普通 HTTP。
+
+user_inputs:
+  - id: host
+    name: Device IP
+    type: text
+    required: true
+    placeholder: "192.168.1.100"
+    description: The same address you deployed to in the previous step
+    name_i18n:
+      zh: 设备 IP
+    description_i18n:
+      zh: 与上一步部署时填的地址相同
+
+name_i18n:
+  zh: 查看实时检测画面

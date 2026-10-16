@@ -1,0 +1,223 @@
+# Speech image: sensecraft-missionpack.seeed.cn/solution/openvoicestream:rk-20260921-bargein
+#   index sha256:66c1609280eca64c2e9559f61f047e8d7f593c80d9e136787ac048cdb05fda33
+#   (linux/arm64 sha256:8e24d89a35215906df10779de85d0045a83fea0662d8a386a968d74dd34d041f).
+#   Thin overlay on rk-20260921-twosentence, two files from openvoicestream
+#   c6259e0 (PR #110): an `abort` carrying keep_asr cancels TTS only and keeps
+#   the ASR utterance the user is interrupting with (bounded by
+#   OVS_V2V_ABORT_KEEP_ASR_MAX_S, default 5 s). Measured on an RK3588 devkit:
+#   "Stop, please answer in one sentence." spoken over a reply reached the LLM
+#   whole, 3/3 with a cloud LLM and 3/3 with the local RK1828 LLM (before:
+#   "One sentence.").
+# Previous speech image, still the base of the one above:
+#   sensecraft-missionpack.seeed.cn/solution/openvoicestream:rk-20260921-twosentence
+#   index sha256:f05c121d6bb7128e78c47739d5300d6c12b28308c49136e0a58bf6ed1506a81d
+#   (linux/arm64 sha256:eb05622a4815373eceef86f5dbf6244e9749d42dbb6270e865c8146d106cbc29).
+#   Three thin overlays on rk-20260920-piper-en, each measured on RK3588 (radxa)
+#   and RK3576 (cat-remote); this exact image was booted on both boards and
+#   exercised through /asr/stream before this compose pointed at it.
+#   * An utterance of two sentences reaches the LLM whole. The final ASR decode
+#     used to stop at the first sentence terminator, so "They ship today. Do you
+#     want one?" came back as "They ship today." (ASR_FINAL_STOP_ON_PUNCT is now 0
+#     in the RK profiles; two-sentence WER 71.4%/60.0% -> 14.3%/0.0% on RK3588,
+#     57.1%/60.0% -> 0.0%/0.0% on RK3576; single sentences unchanged).
+#   * Continuous speech longer than 5 s comes back whole instead of as its last
+#     ~5 s (the rolling ASR window now commits its text before it rolls).
+#   * Piper English pauses at "," and "." (commas 110-260 ms, sentence ends
+#     300-330 ms); "1,000", "10:30", "3.14", "example.com", "Dr. Smith" stay whole.
+#   Below it, rk-20260920-piper-en:
+#   Thin overlay on rk-20260913.3, one file changed (server/core/profile_loader.py):
+#   env set by the operator in this compose is no longer silently overwritten by
+#   the selected profile. Ownership is derived from what the shipped
+#   profiles/leaves declare plus the selected profile's own keys, so a
+#   bind-mounted / OVS_PROFILE_JSON profile for a backend the tree does not carry
+#   yet no longer wins over `-e` values here. index
+#   sha256:47966ea63759bf3727d05f1645032248c0367683a0f1625a6635b772f48f0456
+# (sha256:d1677071dff68d0be3a3edd26d5959b4598a502ad05162901e509a706723794a, verified with
+# `docker manifest inspect` → linux/arm64, 2026-09-13).
+# Supersedes rk-20260909. Built from openvoicestream final-slim on an RK3588
+# (deploy/docker/Dockerfile.rk, --build-arg VOXEDGE_VERSION=0.0.15a0).
+# Changes carrying into this tag:
+#   * RK profiles: VAD_ENDPOINT_SILENCE_MS 400 -> 1500, so a natural
+#     mid-sentence pause no longer splits one utterance into two turns
+#     (measured on RK3588: 400 ms cut a 1.5 s pause; 5000 ms did not).
+#   * Server: backend-owned endpoint threshold is now a deploy-time parameter
+#     (OVS_V2V_VAD_ENDPOINT_SILENCE_MS, consumed per session) — the baked
+#     profile's own key is re-stamped at startup and cannot be set from
+#     compose. Passed through by these composes and exposed as the
+#     VAD_ENDPOINT_MS deploy input.
+#   * Server: single-endpoint-detector guard on the engine path
+#     (OVS_V2V_SINGLE_ENDPOINT_STRICT=1 turns it into a hard reject) and
+#     QWEN3_ASR_VAD_RESUME_RMS for quiet-mic onsets.
+#   * voxedge 0.0.15a0 (session-scoped ASR stream options).
+# Verified: /health on RK3588 reports asr/tts true, the generated profiles
+# resolve, and runtime_profile.verified is true (no contract drift).
+services:
+  # Resolves the operator's LANGUAGE choice plus this board's device id into
+  # exactly one OpenVoiceStream profile before anything else starts. The matrix
+  # and the resolver are byte-identical copies of
+  # openvoicestream:configs/matrix/language_device.yaml and
+  # openvoicestream:tools/resolve_profile.py.
+  #
+  # Exit 2 (unsupported pair, e.g. Chinese on Raspberry Pi 5) stops the whole
+  # `docker compose up` before a service starts, so an unsupported language
+  # fails visibly instead of being transcribed by a model that cannot read it.
+  # --no-verify-profile: configs/profiles/ lives inside the speech image at a
+  # path this compose does not pin; the openvoicestream test suite is what
+  # guarantees every profile the matrix names exists.
+  profile-init:
+    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/openvoicestream:rk-20260921-bargein}
+    container_name: conversational-voice-profile-init
+    init: true
+    network_mode: none
+    entrypoint:
+      - python3
+      - /opt/voice/config/resolve_profile.py
+      - --matrix=/opt/voice/config/language_device.yaml
+      - --language=${LANGUAGE:-zh}
+      - --device=rk3588
+      - --no-verify-profile
+      - --write-env=/opt/voice/resolved/ovs.env
+    volumes:
+      - ./resolve_profile.py:/opt/voice/config/resolve_profile.py:ro
+      - ./language_device.yaml:/opt/voice/config/language_device.yaml:ro
+      - resolved-profile:/opt/voice/resolved
+    restart: "no"
+
+  speech:
+    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/openvoicestream:rk-20260921-bargein}
+    container_name: conversational-voice-speech
+    privileged: true
+    init: true
+    network_mode: host
+    command:
+      - /bin/sh
+      - -c
+      # Internal service: the on-device agent is its only client (loopback).
+      # Keep it on 127.0.0.1 — the session limiter allows ONE /v2v session, so
+      # a LAN client connecting first makes the agent's reconnect fail with
+      # 4429 too_many_sessions and silences the assistant. Re-expose
+      # deliberately with OVS_SPEECH_BIND=0.0.0.0 (e.g. for a browser client).
+      - 'set -a; . /opt/voice/resolved/ovs.env; set +a; exec python3 -m uvicorn server.main:app --host ${OVS_SPEECH_BIND:-127.0.0.1} --port 8621'
+    depends_on:
+      profile-init:
+        condition: service_completed_successfully
+    mem_limit: 12g
+    memswap_limit: 12g
+    volumes:
+      - resolved-profile:/opt/voice/resolved:ro
+      - /dev:/dev
+      - rk-asr-models:/opt/asr/models
+      - rk-tts-models:/opt/tts/models
+      - voice-data:/opt/seeed-local-voice/data
+    environment:
+      # Profile-owned ASR/TTS variables were removed here: the resolved
+      # OVS_PROFILE now supplies them, so a language switch that changes
+      # profile is not silently overridden by a value pinned in compose.
+      # The removed keys were byte-identical to the default profile's env.
+      OVS_PROFILE: ${OVS_PROFILE:-rk3588-default}
+      OVS_PROFILE_DEFAULT: rk3588-default
+      HF_ENDPOINT: ${HF_ENDPOINT:-https://hf-mirror.com}
+      # Operator/deploy-time override for the ASR backend's own endpoint
+      # threshold (ms). 0 / unset = keep the profile value (1500 ms in
+      # rk3588-default). Deliberately NOT VAD_ENDPOINT_SILENCE_MS: that key
+      # belongs to the baked profile and the profile loader re-stamps it at
+      # startup, so an env entry for it never reaches the backend. Consumed per
+      # session via the ASR stream options, so it applies to the client-owned
+      # and backend-owned endpoint paths alike. Must stay above the client VAD
+      # silence (shipped agent: 600 ms) or the backend wins the race and cuts
+      # utterances in half — see docs/CONFIGURATION.md in openvoicestream.
+      OVS_V2V_VAD_ENDPOINT_SILENCE_MS: ${OVS_V2V_VAD_ENDPOINT_SILENCE_MS:-0}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8621/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 300s
+
+  agent:
+    # voiceagent-20260921-bargein.4: index
+    # sha256:cfe9c644496402db0c690e7604866500f1c05af908f0d39b381fb89833485d7b
+    # (linux/arm64 sha256:ac60410f2258fa5b2ac6afb07d6a1966f1f742e1529e2cab1e8f4ccd5efd2619).
+    # Thin overlay on voiceagent-20260914-runtimekws, five files from
+    # openvoicestream a6aa094 (PRs #110, #111, #113, #115, #116):
+    #   * barge-in keeps the utterance the user interrupts with (abort keep_asr)
+    #   * "Stop, <new instruction>" reaches the LLM instead of ending the turn
+    #   * a new user turn cuts the previous reply that is still playing
+    #   * the LLM health probe uses GET /health when the server reports a
+    #     status, instead of a chat request; with the local RK1828 LLM that
+    #     request evicted the prompt cache (TTFT 2.0-2.6 s -> 0.14-0.30 s)
+    #   * the LLM warmup no longer registers tools the conversation never uses
+    #     (with the local RK1828 LLM they stuck and the model sometimes
+    #     answered with raw <tool_call> text)
+    #   * a barge-in that fires after the user's speech already ended now
+    #     closes the utterance itself, instead of waiting for the server's
+    #     45 s per-turn deadline ("asr: per-turn deadline 45s exceeded")
+    #   * OVS_AGENT_SESSION_MAX_INPUT_TOKENS sets the history trim budget
+    #     (used by the RK1828 local-LLM overlay)
+    # sha256:a2dc17a304d7941e924d95de0863b53fd3e1869b7caba6ecf64a60e57cfd9569
+    # (linux/arm64, 2026-09-13). Supersedes voiceagent-20260819: the agent now
+    # ACCUMULATES mid-utterance asr_final segments instead of overwriting the
+    # user text, so a backend endpoint that fires on a mid-sentence pause no
+    # longer splits one spoken sentence into two LLM turns (a duplicate
+    # close-out final carries no new text and is not re-appended). Built with
+    # voxedge 0.0.15a0 on an RK3588.
+    image: ${AGENT_IMAGE:-sensecraft-missionpack.seeed.cn/solution/ovs-agent:voiceagent-20260921-bargein.4}
+    container_name: conversational-voice-agent
+    init: true
+    network_mode: host
+    depends_on:
+      speech:
+        condition: service_healthy
+    command: ["ovs-agent", "run", "conversation", "--config", "/opt/voice/config/agent-config.yaml"]
+    # Bind the ALSA directory instead of snapshotting individual device nodes.
+    # Together with the wildcard cgroup rule this keeps USB audio hot-pluggable.
+    device_cgroup_rules:
+      - "c 116:* rwm"
+    group_add: ["29"]
+    volumes:
+      - /dev/snd:/dev/snd
+      - ./agent-config.yaml:/opt/voice/config/agent-config.yaml:ro
+      - ./audio_profiles.yaml:/opt/voice/config/audio_profiles.yaml:ro
+      - agent-state:/var/lib/ovs-agent
+    environment:
+      CONFIG_DIR: /opt/voice/config
+      # Debug dashboard (agent plugin, unauthenticated — it can also trigger
+      # control actions such as abort/send-text). The solution's post-deploy
+      # verification steps open http://{{device-ip}}:18000 from the operator's
+      # browser, so it must listen on the LAN: the agent plugin defaults to
+      # 127.0.0.1 ("No auth, no TLS"), which made those steps unreachable on a
+      # headless device. Opt back to loopback with
+      # OVS_DEBUG_DASHBOARD_BIND=127.0.0.1 in the deployment .env if the
+      # device sits on an untrusted network.
+      OVS_DEBUG_DASHBOARD_BIND: ${OVS_DEBUG_DASHBOARD_BIND:-0.0.0.0}
+      # The agent turns these into the per-session v2v config (asr_language/
+      # tts_language), which is the only language knob the Qwen3-ASR and
+      # Qwen3-TTS backends have. Same operator input as profile-init above.
+      ASR_LANGUAGE: ${LANGUAGE:-zh}
+      TTS_LANGUAGE: ${LANGUAGE:-zh}
+      OVS_SLV_URL: ws://127.0.0.1:8621/v2v/stream
+      OVS_AGENT_SERVER_LOOP: "0"
+      PIPELINE_MODE: ${PIPELINE_MODE:-always_on}
+      WAKEWORD_BACKEND: ${WAKEWORD_BACKEND:-sherpa_onnx}
+      WAKEWORD_PHRASE: ${WAKEWORD_PHRASE:-你好小智}
+      WAKEWORD_THRESHOLD: ${WAKEWORD_THRESHOLD:-0.25}
+      WAKEWORD_MIC_SKIP_MS: ${WAKEWORD_MIC_SKIP_MS:-120}
+      LLM_BACKEND: ${LLM_BACKEND:-openai_compat}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://dashscope.aliyuncs.com/compatible-mode/v1}
+      LLM_API_KEY: ${LLM_API_KEY:-EMPTY}
+      LLM_MODEL: ${LLM_MODEL:-qwen3.5-flash}
+      SYSTEM_PROMPT: ${SYSTEM_PROMPT:-}
+      DEFAULT_MODE: ${DEFAULT_MODE:-chat}
+    restart: unless-stopped
+
+volumes:
+  resolved-profile:
+  rk-asr-models:
+    name: rk-asr-models
+  rk-tts-models:
+    name: rk-tts-models
+  voice-data:
+    name: conversational-voice-data
+  agent-state:
+    name: conversational-voice-agent-state

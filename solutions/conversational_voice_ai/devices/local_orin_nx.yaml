@@ -1,0 +1,282 @@
+version: "1.0"
+id: local_orin_nx
+name: Orin NX with Qwen3.5-4B
+name_i18n: {zh: Orin NX + Qwen3.5-4B}
+type: docker_deploy
+device_class: jetson
+deploy_timeout: 3600
+docker:
+  compose_file: assets/docker/docker-compose.orin-nx-local.yml
+  options: {project_name: conversational_voice_ai}
+  environment:
+    LANGUAGE: "{{LANGUAGE}}"
+    DEVICE: orin_nx_v091
+    SYSTEM_PROMPT: "{{SYSTEM_PROMPT}}"
+    PIPELINE_MODE: "{{PIPELINE_MODE}}"
+    WAKEWORD_BACKEND: sherpa_onnx
+    WAKEWORD_PHRASE: "{{WAKEWORD_PHRASE}}"
+    WAKEWORD_THRESHOLD: "{{WAKEWORD_THRESHOLD}}"
+    OVS_V2V_VAD_ENDPOINT_SILENCE_MS: "{{VAD_ENDPOINT_MS}}"
+  services:
+    - {name: speech, port: 8621, health_check_endpoint: /health, required: true}
+    - {name: llm, port: 8000, health_check_endpoint: /health, required: true}
+ssh: {port: 22, default_user: recomputer}
+user_inputs:
+  - id: LANGUAGE
+    name: Conversation language
+    name_i18n: {zh: 对话语言}
+    type: select
+    default: zh
+    required: true
+    reconfigurable: true
+    description: >-
+      Spoken language for recognition and for the synthesized reply. The list is the RK runtime's 30-language set (openvoicestream matrix language_catalog_source), the narrower of the two available lists - Qwen3-ASR upstream advertises 52 and Whisper 99. The deployment resolves (language, device) to one speech profile before any service starts and stops with an error if this board cannot serve the language.
+    description_i18n:
+      zh: >-
+        识别与合成回复使用的语言。选项取 RK runtime 的 30 语种口径（openvoicestream 矩阵 language_catalog_source），是可用列表中较窄的一侧——Qwen3-ASR 上游标称 52 语种，Whisper 为 99 语种。部署时会先把（语言，设备）解析成唯一语音配置，该设备不支持所选语言时直接报错停止，不会启动服务。
+    options:
+      - {value: zh, label: Chinese, label_i18n: {zh: 中文}}
+      - {value: en, label: English, label_i18n: {zh: 英语}}
+      - {value: yue, label: Cantonese, label_i18n: {zh: 粤语}}
+      - {value: ar, label: Arabic, label_i18n: {zh: 阿拉伯语}}
+      - {value: de, label: German, label_i18n: {zh: 德语}}
+      - {value: fr, label: French, label_i18n: {zh: 法语}}
+      - {value: es, label: Spanish, label_i18n: {zh: 西班牙语}}
+      - {value: pt, label: Portuguese, label_i18n: {zh: 葡萄牙语}}
+      - {value: id, label: Indonesian, label_i18n: {zh: 印尼语}}
+      - {value: it, label: Italian, label_i18n: {zh: 意大利语}}
+      - {value: ko, label: Korean, label_i18n: {zh: 韩语}}
+      - {value: ru, label: Russian, label_i18n: {zh: 俄语}}
+      - {value: th, label: Thai, label_i18n: {zh: 泰语}}
+      - {value: vi, label: Vietnamese, label_i18n: {zh: 越南语}}
+      - {value: ja, label: Japanese, label_i18n: {zh: 日语}}
+      - {value: tr, label: Turkish, label_i18n: {zh: 土耳其语}}
+      - {value: hi, label: Hindi, label_i18n: {zh: 印地语}}
+      - {value: ms, label: Malay, label_i18n: {zh: 马来语}}
+      - {value: nl, label: Dutch, label_i18n: {zh: 荷兰语}}
+      - {value: sv, label: Swedish, label_i18n: {zh: 瑞典语}}
+      - {value: da, label: Danish, label_i18n: {zh: 丹麦语}}
+      - {value: fi, label: Finnish, label_i18n: {zh: 芬兰语}}
+      - {value: pl, label: Polish, label_i18n: {zh: 波兰语}}
+      - {value: cs, label: Czech, label_i18n: {zh: 捷克语}}
+      - {value: tl, label: Filipino, label_i18n: {zh: 菲律宾语}}
+      - {value: fa, label: Persian, label_i18n: {zh: 波斯语}}
+      - {value: el, label: Greek, label_i18n: {zh: 希腊语}}
+      - {value: ro, label: Romanian, label_i18n: {zh: 罗马尼亚语}}
+      - {value: hu, label: Hungarian, label_i18n: {zh: 匈牙利语}}
+      - {value: mk, label: Macedonian, label_i18n: {zh: 马其顿语}}
+  - id: PIPELINE_MODE
+    name: Conversation mode
+    name_i18n: {zh: 对话方式}
+    type: select
+    default: always_on
+    required: false
+    reconfigurable: true
+    options:
+      - {value: always_on, label: Always listening, label_i18n: {zh: 持续监听（默认）}}
+      - {value: wake_word, label: Wake word required, label_i18n: {zh: 唤醒词后响应}}
+  - id: WAKEWORD_PHRASE
+    name: Wake word
+    name_i18n: {zh: 唤醒词}
+    type: text
+    default: 你好小智
+    required: false
+    reconfigurable: true
+    description: Any short Chinese or English phrase compiled at startup by the open-vocabulary KWS backend.
+    description_i18n: {zh: 支持自定义简短中文或英文唤醒词，启动时由开放词表 KWS 编译。}
+  - id: WAKEWORD_THRESHOLD
+    name: Wake-word sensitivity
+    name_i18n: {zh: 唤醒灵敏度}
+    type: select
+    default: "0.25"
+    required: false
+    reconfigurable: true
+    description: Lower threshold is more sensitive and may increase false triggers.
+    description_i18n: {zh: 阈值越低越灵敏，也可能增加误触发。}
+    options:
+      - {value: "0.35", label: Strict (0.35), label_i18n: {zh: 严格（0.35）}}
+      - {value: "0.25", label: Balanced (0.25), label_i18n: {zh: 平衡（0.25，默认）}}
+      - {value: "0.15", label: Sensitive (0.15), label_i18n: {zh: 灵敏（0.15）}}
+  - id: VAD_ENDPOINT_MS
+    name: Reply after how much silence
+    name_i18n: {zh: 说完话多久开始回答}
+    type: select
+    default: "0"
+    required: false
+    reconfigurable: true
+    description: >-
+      Server-side speech endpoint: how long the assistant waits after you stop
+      speaking before it replies. The image default (1.5 s) tolerates a natural
+      mid-sentence pause; a smaller value feels snappier but can cut one sentence
+      into two; a larger value tolerates long thinking pauses at the cost of a
+      slower reply. Must stay above the device-side VAD silence (600 ms). Only
+      affects the paths where the device itself decides the end of speech — a
+      separate microphone/agent application keeps its own setting.
+    description_i18n:
+      zh: >-
+        说完话后等多久开始回答（设备端语音端点判停）。镜像默认 1.5 秒能容忍句中自然停顿；调小反应更快，
+        但可能把一句话截成两段；调大更宽容（适合边说边想），代价是回答来得更慢。必须大于设备端 VAD 的
+        静音门限（600 毫秒）。只影响由设备自己判断"说完了"的场景；使用独立麦克风/agent 应用时以它自己的设置优先。
+    options:
+      - {value: "0", label: Balanced (image default, 1.5 s), label_i18n: {zh: 均衡（镜像默认 1.5 秒）}}
+      - {value: "900", label: Snappy (0.9 s), label_i18n: {zh: 更灵敏（0.9 秒）}}
+      - {value: "2000", label: Tolerant (2 s), label_i18n: {zh: 更宽容（2 秒）}}
+      - {value: "3000", label: Very tolerant (3 s), label_i18n: {zh: 最宽容（3 秒）}}
+pre_checks:
+  - {type: disk_space, min_gb: 25, description: At least 25GB for images and local model artifacts}
+remote_overrides:
+  remote_path: /home/{{username}}/conversational_voice_ai
+  compose_dir: assets/docker
+  detection: {method: network_scan, manual_entry: true}
+  environment:
+    LANGUAGE: "{{LANGUAGE}}"
+    DEVICE: orin_nx_v091
+    SYSTEM_PROMPT: "{{SYSTEM_PROMPT}}"
+    PIPELINE_MODE: "{{PIPELINE_MODE}}"
+    WAKEWORD_BACKEND: sherpa_onnx
+    WAKEWORD_PHRASE: "{{WAKEWORD_PHRASE}}"
+    WAKEWORD_THRESHOLD: "{{WAKEWORD_THRESHOLD}}"
+    OVS_V2V_VAD_ENDPOINT_SILENCE_MS: "{{VAD_ENDPOINT_MS}}"
+  user_inputs:
+    - id: LANGUAGE
+      name: Conversation language
+      name_i18n: {zh: 对话语言}
+      type: select
+      default: zh
+      required: true
+      reconfigurable: true
+      description: >-
+        Spoken language for recognition and for the synthesized reply. The list is the RK runtime's 30-language set (openvoicestream matrix language_catalog_source), the narrower of the two available lists - Qwen3-ASR upstream advertises 52 and Whisper 99. The deployment resolves (language, device) to one speech profile before any service starts and stops with an error if this board cannot serve the language.
+      description_i18n:
+        zh: >-
+          识别与合成回复使用的语言。选项取 RK runtime 的 30 语种口径（openvoicestream 矩阵 language_catalog_source），是可用列表中较窄的一侧——Qwen3-ASR 上游标称 52 语种，Whisper 为 99 语种。部署时会先把（语言，设备）解析成唯一语音配置，该设备不支持所选语言时直接报错停止，不会启动服务。
+      options:
+        - {value: zh, label: Chinese, label_i18n: {zh: 中文}}
+        - {value: en, label: English, label_i18n: {zh: 英语}}
+        - {value: yue, label: Cantonese, label_i18n: {zh: 粤语}}
+        - {value: ar, label: Arabic, label_i18n: {zh: 阿拉伯语}}
+        - {value: de, label: German, label_i18n: {zh: 德语}}
+        - {value: fr, label: French, label_i18n: {zh: 法语}}
+        - {value: es, label: Spanish, label_i18n: {zh: 西班牙语}}
+        - {value: pt, label: Portuguese, label_i18n: {zh: 葡萄牙语}}
+        - {value: id, label: Indonesian, label_i18n: {zh: 印尼语}}
+        - {value: it, label: Italian, label_i18n: {zh: 意大利语}}
+        - {value: ko, label: Korean, label_i18n: {zh: 韩语}}
+        - {value: ru, label: Russian, label_i18n: {zh: 俄语}}
+        - {value: th, label: Thai, label_i18n: {zh: 泰语}}
+        - {value: vi, label: Vietnamese, label_i18n: {zh: 越南语}}
+        - {value: ja, label: Japanese, label_i18n: {zh: 日语}}
+        - {value: tr, label: Turkish, label_i18n: {zh: 土耳其语}}
+        - {value: hi, label: Hindi, label_i18n: {zh: 印地语}}
+        - {value: ms, label: Malay, label_i18n: {zh: 马来语}}
+        - {value: nl, label: Dutch, label_i18n: {zh: 荷兰语}}
+        - {value: sv, label: Swedish, label_i18n: {zh: 瑞典语}}
+        - {value: da, label: Danish, label_i18n: {zh: 丹麦语}}
+        - {value: fi, label: Finnish, label_i18n: {zh: 芬兰语}}
+        - {value: pl, label: Polish, label_i18n: {zh: 波兰语}}
+        - {value: cs, label: Czech, label_i18n: {zh: 捷克语}}
+        - {value: tl, label: Filipino, label_i18n: {zh: 菲律宾语}}
+        - {value: fa, label: Persian, label_i18n: {zh: 波斯语}}
+        - {value: el, label: Greek, label_i18n: {zh: 希腊语}}
+        - {value: ro, label: Romanian, label_i18n: {zh: 罗马尼亚语}}
+        - {value: hu, label: Hungarian, label_i18n: {zh: 匈牙利语}}
+        - {value: mk, label: Macedonian, label_i18n: {zh: 马其顿语}}
+    - {id: host, name: Device IP, type: text, required: true, name_i18n: {zh: 设备 IP}}
+    - {id: username, name: SSH Username, type: text, default: recomputer, required: true, name_i18n: {zh: SSH 用户名}}
+    - {id: password, name: SSH Password, type: password, required: true, name_i18n: {zh: SSH 密码}}
+    - id: PIPELINE_MODE
+      name: Conversation mode
+      name_i18n: {zh: 对话方式}
+      type: select
+      default: always_on
+      required: false
+      reconfigurable: true
+      options:
+        - {value: always_on, label: Always listening, label_i18n: {zh: 持续监听（默认）}}
+        - {value: wake_word, label: Wake word required, label_i18n: {zh: 唤醒词后响应}}
+    - id: WAKEWORD_PHRASE
+      name: Wake word
+      name_i18n: {zh: 唤醒词}
+      type: text
+      default: 你好小智
+      required: false
+      reconfigurable: true
+      description: Any short Chinese or English phrase compiled at startup by the open-vocabulary KWS backend.
+      description_i18n: {zh: 支持自定义简短中文或英文唤醒词，启动时由开放词表 KWS 编译。}
+    - id: WAKEWORD_THRESHOLD
+      name: Wake-word sensitivity
+      name_i18n: {zh: 唤醒灵敏度}
+      type: select
+      default: "0.25"
+      required: false
+      reconfigurable: true
+      description: Lower threshold is more sensitive and may increase false triggers.
+      description_i18n: {zh: 阈值越低越灵敏，也可能增加误触发。}
+      options:
+        - {value: "0.35", label: Strict (0.35), label_i18n: {zh: 严格（0.35）}}
+        - {value: "0.25", label: Balanced (0.25), label_i18n: {zh: 平衡（0.25，默认）}}
+        - {value: "0.15", label: Sensitive (0.15), label_i18n: {zh: 灵敏（0.15）}}
+    - id: SYSTEM_PROMPT
+      name: Assistant personality
+      name_i18n: {zh: 助手人设与回答风格}
+      type: text
+      required: true
+      reconfigurable: true
+      default: >-
+        You are a natural, witty voice assistant. Reply in the user's language. Keep responses conversational and brief—usually one or two sentences. Add light humor and personality when appropriate, but never at the expense of accuracy. Avoid rambling, repetition, lectures, Markdown, headings, and lists. If details are missing, ask one short question. For spoken Chinese, write numbers, dates, times, money, and units as natural spoken Chinese.
+      default_i18n:
+        zh: >-
+          你是一个自然、机智、有趣的语音助手。使用用户正在使用的语言回答，表达口语化、直接而简短，通常只说一到两句话。合适时可以带一点幽默和个性，但不能影响准确性；不要啰嗦、重复、说教，也不要输出 Markdown、标题或列表。信息不足时只问一个简短问题。中文语音回答中的数字、日期、时间、金额和单位使用自然口语表达。
+      description: Editable system prompt applied to every conversation.
+      description_i18n: {zh: 每轮对话都会使用的系统提示词，可按场景修改。}
+    - id: VAD_ENDPOINT_MS
+      name: Reply after how much silence
+      name_i18n: {zh: 说完话多久开始回答}
+      type: select
+      default: "0"
+      required: false
+      reconfigurable: true
+      description: >-
+        Server-side speech endpoint: how long the assistant waits after you stop
+        speaking before it replies. The image default (1.5 s) tolerates a natural
+        mid-sentence pause; a smaller value feels snappier but can cut one sentence
+        into two; a larger value tolerates long thinking pauses at the cost of a
+        slower reply. Must stay above the device-side VAD silence (600 ms). Only
+        affects the paths where the device itself decides the end of speech — a
+        separate microphone/agent application keeps its own setting.
+      description_i18n:
+        zh: >-
+          说完话后等多久开始回答（设备端语音端点判停）。镜像默认 1.5 秒能容忍句中自然停顿；调小反应更快，
+          但可能把一句话截成两段；调大更宽容（适合边说边想），代价是回答来得更慢。必须大于设备端 VAD 的
+          静音门限（600 毫秒）。只影响由设备自己判断"说完了"的场景；使用独立麦克风/agent 应用时以它自己的设置优先。
+      options:
+        - {value: "0", label: Balanced (image default, 1.5 s), label_i18n: {zh: 均衡（镜像默认 1.5 秒）}}
+        - {value: "900", label: Snappy (0.9 s), label_i18n: {zh: 更灵敏（0.9 秒）}}
+        - {value: "2000", label: Tolerant (2 s), label_i18n: {zh: 更宽容（2 秒）}}
+        - {value: "3000", label: Very tolerant (3 s), label_i18n: {zh: 最宽容（3 秒）}}
+  actions:
+    before:
+      # Same name as the jetson device-class profile action, so the profile
+      # copy is dropped and this one runs instead. `sudo: true` makes the SSH
+      # executor feed the password via `sudo -S`; the profile copy calls bare
+      # `sudo` and fails with "a terminal is required" on stock JetPack images
+      # where the login user has no NOPASSWD sudo.
+      - name: Fix Docker iptables for JetPack 6.x
+        scope: remote
+        ignore_error: false
+        sudo: true
+        run: |
+          CONF="/etc/systemd/system/docker.service.d/disable-raw-table.conf"
+          if [ -f "$CONF" ] && grep -q "DOCKER_INSECURE_NO_IPTABLES_RAW=1" "$CONF" 2>/dev/null; then
+            echo "Docker iptables fix already applied"
+          else
+            echo "Applying Docker iptables raw table fix for JetPack 6.x..."
+            mkdir -p /etc/systemd/system/docker.service.d
+            printf '[Service]\nEnvironment="DOCKER_INSECURE_NO_IPTABLES_RAW=1"\n' > "$CONF"
+            systemctl daemon-reload
+            systemctl restart docker
+            sleep 2
+            echo "Docker iptables fix applied"
+          fi
+        name_i18n:
+          zh: 修复 JetPack 6.x Docker 网络问题

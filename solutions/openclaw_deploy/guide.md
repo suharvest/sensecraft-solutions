@@ -4,7 +4,7 @@ Deploy OpenClaw AI messaging gateway, with optional local AI model powered by yo
 
 | Device | Purpose |
 |--------|---------|
-| reComputer Jetson | Runs OpenClaw gateway and local AI model with GPU acceleration |
+| reComputer J40 | Runs OpenClaw gateway and local AI model with GPU acceleration |
 
 **What you'll get:**
 - AI chatbot gateway supporting 20+ messaging platforms
@@ -35,13 +35,13 @@ OpenClaw AI gateway is deployed. Follow the "Deployment Complete" instructions i
 
 #### Next Steps
 
-- [OpenClaw Documentation](https://github.com/nicepkg/openclaw)
+- [OpenClaw Documentation](https://github.com/openclaw/openclaw)
 - Add more AI providers in Settings > Models
 - Connect additional messaging platforms
 
 ### Target {#local type=local config=devices/openclaw_deploy.yaml default=true}
 
-Deploy on your reComputer Jetson device (running this software locally on the Jetson).
+Deploy on your reComputer J40 device (running this software locally on the Jetson).
 
 ### Wiring
 
@@ -51,13 +51,9 @@ Deploy on your reComputer Jetson device (running this software locally on the Je
 
 ### Deployment Complete
 
-1. Copy the **Gateway Token** shown in the deployment log
-2. Open **http://localhost:18789** in your browser
-3. Go to the **Overview** page (left sidebar → **Overview** under "Control")
-4. In the **Gateway Access** section, paste the token into the **Gateway Token** field
-5. Click **Connect** to authenticate
-6. Connect your first messaging channel (WeChat, Telegram, Discord, etc.)
-7. If local AI model is enabled, it's already configured — select it when creating an agent
+1. Open **http://localhost:18789** in your browser (the gateway binds to loopback only — no token needed)
+2. Connect your first messaging channel (WeChat, Telegram, Discord, etc.)
+3. If local AI model is enabled, it's already configured — select it when creating an agent
 
 ### Troubleshooting
 
@@ -70,20 +66,20 @@ Deploy on your reComputer Jetson device (running this software locally on the Je
 
 ### Target {#jetson_remote type=remote config=devices/openclaw_deploy.yaml}
 
-Deploy to a reComputer Jetson device over SSH, with GPU-accelerated local AI model.
+Deploy to a reComputer J40 device over SSH, with GPU-accelerated local AI model.
 
 ### Wiring
 
-1. Connect reComputer Jetson to the same network as your deployment machine
+1. Connect reComputer J40 to the same network as your deployment machine
 2. Enter Jetson IP address, SSH username, and password
 3. Optionally check **Enable Local AI Model** and select a model
 4. Click **Deploy** to start services
 
-> Resource requirements: OpenClaw only needs 12GB disk + 4GB RAM; with Ollama needs 20GB disk + 8GB RAM.
+> Resource requirements: OpenClaw only needs 4GB disk + 4GB RAM; with Ollama needs 12GB disk + 8GB RAM.
 
 ### Deployment Complete
 
-1. Copy the **Gateway Token** shown in the deployment log
+1. Read the **Gateway Token** on the device: run `grep OPENCLAW_GATEWAY_TOKEN ~/openclaw/*/.env` (the deployment log shows only this path, not the token)
 2. OpenClaw requires localhost access. **Option A**: Connect a display to the Jetson, open a browser, and visit `http://localhost:18789`; **Option B**: On your computer, run `ssh -L 18789:localhost:18789 <username>@<jetson-ip>`, then open `http://localhost:18789` in your local browser
 3. Go to the **Overview** page (left sidebar → **Overview** under "Control")
 4. In the **Gateway Access** section, paste the token into the **Gateway Token** field
@@ -99,13 +95,14 @@ Deploy to a reComputer Jetson device over SSH, with GPU-accelerated local AI mod
 | NVIDIA runtime not detected | Ensure NVIDIA container runtime is installed: `nvidia-smi` should work |
 | Docker Compose unavailable | Install it: `sudo apt-get install -y docker-compose-plugin` |
 | Model download slow | First download gets the full model; subsequent runs use cache |
-| Not enough disk space | OpenClaw only needs at least 12GB free disk; enabling Ollama raises that to 20GB. Check with `df -h /` |
+| Not enough disk space | OpenClaw only needs at least 4GB free disk; enabling Ollama raises that to 12GB. Check with `df -h /` |
+| Closed the deployment log, token lost | On the device run `cat ~/openclaw/*/.env` (mode 600, readable only by the deploying user) |
 | Not enough system memory | OpenClaw only needs at least 4GB RAM; enabling Ollama raises that to 8GB. Check with `awk '/^MemTotal:/ {print int(($2 + 1048575) / 1048576) "GB"}' /proc/meminfo` |
 | Port 11434 already in use | The deployer prefers its own Docker-managed Ollama runtime. It will try to stop a native Ollama first; if the port is still occupied, stop the other Ollama service/process on the Jetson and retry |
 
 ## Preset: OpenClaw Gateway {#openclaw_recomputer_r}
 
-Deploy OpenClaw AI messaging gateway on reComputer R series. Lightweight deployment — gateway only, no local AI model needed.
+Deploy OpenClaw AI messaging gateway on reComputer R1100 series. Lightweight deployment — gateway only, no local AI model needed.
 
 | Device | Purpose |
 |--------|---------|
@@ -120,7 +117,7 @@ Deploy OpenClaw AI messaging gateway on reComputer R series. Lightweight deploym
 
 ## Step 1: Deploy OpenClaw {#deploy_openclaw_r type=docker_deploy required=true config=devices/recomputer_r_deploy.yaml}
 
-Deploy the OpenClaw AI gateway on your reComputer R.
+Deploy the OpenClaw AI gateway on your reComputer R1100 series device.
 
 
 ### Deployment Complete
@@ -130,7 +127,6 @@ OpenClaw AI gateway is deployed. Follow the "Deployment Complete" instructions i
 #### Try a Conversation
 
 1. Click **Chat** in the left sidebar and send a message to verify AI is responding
-2. If local AI model is enabled, it's already configured — no extra setup needed
 
 #### Connect Messaging Platforms
 
@@ -140,7 +136,7 @@ OpenClaw AI gateway is deployed. Follow the "Deployment Complete" instructions i
 
 #### Next Steps
 
-- [OpenClaw Documentation](https://github.com/nicepkg/openclaw)
+- [OpenClaw Documentation](https://github.com/openclaw/openclaw)
 - Add more AI providers in Settings > Models
 - Connect additional messaging platforms
 
@@ -155,12 +151,8 @@ Deploy on the machine you're currently using.
 
 ### Deployment Complete
 
-1. Copy the **Gateway Token** shown in the deployment log
-2. Open **http://localhost:18789** in your browser
-3. Go to the **Overview** page (left sidebar → **Overview** under "Control")
-4. In the **Gateway Access** section, paste the token into the **Gateway Token** field
-5. Click **Connect** to authenticate
-6. Connect your first messaging channel (WeChat, Telegram, Discord, etc.)
+1. Open **http://localhost:18789** in your browser (the gateway binds to loopback only — no token needed)
+2. Connect your first messaging channel (WeChat, Telegram, Discord, etc.)
 
 ### Troubleshooting
 
@@ -172,17 +164,17 @@ Deploy on the machine you're currently using.
 
 ### Target {#r_remote type=remote config=devices/recomputer_r_deploy.yaml}
 
-Deploy to a reComputer R device over SSH.
+Deploy to a reComputer R1100 series device over SSH.
 
 ### Wiring
 
-1. Connect reComputer R to the same network as your deployment machine
+1. Connect the reComputer R1100 series device to the same network as your deployment machine
 2. Enter device IP address, SSH username, and password
 3. Click **Deploy** to start services
 
 ### Deployment Complete
 
-1. Copy the **Gateway Token** shown in the deployment log
+1. Read the **Gateway Token** on the device: run `grep OPENCLAW_GATEWAY_TOKEN ~/openclaw_recomputer_r/*/.env` (the deployment log shows only this path, not the token)
 2. OpenClaw requires localhost access. **Option A**: Connect a display to the device, open a browser, and visit `http://localhost:18789`; **Option B**: On your computer, run `ssh -L 18789:localhost:18789 <username>@<device-ip>`, then open `http://localhost:18789` in your local browser
 3. Go to the **Overview** page (left sidebar → **Overview** under "Control")
 4. In the **Gateway Access** section, paste the token into the **Gateway Token** field
@@ -197,3 +189,4 @@ Deploy to a reComputer R device over SSH.
 | Docker Compose unavailable | Install it: `sudo apt-get install -y docker-compose-plugin` |
 | Not enough disk space | Need at least 4GB free; check with `df -h /` |
 | OpenClaw container keeps restarting | Check logs: `docker logs openclaw-gateway` |
+| Closed the deployment log, token lost | On the device run `cat ~/openclaw_recomputer_r/*/.env` (mode 600, readable only by the deploying user) |

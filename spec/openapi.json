@@ -246,6 +246,49 @@
         "title": "ApiStatusResponse",
         "type": "object"
       },
+      "Body_enroll_api_network_face__session_id__persons_post": {
+        "properties": {
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "groups": {
+            "default": "",
+            "title": "Groups",
+            "type": "string"
+          },
+          "images": {
+            "default": [],
+            "items": {
+              "format": "binary",
+              "type": "string"
+            },
+            "title": "Images",
+            "type": "array"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "person_id": {
+            "title": "Person Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "person_id",
+          "display_name"
+        ],
+        "title": "Body_enroll_api_network_face__session_id__persons_post",
+        "type": "object"
+      },
       "Body_import_parse_api_solutions_import_parse_post": {
         "properties": {
           "file": {
@@ -434,6 +477,19 @@
         "title": "CommandRequest",
         "type": "object"
       },
+      "ConfigUpdateRequest": {
+        "properties": {
+          "setup_key": {
+            "title": "Setup Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "setup_key"
+        ],
+        "title": "ConfigUpdateRequest",
+        "type": "object"
+      },
       "ConnectDeviceRequest": {
         "description": "Request to connect to a remote Docker device",
         "properties": {
@@ -534,6 +590,24 @@
         "title": "ContentUpdateDownloadAllResponse",
         "type": "object"
       },
+      "CountingQueryRequest": {
+        "properties": {
+          "command": {
+            "title": "Command",
+            "type": "string"
+          },
+          "timeout": {
+            "default": 1.5,
+            "title": "Timeout",
+            "type": "number"
+          }
+        },
+        "required": [
+          "command"
+        ],
+        "title": "CountingQueryRequest",
+        "type": "object"
+      },
       "CreateKeyRequest": {
         "properties": {
           "name": {
@@ -563,6 +637,35 @@
           "api_key"
         ],
         "title": "CreateKeyResponse",
+        "type": "object"
+      },
+      "CreateNetworkFaceSessionRequest": {
+        "additionalProperties": false,
+        "description": "Which panel of which step wants a session — and nothing else.\n\nNamed for this router rather than ``CreateSessionRequest``: the serial\ncamera router already publishes that component name, and two models\nsharing one name make the exported OpenAPI depend on route\nregistration order.\n\nThe caller does **not** get to say where the proxy connects or which\nsecret it signs with. It used to: the body carried\n``management_base_url`` and ``auth_ref``, the sidecar resolved that\n``auth_ref`` to a token and sent it as a bearer to that URL. Since the\nsidecar exempts localhost from auth and answers a wildcard CORS\nheader, any page in the user's browser could name its own host and\ncollect the token. The target now comes from the solution the sidecar\nhas already loaded, and ``extra=\"forbid\"`` turns a body that still\ncarries those fields into a 422 rather than silently ignoring them.\n\n``solution_id`` names *any* solution the sidecar has loaded, not only\nthe one a deployment session currently has open — the codebase has no\nserver-side \"active deployment\" concept to bind this to (nothing else\nscopes a request to one in-progress deployment either), so this is not\na scoping gap specific to this router. Every solution bundled into or\ndownloaded by this App instance is content the same user chose to run,\nserved from the same origin under the same ``require_trusted_origin``\nguard: pages in *other* origins cannot reach this route at all, and a\npage from one solution reading another loaded solution's panel\ndescriptor (never its secret — see above) is not a cross-trust-domain\nread. Accepted risk; revisit if a server-side deployment-session\nconcept is ever introduced, at which point this should bind to it.",
+        "properties": {
+          "panel_index": {
+            "default": 0,
+            "maximum": 63.0,
+            "minimum": 0.0,
+            "title": "Panel Index",
+            "type": "integer"
+          },
+          "solution_id": {
+            "maxLength": 200,
+            "title": "Solution Id",
+            "type": "string"
+          },
+          "step_id": {
+            "maxLength": 200,
+            "title": "Step Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "solution_id",
+          "step_id"
+        ],
+        "title": "CreateNetworkFaceSessionRequest",
         "type": "object"
       },
       "CreateSessionRequest": {
@@ -598,6 +701,53 @@
               }
             ],
             "title": "Crud Port"
+          },
+          "face_mode": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Face Mode"
+          },
+          "frame_formats": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Frame extensions to install, e.g. ['face']. An empty list runs the generic kernel only (raw boxes reach the UI). Omitted falls back to face_mode, then to the legacy ['face'] default.",
+            "title": "Frame Formats"
+          },
+          "startup_commands": {
+            "anyOf": [
+              {
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "$ref": "#/components/schemas/SerialCameraStartupCommand"
+                    }
+                  ]
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Startup Commands"
           }
         },
         "title": "CreateSessionRequest",
@@ -728,6 +878,20 @@
           "key": {
             "title": "Key",
             "type": "string"
+          },
+          "options": {
+            "default": [],
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Options",
+            "type": "array"
+          },
+          "options_live": {
+            "default": false,
+            "title": "Options Live",
+            "type": "boolean"
           },
           "required": {
             "default": false,
@@ -1534,6 +1698,22 @@
             "title": "Method",
             "type": "string"
           },
+          "min_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Version"
+          },
+          "scope": {
+            "default": "all",
+            "title": "Scope",
+            "type": "string"
+          },
           "verify_after_reboot": {
             "default": true,
             "title": "Verify After Reboot",
@@ -1636,6 +1816,17 @@
           "message": {
             "title": "Message",
             "type": "string"
+          },
+          "min_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Min Version"
           },
           "progress": {
             "title": "Progress",
@@ -2026,6 +2217,30 @@
         "title": "ImportParseResponse",
         "type": "object"
       },
+      "InstallLocalRequest": {
+        "properties": {
+          "hostname": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hostname"
+          },
+          "sudo_password": {
+            "title": "Sudo Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "sudo_password"
+        ],
+        "title": "InstallLocalRequest",
+        "type": "object"
+      },
       "InstallRemoteRequest": {
         "properties": {
           "accept_routes": {
@@ -2312,6 +2527,154 @@
         "title": "MdnsScanResult",
         "type": "object"
       },
+      "NetbirdInstallRemoteRequest": {
+        "properties": {
+          "host": {
+            "title": "Host",
+            "type": "string"
+          },
+          "hostname": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hostname"
+          },
+          "password": {
+            "title": "Password",
+            "type": "string"
+          },
+          "port": {
+            "default": 22,
+            "title": "Port",
+            "type": "integer"
+          },
+          "sudo_password": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sudo Password"
+          },
+          "username": {
+            "title": "Username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "host",
+          "username",
+          "password"
+        ],
+        "title": "NetbirdInstallRemoteRequest",
+        "type": "object"
+      },
+      "NetbirdInstallRemoteResponse": {
+        "properties": {
+          "task_id": {
+            "title": "Task Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "task_id"
+        ],
+        "title": "NetbirdInstallRemoteResponse",
+        "type": "object"
+      },
+      "NetbirdResumeRequest": {
+        "properties": {
+          "sudo_password": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sudo Password"
+          }
+        },
+        "title": "NetbirdResumeRequest",
+        "type": "object"
+      },
+      "NetbirdStatusRemoteRequest": {
+        "properties": {
+          "host": {
+            "title": "Host",
+            "type": "string"
+          },
+          "password": {
+            "title": "Password",
+            "type": "string"
+          },
+          "port": {
+            "default": 22,
+            "title": "Port",
+            "type": "integer"
+          },
+          "username": {
+            "title": "Username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "host",
+          "username",
+          "password"
+        ],
+        "title": "NetbirdStatusRemoteRequest",
+        "type": "object"
+      },
+      "NetbirdStatusResponse": {
+        "properties": {
+          "connected": {
+            "title": "Connected",
+            "type": "boolean"
+          },
+          "fqdn": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fqdn"
+          },
+          "installed": {
+            "title": "Installed",
+            "type": "boolean"
+          },
+          "ip": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ip"
+          }
+        },
+        "required": [
+          "installed",
+          "connected"
+        ],
+        "title": "NetbirdStatusResponse",
+        "type": "object"
+      },
       "PartnerInfo": {
         "description": "Deployment partner information",
         "properties": {
@@ -2466,6 +2829,349 @@
         "title": "PortInfo",
         "type": "object"
       },
+      "PresetScoreItem": {
+        "description": "Score and evidence for one preset.",
+        "properties": {
+          "matched_devices": {
+            "default": [],
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Matched Devices",
+            "type": "array"
+          },
+          "preset_id": {
+            "title": "Preset Id",
+            "type": "string"
+          },
+          "reasons": {
+            "default": [],
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "score": {
+            "title": "Score",
+            "type": "number"
+          }
+        },
+        "required": [
+          "preset_id",
+          "score"
+        ],
+        "title": "PresetScoreItem",
+        "type": "object"
+      },
+      "PresetSuggestRequest": {
+        "additionalProperties": false,
+        "description": "Scan parameters for POST /api/solutions/{id}/preset-suggest.\n\nCredentials are optional: without them the SSH identity probe is skipped\nand the response says so in the affected preset's reasons.\n\nUnknown fields are rejected rather than ignored: a caller that misspells\n``mdns_timeout`` should hear about it instead of silently getting the\ndefault.",
+        "properties": {
+          "host": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Host"
+          },
+          "mdns_timeout": {
+            "default": 3.0,
+            "maximum": 10.0,
+            "minimum": 0.5,
+            "title": "Mdns Timeout",
+            "type": "number"
+          },
+          "password": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Password"
+          },
+          "port": {
+            "anyOf": [
+              {
+                "maximum": 65535.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Port"
+          },
+          "probe_timeout": {
+            "default": 2.0,
+            "maximum": 10.0,
+            "minimum": 0.1,
+            "title": "Probe Timeout",
+            "type": "number"
+          },
+          "ssh_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ssh Key"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
+          }
+        },
+        "title": "PresetSuggestRequest",
+        "type": "object"
+      },
+      "PresetSuggestResponse": {
+        "description": "Preset suggestion derived from a device scan.\n\n``decision`` is \"suggest\" only when one preset is the unique top scorer and\nclears the threshold. A tie, or a positive but sub-threshold top score,\nyields \"ambiguous\" and the frontend must not preselect anything.",
+        "properties": {
+          "candidates": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Candidates",
+            "type": "array"
+          },
+          "decision": {
+            "title": "Decision",
+            "type": "string"
+          },
+          "notes": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Notes",
+            "type": "array"
+          },
+          "scores": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/PresetScoreItem"
+            },
+            "title": "Scores",
+            "type": "array"
+          },
+          "solution_id": {
+            "title": "Solution Id",
+            "type": "string"
+          },
+          "suggested_preset_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suggested Preset Id"
+          },
+          "threshold": {
+            "title": "Threshold",
+            "type": "number"
+          }
+        },
+        "required": [
+          "solution_id",
+          "decision",
+          "threshold"
+        ],
+        "title": "PresetSuggestResponse",
+        "type": "object"
+      },
+      "ProbeRequest": {
+        "description": "Request to actively probe one or more hosts for reachability.\n\n``targets`` is capped and ``timeout`` bounded so the endpoint cannot be\nabused as an unbounded internal-network scanner / resource-exhaustion vector.",
+        "properties": {
+          "targets": {
+            "items": {
+              "$ref": "#/components/schemas/ProbeTarget"
+            },
+            "maxItems": 64,
+            "title": "Targets",
+            "type": "array"
+          },
+          "timeout": {
+            "anyOf": [
+              {
+                "maximum": 10.0,
+                "minimum": 0.1,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timeout"
+          }
+        },
+        "title": "ProbeRequest",
+        "type": "object"
+      },
+      "ProbeResult": {
+        "description": "Reachability result for a single probed host",
+        "properties": {
+          "device_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device Type"
+          },
+          "hostname": {
+            "title": "Hostname",
+            "type": "string"
+          },
+          "ip": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ip"
+          },
+          "port": {
+            "title": "Port",
+            "type": "integer"
+          },
+          "reachable": {
+            "default": false,
+            "title": "Reachable",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "hostname",
+          "port"
+        ],
+        "title": "ProbeResult",
+        "type": "object"
+      },
+      "ProbeTarget": {
+        "description": "A single host:port target to actively probe",
+        "properties": {
+          "host": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Host",
+            "type": "string"
+          },
+          "port": {
+            "default": 22,
+            "maximum": 65535.0,
+            "minimum": 1.0,
+            "title": "Port",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "host"
+        ],
+        "title": "ProbeTarget",
+        "type": "object"
+      },
+      "PurchaseProfileBatchRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "family_ids": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Family Ids",
+            "type": "array"
+          }
+        },
+        "title": "PurchaseProfileBatchRequest",
+        "type": "object"
+      },
+      "PurchaseProfileBatchResponse": {
+        "properties": {
+          "profiles": {
+            "additionalProperties": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Profiles",
+            "type": "object"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "unconfigured",
+              "upstream_error"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "profiles",
+          "status"
+        ],
+        "title": "PurchaseProfileBatchResponse",
+        "type": "object"
+      },
+      "RecameraFixRequest": {
+        "description": "Request to run known-issue fixes on a reCamera over SSH",
+        "properties": {
+          "connection": {
+            "additionalProperties": true,
+            "title": "Connection",
+            "type": "object"
+          }
+        },
+        "required": [
+          "connection"
+        ],
+        "title": "RecameraFixRequest",
+        "type": "object"
+      },
+      "RecameraProTestRequest": {
+        "description": "Request to probe a reCamera Pro over ADB",
+        "properties": {
+          "connection": {
+            "additionalProperties": true,
+            "title": "Connection",
+            "type": "object"
+          }
+        },
+        "required": [
+          "connection"
+        ],
+        "title": "RecameraProTestRequest",
+        "type": "object"
+      },
       "RemoteConfigRequest": {
         "description": "Request to get remote app configuration (needs SSH connection)",
         "properties": {
@@ -2493,6 +3199,62 @@
           "password"
         ],
         "title": "RemoteConfigRequest",
+        "type": "object"
+      },
+      "RemoteOptionsRequest": {
+        "description": "Resolve a ``remote_select`` input's options (routers/devices.py).\n\nNames the input by solution + step + input id rather than carrying the\nURL, so the browser can never turn this endpoint into an arbitrary\nfetcher — the URL only ever comes from the solution's own YAML.",
+        "properties": {
+          "device_id": {
+            "title": "Device Id",
+            "type": "string"
+          },
+          "input_id": {
+            "title": "Input Id",
+            "type": "string"
+          },
+          "solution_id": {
+            "title": "Solution Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "solution_id",
+          "device_id",
+          "input_id"
+        ],
+        "title": "RemoteOptionsRequest",
+        "type": "object"
+      },
+      "RemoteOptionsResponse": {
+        "description": "Resolved options for a ``remote_select`` input.",
+        "properties": {
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "options": {
+            "default": [],
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Options",
+            "type": "array"
+          },
+          "origin": {
+            "default": "none",
+            "title": "Origin",
+            "type": "string"
+          }
+        },
+        "title": "RemoteOptionsResponse",
         "type": "object"
       },
       "RemoteUpdateConfigRequest": {
@@ -2525,6 +3287,36 @@
           "new_name"
         ],
         "title": "RenameFaceRequest",
+        "type": "object"
+      },
+      "RenameNetworkFaceRequest": {
+        "properties": {
+          "display_name": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "person_id": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Person Id"
+          }
+        },
+        "title": "RenameNetworkFaceRequest",
         "type": "object"
       },
       "ResolvedDevice": {
@@ -2582,6 +3374,11 @@
       "RestoreDeviceResponse": {
         "description": "Supported device information",
         "properties": {
+          "category": {
+            "default": "embedded",
+            "title": "Category",
+            "type": "string"
+          },
           "description": {
             "title": "Description",
             "type": "string"
@@ -2808,6 +3605,54 @@
         "title": "RunDeviceActionRequest",
         "type": "object"
       },
+      "SendCommandRequest": {
+        "properties": {
+          "command": {
+            "title": "Command",
+            "type": "string"
+          }
+        },
+        "required": [
+          "command"
+        ],
+        "title": "SendCommandRequest",
+        "type": "object"
+      },
+      "SerialCameraStartupCommand": {
+        "description": "One entry of ``serial_camera.startup_commands``\n\n``cmd`` is re-validated at the transport (``write_command``); the bounds\nhere exist so a malformed sequence is rejected at the API/schema edge\ninstead of inside the serial reader thread.",
+        "properties": {
+          "cmd": {
+            "maxLength": 256,
+            "minLength": 3,
+            "pattern": "^\\s*AT\\+[ -~]*$",
+            "title": "Cmd",
+            "type": "string"
+          },
+          "delay": {
+            "default": 0.3,
+            "maximum": 60.0,
+            "minimum": 0.0,
+            "title": "Delay",
+            "type": "number"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          }
+        },
+        "required": [
+          "cmd"
+        ],
+        "title": "SerialCameraStartupCommand",
+        "type": "object"
+      },
       "SolutionCreate": {
         "description": "Request model for creating a new solution",
         "properties": {
@@ -3031,9 +3876,7 @@
             "type": "array"
           },
           "links": {
-            "additionalProperties": {
-              "type": "string"
-            },
+            "additionalProperties": true,
             "default": {},
             "title": "Links",
             "type": "object"
@@ -4055,6 +4898,45 @@
         "title": "ToggleRequest",
         "type": "object"
       },
+      "UninstallRemoteRequest": {
+        "properties": {
+          "host": {
+            "title": "Host",
+            "type": "string"
+          },
+          "password": {
+            "title": "Password",
+            "type": "string"
+          },
+          "port": {
+            "default": 22,
+            "title": "Port",
+            "type": "integer"
+          },
+          "sudo_password": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sudo Password"
+          },
+          "username": {
+            "title": "Username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "host",
+          "username",
+          "password"
+        ],
+        "title": "UninstallRemoteRequest",
+        "type": "object"
+      },
       "UpdateCheckResult": {
         "description": "Result of checking for available updates",
         "properties": {
@@ -4379,7 +5261,7 @@
   "info": {
     "description": "IoT Solution Provisioning Platform for Seeed Studio products.\n\n**Authentication:** Localhost requests are always allowed. Remote requests require an API key via `X-API-Key` header or `Authorization: Bearer <key>`.",
     "title": "Provisioning Station",
-    "version": "0.6.4"
+    "version": "0.6.20"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -5963,6 +6845,94 @@
         ]
       }
     },
+    "/api/devices/probe": {
+      "post": {
+        "description": "Actively probe a list of hosts and report which are reachable.\n\nFor each target, the host is resolved (IP literal used directly, ``.local``\nresolved via a direct mDNS A-record query, otherwise via the OS resolver)\nand its port tested with a short TCP connect. Only targets whose port is\nopen report ``reachable: true``.",
+        "operationId": "probe_devices_api_devices_probe_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProbeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ProbeResult"
+                  },
+                  "title": "Response Probe Devices Api Devices Probe Post",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Probe Devices",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/devices/remote-options": {
+      "post": {
+        "description": "Resolve a ``remote_select`` input's options from its declared URL.\n\nThe request names the input (solution + step + input id); the URL is\nread from the solution's own device YAML, never from the request body,\nso this endpoint cannot be turned into an arbitrary fetch proxy.\n\nThe fetch runs on the machine hosting the App — it has internet even\nwhen the target device does not. Any failure falls back to the input's\nstatic ``options`` (offline is degraded, never broken).",
+        "operationId": "resolve_remote_options_api_devices_remote_options_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemoteOptionsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemoteOptionsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Resolve Remote Options",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
     "/api/devices/scan-mdns": {
       "get": {
         "description": "Scan the local network for SSH-enabled devices using mDNS.\n\nReturns devices that advertise SSH services (_ssh._tcp.local).\nBy default, filters to known IoT device patterns (Raspberry Pi, Jetson, etc.).\n\nIf no devices are found, also returns suggested_hosts from the device catalog.\n\nReturns:\n    MdnsScanResult with devices and suggested_hosts",
@@ -6058,6 +7028,32 @@
           }
         },
         "summary": "List Serial Ports For Target",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/devices/suggested-hosts": {
+      "get": {
+        "description": "Return the candidate mDNS hostnames from the device catalog.\n\nLightweight companion to POST /api/devices/probe: the frontend fetches this\nlist of candidate hosts, then actively probes them to show only the ones\nthat are actually reachable.",
+        "operationId": "get_suggested_hosts_api_devices_suggested_hosts_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SuggestedHost"
+                  },
+                  "title": "Response Get Suggested Hosts Api Devices Suggested Hosts Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Suggested Hosts",
         "tags": [
           "devices"
         ]
@@ -7512,7 +8508,7 @@
     },
     "/api/firmware/{operation_id}/confirm": {
       "post": {
-        "description": "Confirm the irreversible flash (S5). Only valid while awaiting confirmation.",
+        "description": "Confirm the flash. Only valid while awaiting confirmation.",
         "operationId": "confirm_firmware_update_api_firmware__operation_id__confirm_post",
         "parameters": [
           {
@@ -7886,6 +8882,915 @@
         "summary": "Set Editor Enabled",
         "tags": [
           "meta"
+        ]
+      }
+    },
+    "/api/netbird/config": {
+      "get": {
+        "operationId": "get_config_api_netbird_config_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get Config Api Netbird Config Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Config",
+        "tags": [
+          "netbird"
+        ]
+      },
+      "put": {
+        "operationId": "put_config_api_netbird_config_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfigUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Put Config Api Netbird Config Put",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Put Config",
+        "tags": [
+          "netbird"
+        ]
+      }
+    },
+    "/api/netbird/install/local": {
+      "post": {
+        "description": "Fully-automatic install on the machine this backend runs on.\n\nNo SSH, no setup-key exposure to the frontend — the key stays\nserver-side. Windows hosts are rejected (entry hidden there anyway).",
+        "operationId": "install_local_api_netbird_install_local_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InstallLocalRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetbirdInstallRemoteResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Install Local",
+        "tags": [
+          "netbird"
+        ]
+      }
+    },
+    "/api/netbird/install/remote": {
+      "post": {
+        "operationId": "install_remote_api_netbird_install_remote_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NetbirdInstallRemoteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetbirdInstallRemoteResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Install Remote",
+        "tags": [
+          "netbird"
+        ]
+      }
+    },
+    "/api/netbird/install/{task_id}/cancel": {
+      "post": {
+        "operationId": "install_cancel_api_netbird_install__task_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Install Cancel Api Netbird Install  Task Id  Cancel Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Install Cancel",
+        "tags": [
+          "netbird"
+        ]
+      }
+    },
+    "/api/netbird/install/{task_id}/events": {
+      "get": {
+        "operationId": "install_events_api_netbird_install__task_id__events_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Install Events",
+        "tags": [
+          "netbird"
+        ]
+      }
+    },
+    "/api/netbird/install/{task_id}/resume": {
+      "post": {
+        "operationId": "install_resume_api_netbird_install__task_id__resume_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NetbirdResumeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Install Resume Api Netbird Install  Task Id  Resume Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Install Resume",
+        "tags": [
+          "netbird"
+        ]
+      }
+    },
+    "/api/netbird/status/local": {
+      "get": {
+        "operationId": "status_local_api_netbird_status_local_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetbirdStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Status Local",
+        "tags": [
+          "netbird"
+        ]
+      }
+    },
+    "/api/netbird/status/remote": {
+      "post": {
+        "operationId": "status_remote_api_netbird_status_remote_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NetbirdStatusRemoteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetbirdStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Status Remote",
+        "tags": [
+          "netbird"
+        ]
+      }
+    },
+    "/api/netbird/uninstall/remote": {
+      "post": {
+        "operationId": "uninstall_remote_api_netbird_uninstall_remote_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UninstallRemoteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NetbirdInstallRemoteResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Uninstall Remote",
+        "tags": [
+          "netbird"
+        ]
+      }
+    },
+    "/api/netbird/uninstall/{task_id}/cancel": {
+      "post": {
+        "operationId": "uninstall_cancel_api_netbird_uninstall__task_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Uninstall Cancel Api Netbird Uninstall  Task Id  Cancel Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Uninstall Cancel",
+        "tags": [
+          "netbird"
+        ]
+      }
+    },
+    "/api/netbird/uninstall/{task_id}/events": {
+      "get": {
+        "operationId": "uninstall_events_api_netbird_uninstall__task_id__events_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "title": "Task Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Uninstall Events",
+        "tags": [
+          "netbird"
+        ]
+      }
+    },
+    "/api/network-face/sessions": {
+      "post": {
+        "description": "Register a panel's target. Returns only an opaque session id.",
+        "operationId": "create_session_api_network_face_sessions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateNetworkFaceSessionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Create Session Api Network Face Sessions Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Session",
+        "tags": [
+          "network-face"
+        ]
+      }
+    },
+    "/api/network-face/sessions/{session_id}": {
+      "delete": {
+        "operationId": "close_session_api_network_face_sessions__session_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Close Session Api Network Face Sessions  Session Id  Delete",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Close Session",
+        "tags": [
+          "network-face"
+        ]
+      }
+    },
+    "/api/network-face/{session_id}/capture": {
+      "post": {
+        "description": "One sample. ``image`` is null on firmware that returns no pixels.",
+        "operationId": "capture_api_network_face__session_id__capture_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Capture Api Network Face  Session Id  Capture Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Capture",
+        "tags": [
+          "network-face"
+        ]
+      }
+    },
+    "/api/network-face/{session_id}/gallery": {
+      "get": {
+        "operationId": "gallery_api_network_face__session_id__gallery_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Gallery Api Network Face  Session Id  Gallery Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Gallery",
+        "tags": [
+          "network-face"
+        ]
+      }
+    },
+    "/api/network-face/{session_id}/persons": {
+      "post": {
+        "description": "Upload N images; the management API embeds and signs a new version.\n\nReads one byte past the limit so an oversized upload is refused\nwithout the whole of it entering memory first.",
+        "operationId": "enroll_api_network_face__session_id__persons_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_enroll_api_network_face__session_id__persons_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Enroll Api Network Face  Session Id  Persons Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Enroll",
+        "tags": [
+          "network-face"
+        ]
+      }
+    },
+    "/api/network-face/{session_id}/persons/{person_id}": {
+      "delete": {
+        "operationId": "delete_api_network_face__session_id__persons__person_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "person_id",
+            "required": true,
+            "schema": {
+              "title": "Person Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Delete Api Network Face  Session Id  Persons  Person Id  Delete",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete",
+        "tags": [
+          "network-face"
+        ]
+      }
+    },
+    "/api/network-face/{session_id}/persons/{person_id}/rename": {
+      "post": {
+        "operationId": "rename_api_network_face__session_id__persons__person_id__rename_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "person_id",
+            "required": true,
+            "schema": {
+              "title": "Person Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenameNetworkFaceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Rename Api Network Face  Session Id  Persons  Person Id  Rename Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Rename",
+        "tags": [
+          "network-face"
+        ]
+      }
+    },
+    "/api/network-face/{session_id}/reload": {
+      "post": {
+        "description": "Activate the current version on the device and return its ack.",
+        "operationId": "reload_api_network_face__session_id__reload_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Reload Api Network Face  Session Id  Reload Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reload",
+        "tags": [
+          "network-face"
+        ]
+      }
+    },
+    "/api/network-face/{session_id}/status": {
+      "get": {
+        "operationId": "status_api_network_face__session_id__status_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Status Api Network Face  Session Id  Status Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Status",
+        "tags": [
+          "network-face"
         ]
       }
     },
@@ -8624,6 +10529,47 @@
         ]
       }
     },
+    "/api/purchase-profiles/batch": {
+      "post": {
+        "operationId": "batch_purchase_profiles_api_purchase_profiles_batch_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PurchaseProfileBatchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchaseProfileBatchResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Batch Purchase Profiles",
+        "tags": [
+          "purchase-profiles"
+        ]
+      }
+    },
     "/api/restore/devices": {
       "get": {
         "description": "Get list of devices that support factory restore",
@@ -8675,7 +10621,7 @@
     },
     "/api/restore/ports": {
       "get": {
-        "description": "List available serial ports for USB restore",
+        "description": "List available serial ports for USB restore.\n\nMatch rules come from the `detection` block of each device in\nrestore_config.yaml, not from constants here, so a new USB device can be\nadded by config (and shipped over the CDN) without a code change.",
         "operationId": "list_serial_ports_api_restore_ports_get",
         "responses": {
           "200": {
@@ -8694,6 +10640,86 @@
           }
         },
         "summary": "List Serial Ports",
+        "tags": [
+          "restore"
+        ]
+      }
+    },
+    "/api/restore/recamera-pro/test": {
+      "post": {
+        "description": "Probe a reCamera Pro over ADB and report what firmware it is running.\n\nreCamera Pro has no SSH root, so the reCamera 2002 test-connection path\ndoes not apply. This connects over adb, confirms adbd is running as root,\nand identifies `/oem/usr/bin/rkipc` as the factory build, our extension\nbuild, or something unknown — which is also what decides whether the\nextension firmware can be installed and rolled back.",
+        "operationId": "test_recamera_pro_api_restore_recamera_pro_test_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecameraProTestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Test Recamera Pro",
+        "tags": [
+          "restore"
+        ]
+      }
+    },
+    "/api/restore/recamera/fix": {
+      "post": {
+        "description": "Apply idempotent known-issue fixes to a reCamera over SSH.\n\nRuns the fix registry in utils/recamera_ssh.py (USB gateway\nadvertisement patch, stale clock sync) and reports per-fix status:\nfixed / already_ok / failed.",
+        "operationId": "fix_recamera_api_restore_recamera_fix_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecameraFixRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Fix Recamera",
         "tags": [
           "restore"
         ]
@@ -8860,6 +10886,108 @@
           }
         },
         "summary": "Delete Session",
+        "tags": [
+          "serial-camera"
+        ]
+      }
+    },
+    "/api/serial-camera/sessions/{session_id}/command": {
+      "post": {
+        "description": "Send an ad-hoc AT command to the camera session's serial port.\n\nThe serial_wizard's ``send_line`` cannot be reused here: it terminates\nwith ``\\n`` (the firmware AT parser needs ``\\r``) and it opens the port\nitself, which collides with the camera session's exclusive hold.",
+        "operationId": "send_command_api_serial_camera_sessions__session_id__command_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SendCommandRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Send Command",
+        "tags": [
+          "serial-camera"
+        ]
+      }
+    },
+    "/api/serial-camera/sessions/{session_id}/counting/query": {
+      "post": {
+        "description": "Send one counting AT command and return the device's reply.\n\nResponse::\n\n    {\"ok\": bool, \"command\": str, \"reply\": <raw SSCMA message or null>}\n\n``ok`` is true only when the device answered with ``code == 0``; a\ntimeout returns ``ok: false`` with ``reply: null``.",
+        "operationId": "counting_query_api_serial_camera_sessions__session_id__counting_query_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CountingQueryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Counting Query",
         "tags": [
           "serial-camera"
         ]
@@ -10844,6 +12972,59 @@
         ]
       }
     },
+    "/api/solutions/{solution_id}/preset-suggest": {
+      "post": {
+        "description": "Score this solution's presets against a device scan.\n\nCollects the evidence the deploy page's scanners already produce (serial\nVID/PID, mDNS SSH records, TCP port probes) plus an optional read-only SSH\nidentity probe, then scores every preset that declares ``preset_match``.\n\nThe response is advisory only. ``decision`` is ``suggest`` when exactly one\npreset tops the ranking and clears the threshold, ``ambiguous`` on a tie or\na sub-threshold top score, and ``none`` when no preset declares rules or\nnothing matched. The frontend never applies a preset without the user\naccepting it.",
+        "operationId": "suggest_preset_api_solutions__solution_id__preset_suggest_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "solution_id",
+            "required": true,
+            "schema": {
+              "title": "Solution Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PresetSuggestRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PresetSuggestResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Suggest Preset",
+        "tags": [
+          "solutions"
+        ]
+      }
+    },
     "/api/solutions/{solution_id}/preset/{preset_id}/section": {
       "get": {
         "description": "Get preset section content with template variable replacement.\n\nFirst tries to get section from guide.md parsing (preferred),\nthen falls back to solution.yaml section definition.",
@@ -12025,5 +14206,5 @@
       }
     }
   },
-  "x-contract-version": 1
+  "x-contract-version": 5
 }

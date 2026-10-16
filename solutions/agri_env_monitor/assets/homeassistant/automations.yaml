@@ -1,0 +1,80 @@
+# 阈值告警 → persistent_notification
+#
+# 安装：把本文件内容并入 HA 配置目录下的 automations.yaml
+#   docker cp automations.yaml agri-env-homeassistant:/config/automations.yaml
+#   curl -X POST -H "Authorization: Bearer $TOKEN" http://localhost:8123/api/services/automation/reload
+#
+# 阈值与持续时间：改下面 below/above 与 for。实体列表按现场设备增删。
+# 越界建通知，恢复后按同一个 notification_id 关闭。
+
+- id: agri_env_soil_moisture_low
+  alias: Agri Env Soil Moisture Low
+  description: 土壤水分过低告警。alias 用英文是为了让 HA 生成稳定的 entity_id（automation.agri_env_soil_moisture_low）。
+  mode: single
+  triggers:
+    - trigger: numeric_state
+      entity_id:
+        - sensor.sensecap_2cf7f1c0000000aa_soil_moisture
+        - sensor.sensecap_2cf7f1c0000000cc_soil_moisture
+      below: 35          # 阈值：土壤水分 %
+      for: "00:00:00"    # 持续时间；生产建议 00:10:00 起，避免单点抖动
+  actions:
+    - action: persistent_notification.create
+      data:
+        notification_id: "agri_env_soil_moisture_low_{{ trigger.entity_id | replace('sensor.','') }}"
+        title: 土壤水分过低
+        message: >-
+          {{ state_attr(trigger.entity_id, 'friendly_name') or trigger.entity_id }}
+          当前 {{ trigger.to_state.state }}%，低于阈值 35%。
+
+- id: agri_env_soil_moisture_recovered
+  alias: Agri Env Soil Moisture Recovered
+  description: 土壤水分恢复，关闭对应通知。
+  mode: single
+  triggers:
+    - trigger: numeric_state
+      entity_id:
+        - sensor.sensecap_2cf7f1c0000000aa_soil_moisture
+        - sensor.sensecap_2cf7f1c0000000cc_soil_moisture
+      above: 35
+      for: "00:00:00"
+  actions:
+    - action: persistent_notification.dismiss
+      data:
+        notification_id: "agri_env_soil_moisture_low_{{ trigger.entity_id | replace('sensor.','') }}"
+
+- id: agri_env_air_temperature_high
+  alias: Agri Env Air Temperature High
+  description: 空气温度过高告警。
+  mode: single
+  triggers:
+    - trigger: numeric_state
+      entity_id:
+        - sensor.sensecap_2cf7f1c0000000aa_temperature
+        - sensor.sensecap_2cf7f1c0000000bb_temperature
+      above: 35          # 阈值：空气温度 ℃
+      for: "00:00:00"
+  actions:
+    - action: persistent_notification.create
+      data:
+        notification_id: "agri_env_air_temperature_high_{{ trigger.entity_id | replace('sensor.','') }}"
+        title: 空气温度过高
+        message: >-
+          {{ state_attr(trigger.entity_id, 'friendly_name') or trigger.entity_id }}
+          当前 {{ trigger.to_state.state }}℃，高于阈值 35℃。
+
+- id: agri_env_air_temperature_recovered
+  alias: Agri Env Air Temperature Recovered
+  description: 空气温度恢复，关闭对应通知。
+  mode: single
+  triggers:
+    - trigger: numeric_state
+      entity_id:
+        - sensor.sensecap_2cf7f1c0000000aa_temperature
+        - sensor.sensecap_2cf7f1c0000000bb_temperature
+      below: 35
+      for: "00:00:00"
+  actions:
+    - action: persistent_notification.dismiss
+      data:
+        notification_id: "agri_env_air_temperature_high_{{ trigger.entity_id | replace('sensor.','') }}"

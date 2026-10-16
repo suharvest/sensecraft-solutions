@@ -1,0 +1,88 @@
+# Baseline track model artefacts. Checksums only — no weights, no ONNX and no
+# engine/HEF is committed to this repository. Of these, only the deployable
+# Hailo-8 HEF (efficientnet_lite0_waste8_u8.hef, see SHA256SUMS.hef) has been
+# uploaded to
+# https://sensecraft-statics.seeed.cc/solution-app/edge_waste_sorting/models/;
+# its deploy step downloads and verifies it against that line. Everything else
+# here is a reference checksum for artefacts produced during training/eval and
+# has not been uploaded anywhere.
+#
+# Source of truth: ~/project/edge-waste-sorting models/SHA256SUMS.
+#
+# Current baseline (m1c): EfficientNet-Lite0. MobileNetV3-Small (m1b, below)
+# was superseded because its INT8-quantised graph collapsed on every edge
+# chain tested (Hailo emulator, RK3576, RK3588) — see the solution page.
+e9f9e847de6899ad4341d8f6084823e7c70307e84ac4d0da4bc4911b5b767391  efficientnet_lite0_waste8.onnx
+47d0cedcc19009ed219d47da364a74c4215a3d797717b4658250ea69e0d8e23b  efficientnet_lite0_waste8_best.pth
+3d7d92e974dc0bfbab5376dda32fc746dcf7511fc6bd1351bf93d4df593f2a00  efficientnet_lite0_waste8.hef
+c514a4636dea5d9b3d0fb93f2d4a3dbe15ca907228122e3ed42bc894fce391d1  efficientnet_lite0_waste8_u8.hef
+42bce2ddf4c4964d1ff539bcacee5e2c2dc684f20e72483294fe017c86fcde25  efficientnet_lite0_waste8_cv181x_bf16.cvimodel
+59cf7d18d15b592bf00d7fca1aa9661ad7a5a71ca0b7665c88ef725116413723  efficientnet_lite0_waste8.rv1126b.int8.calib256.mmse.rknn
+0889b198d12041359216ea477896ec14b4804fc31ab1ed0444de69b8ed12de1f  efficientnet_lite0_waste8.rv1126b.fp16.rknn
+140a51d5ca4035c446116f6b62a728ea31b6d5155cb5fea432b02ed34def5d03  efficientnet_lite0_waste8.rk3588.int8.calib256.mmse.rknn
+6225423eb29ac5ee1de48abc2d0458c105beaeb8a5b8e84ce9c8014ab7cb5138  efficientnet_lite0_waste8.rk3588.fp16.rknn
+
+# metadata (not part of the checksum lines) — EfficientNet-Lite0 (m1c, current baseline)
+# arch           : efficientnet_lite0
+# input          : images:1x3x224x224 opset13
+# output         : logits:1x8
+# taxonomy       : material8/china4-v1
+# classes        : paper,cardboard,glass,metal,plastic,textile,organic,residual
+# size           : efficientnet_lite0_waste8.onnx = 13477056 bytes
+# size           : efficientnet_lite0_waste8_best.pth (best.pth on spark) = 13780837 bytes
+# size           : efficientnet_lite0_waste8.hef = 4519376 bytes (device artifact, wsl2-local, not committed)
+# measured       : val top-1 0.8877 / china4 0.9500 (7417 images, onnxruntime CPU)
+# measured (SG2002): reCamera real hardware, BF16 cvimodel, 1060 val images -
+#                  material top-1 0.8792, china4 top-1 0.9566, agreement vs CPU
+#                  0.9915, p50 24.276 ms, p95 24.323 ms, peak RSS 11.6 MB.
+#                  +0.47 pp over fp32 CPU on the same 1060 images (9 flipped
+#                  predictions) - BF16 costs nothing measurable on this chip.
+#                  See evaluation/runs/2026-09-07-devices/results-recamera-sg2002.md.
+# measured (Hailo-8): reComputer R2000 class, u8 HEF INT8, full 7417-image
+#                  validation set - material top-1 0.8637, china4 0.9369,
+#                  agreement vs CPU 0.9320, p50 3.166 ms, p95 3.228 ms.
+#                  2.40 pp below fp32 on a host over the same images: the only
+#                  platform measured here where quantisation costs accuracy.
+#                  Not a collapse - MobileNetV3-Small on this chain agreed
+#                  0.115 and scored 0.15, near the 7-class random baseline.
+#                  See evaluation/runs/2026-09-07-devices/results-hailo8.md.
+# measured (RK3588): real hardware, full 7417-image validation set - INT8
+#                  (calib256+mmse) material top-1 0.8881, agreement vs CPU
+#                  0.9893, p50 2.728 ms, p95 3.417 ms; fp16 top-1 0.8882
+#                  (no material difference), agreement 0.9988, p50 5.575 ms,
+#                  p95 9.904 ms. INT8 is 51% faster for no measured accuracy
+#                  difference. See evaluation/runs/2026-09-08-rk3588-fullval.
+# measured (RV1126B): reCamera Pro real hardware, 1060 val images, built-in
+#                  application stopped - INT8 (calib256+mmse) material top-1
+#                  0.8764, china4 0.9566, agreement vs CPU 0.9906, p50 5.824 ms,
+#                  p95 6.047 ms; fp16 top-1 0.8755, agreement 0.9991, p50
+#                  16.956 ms. INT8 is 2.91x faster at the same accuracy.
+#                  See evaluation/runs/2026-09-07-recamera-pro/results.md.
+# cv181x int8    : not built - TPU-MLIR 1.7 run_calibration.py does not complete
+#                  for this graph, so no INT8 figure exists for SG2002.
+# hailo u8 hef   : efficientnet_lite0_waste8_u8.hef is the deployable packaging
+#                  (uint8 device input). Compiled 2026-09-07; no Hailo-8 board
+#                  figures collected.
+# int8 status    : Hailo-8 DFC emulator agreement 0.890 (no collapse, no Hailo-8 hardware used);
+#                  RK3588 radxa real-hardware agreement 0.90-1.00 across 4 variants (no collapse,
+#                  calib256+mmse matches fp16 exactly); RK3576 not retested with this backbone.
+#                  See evaluation/runs/2026-09-06-m1c-hef and 2026-09-06-m1c-rk3588-radxa in
+#                  ~/project/edge-waste-sorting.
+
+# --- superseded baseline (m1b), kept as the INT8-collapse contrast ---
+51c7c0ed7258aec62f653c9b05bafaed85c837be56c331d7f7812c3a2043a28e  mobilenetv3s_waste8.onnx
+f888432c065cb5dbe3008a80fbc9f1e5fd575115fd52edb167cddb62d5b4405e  best.pth
+
+# metadata (not part of the checksum lines) — MobileNetV3-Small (m1b, superseded)
+# repo_commit    : 72cf6130783e39c2ad5ebe491e9a7662ed32997a
+# arch           : mobilenet_v3_small
+# input          : images:1x3x224x224 opset13
+# output         : logits:1x8
+# taxonomy       : material8/china4-v1
+# classes        : paper,cardboard,glass,metal,plastic,textile,organic,residual
+# size           : mobilenetv3s_waste8.onnx = 6118606 bytes
+# size           : best.pth = 6227497 bytes
+# measured       : val top-1 0.8792 / china4 0.9519 (7417 images, onnxruntime CPU)
+# int8 status    : Hailo-8 emulator agreement 0.115 (collapsed); RK3576 agreement 0.10 (collapsed);
+#                  RK3588 agreement 0.22 (collapsed); fp16 ~0.98 agreement on all three chains.
+#                  Superseded by efficientnet_lite0_waste8 above for this reason.

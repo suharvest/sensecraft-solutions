@@ -1,0 +1,336 @@
+# Waste sorting at the bin. Upstream repo: ~/project/edge-waste-sorting.
+#
+# Dataset licences are cleared for external use: TrashNet is MIT
+# (Copyright (c) 2017 Gary Thung) and Roboflow "Garbage Classification 3 —
+# Material Identification" is CC BY 4.0. Both licences permit redistribution
+# and derivative works with attribution; the attribution string is in
+# gallery/ATTRIBUTION.md and repeated in both description files.
+#
+# Classification screenshots are committed under gallery/, sourced from
+# TrashNet (MIT) and GC3 (CC BY 4.0) validation images per the escape hatch
+# this package always documented. See gallery/ATTRIBUTION.md for the per-image
+# source table.
+#
+# The cover and the second gallery image are device results — reCamera Pro
+# (RV1126B NPU, INT8 RKNN) and reCamera (SG2002 TPU, BF16 cvimodel). The
+# remaining figures are onnxruntime on an Apple M4 CPU and say so. No preset
+# carries `verified:`.
+#
+# Every figure on this page is single-item classification, which is what the
+# four platform packages ship. The repository also carries a multi-item
+# detector; it has only been evaluated on a synthetic set and is not part of
+# any package, so no figure on this page shows it.
+version: "1.0"
+id: edge_waste_sorting
+name: Waste Sorting at the Bin
+name_i18n:
+  zh: 投放点垃圾分类
+  ja: 投入口でのゴミ分別
+
+intro:
+  summary: >-
+    Photograph one item and get its material and China four-way waste
+    category; the result can drive a lid or indicator light.
+  summary_i18n:
+    zh: >-
+      拍一张物品照片，得到材质类别和生活垃圾四分类结果，可驱动翻盖或指示灯。
+  description_file: description.md
+  description_file_i18n:
+    zh: description_zh.md
+  cover_image: gallery/waste-npu-4up-20260908.webp
+  gallery:
+    - type: image
+      src: gallery/waste-npu-4up-20260908.webp
+      caption: >-
+        Four single items classified on a reCamera Pro's own RV1126B NPU —
+        INT8 RKNN model, one item per frame. Each frame carries the material
+        class the device returned, the Chinese four-way disposal category, the
+        confidence and the measured inference time: a tin can and a plastic
+        bottle to recyclables, windfall apples to kitchen waste, a crumpled
+        wrapper to residual
+      caption_i18n:
+        zh: >-
+          四件物品在 reCamera Pro 自己的 RV1126B NPU 上的分类结果——INT8 RKNN
+          模型，一帧一件。每帧标出设备返回的物料类别、中国四分类、置信度与
+          实测推理耗时：铁罐与塑料瓶归可回收物，落果归厨余，皱纸归其它
+    - type: image
+      src: gallery/waste-recamera-sg2002-20260907.jpg
+      caption: >-
+        Four results produced on a reCamera's own SG2002 TPU, not on a host -
+        BF16 cvimodel, predicted class, Chinese four-way category and the
+        per-frame inference time as measured on the device
+      caption_i18n:
+        zh: >-
+          四张在 reCamera 自己的 SG2002 TPU 上跑出来的结果，不是主机代跑——
+          BF16 cvimodel，标注预测类别、中国四分类与设备实测的单帧推理耗时
+    - type: image
+      src: gallery/waste-grid-4up-local-20260907.jpg
+      caption: Four real CPU inference results (onnxruntime, Apple M4) on TrashNet (MIT) validation images — one per requested category, predicted class and confidence drawn on each frame
+      caption_i18n:
+        zh: 四张真实 CPU 推理结果（onnxruntime，Apple M4），取自 TrashNet（MIT）验证集图片——每类一张，帧上标注预测类别与置信度
+    - type: image
+      src: gallery/waste-paper-local-20260907.jpg
+      caption: Paper, correctly classified — CPU inference on a TrashNet (MIT) sample image
+      caption_i18n:
+        zh: 纸张，分类正确——对 TrashNet（MIT）样例图片的 CPU 推理
+    - type: image
+      src: gallery/waste-metal-local-20260907.jpg
+      caption: Metal, correctly classified — CPU inference on a TrashNet (MIT) sample image
+      caption_i18n:
+        zh: 金属，分类正确——对 TrashNet（MIT）样例图片的 CPU 推理
+    - type: image
+      src: gallery/waste-plastic-local-20260907.jpg
+      caption: Plastic, correctly classified — CPU inference on a TrashNet (MIT) sample image
+      caption_i18n:
+        zh: 塑料，分类正确——对 TrashNet（MIT）样例图片的 CPU 推理
+    - type: image
+      src: gallery/waste-residual-local-20260907.jpg
+      caption: "“Other” (trash) sample misclassified as plastic at low confidence — kept as-is, not cherry-picked; consistent with the model's documented CPU baseline"
+      caption_i18n:
+        zh: "“其它”样例被低置信度误判为塑料——如实保留、未挑选好看的结果，与模型已记录的 CPU 基线一致"
+    - type: image
+      src: gallery/architecture.svg
+      caption: Trigger to camera to device — one shot in, material class and Chinese four-way category out on MQTT, with a GPIO callback alongside
+      caption_i18n:
+        zh: 从触发到相机再到设备——拍一张进去，物料类别与中国四分类通过 MQTT 出来，旁边是 GPIO 回调
+  # Real classification screenshots were added 2026-09-07, sourced from
+  # TrashNet (MIT) validation images per the escape hatch this package always
+  # documented. See gallery/ATTRIBUTION.md for the per-image source table.
+  category: vision_video_ai
+  solution_type: solution
+  tags:
+    - waste-sorting
+    - image-classification
+    - mqtt
+    - gpio
+    - efficientnet-lite0
+    - siglip2
+    - open-vocabulary
+    - smart-bin
+
+  output_interfaces:
+    - type: mqtt
+      port: 1883
+      topic: waste/<stream-id>/results
+      description: >-
+        One JSON message per classification, never one message per class.
+        Carries the material class, the Chinese four-way category looked up
+        from it, the top-3 with confidences, the trigger source, and a
+        reference to the captured image — never the image bytes. "category"
+        always equals "top3[0]" and "confidence" always equals
+        "top3[0].confidence"; both are checked before publishing, and a
+        payload that fails the contract is counted and dropped rather than
+        sent.
+      schema_type: json
+      payload_example: '{"type":"waste_sorting_result","version":"1.0.0","taxonomy_version":"material8/china4-v1","device":"orin-nx","stream_id":"bin1-cam1","frame_id":4207,"timestamp":1757030400123,"trigger":"button","inference_time_ms":3.7,"pipeline_ms":42.5,"category":{"class_id":4,"class_name":"plastic","china_category":"recyclable","china_category_zh":"可回收物"},"confidence":0.913,"top3":[{"rank":0,"class_id":4,"class_name":"plastic","confidence":0.913,"china_category":"recyclable"},{"rank":1,"class_id":2,"class_name":"glass","confidence":0.052,"china_category":"recyclable"},{"rank":2,"class_id":7,"class_name":"residual","confidence":0.021,"china_category":"residual"}],"image_ref":{"kind":"local","uri":"/var/lib/edge-waste-sorting/captures/2026-09-05/bin1-cam1-4207.jpg"},"model":{"name":"efficientnet_lite0_waste8","backbone":"efficientnet_lite0","input":"images:1x3x224x224","onnx_sha256":"e9f9e847de6899ad4341d8f6084823e7c70307e84ac4d0da4bc4911b5b767391","accelerator":"tensorrt"}}'
+      description_i18n:
+        zh: >-
+          一次分类一条 JSON，不逐类别发。内容包括物料类别、由它查表得到的
+          中国四分类、带置信度的 top3、触发来源，以及所拍图片的引用——
+          不含图片字节。「category」 恒等于 「top3[0]」，「confidence」 恒等于
+          「top3[0].confidence」；两条在发布前都会检查，不合契约的 payload
+          计数并丢弃，不发出去。
+    - type: http
+      port: 8080
+      endpoint: /trigger, /preview.mjpg, /healthz, /events
+      description: >-
+        The runtime's own page and control surface. POST /trigger fires one
+        capture-and-classify (the "http" trigger source); /preview.mjpg is the
+        live view; /healthz carries inference time, the trigger and debounce
+        counters and the MQTT counters; /events lists the most recent results
+        with their top-3.
+      schema_type: json
+      description_i18n:
+        zh: >-
+          运行时自带的页面与控制入口。POST /trigger 触发一次拍照分类
+          （「http」 触发源）；/preview.mjpg 是实时画面；/healthz 带推理耗时、
+          触发与去抖计数以及 MQTT 计数；/events 列出最近的结果与它们的 top3。
+
+  input_requirements:
+    - type: usb
+      description: >-
+        A camera looking down into the drop area, framed so one item fills a
+        meaningful part of the frame. The model classifies one object per
+        image — it has no detector and does not separate two items in one
+        shot. USB, RTSP and file sources are all accepted.
+      required: true
+      description_i18n:
+        zh: >-
+          一台俯视投放区的相机，取景要让单件物品在画面里占到有意义的比例。
+          模型一图一件——它没有检测器，同一张图里的两件物品分不开。
+          USB、RTSP 与文件源都支持。
+
+  device_catalog:
+    recomputer_j40:
+      description: TensorRT classifier; open-vocab track available on this preset only
+      description_i18n:
+        zh: TensorRT 分类器，支持开放词汇（仅此套餐）
+      purchase:
+        require:
+          module: [orin_nx_16]
+    recomputer_j30:
+      description: Smaller Orin Nano 8GB; runs the same baseline classifier
+      description_i18n:
+        zh: 更小的 Orin Nano 8GB，跑同款基线分类器
+      purchase:
+        require:
+          module: [orin_nano_8]
+    recomputer_r20_industrial:
+      description: reComputer R2000 with Hailo-8; runs EfficientNet-Lite0 HEF on uint8
+      description_i18n:
+        zh: R2000+Hailo-8，跑轻量分类器
+      purchase:
+        require:
+          ai_accelerator: [hailo-8]
+    recamera_2002:
+      description: All-in-one camera; classifier runs on the SG2002's own TPU
+      description_i18n:
+        zh: 一体机，分类器跑在 SG2002 自带 TPU 上
+    recomputer_rk3588:
+      description: Separate box for one host serving several bins; INT8 on NPU
+      description_i18n:
+        zh: 独立主机，可带多个投放点；NPU 跑 INT8 分类器
+    recamera_pro:
+      description: Faster all-in-one camera; classifier runs INT8 on its NPU
+      description_i18n:
+        zh: 更快的一体机，NPU 跑 INT8 分类器
+    generic_usb_camera:
+      name: USB / IP Camera
+      name_i18n:
+        zh: USB / IP 摄像头
+      description: Any USB or RTSP camera looking into the drop area
+      description_i18n:
+        zh: 任意俯视投放区的 USB 或 RTSP 摄像头
+
+  presets:
+    - id: orin
+      name: Camera + reComputer J30 / J40 (Orin)
+      name_i18n:
+        zh: 摄像头 + reComputer J30 / J40（Orin）
+      description: TensorRT FP16 on Jetson Orin, built on-device at deploy; open-vocab on this preset only.
+      description_i18n:
+        zh: Jetson Orin 跑 TensorRT FP16，部署时构建；开放词汇仅此套餐支持。
+      device_groups:
+        - id: compute
+          name: Sorting Host
+          name_i18n:
+            zh: 分类主机
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_j40
+            - device_ref: recomputer_j30
+          default: recomputer_j40
+        - id: camera
+          name: Camera
+          name_i18n:
+            zh: 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: generic_usb_camera
+          default: generic_usb_camera
+
+    - id: recomputer_r20
+      name: Camera + reComputer R2000 (Hailo-8)
+      name_i18n:
+        zh: 摄像头 + reComputer R2000（Hailo-8）
+      description: EfficientNet-Lite0 on Hailo-8 NPU; uint8 HEF takes raw frames, no host normalization.
+      description_i18n:
+        zh: EfficientNet-Lite0 跑 Hailo-8，uint8 直吃原始帧。
+      device_groups:
+        - id: compute
+          name: Sorting Host
+          name_i18n:
+            zh: 分类主机
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_r20_industrial
+          default: recomputer_r20_industrial
+        - id: camera
+          name: Camera
+          name_i18n:
+            zh: 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: generic_usb_camera
+          default: generic_usb_camera
+
+    - id: recamera
+      name: reCamera (SG2002)
+      name_i18n:
+        zh: reCamera（SG2002）
+      description: Whole classifier runs on the camera's own TPU, in BF16.
+      description_i18n:
+        zh: 整个分类器跑在相机自己的 TPU 上，使用 BF16。
+      device_groups:
+        - id: compute
+          name: Camera and Classifier
+          name_i18n:
+            zh: 相机与分类器
+          type: single
+          required: true
+          options:
+            - device_ref: recamera_2002
+          default: recamera_2002
+
+    - id: recamera_pro
+      name: reCamera Pro
+      name_i18n:
+        zh: reCamera Pro
+      description: Whole classifier runs on the camera's own NPU, in INT8.
+      description_i18n:
+        zh: 整个分类器跑在相机自己的 NPU 上，用 INT8。
+      device_groups:
+        - id: compute
+          name: Camera and Classifier
+          name_i18n:
+            zh: 相机与分类器
+          type: single
+          required: true
+          options:
+            - device_ref: recamera_pro
+          default: recamera_pro
+
+    - id: recomputer_rk3588
+      name: Camera + reComputer RK3588
+      name_i18n:
+        zh: 摄像头 + reComputer RK3588
+      description: Classifier runs on the RK3588 NPU, in INT8, over the full validation set.
+      description_i18n:
+        zh: 分类器跑在 RK3588 的 NPU 上，用 INT8，覆盖全部验证集。
+      device_groups:
+        - id: compute
+          name: Sorting Host
+          name_i18n:
+            zh: 分类主机
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_rk3588
+          default: recomputer_rk3588
+        - id: camera
+          name: Camera
+          name_i18n:
+            zh: 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: generic_usb_camera
+          default: generic_usb_camera
+
+  stats:
+    difficulty: intermediate
+    estimated_time: 35min
+  links:
+    wiki: https://wiki.seeedstudio.com/solutions/edge-waste-sorting/
+    wiki_i18n:
+      zh: https://wiki.seeedstudio.com/cn/solutions/edge-waste-sorting/
+
+deployment:
+  guide_file: guide.md
+  guide_file_i18n:
+    zh: guide_zh.md
+  selection_mode: sequential

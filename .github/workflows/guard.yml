@@ -15,14 +15,50 @@ jobs:
       - name: Run public-repo boundary guard
         run: sh scripts/public-repo-guard.sh
 
+  # The analytics backend config under solutions/recamera_heatmap_grafana/docker
+  # is a mirror; the open-source project is the authority. Two copies drift
+  # unless something compares them, and a drifted dashboard or telegraf config
+  # is the kind of thing nobody notices until a deployment behaves differently
+  # from the one it was tested against.
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Backend config matches its pinned upstream
+        run: scripts/sync_retail_vision_backend.sh
+
   validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
+      - name: Compose filenames must be recognised by the mirror rewrite
+        run: |
+          uv sync
+          uv run python scripts/check_compose_naming.py
+      # Product families get written by hand in a dozen places per solution, so
+      # a wrong one ("reComputer J", a bench board named as the delivery device,
+      # J40 paired with Orin Nano) used to be caught only by whoever reviewed
+      # the copy. Rules live in scripts/ci/product-names.json, which is mirrored
+      # in seeed-solutions-hub at scripts/lib/product-names.json.
+      - name: Product names must be real product families
+        run: |
+          uv sync
+          uv run --with pytest pytest tests/test_product_name_lint.py -q
+          uv run python scripts/ci/lint_product_names.py
+      # Customer-facing copy states what was measured and what the reader can
+      # use. A sentence whose whole content is "this was not tested" gives the
+      # reader nothing to act on, so it is deleted or rewritten as the action
+      # they should take.
+      - name: Customer-facing copy must not carry untested-wording
+        run: |
+          uv sync
+          uv run --with pytest pytest tests/test_untested_wording_lint.py -q
+          uv run python scripts/ci/lint_untested_wording.py
       - name: Validate all solutions against the contract
         run: |
           uv sync
+          uv run python scripts/ci/validate_product_families.py
           rc=0
           for s in solutions/*/; do
             id=$(basename "$s")

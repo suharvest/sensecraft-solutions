@@ -24,6 +24,11 @@ docker:
       port: 8123
       health_check_endpoint: /api/
       required: true
+    # The broker the cameras publish to. No health_check_endpoint — MQTT is not
+    # HTTP, so an HTTP probe would score a healthy broker as failed.
+    - name: mosquitto
+      port: 1883
+      required: true
 
 ssh:
   port: 22
@@ -36,7 +41,8 @@ pre_checks:
   - type: port_available
     ports:
       - 8123
-    description: Check if port 8123 is available
+      - 1883
+    description: Check if ports 8123 and 1883 are available
 
 post_deployment:
   open_browser: true

@@ -1,0 +1,23 @@
+version: '1.0'
+id: verify_asr
+name: Check a recording
+name_i18n:
+  zh: 检查录音结果
+type: manual
+steps:
+- id: speak
+  name: Say a sentence
+  name_i18n:
+    zh: 说一句话
+  description: Speak a complete sentence into the microphone.
+  description_i18n:
+    zh: 对着麦克风说一句完整的话。
+  optional: false
+- id: check_result
+  name: Check the dashboard
+  name_i18n:
+    zh: 查看后台
+  description: Open the retail voice dashboard and check that your recording and its text appear.
+  description_i18n:
+    zh: 打开零售语音后台，确认能看到这条录音和对应文字。
+  optional: false

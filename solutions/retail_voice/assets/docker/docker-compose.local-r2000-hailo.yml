@@ -1,0 +1,51 @@
+# Retail Voice — R2000 Hailo Whisper local capture target.
+services:
+  speech:
+    image: sensecraft-missionpack.seeed.cn/solution/seeed-local-voice:rpi-hailo-stable
+    container_name: openvoicestream
+    init: true
+    network_mode: host
+    command: ["python3", "-m", "uvicorn", "server.main:app", "--host", "0.0.0.0", "--port", "8621"]
+    devices:
+      - /dev/hailo0:/dev/hailo0
+    environment:
+      - OVS_PROFILE=rpi5-hailo-whisper
+      - OVS_PROFILE_DEFAULT=rpi5-hailo-whisper
+      - OVS_LOG_FORMAT=json
+      - OVS_ADMIN_KEY=
+      - MODEL_DIR=/opt/models
+      - ASR_MODEL_DIR=/opt/models
+      - HF_ENDPOINT=${HF_ENDPOINT:-https://hf-mirror.com}
+      - LD_LIBRARY_PATH=/host-hailo:/usr/local/lib/python3.11/site-packages/hailo_platform
+    volumes:
+      - speech-models:/opt/models
+      - /usr/lib/libhailort.so.4.21.0:/host-hailo/libhailort.so.4.21.0:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8621/readyz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 900s
+  voice-client:
+    image: ${VOICE_CLIENT_IMAGE:-sensecraft-missionpack.seeed.cn/solution/sensecraft-voice-client@sha256:136ae96c400f7ec45a3197d0686ac1b7fcf9b706afee27083a77abf8dfad2af5}
+    container_name: sensecraft-voice-client
+    depends_on:
+      speech:
+        condition: service_healthy
+    network_mode: host
+    devices:
+      - /dev/snd
+    group_add: [audio]
+    environment:
+      - TZ=${TZ:-Asia/Shanghai}
+      - AUDIO_CARD_ID=${AUDIO_CARD_ID:-1}
+      - AUDIO_DEVICE_ID=${AUDIO_DEVICE_ID:-0}
+    volumes:
+      - ./config/voice-client.yaml:/app/config.yaml:ro
+      - ${OUTPUT_DIR:-/data-iot/retail-voice}:/app/recordings
+      - ${OUTPUT_DIR:-/data-iot/retail-voice}/voiceprints:/app/voiceprints
+    restart: unless-stopped
+volumes:
+  speech-models:
+    name: speech-models

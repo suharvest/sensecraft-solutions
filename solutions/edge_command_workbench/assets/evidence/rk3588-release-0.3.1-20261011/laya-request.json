@@ -1,0 +1,1 @@
+{"input_text": "查询设备状态", "prompt": "你是生产线命令分流助手。只从候选命令中选择最匹配的一项。", "options": [{"id": "cmd-1", "label": "降低输送带速度", "description": "将指定输送带调整到目标速度"}, {"id": "cmd-2", "label": "暂停设备", "description": "安全暂停当前生产设备"}, {"id": "cmd-3", "label": "查询设备状态", "description": "返回设备当前运行状态"}], "model_id": "laya", "model_service_url": ""}

@@ -16,7 +16,7 @@
 
 ## 步骤 1: 部署 Depth Anything V3 {#deploy_depth_anything type=docker_deploy required=true config=devices/jetson_deploy.yaml}
 
-将容器化运行环境部署到 Jetson。用户无需手动输入任何终端命令。
+将 Depth Anything V3 容器部署到 Jetson。
 
 ### 部署目标 {#jetson_remote type=remote config=devices/jetson_deploy.yaml default=true}
 
@@ -32,8 +32,8 @@
 ### 部署完成
 
 1. Docker 容器已在 Jetson 上运行
-2. 你可以基于该运行环境继续后续应用集成
-3. 部署过程无需额外命令输入
+2. USB 摄像头推理已在容器中自动启动
+3. RTSP 推流地址：`rtsp://<jetson-ip>:8554/depth`
 
 ### 故障排查
 
@@ -44,6 +44,8 @@
 | Docker 权限不足（未加入 docker 组） | 在 Jetson 执行 `sudo usermod -aG docker <ssh-user>`，然后执行 `newgrp docker`（或退出重登），用 `docker info` 验证后重试 |
 | 磁盘空间不足 | 清理 Jetson 根分区空间后重试 |
 | 部署超时 | 保持 Jetson 在线，检查网络质量后重试 |
+| 没有 RTSP 视频流 | 确认摄像头出现在 `/dev/video*` 下，并查看日志：`docker logs depth_anything_v3` |
+| 日志出现 `Failed to read frame from camera` | 把 **Camera ID** 设为 `auto` 或试 `1`（部分 USB 摄像头的采集节点是 `/dev/video1`） |
 
 ### 部署目标 {#jetson_local type=local config=devices/jetson_deploy.yaml}
 
@@ -54,7 +56,7 @@
 1. 确保已安装 Docker 和 NVIDIA Container Toolkit
 2. 点击 **部署** 开始安装
 
-> **提示：** 首次启动需要 5-10 分钟进行 TensorRT 模型编译和 Docker 镜像下载。
+> **提示：** 首次启动需要 5-10 分钟下载镜像并准备模型。
 
 ### 部署完成
 
@@ -103,4 +105,3 @@ Depth Anything V3 运行环境已成功部署到 Jetson。
 
 1. 当前页面中部署状态为成功
 2. 服务容器保持运行状态
-3. 可以直接进入下一步业务集成流程

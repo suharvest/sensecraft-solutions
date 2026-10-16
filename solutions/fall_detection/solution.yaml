@@ -1,0 +1,402 @@
+version: "1.0"
+id: fall_detection
+# The Eldercare Alarm package (eldercare_alarm) was merged into this one on
+# 2026-09-08 and its directory deleted: same detector underneath, so one
+# solution whose presets carry the alarm panel rather than two pages. Its orin
+# and hailo presets are the jetson and hailo presets here with the panel in the
+# same compose stack; its reCamera + Alarm Gateway preset is the optional
+# "Install the Alarm Panel" step on the reCamera 2002 and reCamera Pro presets.
+#
+# `replaces` is NOT a spec field and resolves nothing. It is absent from
+# spec/solution.schema.json and from every model in packages/, so the loader
+# drops it silently (see CONTRACT.md). It is a written record of where the old
+# package went, not an alias: nothing redirects eldercare_alarm to this id. The
+# retirement itself is recorded in solutions/.deprecated.json, which
+# generate_solution_manifest.py copies into the manifest's `deprecated` array.
+replaces: eldercare_alarm
+name: Fall Detection
+name_i18n:
+  zh: 跌倒检测
+  ja: 転倒検知
+
+intro:
+  summary: >-
+    Get an alert when someone falls, with no video leaving the device. Use an
+    all-in-one camera or your existing IP cameras; an optional alarm panel adds
+    operator confirmation and webhook notifications.
+  summary_i18n:
+    zh: >-
+      有人跌倒时发出告警，视频不出设备。可用一体化摄像头，也可接现有 IP 摄像头；可选告警面板支持值班人确认和 webhook 通知。
+  description_file: description.md
+  description_file_i18n:
+    zh: description_zh.md
+  cover_image: https://files.seeedstudio.com/Solution/landpage_asset/fall-detection/cover-70f929f3.png
+  gallery:
+    - type: image
+      src: https://files.seeedstudio.com/Solution/landpage_asset/fall-detection/cover-70f929f3.png
+      caption: Confirmed fall on reComputer J30 / J40 — skeleton, track state and evidence count from the live MQTT message
+      caption_i18n:
+        zh: reComputer J30 / J40 上确认的一次跌倒——骨架、跟踪状态和证据计数来自实时 MQTT 消息
+    - type: image
+      src: https://files.seeedstudio.com/Solution/landpage_asset/fall-detection/live-fall-demo-f4ef5180.gif
+      caption: State transition from normal to fallen, shown in the reCamera Pro App Center preview
+      caption_i18n:
+        zh: 从正常到跌倒的状态跃迁，画面为 reCamera Pro App Center 预览页
+    - type: image
+      src: https://files.seeedstudio.com/Solution/landpage_asset/fall-detection/camera-placement-be3fb598.svg
+      caption: Camera placement — a side or corner view at 2-3 m works; straight-down and long-shot or occluded views do not
+      caption_i18n:
+        zh: 机位选择——2-3 m 的侧向或斜角机位可用；垂直俯拍、远景和被遮挡的机位不可用
+    - type: image
+      src: gallery/panel-dashboard-zh.webp
+      caption: Alarm panel, site overview — 8 rooms, 10 cameras, 18 zones, a 24-hour alarm trend split by type, and one card per room carrying its own live thumbnail and open-alarm count. Local replay, see gallery/ATTRIBUTION.md.
+      caption_i18n:
+        zh: 告警面板站点总览——8 个房间、10 路摄像头、18 个识别区域，24 小时按类型分色的告警趋势，每个房间一张卡片带自己的画面缩略图与未处置数。数据为本地回放，来源见 gallery/ATTRIBUTION.md
+    - type: image
+      src: gallery/panel-dashboard-en.webp
+      caption: The same overview in English — the panel switches language without a reload, and the room fixture data (Room 101, Room 102, ...) is English too, not just the UI chrome
+      caption_i18n:
+        zh: 同一总览的英文界面——面板切换语言不需要重新加载，房间名等 fixture 数据（Room 101、Room 102……）也是英文，不只是界面文案
+    - type: image
+      src: gallery/panel-room-detail-zh.jpg
+      caption: Room detail — camera online state, live-view switch, and the alarm list with confirm / dismiss / mark-handled on each row
+      caption_i18n:
+        zh: 房间详情——摄像头在线状态、实时画面开关，告警列表每行都有确认／驳回／标记已处置
+    - type: image
+      src: gallery/panel-config-live-view-zh.webp
+      caption: Zone configuration on the live picture — two zone rectangles drawn on a 4:3 stream, the letterbox bars stay outside the boxes because coordinates map to the picture, not the container
+      caption_i18n:
+        zh: 在实时画面上配置识别区域——两个区域矩形画在 4:3 画面上，两侧黑边在框外，说明坐标按画面而不是按容器映射
+    - type: image
+      src: gallery/panel-config-live-view-en.webp
+      caption: The same configuration page in English — room, zone and camera fixture names are English too, not just the UI chrome
+      caption_i18n:
+        zh: 同一配置页的英文界面——房间、区域与摄像头名称也是英文，不只是界面文案
+    - type: image
+      src: gallery/alarm-state-machine.svg
+      caption: Alarm states — an evidence window, an operator window, then notification with escalation on a missed deadline
+      caption_i18n:
+        zh: 告警状态——取证窗口、人工确认窗口，随后通知；超过期限则升级
+    - type: image
+      src: gallery/architecture.png
+      src_i18n:
+        zh: gallery/architecture_zh.png
+      caption: System architecture — field devices (IP camera or reCamera Pro's own on-device path) into the compute host, out to the alarm panel and its notification output
+      caption_i18n:
+        zh: 系统架构——现场设备（IP 摄像头，或 reCamera Pro 自带的机上直出路径）接入计算主机，输出到告警面板及其通知渠道
+  category: vision_video_ai
+  solution_type: solution
+  tags:
+    - fall-detection
+    - pose
+    - elderly-care
+    - mqtt
+    - home-assistant
+    - alarm
+    - webhook
+    - audit
+
+  output_interfaces:
+    - type: mqtt
+      port: 1883
+      topic: <device-name>/fall-detection/results
+      description: Per-frame fall results JSON — aggregate state plus one entry per tracked person. The Jetson preset appends the stream id to the topic.
+      schema_type: json
+      payload_example: '{"state":"fallen","fall_detected":true,"fall_event":true,"event_id":7,"person_count":1,"fallen_count":1,"persons":[{"track_id":3,"state":"fallen","bbox":[0.51,0.72,0.34,0.21]}]}'
+      description_i18n:
+        zh: 每帧一条的跌倒结果 JSON——整体状态加每个被跟踪者一条记录。Jetson 套餐会把流编号拼在主题后面。
+    - type: mqtt
+      port: 1883
+      topic: <device-name>/fall-detection/status
+      description: Availability — online / offline, retained, published as the MQTT last will
+      schema_type: json
+      description_i18n:
+        zh: 在线状态——online / offline，retained，通过 MQTT 遗嘱消息发布
+    - type: mqtt
+      port: 1883
+      topic: homeassistant/
+      description: Home Assistant discovery configs — fall sensor, fall state, event ID and person presence appear automatically
+      schema_type: json
+      description_i18n:
+        zh: Home Assistant 自动发现配置——跌倒传感器、状态、事件编号和有人存在会自动出现
+    - type: rtsp
+      port: 8554
+      endpoint: /live0
+      description: Live video from the reCamera preset, used by the preview and by any NVR
+      schema_type: binary
+      description_i18n:
+        zh: reCamera 套餐的实时视频，供预览和 NVR 使用
+    - type: http
+      port: 8080
+      endpoint: /api/alarms
+      description: Alarm panel only — alarm records with their current state, zone, stream, timestamps and the operator who acted on each. The same page serves the confirm and dismiss actions.
+      schema_type: json
+      payload_example: '{"id":"a-17","kind":"fall","zone_id":"bedroom","stream_id":"cam-01","state":"notified","event_timestamp":1788581337237,"operator":"nurse-a"}'
+      description_i18n:
+        zh: 仅告警面板——告警记录，含当前状态、区域、流编号、时间戳，以及处理它的操作者。同一页面提供确认与驳回操作。
+    - type: http
+      port: 0
+      endpoint: <your webhook URL>
+      description: Alarm panel only — outbound POST on a confirmed alarm. The payload carries alarm id, kind, zone, stream, timestamp and operator only — no snapshot and no video — and an idempotency key so a retry cannot double-notify.
+      schema_type: json
+      description_i18n:
+        zh: 仅告警面板——告警确认后向外 POST。负载只含告警 id、类型、区域、流编号、时间戳与操作者，不含快照和视频；另带幂等键，重试不会重复通知。
+    - type: mqtt
+      port: 1883
+      topic: eldercare/alarm/<zone-id>
+      description: Alarm panel only — optional alarm bus, off by default. Same payload as the webhook, for sites that route notifications over MQTT rather than HTTP.
+      schema_type: json
+      description_i18n:
+        zh: 仅告警面板——可选的告警总线，默认关闭。负载与 webhook 相同，供以 MQTT 而非 HTTP 分发通知的现场使用。
+
+  input_requirements:
+    - type: rtsp
+      description: A fixed indoor view where the whole person, especially shoulders and hips, stays visible along the expected fall path. The reComputer preset takes this as an RTSP stream from your own IP camera.
+      required: true
+      description_i18n:
+        zh: 一个固定的室内机位，在可能发生跌倒的路径上整个人体（尤其是肩部和髋部）保持可见。reComputer 套餐通过 RTSP 接你自己的 IP 摄像头。
+
+  device_catalog:
+    recamera_pro:
+      description: Newer all-in-one camera — pose, tracking and fall logic on device
+      description_i18n:
+        zh: 一体机：姿态、跟踪与跌倒判定全在本地完成
+    recamera_2002:
+      description: All-in-one AI camera — pose, fall logic, RTSP and MQTT locally
+      description_i18n:
+        zh: 一体化 AI 摄像头，本地跑姿态与跌倒检测
+    recomputer_j30:
+      description: Runs the fall detector on your RTSP streams (Orin Nano 8GB)
+      description_i18n:
+        zh: 在 RTSP 视频上跑跌倒检测（Orin Nano 8GB）
+      purchase:
+        require:
+          module: [orin_nano_8]
+    recomputer_j40:
+      description: Runs the fall detector, larger pose model (Orin NX 16GB)
+      description_i18n:
+        zh: 跑跌倒检测，用更大姿态模型（Orin NX 16GB）
+      purchase:
+        require:
+          module: [orin_nx_16]
+    recomputer_rk3576:
+      description: Runs the fall detector on the RK3576 NPU
+      description_i18n:
+        zh: 在 RK3576 NPU 上运行跌倒检测
+    recomputer_rk3588:
+      description: Runs the fall detector on RK3588 NPU, more stream headroom
+      description_i18n:
+        zh: 在 RK3588 NPU 上运行跌倒检测，可支撑更多路视频
+    recomputer_r20_industrial:
+      description: Runs the fall detector on a Hailo-8 accelerator, native C++ hot path
+      description_i18n:
+        zh: 在 Hailo-8 加速器上跑跌倒检测（C++）
+      purchase:
+        require:
+          ai_accelerator: [hailo-8]
+    recomputer_r10:
+      description: Runs the alarm panel by the cameras, no AI accelerator needed
+      description_i18n:
+        zh: 在摄像头旁跑告警面板，无需 AI 算力
+    external_docker_host:
+      name: Existing Docker Host
+      name_i18n:
+        zh: 已有的 Docker 主机
+      description: Any Linux Docker host you already run, hosting the alarm panel
+      description_i18n:
+        zh: 你已有的 Linux Docker 主机，用来跑告警面板
+    generic_ip_camera:
+      name: IP Camera
+      name_i18n:
+        zh: IP 摄像头
+      description: Any RTSP or ONVIF camera you own, supplying video to the detector
+      description_i18n:
+        zh: 你已有的 RTSP 或 ONVIF 摄像头，供检测器取流
+
+  presets:
+    - id: recamera
+      name: reCamera 2002
+      name_i18n:
+        zh: reCamera 2002
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: One device does everything — camera, fall logic and MQTT alerts, for a single room.
+      description_i18n:
+        zh: 一台设备把事情做完——摄像头、跌倒判定和 MQTT 告警，适合单个房间。
+      device_groups:
+        - id: camera
+          name: AI Camera
+          name_i18n:
+            zh: AI 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: recamera_2002
+          default: recamera_2002
+        - id: panel_host
+          name: Alarm Panel Host (optional)
+          name_i18n:
+            zh: 告警面板主机（可选）
+          type: single
+          required: false
+          description: Add a box beside the cameras to run the alarm panel — zones, timeouts, operator confirmation, an audit trail and a webhook. Skip it and the camera keeps publishing MQTT events as before.
+          description_i18n:
+            zh: 在摄像头旁边加一台机器运行告警面板——区域、超时、人工确认、审计链与 webhook。不加则摄像头照旧只发 MQTT 事件。
+          options:
+            - device_ref: recomputer_r10
+            - device_ref: external_docker_host
+          default: recomputer_r10
+
+    - id: recamera_pro
+      name: reCamera Pro
+      name_i18n:
+        zh: reCamera Pro
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: Newer hardware. Detector ships via the App Center; configures and activates it.
+      description_i18n:
+        zh: 一台设备搞定，硬件更新。检测器随设备应用中心分发，本套餐负责配置并将其设为运行中的应用。
+      device_groups:
+        - id: camera
+          name: Camera
+          name_i18n:
+            zh: 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: recamera_pro
+          default: recamera_pro
+        - id: panel_host
+          name: Alarm Panel Host (optional)
+          name_i18n:
+            zh: 告警面板主机（可选）
+          type: single
+          required: false
+          description: Add a box beside the cameras to run the alarm panel — zones, timeouts, operator confirmation, an audit trail and a webhook. Skip it and the camera keeps publishing MQTT events as before.
+          description_i18n:
+            zh: 在摄像头旁边加一台机器运行告警面板——区域、超时、人工确认、审计链与 webhook。不加则摄像头照旧只发 MQTT 事件。
+          options:
+            - device_ref: recomputer_r10
+            - device_ref: external_docker_host
+          default: recomputer_r10
+    - id: jetson
+      name: IP Camera + reComputer J30 / J40
+      name_i18n:
+        zh: IP 摄像头 + reComputer J30 / J40
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: Keeps IP cameras; Jetson Orin runs pose model, covers most streams. Alarm panel included.
+      description_i18n:
+        zh: 保留现有摄像头，Jetson Orin 跑姿态模型，可支撑路数最多，含告警面板。
+      # Deployed through the engine onto an Orin NX against a live 1280x720 RTSP
+      # source: image pulled, engine built on-device, sha256 verified, and MQTT
+      # published with a person tracked through fallen -> recovering.
+      verified:
+        - hardware
+      device_groups:
+        - id: compute
+          name: Detector Host
+          name_i18n:
+            zh: 检测主机
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_j30
+            - device_ref: recomputer_j40
+          default: recomputer_j30
+        - id: camera
+          name: IP Camera
+          name_i18n:
+            zh: IP 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: generic_ip_camera
+          default: generic_ip_camera
+
+    - id: rk
+      name: IP Camera + reComputer RK3576 / RK3588
+      name_i18n:
+        zh: IP 摄像头 + reComputer RK3576 / RK3588
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: Detector runs on a Rockchip NPU board with its own model. Includes the alarm panel.
+      description_i18n:
+        zh: 检测器跑在瑞芯微 NPU 板卡上，用板卡专属时序模型，含告警面板。
+      # Deployed onto both boards against a live RTSP source: RK3576 on
+      # cat-remote and RK3588 on radxa, each pulling the image, staging the
+      # board's RKNN Lite and MPP plugins, downloading and checksumming its own
+      # model, and publishing MQTT with people tracked. Hardware decode
+      # confirmed active on RK3588 rather than silently falling back.
+      verified:
+        - hardware
+      device_groups:
+        - id: compute
+          name: Detector Host
+          name_i18n:
+            zh: 检测主机
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_rk3588
+            - device_ref: recomputer_rk3576
+          default: recomputer_rk3588
+        - id: camera
+          name: IP Camera
+          name_i18n:
+            zh: IP 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: generic_ip_camera
+          default: generic_ip_camera
+
+    - id: hailo
+      name: IP Camera + reComputer R2000 (Hailo)
+      name_i18n:
+        zh: IP 摄像头 + reComputer R2000（Hailo）
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: Detector runs on Hailo-8 via a C++ hot path, with its own model. Includes the alarm panel.
+      description_i18n:
+        zh: 检测器跑在 Hailo-8 加速器上，原生 C++ 热路径，用专属时序模型，含告警面板。
+      device_groups:
+        - id: compute
+          name: Detector Host
+          name_i18n:
+            zh: 检测主机
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_r20_industrial
+          default: recomputer_r20_industrial
+        - id: camera
+          name: IP Camera
+          name_i18n:
+            zh: IP 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: generic_ip_camera
+          default: generic_ip_camera
+
+  stats:
+    difficulty: intermediate
+    estimated_time: 30min
+
+  links:
+    github: https://github.com/suharvest/edgefallkit
+    wiki: https://wiki.seeedstudio.com/solutions/edge-fall-detection/
+    wiki_i18n:
+      zh: https://wiki.seeedstudio.com/cn/solutions/edge-fall-detection/?utm_source=solution_app&utm_medium=in_app_overview&utm_campaign=fall_detection&utm_content=intro_wiki_btn
+
+deployment:
+  guide_file: guide.md
+  guide_file_i18n:
+    zh: guide_zh.md
+  selection_mode: sequential

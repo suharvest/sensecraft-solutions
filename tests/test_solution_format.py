@@ -313,7 +313,7 @@ class TestRequiredSubsections:
 class TestOutputInterfacesAndInputRequirements:
     """Validate new schema fields for solution composition and integration."""
 
-    VALID_OUTPUT_TYPES = {"rtsp", "mqtt", "http", "websocket", "http_stream", "influxdb", "opc_ua"}
+    VALID_OUTPUT_TYPES = {"rtsp", "mqtt", "http", "websocket", "http_stream", "influxdb", "opc_ua", "onvif", "serial"}
     VALID_INPUT_TYPES = {"rtsp", "mqtt", "http", "usb", "serial", "websocket", "audio", "lorawan", "modbus", "network"}
 
     @pytest.mark.parametrize(
@@ -536,10 +536,6 @@ class TestWiringIsActualWiring:
 # added to the allowlist with a reason.
 _STEP_DESCRIPTION_MAX_CHARS = 500
 _LEGACY_LONG_STEP_DESCRIPTIONS: set[str] = {
-    # OS flashing onboarding with multi-paragraph instructions covering
-    # initial-vs-pre-flashed reRouter paths — legitimately long prose.
-    "smart_retail_voice_ai/default/firmware",
-    "smart_retail_voice_ai/default/user_guide",
     # Watcher pairing flow — multi-step setup written as continuous prose
     # rather than `### Wiring` because it's not physical wiring.
     "smart_warehouse/trial/sensecraft",
@@ -547,8 +543,6 @@ _LEGACY_LONG_STEP_DESCRIPTIONS: set[str] = {
     "smart_warehouse/private_cloud/watcher_config",
     "smart_warehouse/private_cloud_multi/watcher_config",
     "smart_warehouse/edge_computing/watcher_config",
-    # IP camera + RTSP discovery setup with multiple alternative paths.
-    "industrial_security_jetson/default/init_camera",
     # Heatmap calibration walkthrough.
     "recamera_heatmap_grafana/recamera/heatmap",
     # Default voice-command reference table — a lookup users want visible on
@@ -833,6 +827,111 @@ class TestGuideHeadingLanguageMatchesFile:
         assert not forbidden.match("Two-step deploy 部署")
 
 
+class TestChineseMarkdownNoEnglishTemplates:
+    """Chinese markdown files should not ship copied EN template headings/tables."""
+
+    _FENCE_PATTERN = re.compile(r"```[^\n]*\n.*?\n```", re.DOTALL)
+    _BAD_PATTERNS = [
+        (
+            re.compile(
+                r"(?m)^###\s+(?:Troubleshooting|If something is off|Wiring|"
+                r"Prerequisites|Deployment Complete)\s*$",
+                re.IGNORECASE,
+            ),
+            "English H3 template heading",
+        ),
+        (
+            re.compile(r"(?m)^\|\s*(?:Symptom|Issue)\s*\|\s*(?:Cause\s*/\s*fix|Solution)\s*\|"),
+            "English troubleshooting table header",
+        ),
+        (
+            re.compile(
+                r"(?m)^\*\*(?:What you'll get|Before you start|Requirements)\s*[:：]\*\*",
+                re.IGNORECASE,
+            ),
+            "English bold template heading",
+        ),
+    ]
+
+    def test_zh_markdown_has_no_untranslated_template_fragments(self):
+        root = Path(__file__).resolve().parents[1] / "solutions"
+        zh_files = sorted(root.glob("*/*_zh.md"))
+        offenders = []
+        for path in zh_files:
+            content = path.read_text(encoding="utf-8")
+            stripped = self._FENCE_PATTERN.sub("", content)
+            for pattern, desc in self._BAD_PATTERNS:
+                for m in pattern.finditer(stripped):
+                    line = stripped[: m.start()].count("\n") + 1
+                    rel = path.relative_to(root)
+                    offenders.append(f"{rel}:L{line}: {desc}: {m.group(0)}")
+
+        assert not offenders, (
+            "Chinese markdown contains untranslated English template fragments. "
+            "Translate visible headings/table labels; keep English only for "
+            "product names, commands, paths, URLs, APIs, model names, or quoted "
+            "phrases users/devices actually say.\n  "
+            + "\n  ".join(offenders)
+        )
+
+    def test_lint_catches_english_troubleshooting_table_in_zh(self):
+        sample = (
+            "### 故障排查\n\n"
+            "| Symptom | Cause / fix |\n"
+            "|---|---|\n"
+            "| bad | fix |\n"
+        )
+        stripped = self._FENCE_PATTERN.sub("", sample)
+        offenders = [
+            desc
+            for pattern, desc in self._BAD_PATTERNS
+            if pattern.search(stripped)
+        ]
+        assert offenders == ["English troubleshooting table header"]
+
+
+class TestVideoStreamUsesInAppPreview:
+    """Video-stream verify steps should use the app preview, not manual players."""
+
+    _FENCE_PATTERN = re.compile(r"```[^\n]*\n.*?\n```", re.DOTALL)
+    _STEP_HEADER_RE = re.compile(
+        r"(?m)^##\s+(?:Step|步骤)\s*\d+[：:].*?\{#[^}]*\btype=video_stream\b[^}]*\}\s*$"
+    )
+    _NEXT_STEP_RE = re.compile(r"(?m)^##\s+(?:Step|步骤)\s*\d+[：:]")
+    _MANUAL_PLAYER_RE = re.compile(r"\b(?:ffplay|vlc|VLC|mplayer|mpv)\b")
+
+    def test_video_stream_steps_do_not_require_external_players(self):
+        root = Path(__file__).resolve().parents[1] / "solutions"
+        offenders = []
+        for guide in sorted(root.glob("*/guide*.md")):
+            content = guide.read_text(encoding="utf-8")
+            stripped = self._FENCE_PATTERN.sub("", content)
+            for m in self._STEP_HEADER_RE.finditer(stripped):
+                next_m = self._NEXT_STEP_RE.search(stripped, m.end())
+                section = stripped[m.end() : next_m.start() if next_m else len(stripped)]
+                if self._MANUAL_PLAYER_RE.search(section):
+                    line = stripped[: m.start()].count("\n") + 1
+                    offenders.append(f"{guide.relative_to(root)}:L{line}: {m.group(0)}")
+
+        assert not offenders, (
+            "`type=video_stream` steps should render video inside the app. "
+            "Do not make ffplay/VLC/mpv the primary verification path; keep "
+            "external-player commands only in deep troubleshooting outside the "
+            "main video_stream step.\n  "
+            + "\n  ".join(offenders)
+        )
+
+    def test_lint_catches_ffplay_in_video_stream_step(self):
+        sample = (
+            "## Step 2: Verify {#v type=video_stream config=devices/v.yaml}\n\n"
+            "Run ffplay rtsp://device/live0.\n"
+        )
+        stripped = self._FENCE_PATTERN.sub("", sample)
+        m = self._STEP_HEADER_RE.search(stripped)
+        assert m
+        assert self._MANUAL_PLAYER_RE.search(stripped[m.end() :])
+
+
 class TestTargetHeadingDeclaresType:
     """Every `### Target {...}` / `### 部署目标 {...}` heading must declare
     `type=local` or `type=remote` in its attribute block.
@@ -890,3 +989,124 @@ class TestTargetHeadingDeclaresType:
         )
         m = self._HEADING_RE.search(zh_good)
         assert m and self._TYPE_ATTR_RE.search(m.group(2))
+
+
+class TestDeviceAwareDockerTargetGrouping:
+    """Docker target variants must render as method cards plus device dropdowns.
+
+    ``renderDockerTargetSelector`` enters the device-aware path when targets
+    carry ``device=``. Without that attribute, a step with one local target
+    and several remote hardware targets falls back to one card per target — a
+    subtle UI regression that ordinary parser/target-type checks cannot see.
+    """
+
+    @pytest.mark.parametrize("sol_id,guide_file", get_guide_files())
+    def test_multi_method_targets_have_unique_device_groups(self, sol_id, guide_file):
+        path = SOLUTIONS_DIR / sol_id / guide_file
+        lang = "zh" if guide_file.endswith("_zh.md") else "en"
+        result = parse_single_language_guide(path.read_text(encoding="utf-8"), lang)
+
+        offenders: list[str] = []
+        for preset in result.presets:
+            for step in preset.steps:
+                if step.type != "docker_deploy":
+                    continue
+                groups: dict[str, list] = {}
+                for target in step.targets or []:
+                    method = (
+                        getattr(target, "target_type", None)
+                        or getattr(target, "method", None)
+                        or "local"
+                    )
+                    groups.setdefault(str(method).strip().lower() or "local", []).append(target)
+                for method, targets in groups.items():
+                    if len(targets) < 2:
+                        continue
+                    missing = [t.id for t in targets if not str(t.device or "").strip()]
+                    devices = [str(t.device).strip() for t in targets]
+                    duplicates = sorted({d for d in devices if devices.count(d) > 1})
+                    if missing:
+                        offenders.append(
+                            f"{preset.id}/{step.id}/{method}: missing device on "
+                            + ", ".join(f"#{target_id}" for target_id in missing)
+                        )
+                    if duplicates:
+                        offenders.append(
+                            f"{preset.id}/{step.id}/{method}: duplicate device="
+                            + ", ".join(duplicates)
+                        )
+
+        assert not offenders, (
+            f"{sol_id}/{guide_file}: multi-target docker methods must declare "
+            "a unique device= on every target so the UI can render Local / "
+            "Remote cards with a device dropdown:\n  "
+            + "\n  ".join(offenders)
+        )
+
+    def test_lint_self_check(self):
+        """The rule rejects the former three-card shape and accepts the fix."""
+        bad = (
+            "## Preset: Demo {#p}\n\n"
+            "## Step 1: Deploy {#d type=docker_deploy}\n\n"
+            "### Target {#rk3576 type=remote}\n\n"
+            "### Target {#rk3588 type=remote}\n"
+        )
+        result = parse_single_language_guide(bad, "en")
+        step = result.presets[0].steps[0]
+        remote = [t for t in step.targets if t.target_type == "remote"]
+        assert len(remote) == 2
+        assert any(not str(t.device or "").strip() for t in remote)
+
+        good = (
+            "## Preset: Demo {#p}\n\n"
+            "## Step 1: Deploy {#d type=docker_deploy}\n\n"
+            "### Target {#rk3576 type=remote device=rk3576}\n\n"
+            "### Target {#rk3588 type=remote device=rk3588}\n"
+        )
+        result = parse_single_language_guide(good, "en")
+        step = result.presets[0].steps[0]
+        remote = [t for t in step.targets if t.target_type == "remote"]
+        assert [t.device for t in remote] == ["rk3576", "rk3588"]
+
+
+class TestDuplicateStepIdsAcrossPresets:
+    """Step ids reused across presets must have byte-identical content.
+
+    The engine resolves step content by id with first-preset-wins semantics:
+    a later preset reusing an id renders the earlier preset's step content.
+    Identical reuse (intentional shared step) is fine; divergent content is
+    a silent wrong-content bug and must be rejected by `solutionctl validate`.
+    """
+
+    STEP = (
+        "## 步骤 {n}: 打开面板 {{#dashboard type=docker_deploy required=true "
+        "config=devices/dashboard.yaml}}\n\n"
+        "面板已经运行。点击下方按钮打开。{extra}\n\n"
+        "### 故障排查\n"
+        "| 问题 | 解决方法 |\n"
+        "|------|----------|\n"
+        "| 页面无法加载 | 稍后重试 |\n\n"
+    )
+
+    def _guide(self, extra_b: str, n_b: int = 2) -> str:
+        return (
+            "## 套餐: 甲 {#preset_a}\n\n介绍 A。\n\n"
+            + self.STEP.format(n=1, extra="")
+            + "## 套餐: 乙 {#preset_b}\n\n介绍 B。\n\n"
+            + self.STEP.format(n=n_b, extra=extra_b)
+        )
+
+    def _run_check(self, guide_text: str) -> list[str]:
+        validate = pytest.importorskip("solutionctl.commands.validate")
+        result = parse_single_language_guide(guide_text, "zh")
+        return validate._check_duplicate_step_ids(result, "guide_zh.md", "zh")
+
+    def test_identical_reuse_allowed(self):
+        # Same content, different step numbers → intentional shared step, OK.
+        assert self._run_check(self._guide(extra_b="", n_b=5)) == []
+
+    def test_divergent_reuse_rejected(self):
+        errors = self._run_check(self._guide(extra_b="（乙套餐多了一句）"))
+        assert len(errors) == 1
+        assert "DIFFERENT content" in errors[0]
+        assert "#dashboard" in errors[0]

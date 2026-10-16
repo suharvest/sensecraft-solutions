@@ -1,0 +1,75 @@
+# agri-env-bridge runtime configuration — reference copy.
+#
+# The image already carries this file at /app/config/sources.yaml, and every
+# value below is filled from the environment variables the preset's
+# docker-compose.yml sets. It is shipped here so the mapping between a
+# deployment input and the setting it lands on is readable without opening the
+# image, and so it can be mounted over the built-in copy when a deployment
+# needs a setting the compose file does not expose.
+#
+# Credentials are ${ENV} placeholders. Never write a real Access Key or broker
+# password into this file.
+
+log_level: ${BRIDGE_LOG_LEVEL:-INFO}
+database: ${BRIDGE_DB:-/data/agri_env.db}
+measurements_file: ${BRIDGE_MEASUREMENTS:-/app/config/measurements.yaml}
+
+# Seconds without an uplink before a device's availability topic flips to
+# `offline`. S210X sensors report every 60 min by default; this is two cycles
+# plus margin. The last value is kept — the entity goes `unavailable`, it does
+# not go blank.
+unavailable_after: ${BRIDGE_UNAVAILABLE_AFTER:-7200}
+
+# Output broker: the Mosquitto deployed next to Home Assistant.
+mqtt_out:
+  host: ${MQTT_OUT_HOST:-mosquitto}
+  port: ${MQTT_OUT_PORT:-1883}
+  username: ${MQTT_OUT_USERNAME:-}
+  password: ${MQTT_OUT_PASSWORD:-}
+  client_id: agri-env-bridge
+  discovery_prefix: homeassistant
+  base_topic: agri_env
+
+sources:
+  # ---- Preset 1: SenseCAP Cloud ----
+  - name: sensecap-cloud
+    type: sensecap-cloud
+    enabled: ${P1_ENABLED:-false}
+    api_host: ${SENSECAP_API_HOST:-https://sensecap-openapi.seeed.cc}
+    # Two candidate cloud MQTT hosts, NEITHER verified against a live account:
+    #   1) sensecap-openstream.seeed.cc
+    #      the value a shipping Seeed solution uses in production
+    #   2) openstream.api.sensecap.seeed.cc
+    #      the value that appears in documentation
+    # Whether they are aliases of each other is unverified. The default is
+    # candidate 1 because working code uses it; the deployment step lets the
+    # user pick the other one or type a third.
+    mqtt_host: ${SENSECAP_MQTT_HOST:-sensecap-openstream.seeed.cc}
+    mqtt_port: ${SENSECAP_MQTT_PORT:-1883}
+    access_id: ${SENSECAP_ACCESS_ID:-}
+    access_key: ${SENSECAP_ACCESS_KEY:-}
+    application_id: ${SENSECAP_APPLICATION_ID:-}
+    device_filter: []        # empty = every device on the account
+    backfill_months: ${SENSECAP_BACKFILL_MONTHS:-1}   # OpenAPI reaches back 3 months at most
+    backfill_on_start: true
+    realtime_only: ${SENSECAP_REALTIME_ONLY:-false}   # true = subscribe only, no OpenAPI calls
+
+  # ---- Preset 2: self-hosted The Things Stack ----
+  - name: ttn-mqtt
+    type: ttn-mqtt
+    enabled: ${P2_ENABLED:-false}
+    host: ${TTN_MQTT_HOST:-stack}
+    port: ${TTN_MQTT_PORT:-1883}
+    username: ${TTN_MQTT_USERNAME:-}   # {application-id}@{tenant-id}
+    password: ${TTN_MQTT_PASSWORD:-}   # a The Things Stack API key
+    application_id: ${TTN_APPLICATION_ID:-+}
+
+  # ---- Preset 3: ChirpStack (self-hosted on R1000, or built into the M2) ----
+  - name: chirpstack-mqtt
+    type: chirpstack-mqtt
+    enabled: ${P3_ENABLED:-false}
+    host: ${CHIRPSTACK_MQTT_HOST:-chirpstack-mosquitto}
+    port: ${CHIRPSTACK_MQTT_PORT:-1883}
+    username: ${CHIRPSTACK_MQTT_USERNAME:-}
+    password: ${CHIRPSTACK_MQTT_PASSWORD:-}
+    application_id: ${CHIRPSTACK_APPLICATION_ID:-+}

@@ -1,0 +1,90 @@
+name: sensecraft-retail-voice-backend
+
+services:
+  mysql:
+    image: mysql@sha256:7dcddc01f13bab2f15cde676d44d01f61fc9f99fe7785e86196dfc07d358ae2b
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in .env}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-voice}
+      TZ: ${TZ:-Asia/Shanghai}
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
+    volumes: [mysql-data:/var/lib/mysql]
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+
+  minio:
+    image: minio/minio@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?set MINIO_ROOT_USER in .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?set MINIO_ROOT_PASSWORD in .env}
+    command: server /data --console-address ":9001"
+    volumes: [minio-data:/data]
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  voice-service:
+    image: sensecraft-missionpack.seeed.cn/solution/sensecraft-voice-service:stable
+    restart: unless-stopped
+    depends_on:
+      mysql: {condition: service_healthy}
+      minio: {condition: service_healthy}
+    ports: ["${VOICE_SERVICE_PORT:-8081}:8081"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      VOICE_API_TOKENS: ${VOICE_API_TOKENS:?set VOICE_API_TOKENS in .env}
+      CAPTURE_OVS_BASE_URL: ${CAPTURE_OVS_BASE_URL:-}
+      CAPTURE_OVS_API_KEY: ${CAPTURE_OVS_API_KEY:-}
+      CAPTURE_OVS_TIMEOUT_SECONDS: ${CAPTURE_OVS_TIMEOUT_SECONDS:-600}
+      CAPTURE_REQUEST_TIMEOUT_SECONDS: ${CAPTURE_REQUEST_TIMEOUT_SECONDS:-630}
+    volumes:
+      - ./config/voice-service.yaml:/etc/goExample/config.yaml:ro
+      - voice-service-logs:/app/logs
+    group_add: ["${VOICE_CONFIG_GID:?platform configuration group is required}"]
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8081/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+  voice-web:
+    image: sensecraft-missionpack.seeed.cn/solution/sensecraft-voice-web:stable
+    restart: unless-stopped
+    command: ["node", "/app/proxy-server.cjs"]
+    volumes:
+      - ./voice-web-proxy.cjs:/app/proxy-server.cjs:ro
+    depends_on: {voice-service: {condition: service_healthy}}
+    ports: ["${VOICE_WEB_PORT:-3000}:3000"]
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      UPSTREAM_HOST: voice-service
+      UPSTREAM_PORT: "8081"
+
+  capture-gateway:
+    image: python:3.12-slim
+    restart: unless-stopped
+    depends_on: {voice-service: {condition: service_healthy}}
+    command: ["python", "/app/ovs-capture-gateway.py"]
+    ports: ["${CAPTURE_GATEWAY_PORT:-18621}:18621"]
+    environment:
+      CAPTURE_UPSTREAM_HOST: voice-service
+      CAPTURE_UPSTREAM_PORT: "8081"
+      OVS_UPSTREAM_TIMEOUT: "660"
+    volumes: [./ovs-capture-gateway.py:/app/ovs-capture-gateway.py:ro]
+
+volumes:
+  mysql-data:
+  minio-data:
+  voice-service-logs:

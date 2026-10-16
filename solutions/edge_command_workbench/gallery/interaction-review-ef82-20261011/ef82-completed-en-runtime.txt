@@ -1,0 +1,10 @@
+### Result
+{"beforeCount":28,"afterCount":28,"result":"Actual model: kev\nBackend: rkllm\nMax context: 8192\nSelected candidate\n降低输送带速度\nRaw score: 0.95\n1\n降低输送带速度\n0.95\n2\n暂停设备\n0.027\n3\n查询设备状态\n0.023\nTotal: 476.0 ms · Encoding: 0.0 ms · Inference: 475.8 ms · Relative bar for candidate comparison only","historyUnchanged":true}
+### Ran Playwright code
+```js
+await (async page => { const before=await page.locator('#historyList').innerText(); await page.getByRole('button',{name:'切换语言'}).click(); await page.waitForTimeout(200); const after=await page.locator('#historyList').innerText(); return {beforeCount:(before.match(/\n/g)||[]).length,afterCount:(after.match(/\n/g)||[]).length,result:await page.locator('#resultArea').innerText(),historyUnchanged:before===after}; })(page);
+```
+### Page
+- Page URL: http://192.0.2.16:18772/
+- Page Title: SenseCraft · Command Selection Workbench
+- Console: 1 errors, 0 warnings

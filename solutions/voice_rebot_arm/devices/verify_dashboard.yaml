@@ -1,0 +1,30 @@
+version: "1.0"
+id: verify_dashboard
+name: Open Arm Dashboard
+type: web_dashboard
+# The rebot-arm container serves a read-only dashboard on :8776 showing the
+# live wrist-camera frame (/api/frame.jpg), the depth view and the arm/grasp
+# state (/api/state). Seeing the camera image + state JSON refresh proves the
+# whole perception side is up; then say "Hey Jarvis, grab the box" near the
+# mic for the end-to-end test (see the guide for known-good object placement).
+user_inputs:
+  - id: host
+    name: Host IP
+    type: text
+    required: true
+    placeholder: "192.168.1.100"
+    description: Use the Jetson IP address for remote deployment, or localhost when deploying locally on the Jetson.
+    name_i18n:
+      zh: 主机 IP
+    description_i18n:
+      zh: 远端部署时填写 Jetson IP；在 Jetson 本机本地部署时填写 localhost。
+web_dashboard:
+  url: "http://{{host}}:8776"
+  title: Voice reBot Arm Dashboard
+  description: Live wrist-camera view, depth image and arm/grasp state. If the camera frame renders, perception is up — then test by voice ("Hey Jarvis, grab the box").
+  title_i18n:
+    zh: 语音抓取机械臂面板
+  description_i18n:
+    zh: 腕部相机实时画面、深度图与机械臂/抓取状态。相机画面能刷新说明感知链路正常 —— 然后对麦克风说 "Hey Jarvis, grab the box" 做端到端测试。
+name_i18n:
+  zh: 打开机械臂面板

@@ -6,17 +6,7 @@
 
 | 设备 | 用途 |
 |------|------|
-| NVIDIA Jetson Orin | 运行主机侧 Orbbec ROS 2 驱动和长期运行的 NVBlox 容器 |
-
-**本次部署会完成的内容**
-
-- 可选地从 provisioning station 本机直接复制 `nvblox_images.tar`，这是通常最快的局域网传输路径
-- 可选地从自定义镜像 URL 下载 `nvblox_images.tar`
-- 使用内置 OneDrive 下载器拉取 `nvblox_images.tar`
-- 在 Jetson 本地导入 Isaac ROS 基础镜像
-- 准备 Jetson 主机侧 ROS 2 与 Orbbec 工作区
-- 在 Jetson 上构建派生 NVBlox 运行时镜像与工作区
-- 启动主机侧相机驱动与 Docker Compose 服务
+| NVIDIA Jetson Orin | 运行 Orbbec 相机驱动和 NVBlox 建图服务 |
 
 **环境要求**
 
@@ -24,14 +14,11 @@
 - Orbbec Gemini2 已连接到 Jetson
 - 可以通过 SSH 登录 Jetson
 - Jetson 可以访问 apt、ROS 源和 GitHub
-- 部署前 Jetson 至少需要 30GB 剩余磁盘空间
-- 首次部署强烈建议预留 40GB 或更多空间，用于基础镜像 tar 缓存和工作区构建产物
+- Jetson 至少需要 30GB 剩余磁盘空间，首次部署建议预留 40GB 以上
 
 ## 步骤 1: 部署 NVBlox Orbbec {#deploy_nvblox_orbbec type=docker_deploy required=true config=devices/jetson_deploy.yaml}
 
-将完整的 NVBlox Orbbec 栈部署到你的 Jetson。首次部署会比较重，因为会先准备主机环境和容器工作区，再由 Compose 启动最终服务。
-
-点击 **Deploy** 前，请先确认 Jetson 根分区至少还有 30GB 可用空间；如果还需要在 Jetson 本地下载或保留基础镜像 tar，建议准备 40GB 以上，避免在部署中途因空间不足失败。
+将 NVBlox Orbbec 部署到你的 Jetson。首次部署耗时较长。
 
 
 ### 部署完成
@@ -60,19 +47,14 @@ NVBlox Orbbec 栈已经部署到你的 Jetson。
 
 ### 部署完成
 
-1. 下载得到的基础镜像 tar 会缓存到 `~/nvblox_demo/downloads`。
-2. Jetson 本地会存在 Isaac ROS 基础镜像。
-3. 主机侧 Orbbec ROS 2 工作区会准备在 `~/nvblox_demo/ros2_ws`。
-4. 容器侧工作区会准备在 `~/nvblox_demo/isaac_ros-dev`。
-5. Jetson 上的 Compose 服务 `nvblox-orbbec` 会被启动。
-6. 当前版本不提供预览页面，是否成功以容器日志中的运行就绪标记为准。
+1. Jetson 上的 Compose 服务 `nvblox-orbbec` 保持运行。
+2. 当前版本不提供预览页面，是否成功以容器日志中的运行就绪标记为准。
 
 ### 说明
 
-- `tar + docker load` 只解决基础镜像来源，不会让整个流程完全离线。主机依赖安装和源码同步仍然需要联网。
-- 通常最快的路径是 `本机基础镜像 tar 路径`，因为它会绕过 Jetson 到 SharePoint 的限速，直接走局域网/SSH 复制。
-- 首次运行耗时较长，因为会在 Jetson 上安装 ROS 依赖、同步代码并构建工作区。
-- 后续重复部署会复用受管 stamp 文件，只要已有准备状态仍然有效，就不会重复做全量准备。
+- 填写了基础镜像 tar 也仍需联网，用于安装依赖和同步代码。
+- 通常最快的方式是填写 `本机基础镜像 tar 路径`，通过局域网复制。
+- 再次部署会跳过已完成的准备步骤。
 
 ### 故障排查
 
@@ -111,6 +93,6 @@ NVBlox Orbbec 栈已经部署到你的 Jetson。
 | 问题 | 处理方法 |
 |------|----------|
 | NVIDIA runtime 未找到 | 安装 NVIDIA Container Toolkit：`sudo apt install nvidia-container-toolkit && sudo systemctl restart docker` |
-| 相机未检测到 | 检查 USB 连接：`lsusb | grep -i orbbec` |
+| 相机未检测到 | 检查 USB 连接：`lsusb \| grep -i orbbec` |
 | 容器持续重启 | 查看日志：`docker logs nvblox-orbbec` |
 | Docker Compose 不可用 | 安装 `docker compose` 插件后重试 |

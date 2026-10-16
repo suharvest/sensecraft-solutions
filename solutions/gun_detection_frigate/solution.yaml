@@ -1,11 +1,22 @@
 version: "1.0"
 id: gun_detection_frigate
 name: AI Gun Detection
+name_i18n:
+  zh: AI 视觉枪支检测
+  ja: AI 銃器検知
 intro:
   summary: Real-time gun detection using Frigate NVR with AI-accelerated video analysis on edge devices
   description_file: description.md
   cover_image: gallery/cover.svg
-  category: security
+  gallery:
+    - type: image
+      src: gallery/architecture.png
+      src_i18n:
+        zh: gallery/architecture_zh.png
+      caption: System architecture — IP cameras send RTSP to one edge AI host (reComputer J40 / J50 or reComputer AI Industrial R21 + Hailo) running Frigate, which serves the web dashboard on port 5000 and MQTT events on port 1883
+      caption_i18n:
+        zh: 系统架构——IP 摄像头以 RTSP 接入一台运行 Frigate 的边缘 AI 主机（reComputer J40 / J50 或 reComputer AI Industrial R21 + Hailo），主机在 5000 端口提供网页面板、在 1883 端口发出 MQTT 事件
+  category: vision_video_ai
   tags: [security, gun-detection, frigate, nvr, ai]
   solution_type: solution
 
@@ -17,32 +28,15 @@ intro:
         zh: 用于监控的 IP 摄像头 RTSP 视频流
   device_catalog:
     recomputer_j40:
-      sku: 110110144
-      name: reComputer J40
-      product_url: https://www.seeedstudio.com/reComputer-J4012-p-5586.html
       description: Edge AI computing device with TensorRT GPU acceleration
-      name_i18n:
-        zh: reComputer J40
       description_i18n:
         zh: 支持 TensorRT GPU 加速的边缘 AI 计算设备
     recomputer_j50:
-      sku: 100076722
-      name: reComputer Robotics J5011 (AGX Orin)
-      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/-/1-100032662--recomputer-robotics-j5012-with-gmsl_1__1.jpg
-      product_url: https://www.seeedstudio.com/reComputer-Robotics-J5011-with-GMSL-extension-board-p-6681.html
       description: High-performance edge AI with TensorRT GPU acceleration
-      name_i18n:
-        zh: reComputer Robotics J5011 (AGX Orin)
       description_i18n:
         zh: 高性能边缘 AI 设备，支持 TensorRT GPU 加速
-    r2000_hailo:
-      sku: 114993595
-      name: reComputer R2000 + Hailo
-      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/i/m/image-_r235.jpeg
-      product_url: https://www.seeedstudio.com/reComputer-R2000-Series.html
+    recomputer_r21_industrial_ai:
       description: Industrial edge AI with Hailo NPU acceleration
-      name_i18n:
-        zh: reComputer R2000 + Hailo
       description_i18n:
         zh: 搭载 Hailo NPU 加速的工业边缘 AI 设备
   presets:
@@ -66,29 +60,28 @@ intro:
       description_i18n:
         zh: 在 NVIDIA Jetson 上使用 TensorRT GPU 加速部署
     - id: r2000_hailo
-      name: reComputer R2000 + Hailo
-      description: Deploy with Hailo NPU acceleration on reComputer R2000
+      name: reComputer AI Industrial R21 + Hailo
+      description: Deploy with Hailo NPU acceleration on reComputer AI Industrial R21
       device_groups:
         - id: edge_device
           name: Edge AI Device
           type: single
           required: true
           options:
-            - device_ref: r2000_hailo
-          default: r2000_hailo
-
+            - device_ref: recomputer_r21_industrial_ai
+          default: recomputer_r21_industrial_ai
           name_i18n:
             zh: 边缘 AI 设备
       name_i18n:
-        zh: reComputer R2000 + Hailo
+        zh: reComputer AI Industrial R21 + Hailo
       description_i18n:
-        zh: 在 reComputer R2000 上使用 Hailo NPU 加速部署
+        zh: 用 Hailo NPU 在 reComputer AI Industrial R21 上加速部署
   stats:
     difficulty: beginner
     estimated_time: 10min
 
   links:
-    github: https://github.com/Seeed-Projects/frigate-on-jetson
+    github: https://github.com/Seeed-Studio/frigate-on-jetson
 
   summary_i18n:
     zh: 使用 Frigate NVR 在边缘设备上实时检测枪支，支持多种 AI 加速硬件
@@ -99,5 +92,3 @@ deployment:
   selection_mode: sequential
   guide_file_i18n:
     zh: guide_zh.md
-name_i18n:
-  zh: AI 视觉枪支检测

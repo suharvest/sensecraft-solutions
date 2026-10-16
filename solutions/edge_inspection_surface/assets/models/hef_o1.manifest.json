@@ -1,0 +1,84 @@
+{
+  "model": "yolox_tiny_neu6_o1",
+  "hw_arch": "hailo8",
+  "precision": "int8 (post-training quantization)",
+  "produced_on": {
+    "host": "870fcf1743f9",
+    "container_image": "hailo_ai_sw_suite_2025-04:1"
+  },
+  "onnx": {
+    "file": "yolox_tiny_neu6.onnx",
+    "bytes": 20172980,
+    "sha256": "4eb5e4ff6144810e919f2a63ad8f7dcd1c1ac5309d207b1d9ff832ba6cd63aba",
+    "opset": 11,
+    "input": "images:1x3x640x640 (NCHW)"
+  },
+  "hef": {
+    "file": "yolox_tiny_neu6_o1.hef",
+    "bytes": 8975664,
+    "sha256": "02201b733a3009a5e72cebf49b9b314bd09d63dafa9cf4b9f359251ff49c0565",
+    "input": "NHWC uint8 640x640x3",
+    "outputs": "9 per-scale tensors: reg(4)/obj(1)/cls(6) x stride 8/16/32"
+  },
+  "har": {
+    "parsed": {
+      "file": "yolox_tiny_neu6_o1.har",
+      "bytes": 20551680,
+      "sha256": "52966422892725ca4347854fc1d6196e1903dd2941b9c59effd4808347de0e77"
+    },
+    "optimized": {
+      "file": "yolox_tiny_neu6_o1_optimized.har",
+      "bytes": 102696960,
+      "sha256": "063b6b1b5632d97bcc5d2a90c526fdfc8f8c305a36f4bed040910a6c7002d55d"
+    }
+  },
+  "dfc": {
+    "dataflow_compiler": "3.31.0",
+    "hailort": "4.21.0",
+    "note": "设备侧 HailoRT 必须与这里的版本一致（ABI 锁）"
+  },
+  "start_nodes": [
+    "images"
+  ],
+  "end_nodes": [
+    "/head/reg_preds.0/Conv",
+    "/head/Sigmoid",
+    "/head/Sigmoid_1",
+    "/head/reg_preds.1/Conv",
+    "/head/Sigmoid_2",
+    "/head/Sigmoid_3",
+    "/head/reg_preds.2/Conv",
+    "/head/Sigmoid_4",
+    "/head/Sigmoid_5"
+  ],
+  "calibration": {
+    "count": 1024,
+    "pool_size": 1279,
+    "sampling": "sorted by file name, evenly spaced stride",
+    "preprocess": "0-255 float32, no normalization (model has no norm layer)",
+    "layout": "NHWC",
+    "color": "BGR",
+    "npy_sha256": "05b7dbfd8567a86ceb1a875ea0c5081ace08b5a61e53c6cbdab4fc941591013f",
+    "images_note": "1024 images, per-image sha256 list omitted here for size; full list is in the calib.manifest.json shipped alongside calib.npy on the compile host"
+  },
+  "quantization": {
+    "model_script": "yolox_tiny_neu6_o1.alls",
+    "model_script_sha256": "1af95b55adda65bb0a2e285b164db22e42a061698c08b507b514fef14699494e",
+    "requested": {
+      "optimization_level": 1,
+      "compression_level": 0
+    },
+    "log": "02-optimize.log"
+  },
+  "timings_s": {
+    "parse": 13,
+    "optimize": 541,
+    "compile": 626,
+    "total": 1180
+  },
+  "logs": [
+    "01-parse.log",
+    "02-optimize.log",
+    "03-compile.log"
+  ]
+}

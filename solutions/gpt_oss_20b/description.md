@@ -22,7 +22,7 @@ Deploy GPT OSS 20B to an NVIDIA Jetson device with one click. The container star
 
 **Hardware Requirements**:
 - Jetson Orin NX 16GB or higher (20B model requires ~12-15GB VRAM)
-- reComputer J4012 is verified; other Jetson Orin models should confirm sufficient VRAM
+- reComputer J40 series is verified; other Jetson Orin models should confirm sufficient VRAM
 
 **API Endpoint**:
 - URL: `http://<jetson-ip>:8080/v1/chat/completions`

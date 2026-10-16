@@ -1,0 +1,177 @@
+version: "1.0"
+id: enable_open_vocab
+name: Switch to Open-Vocabulary Classification (Optional)
+name_i18n:
+  zh: 切换到开放词汇分类（可选）
+type: manual
+
+# Why this step is manual, and why it is Orin-only.
+#
+# Switching tracks is three config.json edits plus a 372 MB model file and an
+# engine rebuild — a reconfiguration of an already-deployed stack, not a
+# deployable artefact of its own. The deploy step's model_track input already
+# does this on a fresh deployment; this step is for switching one that is
+# already running.
+#
+# Orin-only because the open-vocabulary tower needs an accelerator: 66.93 ms
+# p50 per image on an Apple M4 CPU against the baseline's 1.57 ms
+# (evaluation/runs/2026-09-05-w1-cpu). The Hailo preset cannot offer it — the
+# SigLIP 2 INT8 quantisation currently fails at
+# `hailo optimize` and no HEF exists for either track.
+#
+# This step is a downgrade in top-1 and an upgrade in everything else. Read the
+# "Classifier selection" section of the solution page before running it.
+
+user_inputs:
+  - id: prototype_language
+    name: Prototype Bank
+    type: select
+    default: en_material8
+    required: true
+    description: >-
+      Which text prototype bank scores the visual embedding. The English
+      material-8 bank is the measured default (top-1 0.8501 on val, four-way
+      0.9393 after mapping). The Chinese material-8 bank scores about one point
+      lower and agrees with the English one on 86.98% of images. Do not use a
+      bank that predicts the four categories directly — that path scores 0.8478
+      against 0.9393 for the hierarchical one, because "recyclable" is not a
+      visual concept while "glass bottle" is.
+    options:
+      - value: en_material8
+        label: English, 8 material classes — the measured default
+        label_i18n:
+          zh: 英文，物料八类——有实测数据的默认项
+      - value: zh_material8
+        label: Chinese, 8 material classes — about one point lower top-1
+        label_i18n:
+          zh: 中文，物料八类——top-1 约低一个百分点
+    name_i18n:
+      zh: 原型库
+    description_i18n:
+      zh: >-
+        用哪套文本原型给视觉嵌入打分。英文物料八类是有实测数据的默认项
+        （val top-1 0.8501，映射后四分类 0.9393）。中文物料八类低约一个百分点，
+        与英文在 86.98% 的图上给出一致结论。不要用直接预测四分类的那套——
+        那条路径 0.8478，层级路径 0.9393，因为「可回收物」不是视觉概念，
+        而「玻璃瓶」是。
+  - id: temperature
+    name: Temperature
+    type: text
+    default: "0.0075"
+    required: true
+    description: >-
+      Cosine logits are divided by this before softmax. 0.0075 is the value
+      calibrated on val for both material-8 banks and is what produced the ECE
+      0.0221 on the solution page. Changing it changes the confidence
+      distribution and therefore what your min_confidence threshold means.
+    validation:
+      pattern: "^[0-9]*\\.?[0-9]+$"
+    name_i18n:
+      zh: 温度
+    description_i18n:
+      zh: >-
+        余弦 logits 在 softmax 之前先除以这个值。0.0075 是在 val 上为两套
+        物料八类原型库标定出来的值，方案页上 ECE 0.0221 就是它产出的。
+        改动它会改变置信度分布，也就改变了你的 min_confidence 阈值的含义。
+
+steps:
+  - id: fetch_artifacts
+    name: Put the vision tower and the prototype bank on the device
+    name_i18n:
+      zh: 把视觉塔与原型库放到设备上
+    description: >-
+      Three files go into the deployment's models/ directory:
+      siglip2_vision_224.onnx (371,695,898 bytes, sha256 6f664af0d57bf038…),
+      the prototype .npz for the bank you chose, and its .meta.json. All
+      checksums are in assets/models/SHA256SUMS.open_vocab. Nothing has been
+      uploaded to the CDN path the deploy step names, so copy these onto the
+      device by hand for now — with "sha256sum -c" against that file before
+      using them, exactly as the automated path would.
+    description_i18n:
+      zh: >-
+        三个文件放进部署目录的 models/：siglip2_vision_224.onnx
+        （371,695,898 字节，sha256 6f664af0d57bf038…）、你选的那套原型
+        .npz，以及它的 .meta.json。全部校验和在
+        assets/models/SHA256SUMS.open_vocab 里。部署步骤里写的 CDN 路径
+        目前什么都没上传，所以先手工拷到设备上——用前照样用
+        "sha256sum -c" 对那份清单校验，与自动路径的做法一致。
+    optional: false
+
+  - id: edit_config
+    name: Edit config.json to select the open_vocab track
+    name_i18n:
+      zh: 编辑 config.json 选择 open_vocab track
+    description: >-
+      In config/config.json set the model section to: "track": "open_vocab",
+      "path": "/models/siglip2_vision_224.engine", "accelerator": "tensorrt",
+      "backbone": "siglip2_base_patch16_224", "prototypes":
+      "/models/<the .npz you chose>", "prompt_set": "/models/prompts/<its
+      prompt set>.json", "temperature": <the value you entered>. The runtime
+      republishes the prompt set's resolved sha256 in every event as
+      prompt_set_sha256, so a consumer can tell which vocabulary produced a
+      given answer. Leave "input_size" at [224, 224] — both tracks use it.
+    description_i18n:
+      zh: >-
+        在 config/config.json 里把 model 段设成："track": "open_vocab"、
+        "path": "/models/siglip2_vision_224.engine"、"accelerator":
+        "tensorrt"、"backbone": "siglip2_base_patch16_224"、"prototypes":
+        "/models/<你选的 .npz>"、"prompt_set": "/models/prompts/<对应的
+        prompt 集>.json"、"temperature": <你填的值>。运行时会把 prompt 集
+        解析出的 sha256 作为 prompt_set_sha256 附在每条事件里，
+        消费者据此能分辨某个答案是哪套词表给出的。"input_size" 保持
+        [224, 224]——两条 track 都用它。
+    optional: false
+
+  - id: rebuild_engine
+    name: Rebuild the TensorRT engine
+    name_i18n:
+      zh: 重建 TensorRT 引擎
+    description: >-
+      Build the new engine on the device — an engine is tied to the exact GPU
+      architecture and TensorRT version and cannot be shipped prebuilt. Run
+      "/usr/src/tensorrt/bin/trtexec --onnx=models/siglip2_vision_224.onnx
+      --saveEngine=models/siglip2_vision_224.engine --fp16 --skipInference
+      --builderOptimizationLevel=3", then "docker compose up -d waste". Do not
+      pass --minShapes/--optShapes/--maxShapes: the ONNX is exported with a
+      static batch-1 shape and trtexec 10.3 fails outright with "Static model
+      does not take explicit shapes". This ViT-B/16 has never been engine-built
+      on any board, so there is no expected build time to compare against —
+      allow for it taking considerably longer than the 6 MB baseline.
+    description_i18n:
+      zh: >-
+        在设备上构建新 engine——engine 绑定具体 GPU 架构与 TensorRT 版本，
+        无法预编分发。执行 "/usr/src/tensorrt/bin/trtexec
+        --onnx=models/siglip2_vision_224.onnx
+        --saveEngine=models/siglip2_vision_224.engine --fp16 --skipInference
+        --builderOptimizationLevel=3"，然后 "docker compose up -d waste"。
+        不要传 --minShapes/--optShapes/--maxShapes：ONNX 是静态 batch-1 导出，
+        trtexec 10.3 会直接报 "Static model does not take explicit shapes"。
+        这个 ViT-B/16 从未在任何板卡上构建过 engine，
+        没有可参照的预期耗时——请预留远长于 6 MB 基线的时间。
+    optional: false
+
+  - id: verify_track
+    name: Verify — an event whose model.backbone changed
+    name_i18n:
+      zh: 验证——一条 model.backbone 已变化的事件
+    description: >-
+      Fire one trigger and read the resulting event. "model.backbone" should
+      now be siglip2_base_patch16_224 and "model.onnx_sha256" should be
+      6f664af0d57bf038…; the event shape is otherwise unchanged, because the
+      open-vocabulary fields are additive and the eight-class output and the
+      four-way lookup are identical. Then check the thing you switched for:
+      show the device an item outside the eight classes and confirm the top-1
+      confidence stays low rather than confidently naming a material — that
+      open-set behaviour is what the baseline structurally cannot do, and it is
+      the reason to accept a roughly 3-point lower top-1 and a 40x slower
+      inference.
+    description_i18n:
+      zh: >-
+        触发一次并读取事件。"model.backbone" 现在应当是
+        siglip2_base_patch16_224，"model.onnx_sha256" 应当是
+        6f664af0d57bf038…；事件形状其余部分不变，因为开放词汇的字段是
+        additive 的，八类输出与四分类查表完全一致。然后验证你为之切换的那件事：
+        给设备看一件八类之外的东西，确认 top-1 置信度保持在低位，
+        而不是自信地报出某个材质——这种开放集行为正是基线结构上做不到的，
+        也是接受 top-1 低约 3 个百分点、推理慢 40 倍的理由。
+    optional: false

@@ -1,0 +1,113 @@
+{
+  "generated_at": "2026-10-11T06:26:18.961583+00:00",
+  "validation": "second-validation-no-external-helper-rknn-gomp-mounts",
+  "device": "cat-remote",
+  "image": {
+    "tag": "edge-command-workbench:rockchip-rkllm-0.3.1-review",
+    "id": "sha256:8acbe96dc6548ef18eb424f405d68d812a0245e02006dbfd1f9801f600820f16",
+    "size": 291113842,
+    "source_git_commit": "ef82f8360c2b787f97c958f89c92fe569c62ecb1",
+    "hf_revision": "db0545065d4da3598d009407fc3bd0c7632ca199"
+  },
+  "deployment": {
+    "container": "kev-app-final-qa-0.3.1-18771",
+    "container_id": "de6dea3c72446f75c6ce634bdb55db059c74fcca3c8631f72c4761e7e2282947",
+    "port": 18771,
+    "mounts": [
+      {
+        "source": "/home/cat/kev-rkllm/persist",
+        "destination": "/persist",
+        "mode": "ro"
+      },
+      {
+        "source": "/home/cat/kev-rkllm/persist/evidence/librkllmrt-v1.3.1.so",
+        "destination": "/opt/kev/librkllmrt.so",
+        "mode": "ro"
+      },
+      {
+        "source": "/home/cat/kev-app/models",
+        "destination": "/models",
+        "mode": "ro"
+      }
+    ],
+    "external_helper_mount": false,
+    "health": {
+      "status": "ok",
+      "model_ready": true,
+      "backend": "rkllm",
+      "name": "kev-0.8b-w4a16-g128-rk3576-context8192-shortcalib.rkllm",
+      "model_id": "kev",
+      "max_sequence_tokens": 2048,
+      "max_options": 16
+    }
+  },
+  "artifacts": {
+    "model": {
+      "path": "/home/cat/kev-rkllm/persist/kev-0.8b-w4a16-g128-rk3576-context8192-shortcalib.rkllm",
+      "sha256": "0370f1aa3a6cc119489817b442f3177f0ff9c50949a6b1a11bce6ca5eccee506"
+    },
+    "runtime": {
+      "path": "/home/cat/kev-rkllm/persist/evidence/librkllmrt-v1.3.1.so",
+      "sha256": "f25e9b099db08aaacd0a3ac62b4697d3951d6ae61ae41ea09f6702cfa89eb32c"
+    },
+    "image_builtin_helper": {
+      "path": "/opt/kev/libkev_runtime.so",
+      "sha256": "022e0102f9dd4c8839ba7acbc68f03d8811bf020cde84d6cf1343829cd66f919"
+    },
+    "served_app_js": {
+      "path": "/app/web/app.js",
+      "sha256": "02c44a4da2b0a9e298aec9ef9154a5c5488e29875aff729fd0f26348dda0ed9e"
+    }
+  },
+  "goldens": {
+    "count": 5,
+    "http_200": 5,
+    "correct": 5,
+    "rows": [
+      {
+        "id": "jev-001-en",
+        "expected_id": "set_speed",
+        "selected_option_id": "set_speed",
+        "status": 200,
+        "correct": true
+      },
+      {
+        "id": "jev-001-zh",
+        "expected_id": "set_speed",
+        "selected_option_id": "set_speed",
+        "status": 200,
+        "correct": true
+      },
+      {
+        "id": "jev-002-en",
+        "expected_id": "status",
+        "selected_option_id": "status",
+        "status": 200,
+        "correct": true
+      },
+      {
+        "id": "jev-002-zh",
+        "expected_id": "status",
+        "selected_option_id": "status",
+        "status": 200,
+        "correct": true
+      },
+      {
+        "id": "jev-003-en",
+        "expected_id": "start",
+        "selected_option_id": "start",
+        "status": 200,
+        "correct": true
+      }
+    ],
+    "raw_sha256": "d17c00b5471d051ed3bb27596510e73e5cd7f960c27ec115ecbf863ec81d68c1"
+  },
+  "boundary": {
+    "target_words": 2069,
+    "actual_tokens": 2088,
+    "max_tokens": 2048,
+    "status": 422,
+    "raw_sha256": "5e3cc26eb4e77cb9c194b5109bcf3156d7389c9d60fd64d6722d269fb915075b",
+    "before_npu": true
+  }
+}

@@ -1,88 +1,239 @@
 version: '1.0'
 id: smart_hvac_control
 name: HVAC Automation Control
+name_i18n:
+  zh: 暖通自动化控制
+  ja: HVAC 自動化制御
+
 intro:
-  summary: Intelligently adjust air conditioning based on occupancy and environment, saving energy automatically
+  summary: >-
+    Bring HVAC controller points and an energy meter into one point model, predict setpoints
+    from historical data, and write them back only after a verified readback, with rollback
+    and alarms when the field disagrees.
+  summary_i18n:
+    zh: >-
+      把暖通控制器点位与电能表汇入同一套点位模型，用历史数据预测设定值，写入后必须读回核对
+      才算生效；现场不一致时自动回滚并告警。
   description_file: description.md
-  cover_image: gallery/cover.svg
+  description_file_i18n:
+    zh: description_zh.md
+
+  # Cover and gallery: real running-UI captures plus the architecture diagram.
+  #
+  # The six PNGs are screen captures of the actual missionpack-knn console running against
+  # real backend code, with the SDM630 meter, the HVAC BACnet controller and the Modbus
+  # control register supplied by this repository's own protocol simulators rather than
+  # physical field devices — every caption says so. The last two were captured after the
+  # rollback coordinator and the alarm envelope were wired into the live prediction cycle,
+  # so unlike the first four they do show a live alarm banner and a live compensation.
+  # gallery/architecture.svg stays alongside them as a labelled schematic diagram.
+  # The three remaining SVGs on disk (cover, dashboard, recomputer) are drawings that would
+  # read as product photography or as a screenshot of a running console, so they stay
+  # unreferenced. Full provenance (capture host, commit, simulator configuration, duration)
+  # is in gallery/ATTRIBUTION.md.
+  cover_image: gallery/cover-point-trend-zh.jpg
   gallery:
     - type: image
-      src: gallery/dashboard.svg
-      caption: Control Dashboard
+      src: gallery/console-point-trend-zh.webp
+      caption: >-
+        Point detail — the demo site's supply temperature, the setpoint that was written and
+        the predicted setpoint on one 24-hour chart, so the prediction can be read against
+        what the simulated point did. Generated fixture data, not a commissioned building.
       caption_i18n:
-        zh: 控制面板
+        zh: >-
+          点位详情——演示站点的送风温度、已下发的设定值与预测设定值叠在同一张 24 小时曲线上，
+          可以直接对照预测与模拟点位的变化。数据来自生成的 fixture，非已交付的真实楼宇。
+    - type: image
+      src: gallery/console-point-trend-en.webp
+      caption: >-
+        The same point drawer in English — the output policy stays disabled until the safe
+        range is saved and the current value and dry-run result are checked.
+      caption_i18n:
+        zh: >-
+          同一点位抽屉的英文界面——输出策略在保存安全范围、核对当前值与预演结果之前保持禁用。
+    - type: image
+      src: gallery/console-overview-zh.webp
+      caption: >-
+        Site overview — device and point counts, unacknowledged alarms, 24-hour poll-success
+        and write-readback rates, points grouped by protocol, and one card per source.
+      caption_i18n:
+        zh: >-
+          站点总览——设备与点位数、未处理告警、24 小时采集成功率与写入回读一致率、
+          按协议分组的点位，以及每个数据源一张卡片。
+    - type: image
+      src: gallery/console-topology-zh.webp
+      caption: >-
+        Device topology — source to protocol to device to point, with quality and
+        writability on every leaf and offline sources greyed out.
+      caption_i18n:
+        zh: >-
+          设备拓扑——数据源 → 协议 → 设备 → 点位，每个叶子标出质量与可写性，离线数据源置灰。
+    - type: image
+      src: gallery/control-dispatch-readback.png
+      caption: >-
+        Command-receipt ledger — manual setpoint and compressor-enable writes to the
+        simulated HVAC controller, each shown protocol-acknowledged with requested vs.
+        effective value and actor. Not a rollback or alarm demonstration.
+      caption_i18n:
+        zh: >-
+          命令回执台账——对模拟暖通控制器下发的手动设定值与压缩机启停写入，均显示协议已确认，
+          附请求值/生效值与操作者。非回滚或告警演示。
+    - type: image
+      src: gallery/points-source-offline.png
+      caption: >-
+        Point table with the SDM630 source stopped mid-capture: its ten points read
+        "offline" while the HVAC BACnet source stays "good" — the pre-existing per-point
+        quality state, not the new alarm banner or rollback coordinator (neither is wired
+        into the live cycle yet).
+      caption_i18n:
+        zh: >-
+          停止 SDM630 数据源后的点位总表：其 10 个点位显示"离线"，暖通 BACnet 数据源仍为
+          "良好"——沿用既有的逐点质量状态，非新告警条或回滚协调器（二者均尚未接入实时周期）。
+    - type: image
+      src: gallery/alarm-banner-source-offline.png
+      caption: >-
+        Alarm banner raised by the wired health/alarm bridge: the SDM630 source was stopped
+        with SIGTERM, its ten points read "offline", and the banner reports one unrecovered,
+        unacknowledged source-offline warning. Simulated meter, real alarm path.
+      caption_i18n:
+        zh: >-
+          已接入的健康/告警桥抬起的告警横幅：SDM630 数据源被 SIGTERM 停止，其 10 个点位显示
+          "离线"，横幅报告 1 条未恢复、未确认的"来源离线"警告。电表为模拟器，告警链路为真实逻辑。
+    - type: image
+      src: gallery/control-readback-compensated.png
+      caption: >-
+        Command-receipt ledger with the readback column: predicted writes that matched the
+        field read "read back / matched"; the one whose register was changed out of band
+        reads "read back / mismatched, compensated · 99", followed by the compensation
+        command issued by plugin:prediction:rollback. Simulated Modbus device, real
+        write-verify-compensate path.
+      caption_i18n:
+        zh: >-
+          带"读回"列的命令回执台账：与现场一致的预测写入显示"已读回 / 一致"；被带外改写过的
+          那一条显示"已读回 / 不一致已补偿 · 99"，其后紧跟由 plugin:prediction:rollback
+          下发的补偿命令。Modbus 设备为模拟器，写入-核对-补偿链路为真实逻辑。
     - type: image
       src: gallery/architecture.svg
-      caption: System Architecture
+      caption: Architecture — an SDM630 meter and an HVAC controller feed the point table, prediction sits alongside it, and writes go back out through a readback check
       caption_i18n:
-        zh: 系统架构
-  category: industrial_iot
+        zh: 架构——SDM630 电表与暖通控制器把点位送进总表，预测在旁边，写入经读回核实后再下发
+
+  category: home_building_automation
   solution_type: solution
 
-
   input_requirements:
-    - type: modbus
-      description: Temperature, humidity sensors via Modbus TCP/RTU
+    - type: modbus_tcp
+      description: >-
+        An Eastron SDM630 (Modbus V2 register map) energy meter, reachable either over
+        Modbus TCP or through a Modbus TCP gateway
       description_i18n:
-        zh: 通过 Modbus TCP/RTU 的温湿度传感器
+        zh: >-
+          一台 Eastron SDM630（Modbus V2 寄存器映射）电能表，通过 Modbus TCP 直连或经
+          Modbus TCP 网关可达
+    - type: modbus_rtu
+      description: >-
+        Alternatively the same meter on RS-485 through a USB adapter. The standard Docker
+        profile does not attach a host serial device; use the serial-device profile
+      description_i18n:
+        zh: >-
+          或同一台电能表经 USB 适配器接在 RS-485 总线上。标准 Docker 配置不会挂载主机串口，
+          需要使用串口设备部署配置
+    - type: opc_ua
+      description: An OPC UA HVAC controller endpoint, or the built-in simulator for a dry run
+      description_i18n:
+        zh: OPC UA 暖通控制器地址；只做演练时可用内置模拟器
+    - type: bacnet_ip
+      description: >-
+        Optionally a BACnet/IP air handler on a reachable subnet. Writes use a priority and
+        release with Null; COV subscription, BBMD registration and MS-TP are not implemented
+      description_i18n:
+        zh: >-
+          可选：位于可达网段的 BACnet/IP 空调机组。写入带优先级并用 Null 释放；未实现 COV
+          订阅、BBMD 注册和 MS-TP
+    - type: dataset
+      description: >-
+        At least one week of historical operation data as CSV or Excel, with timestamp,
+        setpoint, measured temperature and power consumption columns
+      description_i18n:
+        zh: >-
+          至少一周的历史运行数据（CSV 或 Excel），含时间、设定值、实测温度和用电量列
+
+  output_interfaces:
+    - type: http
+      description: Browser console for points, meter registration, prediction, control and alarms
+      description_i18n:
+        zh: 浏览器控制台，管理点位、电表注册、预测、控制和告警
+      port: 8280
+      endpoint: /
+    - type: http
+      description: Runtime metrics, including northbound spool counters when northbound publishing is enabled
+      description_i18n:
+        zh: 运行指标接口；启用北向上云时包含 spool 计数
+      port: 8280
+      endpoint: /system/runtime-metrics
+
   tags:
     - hvac
     - knn
     - opc-ua
+    - modbus
+    - bacnet
+    - energy-meter
+    - sdm630
+    - control-rollback
+    - alarms
     - industrial
     - automation
     - recomputer
+
   device_catalog:
-    recomputer_r1100:
-      sku: 113991374
-      name: reComputer R1100
-      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/-/1-113991374.jpg
-      product_url: https://www.seeedstudio.com/reComputer-R1100-p-6253.html
-      description: Edge computing device with Docker support
-      name_i18n:
-        zh: reComputer R1100
+    recomputer_r11:
+      description: Runs point model, KNN prediction, control read-back/rollback, web UI
       description_i18n:
-        zh: 边缘计算设备，内置 Docker
+        zh: 跑点位模型、KNN 预测、读回回滚控制链路和 Web 控制台
+
   stats:
     deployed_count: 0
     likes_count: 0
     difficulty: intermediate
-    estimated_time: 15min
-  links:
-    github: https://github.com/seeed-solution/missionpack-knn
+    estimated_time: 60min
+
+  # links.github 暂不填：实现仓库 Seeed-Solution/Solution_HVAC_SmartControl 目前私有，
+  # 对外是 404；仓库公开后再加回 `links: { github: <url> }`。
+
   presets:
     - id: default
       name: Standard Deployment
-      description: Deploy KNN-based HVAC optimization that learns from historical data
+      name_i18n:
+        zh: 标准部署
+      description: Deploys KNN service in observe-first mode; verified before control writes are enabled.
+      description_i18n:
+        zh: 先以观察模式部署 KNN 预测服务，验证无误后再开启写入控制。
       device_groups:
         - id: edge_device
           name: Edge Device
+          name_i18n:
+            zh: 边缘设备
           type: single
           required: false
           description: Only needed for remote deployment
-          options:
-            - device_ref: recomputer_r1100
-          default: recomputer_r1100
-          name_i18n:
-            zh: 边缘设备
           description_i18n:
             zh: 仅远程部署时需要
-      name_i18n:
-        zh: 标准部署
-      description_i18n:
-        zh: 部署基于 KNN 算法的暖通优化系统，从历史数据中学习最优参数
-  summary_i18n:
-    zh: 根据人流和环境智能调节空调温度，自动节省能耗
-  description_file_i18n:
-    zh: description_zh.md
+          options:
+            - device_ref: recomputer_r11
+          default: recomputer_r11
+
+  links:
+    wiki: https://wiki.seeedstudio.com/solutions/hvac-setpoint-control/
+    wiki_i18n:
+      zh: https://wiki.seeedstudio.com/cn/solutions/hvac-setpoint-control/
+
 deployment:
   guide_file: guide.md
+  guide_file_i18n:
+    zh: guide_zh.md
   post_deployment:
     autostart:
       enabled: true
       mode: fullscreen
       url: http://localhost:8280
-  guide_file_i18n:
-    zh: guide_zh.md
-name_i18n:
-  zh: 暖通自动化控制

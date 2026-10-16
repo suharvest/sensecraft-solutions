@@ -1,0 +1,32 @@
+version: '1.0'
+id: asr_endpoint
+name: Connect the phone app
+name_i18n:
+  zh: 连接手机 App
+type: manual
+inherit_host_from: deploy_server_platform
+steps:
+- id: pair
+  name: Pair Clip
+  name_i18n:
+    zh: 配对 Clip
+  description: Pair Clip with SenseCraft Voice App.
+  description_i18n:
+    zh: 将 Clip 与 SenseCraft Voice App 配对。
+  optional: false
+- id: configure
+  name: Enter connection details
+  name_i18n:
+    zh: 填写连接信息
+  description: In AI CONFIG, choose local_whisper. Set Base URL to http://<deployment-device-IP>:18621 and enter the access key provided by the platform administrator.
+  description_i18n:
+    zh: 在 AI CONFIG 中选择 local_whisper，Base URL 填 http://<部署设备 IP>:18621，接入密钥填写平台管理员提供的密钥。
+  optional: false
+- id: test
+  name: Test and save
+  name_i18n:
+    zh: 测试并保存
+  description: Tap Test Connection, then save after it succeeds.
+  description_i18n:
+    zh: 点击“测试连接”，成功后保存。
+  optional: false

@@ -1,6 +1,6 @@
 version: "1.0"
 id: recomputer_r_deploy
-name: reComputer R (Local or Remote)
+name: reComputer R1100 series (Local or Remote)
 type: docker_deploy
 
 # Single source-of-truth device YAML for the `openclaw_recomputer_r`
@@ -48,9 +48,11 @@ user_inputs:
 actions:
   before:
     - name: Validate workspace directory
+      env:
+        INPUT_WORKSPACE_DIR: "{{workspace_dir}}"
       run: |
         set -e
-        WORKSPACE="{{workspace_dir}}"
+        WORKSPACE="$INPUT_WORKSPACE_DIR"
         if [ -z "$WORKSPACE" ]; then
           echo "No workspace directory specified, using default Docker volume"
           exit 0
@@ -81,7 +83,118 @@ actions:
       timeout: 10
       name_i18n:
         zh: 校验工作目录
+    - name: Check system resources
+      run: |
+        set -e
+        FREE_GB=$(df -k / | awk 'NR==2{print int($4/1024/1024)}')
+        [ "${FREE_GB:-0}" -ge 4 ] || {
+          echo "Need at least 4GB free disk, current: ${FREE_GB:-0}GB"
+          exit 1
+        }
+
+        if command -v free >/dev/null 2>&1; then
+          MEM_GB=$(free -g | awk '/^Mem:/{print $2}')
+        elif command -v sysctl >/dev/null 2>&1; then
+          MEM_BYTES=$(sysctl -n hw.memsize 2>/dev/null || echo 0)
+          MEM_GB=$(( MEM_BYTES / 1024 / 1024 / 1024 ))
+        else
+          MEM_GB=4
+        fi
+        [ "${MEM_GB:-0}" -ge 2 ] || {
+          echo "Need at least 2GB system memory, current: ${MEM_GB:-0}GB"
+          exit 1
+        }
+        echo "System resources OK: ${FREE_GB}GB disk free, ${MEM_GB}GB RAM"
+      name_i18n:
+        zh: 检查系统资源
+    - name: Initialize OpenClaw config
+      run: |
+        set -e
+        VOL="openclaw_recomputer_r_openclaw-config"
+        docker volume create "$VOL" 2>/dev/null || true
+        WS_VOL="openclaw_recomputer_r_openclaw-workspace"
+        docker volume create "$WS_VOL" 2>/dev/null || true
+
+        # Candidates for config initialization image
+        INIT_IMAGE=""
+        for CANDIDATE in \
+          "openclaw/openclaw:2026.6.33-slim" \
+          "${DOCKER_REGISTRY_PREFIX}openclaw/openclaw:2026.6.33-slim" \
+          "${DOCKER_REGISTRY_PREFIX}library/alpine" \
+          "alpine"; do
+          [ -z "$CANDIDATE" ] && continue
+          if docker image inspect "$CANDIDATE" >/dev/null 2>&1; then
+            INIT_IMAGE="$CANDIDATE"
+            break
+          fi
+        done
+
+        # If not present in Docker, check offline cache for image tarballs
+        if [ -z "$INIT_IMAGE" ]; then
+          for SEARCH_DIR in \
+            "data/cache/offline/images" \
+            "../data/cache/offline/images" \
+            "${HOME}/.sensecraft/cache/offline/images" \
+            "${HOME}/.cache/sensecraft/offline/images" \
+            "/var/cache/sensecraft/offline/images"; do
+            [ -d "$SEARCH_DIR" ] || continue
+            for tarball in "$SEARCH_DIR"/*openclaw*.tar* "$SEARCH_DIR"/*alpine*.tar*; do
+              [ -f "$tarball" ] || continue
+              echo "Loading offline image tarball: $tarball"
+              if docker load -i "$tarball" >/dev/null 2>&1; then
+                for CANDIDATE in \
+                  "openclaw/openclaw:2026.6.33-slim" \
+                  "${DOCKER_REGISTRY_PREFIX}openclaw/openclaw:2026.6.33-slim" \
+                  "${DOCKER_REGISTRY_PREFIX}library/alpine" \
+                  "alpine"; do
+                  [ -z "$CANDIDATE" ] && continue
+                  if docker image inspect "$CANDIDATE" >/dev/null 2>&1; then
+                    INIT_IMAGE="$CANDIDATE"
+                    break 2
+                  fi
+                done
+                break 2
+              fi
+            done
+          done
+        fi
+
+        if [ -n "$INIT_IMAGE" ]; then
+          echo "Initializing OpenClaw config using $INIT_IMAGE"
+          docker run --rm --network none -u 0 -v "$VOL":/data -v "$WS_VOL":/ws "$INIT_IMAGE" sh -c '
+            chown 1000:1000 /data /ws
+            if [ ! -f /data/openclaw.json ]; then
+              printf "%s\n" "{\"gateway\":{\"controlUi\":{\"dangerouslyAllowHostHeaderOriginFallback\":true}},\"commands\":{\"native\":\"auto\",\"nativeSkills\":\"auto\"},\"tools\":{\"profile\":\"coding\",\"allow\":[\"exec\",\"bash\"],\"deny\":[],\"exec\":{\"host\":\"gateway\",\"security\":\"full\",\"ask\":\"off\"}}}" > /data/openclaw.json
+              chown 1000:1000 /data/openclaw.json
+              echo "Initial config written"
+            else
+              echo "Config exists, skipping"
+            fi
+          '
+        else
+          echo "Notice: OpenClaw image not yet cached locally; skipping pre-initialization."
+          echo "Initial configuration will be completed after container launch."
+        fi
+      name_i18n:
+        zh: 初始化 OpenClaw 配置
   after:
+    - name: Ensure OpenClaw config initialized
+      run: |
+        set -e
+        docker exec -u 0 openclaw-gateway sh -c '
+          chown 1000:1000 /home/node/.openclaw
+          find /home/node/.openclaw -mindepth 1 -maxdepth 1 ! -name workspace -exec chown -R 1000:1000 {} + 2>/dev/null || true
+          if [ ! -f /home/node/.openclaw/openclaw.json ]; then
+            printf "%s\n" "{\"gateway\":{\"controlUi\":{\"dangerouslyAllowHostHeaderOriginFallback\":true}},\"commands\":{\"native\":\"auto\",\"nativeSkills\":\"auto\"},\"tools\":{\"profile\":\"coding\",\"allow\":[\"exec\",\"bash\"],\"deny\":[],\"exec\":{\"host\":\"gateway\",\"security\":\"full\",\"ask\":\"off\"}}}" > /home/node/.openclaw/openclaw.json
+            chown 1000:1000 /home/node/.openclaw/openclaw.json
+            echo "Initial OpenClaw config created in container"
+          else
+            echo "OpenClaw config already present"
+          fi
+        '
+      timeout: 30
+      name_i18n:
+        zh: 确保 OpenClaw 配置已初始化
     - name: Enable execution permissions
       run: |
         set -e
@@ -113,7 +226,6 @@ actions:
           }
         '
       timeout: 30
-
       name_i18n:
         zh: 启用执行权限
     - name: Restart OpenClaw to apply configuration
@@ -131,39 +243,24 @@ actions:
         done
         echo "WARNING: Gateway may still be starting up"
       timeout: 180
-
       name_i18n:
         zh: 重启 OpenClaw 使配置生效
-    - name: Display gateway access token
+    - name: Display gateway address
       run: |
         set -e
-        TOKEN=$(docker exec openclaw-gateway node -e '
-          const fs = require("fs");
-          const p = "/home/node/.openclaw/openclaw.json";
-          const cfg = JSON.parse(fs.readFileSync(p, "utf8"));
-          const token = cfg.gateway && cfg.gateway.auth && cfg.gateway.auth.token;
-          if (token) process.stdout.write(token);
-          else process.stdout.write("NOT_FOUND");
-        ')
-        if [ "$TOKEN" = "NOT_FOUND" ]; then
-          echo "WARNING: Could not read gateway token from config"
-        else
-          echo ""
-          echo "=========================================="
-          echo "  OpenClaw Gateway Token / 网关访问令牌"
-          echo "=========================================="
-          echo ""
-          echo "  Token: $TOKEN"
-          echo ""
-          echo "=========================================="
-          echo ""
-          echo "  URL: http://localhost:18789"
-          echo ""
-        fi
+        echo ""
+        echo "=========================================="
+        echo "  OpenClaw / 访问地址"
+        echo "=========================================="
+        echo ""
+        echo "  URL: http://localhost:18789"
+        echo ""
+        echo "  Gateway is bound to loopback — no token required."
+        echo "  网关仅绑定本机回环地址，无需访问令牌。"
+        echo ""
       timeout: 30
-
       name_i18n:
-        zh: 显示网关访问令牌
+        zh: 显示访问地址
 
 pre_checks:
   - type: disk_space
@@ -175,7 +272,7 @@ post_deployment:
   browser_url: "http://localhost:18789"
 
 name_i18n:
-  zh: reComputer R（本机或远程）
+  zh: reComputer R1100 系列（本机或远程）
 
 remote_overrides:
   remote_path: /home/{{username}}/openclaw_recomputer_r
@@ -254,11 +351,11 @@ remote_overrides:
       - name: Initialize OpenClaw config
         run: |
           set -e
-          VOL="openclaw_openclaw-config"
+          VOL="openclaw_recomputer_r_openclaw-config"
           docker volume create "$VOL" 2>/dev/null || true
-          WS_VOL="openclaw_openclaw-workspace"
+          WS_VOL="openclaw_recomputer_r_openclaw-workspace"
           docker volume create "$WS_VOL" 2>/dev/null || true
-          docker run --rm --network none -v "$VOL":/data -v "$WS_VOL":/ws alpine sh -c '
+          docker run --rm --network none -v "$VOL":/data -v "$WS_VOL":/ws ${DOCKER_REGISTRY_PREFIX}library/alpine sh -c '
             chown 1000:1000 /data /ws
             if [ ! -f /data/openclaw.json ]; then
               cat > /data/openclaw.json <<VOLCFG
@@ -273,6 +370,44 @@ remote_overrides:
 
         name_i18n:
           zh: 初始化 OpenClaw 配置
+    after_upload:
+      - name: Generate gateway access token
+        run: |
+          set -e
+          # The upstream image refuses to bind anything wider than loopback
+          # without a token, and — unlike the third-party image this solution
+          # used before — it does NOT write one into its own config. It only
+          # accepts OPENCLAW_GATEWAY_TOKEN / --token, so the token has to come
+          # from compose interpolation, i.e. an .env beside the compose file.
+          #
+          # Locate that file rather than hardcoding the layout: the deployer
+          # decides where compose_dir lands under remote_path.
+          BASE="/home/{{username}}/openclaw_recomputer_r"
+          COMPOSE=$(find "$BASE" -maxdepth 2 -name docker-compose.yml 2>/dev/null | head -1)
+          if [ -z "$COMPOSE" ]; then
+            echo "ERROR: could not locate docker-compose.yml under $BASE"
+            exit 1
+          fi
+          ENV_FILE="$(dirname "$COMPOSE")/.env"
+
+          # Reuse an existing token so a redeploy doesn't invalidate the one
+          # the user already pasted into the control UI.
+          if [ -f "$ENV_FILE" ] && grep -q '^OPENCLAW_GATEWAY_TOKEN=.\+$' "$ENV_FILE"; then
+            echo "Reusing existing gateway token from $ENV_FILE"
+            exit 0
+          fi
+
+          TOKEN=$(head -c 24 /dev/urandom | od -An -tx1 | tr -d ' \n')
+          if [ -z "$TOKEN" ]; then
+            echo "ERROR: failed to generate a gateway token"
+            exit 1
+          fi
+          umask 077
+          printf 'OPENCLAW_GATEWAY_TOKEN=%s\n' "$TOKEN" > "$ENV_FILE"
+          echo "Generated a new gateway token in $ENV_FILE"
+        timeout: 30
+        name_i18n:
+          zh: 生成网关访问令牌
     after:
       - name: Enable execution permissions
         run: |
@@ -308,6 +443,43 @@ remote_overrides:
 
         name_i18n:
           zh: 启用执行权限
+      # The .env token only reaches the gateway process as an environment
+      # variable. A config volume carried over from an older deployment can
+      # still hold a gateway.auth.token of its own — the third-party image this
+      # solution used before wrote one — and that stale value wins, so the CLI
+      # authenticates with the .env token and is rejected by the config's. The
+      # symptom is a bare "unauthorized: gateway token mismatch" followed by a
+      # silent fall back to the embedded agent. Fresh installs never hit it;
+      # upgrades always do.
+      - name: Align gateway token in config
+        run: |
+          set -e
+          docker exec openclaw-gateway node -e '
+            const fs = require("fs");
+            const p = "/home/node/.openclaw/openclaw.json";
+            const tok = process.env.OPENCLAW_GATEWAY_TOKEN;
+            if (!tok) {
+              console.error("ERROR: container has no OPENCLAW_GATEWAY_TOKEN");
+              process.exit(1);
+            }
+            const cfg = JSON.parse(fs.readFileSync(p, "utf8"));
+            cfg.gateway = cfg.gateway || {};
+            cfg.gateway.auth = cfg.gateway.auth || {};
+            cfg.gateway.remote = cfg.gateway.remote || {};
+            if (cfg.gateway.auth.token === tok && cfg.gateway.remote.token === tok) {
+              console.log("Gateway token already aligned");
+            } else {
+              cfg.gateway.auth.mode = "token";
+              cfg.gateway.auth.token = tok;
+              cfg.gateway.remote.token = tok;
+              fs.writeFileSync(p, JSON.stringify(cfg, null, 2));
+              console.log("Aligned gateway.auth.token and gateway.remote.token with the deployment token");
+            }
+          '
+        timeout: 30
+
+        name_i18n:
+          zh: 对齐网关令牌配置
       - name: Restart OpenClaw to apply configuration
         run: |
           set -e
@@ -326,28 +498,27 @@ remote_overrides:
 
         name_i18n:
           zh: 重启 OpenClaw 使配置生效
-      - name: Display gateway access token
+      - name: Show where the gateway token is stored
         run: |
           set -e
-          TOKEN=$(docker exec openclaw-gateway node -e '
-            const fs = require("fs");
-            const p = "/home/node/.openclaw/openclaw.json";
-            const cfg = JSON.parse(fs.readFileSync(p, "utf8"));
-            const token = cfg.gateway && cfg.gateway.auth && cfg.gateway.auth.token;
-            if (token) process.stdout.write(token);
-            else process.stdout.write("NOT_FOUND");
-          ')
-          if [ "$TOKEN" = "NOT_FOUND" ]; then
-            echo "WARNING: Could not read gateway token from config"
+          # The token is a credential: do not echo it into the deployment log.
+          # Point to the file (mode 600) that holds it instead.
+          BASE="/home/{{username}}/openclaw_recomputer_r"
+          COMPOSE=$(find "$BASE" -maxdepth 2 -name docker-compose.yml 2>/dev/null | head -1)
+          ENV_FILE=""
+          [ -n "$COMPOSE" ] && ENV_FILE="$(dirname "$COMPOSE")/.env"
+
+          if [ -z "$ENV_FILE" ] || ! grep -q '^OPENCLAW_GATEWAY_TOKEN=.\+$' "$ENV_FILE" 2>/dev/null; then
+            echo "WARNING: Could not find the gateway token under $BASE"
           else
             echo ""
             echo "=========================================="
             echo "  OpenClaw Gateway Token / 网关访问令牌"
             echo "=========================================="
             echo ""
-            echo "  Token: $TOKEN"
-            echo ""
-            echo "=========================================="
+            echo "  The token is not printed in this log."
+            echo "  Token 未输出到日志。On the device run / 在设备上执行:"
+            echo "    grep OPENCLAW_GATEWAY_TOKEN $ENV_FILE"
             echo ""
             echo "  URL: http://{{host}}:18789"
             echo ""
@@ -355,6 +526,6 @@ remote_overrides:
         timeout: 30
 
         name_i18n:
-          zh: 显示网关访问令牌
+          zh: 提示网关访问令牌的位置
   post_deployment:
     open_browser: false

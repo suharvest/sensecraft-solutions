@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from solutionctl.commands import validate
+from sensecraft_solution_spec.markdown_parser import parse_single_language_guide
 
 # Repo root: packages/solutionctl/tests/test_validate.py -> up 3 levels.
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -203,6 +204,65 @@ def test_validate_direction_word_target_name_fails(tmp_path, capsys):
     assert "'Local'" in err
 
 
+def _multi_target_guide(targets: str) -> str:
+    return (
+        "## Preset: Demo {#default}\n\n"
+        "## Step 1: Verify {#check type=web_dashboard required=true}\n\n"
+        "Open the dashboard.\n\n"
+        "## Step 2: Deploy {#deploy type=docker_deploy required=true}\n\n"
+        "Deploy the service.\n\n"
+        f"{targets}"
+    )
+
+
+def test_validate_rejects_multi_remote_targets_without_device_grouping(tmp_path, capsys):
+    """Three remote cards must not silently bypass the device dropdown contract."""
+    base = tmp_path / "ungrouped_targets"
+    guide = _multi_target_guide(
+        "### Target {#rk3576 type=remote}\n\nRK3576.\n\n"
+        "### Target {#rk3588 type=remote}\n\nRK3588.\n\n"
+        "### Target {#jetson type=remote}\n\nJetson.\n"
+    )
+    _write_solution(base, guide)
+
+    rc = validate.run(str(base), spec_dir=str(SPEC_DIR))
+
+    assert rc == 1
+    err = capsys.readouterr().err
+    assert "omit `device=`" in err
+    assert "one method card with a device dropdown" in err
+
+
+def test_validate_rejects_duplicate_device_group(tmp_path, capsys):
+    """Two targets sharing one device id would make an ambiguous dropdown."""
+    base = tmp_path / "duplicate_device_targets"
+    guide = _multi_target_guide(
+        "### Target {#first type=remote device=rk3576}\n\nFirst.\n\n"
+        "### Target {#second type=remote device=rk3576}\n\nSecond.\n"
+    )
+    _write_solution(base, guide)
+
+    rc = validate.run(str(base), spec_dir=str(SPEC_DIR))
+
+    assert rc == 1
+    err = capsys.readouterr().err
+    assert "duplicate device groups" in err
+    assert "'rk3576'" in err
+
+
+def test_device_aware_grouping_accepts_local_remote_dropdown_shape():
+    """The intended Local + Remote-with-device-options shape remains valid."""
+    guide = _multi_target_guide(
+        "### Target {#local type=local device=jetson}\n\nLocal.\n\n"
+        "### Target {#rk3576 type=remote device=rk3576}\n\nRK3576.\n\n"
+        "### Target {#jetson type=remote device=jetson}\n\nJetson.\n"
+    )
+    result = parse_single_language_guide(guide, "en")
+
+    assert result.errors == []
+    assert validate._check_device_aware_target_grouping(result, "guide.md", "en") == []
+
+
 def test_validate_en_zh_mismatch_fails(tmp_path, capsys):
     """EN and ZH guides with mismatched structure fail with exit 1."""
     base = tmp_path / "en_zh_mismatch"
@@ -366,3 +426,416 @@ def test_validate_non_namespaced_unknown_type_still_errors(tmp_path, capsys):
     err = capsys.readouterr().err
     assert "totally_bogus" in err
     assert "Invalid step type" in err
+
+
+# --- action image-reference lint ------------------------------------------ #
+
+# The exact shape that shipped broken: the image sits on a `docker run` line
+# that ends in `sh -c '`, with the quoted body spanning many lines. Any
+# tokenizer that splits on newlines before tracking quotes drops this one.
+_OPENCLAW_ACTION = """\
+set -e
+VOL="openclaw_openclaw-config"
+docker volume create "$VOL" 2>/dev/null || true
+WS_VOL="openclaw_openclaw-workspace"
+docker run --rm --network none -v "$VOL":/data -v "$WS_VOL":/ws alpine sh -c '
+  chown 1000:1000 /data /ws
+  if [ ! -f /data/openclaw.json ]; then
+    cat > /data/openclaw.json <<VOLCFG
+{"gateway":{"controlUi":{"dangerouslyAllowHostHeaderOriginFallback":true}}}
+VOLCFG
+    echo "Initial config written"
+  fi
+'
+"""
+
+
+def _device_with_action(script: str) -> dict:
+    return {"actions": {"before": [{"name": "step", "run": script}]}}
+
+
+def test_action_image_without_mirror_prefix_errors():
+    errors = validate._check_action_image_refs(
+        _device_with_action(_OPENCLAW_ACTION), "devices/d.yaml"
+    )
+    assert len(errors) == 1
+    assert "'alpine'" in errors[0]
+    assert "DOCKER_REGISTRY_PREFIX" in errors[0]
+    assert "library/alpine" in errors[0]
+
+
+def test_action_image_with_mirror_prefix_passes():
+    fixed = _OPENCLAW_ACTION.replace(
+        " alpine ", " ${DOCKER_REGISTRY_PREFIX}library/alpine "
+    )
+    assert validate._check_action_image_refs(_device_with_action(fixed), "d") == []
+
+
+def test_mirror_prefixed_bare_official_image_errors():
+    # docker.m.daocloud.io/alpine is not docker.m.daocloud.io/library/alpine:
+    # the implicit library/ namespace is only added for Docker Hub itself.
+    bare = _OPENCLAW_ACTION.replace(" alpine ", " ${DOCKER_REGISTRY_PREFIX}alpine ")
+    errors = validate._check_action_image_refs(_device_with_action(bare), "d")
+    assert len(errors) == 1
+    assert "library/alpine" in errors[0]
+
+
+def test_variable_named_like_mirror_prefix_is_not_treated_as_prefix():
+    # $DOCKER_REGISTRY_PREFIXED_IMAGE is its own variable holding a full
+    # reference; it must not be read as the prefix followed by "ED_IMAGE".
+    for ref in ("${DOCKER_REGISTRY_PREFIXED_IMAGE}", "$DOCKER_REGISTRY_PREFIXED_IMAGE"):
+        script = f"docker run --rm {ref} true\n"
+        assert validate._check_action_image_refs(_device_with_action(script), "d") == [], ref
+
+
+def test_mirror_prefixed_namespaced_image_passes():
+    script = "docker pull ${DOCKER_REGISTRY_PREFIX}ollama/ollama:0.32.5\n"
+    assert validate._check_action_image_refs(_device_with_action(script), "d") == []
+
+
+def test_private_registry_image_is_not_flagged():
+    # The mirror only fronts Docker Hub; prefixing a self-hosted registry
+    # would break the pull.
+    script = (
+        "docker run --rm --privileged \\\n"
+        "  -v /dev/bus/usb:/dev/bus/usb \\\n"
+        "  sensecraft-missionpack.seeed.cn/solution/voice-client:v0.4 \\\n"
+        "  python3 -c 'print(1)'\n"
+    )
+    assert validate._check_action_image_refs(_device_with_action(script), "d") == []
+    assert validate._extract_docker_images(script) == [
+        "sensecraft-missionpack.seeed.cn/solution/voice-client:v0.4"
+    ]
+
+
+def test_variable_image_reference_is_not_flagged():
+    script = "docker pull $IMAGE\ndocker run --rm ${IMG}:${TAG} sh\n"
+    assert validate._check_action_image_refs(_device_with_action(script), "d") == []
+
+
+def test_flag_values_are_not_mistaken_for_images():
+    # `none` (value of --network) and `mlc:/data` (value of -v) must not be
+    # reported as the image.
+    script = "docker run --rm --network none -v mlc:/data -e A=B alpine sh\n"
+    assert validate._extract_docker_images(script) == ["alpine"]
+
+
+def test_docker_pull_form_is_checked():
+    errors = validate._check_action_image_refs(
+        _device_with_action("docker pull redis:7-alpine\n"), "devices/d.yaml"
+    )
+    assert len(errors) == 1
+    assert "'redis:7-alpine'" in errors[0]
+
+
+def test_non_docker_commands_are_ignored():
+    script = "echo 'docker run something' > /tmp/doc.txt\ndockerize --rm foo\n"
+    assert validate._extract_docker_images(script) == []
+
+
+def test_shipped_solutions_have_no_unprefixed_hub_images():
+    """Corpus guard: every device YAML in the repo must already comply."""
+    import yaml
+
+    findings = []
+    for dev in sorted((REPO_ROOT / "solutions").glob("*/devices/*.yaml")):
+        data = yaml.safe_load(dev.read_text(encoding="utf-8"))
+        findings += validate._check_action_image_refs(
+            data, f"{dev.parent.parent.name}/{dev.name}"
+        )
+    assert findings == []
+
+
+# ---------------------------------------------------------------------------
+# Cross-step placeholder check
+# ---------------------------------------------------------------------------
+
+_DEPLOYERS = {
+    "docker_deploy": {"category": "deploy"},
+    "manual": {"category": "deploy"},
+    "video_stream": {"category": "verify"},
+    "web_dashboard": {"category": "verify"},
+    "recamera_cpp": {"category": "deploy"},
+    "robot_inspect": {"category": "verify"},
+}
+
+
+def _placeholder_errors(tmp_path: Path, steps: str, devices: dict[str, str]):
+    guide = "## Preset: Default {#default}\n\n" + steps
+    (tmp_path / "devices").mkdir(exist_ok=True)
+    for name, body in devices.items():
+        (tmp_path / "devices" / name).write_text(body, encoding="utf-8")
+    from sensecraft_solution_spec import markdown_parser as mp
+
+    mp.register_step_type_provider(lambda: set(_DEPLOYERS))
+    result = parse_single_language_guide(guide, "en")
+    assert result.errors == []
+    return validate._check_placeholders(result, "guide.md", tmp_path, _DEPLOYERS)
+
+
+_DEPLOY_STEP = (
+    "## Step 1: Deploy {#deploy_onvif type=docker_deploy required=true "
+    "config=devices/deploy.yaml}\n\nDeploy.\n\n"
+)
+_PREVIEW_STEP = (
+    "## Step 2: Preview {#preview type=video_stream required=false "
+    "config=devices/preview.yaml}\n\nPreview.\n\n"
+)
+_DEPLOY_YAML = (
+    'version: "1.0"\nid: onvif_stack\nname: D\ntype: docker_deploy\n'
+    "user_inputs:\n  - id: camera_ip\n    name: IP\n    type: text\n"
+)
+
+
+def _preview_yaml(extra: str, url: str) -> str:
+    return (
+        'version: "1.0"\nid: preview\nname: P\ntype: video_stream\n'
+        f"{extra}video:\n  type: rtsp_proxy\n  rtsp_url_template: \"{url}\"\n"
+    )
+
+
+def test_placeholder_deploy_host_with_upstream_passes(tmp_path):
+    errors = _placeholder_errors(
+        tmp_path,
+        _DEPLOY_STEP + _PREVIEW_STEP,
+        {
+            "deploy.yaml": _DEPLOY_YAML,
+            "preview.yaml": _preview_yaml(
+                "inherit_host_from: deploy_onvif\n",
+                "rtsp://{{deploy.host}}:8554/{{deploy.camera_ip}}/{{camera_ip}}"
+                "/{{deploy_onvif.camera_ip}}/{{host}}",
+            ),
+        },
+    )
+    assert errors == []
+
+
+def test_placeholder_deploy_host_without_upstream_errors(tmp_path):
+    errors = _placeholder_errors(
+        tmp_path,
+        _PREVIEW_STEP,
+        {"preview.yaml": _preview_yaml("", "rtsp://{{deploy.host}}:8554/live0")},
+    )
+    assert len(errors) == 1
+    assert "video.rtsp_url_template" in errors[0]
+    assert "{{deploy.host}}" in errors[0]
+    assert "devices/preview.yaml" in errors[0]
+
+
+def test_placeholder_inherit_host_from_wrong_step_errors(tmp_path):
+    errors = _placeholder_errors(
+        tmp_path,
+        _DEPLOY_STEP + _PREVIEW_STEP,
+        {
+            "deploy.yaml": _DEPLOY_YAML,
+            "preview.yaml": _preview_yaml(
+                "inherit_host_from: nowhere\n", "rtsp://{{deploy.host}}:8554/live0"
+            ),
+        },
+    )
+    assert any(
+        "inherit_host_from 'nowhere'" in e and "'deploy_onvif': ['onvif_stack']" in e
+        for e in errors
+    )
+    assert any("{{deploy.host}}" in e for e in errors)
+
+
+def test_placeholder_inherit_host_from_later_step_errors(tmp_path):
+    later_deploy = _DEPLOY_STEP.replace("Step 1", "Step 3")
+    errors = _placeholder_errors(
+        tmp_path,
+        _PREVIEW_STEP.replace("Step 2", "Step 1") + later_deploy,
+        {
+            "deploy.yaml": _DEPLOY_YAML,
+            "preview.yaml": _preview_yaml(
+                "inherit_host_from: deploy_onvif\n", "rtsp://{{deploy.host}}:8554/live0"
+            ),
+        },
+    )
+    assert any("inherit_host_from 'deploy_onvif'" in e for e in errors)
+
+
+def test_placeholder_unknown_field_and_step_errors(tmp_path):
+    dash = (
+        'version: "1.0"\nid: dash\nname: W\ntype: web_dashboard\n'
+        "user_inputs:\n  - id: port\n    name: Port\n    type: text\n"
+        '    default_template: "{{nope}}"\n'
+        'web_dashboard:\n  url: "http://{{deploy.bogus}}:{{ghost.host}}/"\n'
+    )
+    errors = _placeholder_errors(
+        tmp_path,
+        _DEPLOY_STEP
+        + "## Step 2: Open {#dash type=web_dashboard required=false "
+        "config=devices/dash.yaml}\n\nOpen.\n\n",
+        {"deploy.yaml": _DEPLOY_YAML, "dash.yaml": dash},
+    )
+    text = "\n".join(errors)
+    assert "user_inputs[port].default_template" in text and "{{nope}}" in text
+    assert "{{deploy.bogus}}" in text and "deploy.camera_ip" in text
+    assert "{{ghost.host}}" in text
+    assert len(errors) == 3
+
+
+def test_placeholder_out_of_scope_fields_ignored(tmp_path):
+    body = (
+        'version: "1.0"\nid: deploy\nname: D\ntype: docker_deploy\n'
+        "post_deployment:\n  open_browser:\n"
+        '    - url: "http://{{undefined_thing}}:1/"\n'
+    )
+    errors = _placeholder_errors(tmp_path, _DEPLOY_STEP, {"deploy.yaml": body})
+    assert errors == []
+
+
+def test_rtsp_preview_regression_deploy_host_without_upstream(tmp_path, capsys):
+    """The recamera_onvif_nvr incident: {{deploy.host}} with no resolvable upstream."""
+    import shutil
+
+    src = REPO_ROOT / "solutions" / "recamera_onvif_nvr"
+    dst = tmp_path / "recamera_onvif_nvr"
+    shutil.copytree(src, dst)
+    preview = dst / "devices" / "rtsp_preview.yaml"
+    preview.write_text(
+        preview.read_text(encoding="utf-8")
+        .replace("{{host}}", "{{deploy.host}}")
+        .replace("inherit_host_from: deploy_onvif", "inherit_host_from: deploy_typo"),
+        encoding="utf-8",
+    )
+    rc = validate.run(str(dst), spec_dir=str(SPEC_DIR))
+    err = capsys.readouterr().err
+    assert rc == 1
+    assert "inherit_host_from 'deploy_typo'" in err
+    assert "{{deploy.host}}" in err
+
+
+def test_placeholder_non_docker_upstream_requires_inherit(tmp_path):
+    step = _DEPLOY_STEP.replace("type=docker_deploy", "type=recamera_cpp")
+    base = {"deploy.yaml": _DEPLOY_YAML}
+    errors = _placeholder_errors(
+        tmp_path,
+        step + _PREVIEW_STEP,
+        {**base, "preview.yaml": _preview_yaml("", "rtsp://{{deploy.host}}:8554/live0")},
+    )
+    assert len(errors) == 1 and "inherit_host_from" in errors[0]
+    assert "deploy_onvif" in errors[0]
+    errors = _placeholder_errors(
+        tmp_path,
+        step + _PREVIEW_STEP,
+        {
+            **base,
+            "preview.yaml": _preview_yaml(
+                "inherit_host_from: deploy_onvif\n", "rtsp://{{deploy.host}}:8554/live0"
+            ),
+        },
+    )
+    assert errors == []
+
+
+def test_placeholder_preview_default_template_scope(tmp_path):
+    preview = (
+        'version: "1.0"\nid: preview\nname: P\ntype: video_stream\n'
+        "user_inputs:\n  - id: rtsp_url\n    name: U\n    type: text\n"
+        '    default_template: "rtsp://{{host}}/{{camera_ip}}/{{rtsp_url}}/{{deploy_onvif.camera_ip}}"\n'
+    )
+    errors = _placeholder_errors(
+        tmp_path,
+        _DEPLOY_STEP + _PREVIEW_STEP,
+        {"deploy.yaml": _DEPLOY_YAML, "preview.yaml": preview},
+    )
+    text = "\n".join(errors)
+    assert len(errors) == 2
+    assert "{{rtsp_url}}" in text and "{{deploy_onvif.camera_ip}}" in text
+
+
+def test_placeholder_robot_inspect_observation_port_allowed(tmp_path):
+    arm = (
+        'version: "1.0"\nid: arm\nname: A\ntype: robot_inspect\n'
+        "inherit_host_from: deploy_onvif\nrobot_inspect:\n"
+        '  endpoint: "http://{{deploy.host}}:{{deploy.observation_port}}/observation"\n'
+    )
+    errors = _placeholder_errors(
+        tmp_path,
+        _DEPLOY_STEP
+        + "## Step 2: Arm {#arm type=robot_inspect required=false "
+        "config=devices/arm.yaml}\n\nArm.\n\n",
+        {"deploy.yaml": _DEPLOY_YAML, "arm.yaml": arm},
+    )
+    assert errors == []
+
+
+def test_inherit_host_from_step_id_match(tmp_path):
+    errors = _placeholder_errors(
+        tmp_path,
+        _DEPLOY_STEP + _PREVIEW_STEP,
+        {
+            "deploy.yaml": _DEPLOY_YAML,
+            "preview.yaml": _preview_yaml(
+                "inherit_host_from: deploy_onvif\n", "rtsp://{{deploy.camera_ip}}/x"
+            ),
+        },
+    )
+    assert errors == []
+
+
+def test_inherit_host_from_device_id_match(tmp_path):
+    """Top-level YAML id (onvif_stack), not the file name (deploy.yaml)."""
+    step = _DEPLOY_STEP.replace("type=docker_deploy", "type=recamera_cpp")
+    ok = _placeholder_errors(
+        tmp_path,
+        step + _PREVIEW_STEP,
+        {
+            "deploy.yaml": _DEPLOY_YAML,
+            "preview.yaml": _preview_yaml(
+                "inherit_host_from: onvif_stack\n",
+                "rtsp://{{deploy.host}}/{{deploy.camera_ip}}",
+            ),
+        },
+    )
+    assert ok == []
+    by_filename = _placeholder_errors(
+        tmp_path,
+        step + _PREVIEW_STEP,
+        {
+            "deploy.yaml": _DEPLOY_YAML,
+            "preview.yaml": _preview_yaml(
+                "inherit_host_from: deploy\n", "rtsp://{{deploy.host}}/x"
+            ),
+        },
+    )
+    assert any("inherit_host_from 'deploy'" in e for e in by_filename)
+
+
+def test_inherit_host_from_ambiguous_device_id_errors(tmp_path):
+    second = (
+        "## Step 2: Deploy again {#deploy_again type=docker_deploy required=true "
+        "config=devices/deploy2.yaml}\n\nAgain.\n\n"
+    )
+    errors = _placeholder_errors(
+        tmp_path,
+        _DEPLOY_STEP + second + _PREVIEW_STEP.replace("Step 2", "Step 3"),
+        {
+            "deploy.yaml": _DEPLOY_YAML,
+            "deploy2.yaml": _DEPLOY_YAML,
+            "preview.yaml": _preview_yaml(
+                "inherit_host_from: onvif_stack\n", "rtsp://{{deploy.host}}/x"
+            ),
+        },
+    )
+    text = "\n".join(errors)
+    assert "ambiguous" in text
+    assert "['deploy_onvif', 'deploy_again']" in text
+
+
+def test_inherit_host_from_later_step_device_id_not_counted(tmp_path):
+    later = _DEPLOY_STEP.replace("Step 1", "Step 3")
+    errors = _placeholder_errors(
+        tmp_path,
+        _PREVIEW_STEP.replace("Step 2", "Step 1") + later,
+        {
+            "deploy.yaml": _DEPLOY_YAML,
+            "preview.yaml": _preview_yaml(
+                "inherit_host_from: onvif_stack\n", "rtsp://{{deploy.host}}/x"
+            ),
+        },
+    )
+    assert any("inherit_host_from 'onvif_stack'" in e for e in errors)
+    assert any("{{deploy.host}}" in e for e in errors)

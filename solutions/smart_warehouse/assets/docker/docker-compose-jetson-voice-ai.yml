@@ -1,0 +1,111 @@
+# Jetson Orin NX 语音 AI 栈：OpenVoiceStream（ASR + TTS + 声纹）+ EdgeLLM（对话大模型）
+#
+# 取自 openvoicestream 仓库的两份已验证 compose：
+#   deploy/docker-compose.edgellm-v091-voice.yml    → speech
+#   deploy/docker-compose.edgellm-v091-cutover.yml  → edge-llm
+# 镜像 tag、环境变量、挂载路径全部照搬，**不要自行调整** —— 其中的 TensorRT 库
+# 路径、引擎 commit 校验、KV cache 尺寸都与镜像内的引擎产物强绑定，改任何一项
+# 都会导致启动失败或推理崩溃。上游 build: 段已移除（它引用 OVS 仓库的构建上下文，
+# 本方案只拉预构建镜像）。
+#
+# 端口：speech 8621（容器内 8000）、edge-llm 8000
+# 两者都要求 NVIDIA container runtime。
+
+services:
+  # ASR + TTS + 声纹，同一进程同一端口（OpenVoiceStream v0.11: Qwen3-ASR IFB B2 + Matcha zh/en TRT TTS）
+  speech:
+    container_name: seeed-voice-v011
+    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/seeed-local-voice:v0.11.0-candidate-voice-dfd6aae}
+    runtime: nvidia
+    ipc: host
+    restart: unless-stopped
+    environment:
+      HF_ENDPOINT: ${HF_ENDPOINT:-https://hf-mirror.com}
+      LANGUAGE_MODE: multilanguage
+      OVS_PROFILE: ${OVS_PROFILE:-jetson-edgellm-v011-matcha}
+      OVS_PROFILE_JSON: ${OVS_PROFILE_JSON:-/opt/voice-profile/${OVS_PROFILE:-jetson-edgellm-v011-matcha}.json}
+      OVS_AUTO_DOWNLOAD_ARTIFACTS: "1"
+      HF_MODEL_CACHE_ROOT: /opt/models
+      HF_HOME: /opt/models/huggingface
+      HUGGINGFACE_HUB_CACHE: /opt/models/huggingface/hub
+      TRANSFORMERS_CACHE: /opt/models/huggingface/transformers
+      TTS_PROVIDER: cuda
+      STREAMING_ASR_PROVIDER: cuda
+      OVS_TTS_SPEAKERS_FILE: /opt/seeed-local-voice/data/speakers.json
+      SPARKTTS_VOICES_DIR: /opt/seeed-local-voice/data/sparktts_voices
+      CUDA_MODULE_LOADING: LAZY
+      OVS_RELEASE_STATE: candidate_unpublished
+      PYTHONPATH: /opt/speech:/usr/lib/python3.10/dist-packages
+      LD_LIBRARY_PATH: /usr/local/lib/python3.10/dist-packages/onnxruntime/capi:/host-cuda:/host-nvidia-libs:/host-libs
+    ports:
+      - "${OVS_PORT:-8621}:8000"
+    volumes:
+      - ${OVS_PROFILES_DIR:-./profiles}:/opt/voice-profile:ro
+      - /usr/lib/python3.10/dist-packages/tensorrt:/usr/lib/python3.10/dist-packages/tensorrt:ro
+      - /usr/src/tensorrt:/usr/src/tensorrt:ro
+      - speech-models-v011:/opt/models
+      - seeed-local-voice-data:/opt/seeed-local-voice/data
+      - /usr/local/cuda/lib64:/host-cuda:ro
+      - /usr/lib/aarch64-linux-gnu/nvidia:/host-nvidia-libs:ro
+      - /lib/aarch64-linux-gnu:/host-libs:ro
+      - /etc/nv_tegra_release:/etc/nv_tegra_release:ro
+    mem_limit: 8g
+    memswap_limit: 14g
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8000/readyz >/dev/null"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      # 首次启动要下载模型权重，15 分钟宽限期是上游实测值，别调小
+      start_period: 15m
+
+  # 对话大模型，OpenAI 兼容接口
+  edge-llm:
+    container_name: edge-llm-chat-service-v091
+    image: ${EDGE_LLM_IMAGE:-sensecraft-missionpack.seeed.cn/solution/edge-llm-chat-service:v0.9.1-gdn-mtp-kvcache-20260808-v1}
+    runtime: nvidia
+    privileged: true
+    ipc: host
+    restart: unless-stopped
+    shm_size: "512m"
+    environment:
+      EDGELLM_MODEL_PROFILE: qwen35-4b-gdn-mtp
+      EDGELLM_MODEL_NAME: Qwen/Qwen3.5-4B
+      EDGELLM_ENGINE_PROFILE: 8k
+      EDGELLM_ENGINE_DIR: /workspace/models/qwen3.5-4b-gdn-mtp-8k
+      EDGELLM_SPEC_DECODE_ENGINE_DIR: ""
+      EDGELLM_EXPECTED_TENSORRT: 10.3.0.30
+      EDGELLM_EXPECTED_ENGINE_COMMIT: 7f061f21f0a581ba234a1e233c9315b89d8e47d6
+      EDGELLM_EXPECTED_MAX_INPUT_LEN: "8192"
+      EDGELLM_EXPECTED_MAX_KV_CACHE_CAPACITY: "8192"
+      EDGELLM_MAX_INPUT_TOKENS: "8192"
+      EDGELLM_MAX_CONTEXT_TOKENS: "8192"
+      EDGELLM_SPECULATIVE_TOKEN_SLACK: "128"
+      EDGELLM_DRAFT_TOP_K: "1"
+      EDGELLM_DRAFT_STEP: "3"
+      EDGELLM_VERIFY_TREE_SIZE: "4"
+      EDGELLM_ENGINE_REPO: harvestsu/qwen3.5-4b-gdn-mtp-jetson-artifacts
+      EDGELLM_ENGINE_REVISION: ${EDGELLM_8K_ENGINE_REVISION:-adb1c78fb61513e2d7d8e7f889f6196dbefb1e5e}
+      EDGELLM_EXPECTED_PAYLOAD_SHA256: 9208e46d61a4f1440ac68a312e35dde3d04b88edf0e4ee12b32210e7190d3325
+      HF_ENDPOINT: ${HF_ENDPOINT:-https://hf-mirror.com}
+      EDGELLM_SKIP_ENGINE_PROVENANCE_CHECK: "0"
+      PORT: "8000"
+      WARMUP_TIMEOUT: "300"
+      WARMUP_INFERENCE_TIMEOUT: "300"
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      - edge-llm-models-v091:/workspace/models
+      - /usr/local/cuda/lib64:/host-cuda:ro
+      - /usr/local/cuda/targets/aarch64-linux/lib:/host-cudla:ro
+      - /usr/lib/aarch64-linux-gnu/nvidia:/host-nvidia-libs:ro
+      - /lib/aarch64-linux-gnu:/host-libs:ro
+    ports:
+      - "8000:8000"
+
+volumes:
+  speech-models-v011:
+    name: ${SPEECH_MODEL_VOLUME:-speech-models-v011-candidate}
+  seeed-local-voice-data:
+    name: seeed-local-voice-data
+  edge-llm-models-v091:
+    name: edge-llm-models-v091

@@ -1,10 +1,6 @@
 ## What This Solution Does
 
-Your AI assistant is smart, but it can't "see" — it doesn't know who's talking to it.
-
-Imagine this: You come home from work, and your AI assistant recognizes your face and says "Welcome back, John! You have 3 important emails today." When guests arrive, it can tell the difference between family and strangers. In a showroom, it recognizes VIP customers and provides personalized service.
-
-This solution gives your AI assistant "eyes" and a "big screen," turning it into a true smart space butler.
+This solution adds face recognition and a display to a voice assistant, so it identifies who is speaking to it. It can greet a recognised household member by name, distinguish a registered person from an unregistered one, and look up a registered customer in a showroom.
 
 ## Core Value
 

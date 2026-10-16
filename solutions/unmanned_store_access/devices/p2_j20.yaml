@@ -1,0 +1,586 @@
+version: "1.0"
+id: p2_j20
+name: reComputer Industrial J20
+name_i18n:
+  zh: reComputer Industrial J20
+type: docker_deploy
+device_class: jetson
+
+# What has been run on hardware, and what has not.
+#
+# Verified 2026-09-08 on a reComputer J4012 (Jetson Orin NX 16 GB on a J401
+# carrier, L4T R36.4.3, TensorRT 10.3): the recognition container
+# face-rec-api:0.1.1-usa-jetson starts from the ONNX weights this file
+# downloads, builds its three TensorRT engines on the box (61 s + 62 s + 73 s),
+# answers /health with liveness "loaded" 214 s after `docker run`, and returns
+# a face box, a liveness verdict and a 512-d embedding for a frame pulled off a
+# live RTSP stream in 24-26 ms of server time. Details in unmanned-store-access
+# evaluation/runs/2026-09-08-orin-nx-b-route/results.md. 0.1.0 could not do
+# this: it shipped neither the weights nor an engine builder, and the container
+# exited on "detector engine not found".
+#
+# NOT verified: the door itself. Nothing in this file has ever driven a relay,
+# and the contact-closure numbers stay unmeasured because the test box has no
+# wire on the header — see the run record.
+#
+# Pin coordinates differ by kernel and there is no default that is right for
+# both boxes. The J20 DO numbers (sysfs 463/464/465/462 for DO1–DO4) come from
+# the design spec and have still not been confirmed on hardware. The J30/J40
+# 40-pin header has no sysfs GPIO class at all (Tegra 5.15 does not export
+# /sys/class/gpio), so those boxes drive the door through libgpiod with a
+# gpiochip + line offset; the header-to-line mapping is in unmanned-store-access
+# platforms/jetson/README.md, cross-checked against NVIDIA's own pin table and
+# the Seeed J401 carrier wiki. The deployment writes whatever the operator
+# picked; it does not guess.
+
+docker:
+  compose_file: assets/edge/docker-compose.yml
+  compose_dir: assets/edge
+  options:
+    project_name: unmanned_store_access_edge
+    remove_orphans: true
+  services:
+    - name: face-rec-api
+      port: 18080
+      required: true
+    - name: access-node
+      required: true
+
+ssh:
+  port: 22
+  default_user: recomputer
+  auth_methods:
+    - password
+  connection_timeout: 30
+  # Pulls a recognition image carrying model weights. Nothing is compiled or
+  # engine-built on the device. 1800 s is a pull budget for a multi-GB image on
+  # a slow link, not a measurement — no image has ever been pulled here.
+  command_timeout: 1800
+
+pre_checks:
+  - type: disk_space
+    min_gb: 15
+    description: The recognition image, the ONNX weights and the TensorRT engines built from them (about 50 MB together), the device image, the local library copy and a bounded audit log.
+
+deploy_timeout: 3600
+
+post_deployment:
+  open_browser: false
+
+remote_overrides:
+  remote_path: /home/{{username}}/unmanned-store-access
+  compose_dir: assets/edge
+  detection:
+    method: network_scan
+    manual_entry: true
+
+  actions:
+    before:
+      - name: Check the box, the DO pin and the clock
+        run: |
+          set -e
+          [ -f /etc/nv_tegra_release ] && head -1 /etc/nv_tegra_release || \
+            echo "NOTE: no /etc/nv_tegra_release — not a Jetson-based box. Continuing; the DO check below is what matters."
+          docker compose version >/dev/null 2>&1 || {
+            echo "The docker compose plugin is missing. Install docker-compose-plugin." >&2; exit 1; }
+
+          # Refuse to take over a pin someone else is already driving. The
+          # reCamera survey found an exported, driven pin on a supposedly idle
+          # board; the same can happen here, and silently sharing a pin means
+          # either two writers fighting or driving something that is not the
+          # door relay.
+          PIN="{{do_gpio}}"
+          if [ -d "/sys/class/gpio/gpio$PIN" ]; then
+            echo "gpio$PIN is ALREADY EXPORTED:"
+            echo "  direction=$(cat /sys/class/gpio/gpio$PIN/direction 2>/dev/null)"
+            echo "  value=$(cat /sys/class/gpio/gpio$PIN/value 2>/dev/null)"
+            echo "Another process may own this output. Confirm it is the door DO before continuing." >&2
+          else
+            echo "gpio$PIN is not exported — nothing else is driving it right now."
+          fi
+          ls /sys/class/gpio/ | tr '\n' ' '; echo
+
+          echo "device time: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+        name_i18n:
+          zh: 检查盒子、DO 引脚与时钟
+
+      - name: Download the face model weights
+        timeout: 900
+        run: |
+          set -e
+          # The recognition image ships code only. The weights are derived from
+          # InsightFace releases, whose licence is non-commercial
+          # (face_rec_api MODEL_LICENSE.md), so they are not redistributed
+          # inside the image; they land on the host and are bind mounted at
+          # /models. The TensorRT engines built from them are JetPack + SM
+          # specific and cannot be shipped either — the container's entrypoint
+          # builds them here on first start (measured on a J4012: 61 s + 62 s +
+          # 73 s, service answering /health 214 s after `docker run`; later
+          # starts reuse the cached engines).
+          ONNX_DIR=/opt/usa/models/onnx
+          sudo mkdir -p "$ONNX_DIR"
+          sudo chown -R "$(id -u):$(id -g)" /opt/usa
+          BASE=https://sensecraft-statics.seeed.cc/solution-app/unmanned_store_access/models
+          # Every file is checked against its digest. A weight that arrives
+          # truncated or replaced builds an engine that runs and returns
+          # embeddings that match nobody, which reads as "the camera is bad"
+          # rather than as a corrupted download.
+          set -- \
+            "scrfd_10g.onnx 5838f7fe053675b1c7a08b633df49e7af5495cee0493c7dcf6697200b85b5b91" \
+            "arcface_mobilefacenet.onnx 9cc6e4a75f0e2bf0b1aed94578f144d15175f357bdc05e815e5c4a02b319eb4f" \
+            "liveness_minifasnet.onnx 697572ef08e280d84ff43bf4b6fe441b27bbd831138d31351a7382d2d725e7e0"
+          for entry in "$@"; do
+            f=${entry%% *}; want=${entry##* }
+            if [ -f "$ONNX_DIR/$f" ] && [ "$(sha256sum "$ONNX_DIR/$f" | cut -d' ' -f1)" = "$want" ]; then
+              echo "$f: already present and matching"
+              continue
+            fi
+            echo "$f: downloading"
+            # A failed or aborted download leaves a .part behind. Remove it here
+            # rather than only on a digest mismatch: a truncated file that is
+            # never cleaned up gets retried against the same partial content on
+            # the next run, and the digest check below never sees it.
+            if ! curl -fsSL --retry 3 -o "$ONNX_DIR/$f.part" "$BASE/$f"; then
+              rm -f "$ONNX_DIR/$f.part"
+              echo "$f: download failed" >&2
+              exit 1
+            fi
+            got=$(sha256sum "$ONNX_DIR/$f.part" | cut -d' ' -f1)
+            [ "$got" = "$want" ] || { echo "$f: sha256 mismatch (got $got, want $want)" >&2; rm -f "$ONNX_DIR/$f.part"; exit 1; }
+            mv "$ONNX_DIR/$f.part" "$ONNX_DIR/$f"
+            echo "$f: ok"
+          done
+          ls -l "$ONNX_DIR"
+        name_i18n:
+          zh: 下载人脸模型权重
+
+    after_upload:
+      - name: Write the door configuration
+        # Passed as environment variables, not spliced into the script:
+        # a quote, $ or & in the value cannot change what runs.
+        env:
+          INPUT_RTSP_URL: "{{rtsp_url}}"
+          INPUT_FACEDB_URL: "{{facedb_url}}"
+          INPUT_FACEDB_SIGNING_KEY: "{{facedb_signing_key}}"
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/unmanned-store-access/p2_j20"
+          find "$WORKDIR" -name '._*' -delete 2>/dev/null || true
+          find "$WORKDIR" -name '.DS_Store' -delete 2>/dev/null || true
+          CONFIG="$WORKDIR/config/access-node.json"
+          python3 - "$CONFIG" <<'PY'
+          import json, os, sys
+          path = sys.argv[1]
+          with open(path) as fh:
+              cfg = json.load(fh)
+          cfg.pop("_comment", None)
+          cfg["device_id"] = "{{device_id}}"
+          act = cfg["actuator"]
+          # sysfs_gpio, not j20_do: the wizard measures and writes the concrete
+          # sysfs GPIO number (spec's DO1-4 -> 463/464/465/462 mapping is marked
+          # unconfirmed for this box), and access-node's j20_do kind wants a
+          # do_channel (1..4) it resolves through that same unconfirmed table
+          # instead of taking the measured number directly. sysfs_gpio backend
+          # sysfs only requires `gpio`, which is exactly what was measured above.
+          act["kind"] = "sysfs_gpio"
+          act["backend"] = "{{gpio_backend}}"
+          act["actuator_id"] = "{{device_id}}"
+          # Every one of these four is measured, never defaulted. A wrong
+          # relay_contact on a fail-safe lock is a permanently open door and
+          # looks exactly like a working install.
+          #
+          # Which coordinate is written depends on the backend, and the unused
+          # one is set to null rather than left at a stale value: config.py
+          # requires gpio for sysfs and both gpiochip and line for libgpiod, so
+          # a half-filled actuator block fails at parse time instead of driving
+          # a pin nobody chose.
+          #
+          # Both branches refuse an empty answer rather than letting int("")
+          # raise a ValueError with no context. The two coordinate fields are
+          # optional in the form because neither is right for both kernels, and
+          # "optional in the form" must not become "defaulted on the box".
+          if "{{gpio_backend}}" == "libgpiod":
+              line = "{{gpio_line}}".strip()
+              if not line:
+                  print("GPIO Interface is libgpiod but no line offset was given. "
+                        "Run gpioinfo on the box and pick a free line; the 40-pin "
+                        "header mapping is in the guide.")
+                  raise SystemExit(1)
+              act["gpio"] = None
+              act["gpiochip"] = "{{gpiochip}}"
+              act["line"] = int(line)
+          else:
+              gpio = "{{do_gpio}}".strip()
+              if not gpio:
+                  print("GPIO Interface is sysfs but no sysfs GPIO number was given.")
+                  raise SystemExit(1)
+              act["gpio"] = int(gpio)
+              act["gpiochip"] = None
+              act["line"] = None
+          act["active_high"] = "{{active_high}}" == "true"
+          act["pulse_ms"] = int("{{pulse_ms}}")
+          act["relay_contact"] = "{{relay_contact}}"
+          act["fail_mode"] = "{{fail_mode}}"
+          fdb = cfg["facedb"]
+          fdb["url"] = os.environ["INPUT_FACEDB_URL"]
+          fdb["signature_key"] = os.environ["INPUT_FACEDB_SIGNING_KEY"] or None
+          fdb["signature_key_id"] = "facedb-key-1"
+          fdb["poll_interval_s"] = int("{{facedb_poll_s}}")
+          mq = cfg["mqtt"]
+          mq["host"] = "{{mqtt_host}}"
+          mq["port"] = int("{{mqtt_port}}")
+          mq["tls"] = "{{mqtt_tls}}" == "true"
+          cfg["policy"]["threshold"] = float("{{threshold}}")
+          cfg.setdefault("camera", {})["rtsp_url"] = os.environ["INPUT_RTSP_URL"]
+          cfg["door_id"] = "{{door_id}}"
+          tmp = path + ".tmp"
+          with open(tmp, "w") as fh:
+              json.dump(cfg, fh, indent=2); fh.write("\n")
+          os.replace(tmp, path)
+          print(f"actuator = {act['kind']} gpio={act['gpio']} active_high={act['active_high']} "
+                f"pulse={act['pulse_ms']}ms contact={act['relay_contact']} fail={act['fail_mode']}")
+          print(f"facedb   = {fdb['url']} poll={fdb['poll_interval_s']}s signed={'yes' if fdb['signature_key'] else 'NO'}")
+          if fdb["url"].startswith("http://") and not fdb["signature_key"]:
+              print("REFUSING: a plaintext library URL with no signing key. The node will not start.")
+              raise SystemExit(1)
+          PY
+          # The compose file binds GPIO_SYSFS_DIR at /sys/class/gpio inside the
+          # container. On Tegra 5.15 that host path does not exist and the bind
+          # would fail the container outright, so a libgpiod install points it
+          # at an empty directory instead — the node does not read it, the
+          # actuator goes through the character device below.
+          if [ "{{gpio_backend}}" = "libgpiod" ]; then
+            GPIO_SYSFS_DIR="$WORKDIR/no-sysfs-gpio"
+            mkdir -p "$GPIO_SYSFS_DIR"
+            CHARDEV="/dev/{{gpiochip}}"
+            [ -e "$CHARDEV" ] || { echo "$CHARDEV does not exist on this box; check gpioinfo" >&2; exit 1; }
+          else
+            GPIO_SYSFS_DIR=/sys/class/gpio
+            # Not the gpiochip: the sysfs backend does not open it, and naming a
+            # device the host may not have fails container creation. /dev/null
+            # is the compose default and exists everywhere.
+            CHARDEV=/dev/null
+          fi
+
+          # Double-quoted with \ " $ escaped: compose reads these values
+          # literally instead of expanding ${...} inside a password.
+          dotenv_quote() { printf '%s' "$1" | sed -e 's/[\\"$]/\\&/g'; }
+          cat > "$WORKDIR/.env" <<EOF
+          FACE_REC_API_IMAGE={{face_rec_api_image}}
+          ACCESS_NODE_IMAGE={{access_node_image}}
+          MQTT_HOST={{mqtt_host}}
+          MQTT_PORT={{mqtt_port}}
+          MQTT_TLS=$([ "{{mqtt_tls}}" = "true" ] && echo 1 || echo 0)
+          DEVICE_ID={{device_id}}
+          DOOR_ID={{door_id}}
+          RTSP_URL="$(dotenv_quote "$INPUT_RTSP_URL")"
+          FACEDB_URL="$(dotenv_quote "$INPUT_FACEDB_URL")"
+          MODELS_DIR=/opt/usa/models
+          GPIO_CHARDEV=$CHARDEV
+          GPIO_SYSFS_DIR=$GPIO_SYSFS_DIR
+          EOF
+        name_i18n:
+          zh: 写入门禁配置
+
+    after:
+      - name: Confirm liveness is loaded and the node is publishing
+        timeout: 300
+        run: |
+          set -e
+          echo "--- recognition health ---"
+          for i in $(seq 1 40); do
+            curl -fsS http://127.0.0.1:18080/health && break
+            sleep 5
+          done
+          echo
+          # This is the gate that matters. Upstream degrades to "keep
+          # recognising, skip liveness" when the model file is missing; a door
+          # that does that opens to a printed photograph. The adapter refuses to
+          # start unless liveness reports as loaded — check it here too, because
+          # a container that exited on this check looks the same as one that
+          # never started.
+          curl -fsS http://127.0.0.1:18080/health | grep -q '"liveness"[[:space:]]*:[[:space:]]*"loaded"' \
+            && echo "liveness: loaded" \
+            || echo "LIVENESS IS NOT LOADED — the access node will refuse to start, and it is right to." >&2
+          echo "--- containers ---"
+          docker ps --filter name=usa- --no-trunc
+          echo "--- access node log tail ---"
+          docker logs --tail 30 usa-access-node 2>&1 || true
+        ignore_error: true
+        name_i18n:
+          zh: 确认活体已加载且节点在上报
+
+  user_inputs:
+    - id: host
+      name: J20 IP
+      type: text
+      required: true
+      placeholder: "192.168.1.60"
+      name_i18n:
+        zh: J20 IP
+    - id: username
+      name: SSH Username
+      type: text
+      default: recomputer
+      required: true
+      name_i18n:
+        zh: SSH 用户名
+    - id: password
+      name: SSH Password
+      type: password
+      required: true
+      name_i18n:
+        zh: SSH 密码
+    - id: device_id
+      name: Door / Device Name
+      type: text
+      default: "door-front"
+      required: true
+      description: Goes into the MQTT topics and into every audit record. Name it after the door, so several doors on one broker stay separable.
+      validation:
+        pattern: "^[A-Za-z0-9_-]+$"
+      name_i18n:
+        zh: 门 / 设备名称
+      description_i18n:
+        zh: 会拼进 MQTT 主题，也会写进每一条审计记录。按门命名，多道门在同一个 broker 上才分得开。
+    - id: door_id
+      name: Door ID (command topic)
+      type: text
+      default: "front"
+      required: true
+      description: Remote unlock commands address this ID.
+      validation:
+        pattern: "^[A-Za-z0-9][A-Za-z0-9_.:-]*$"
+      name_i18n:
+        zh: 门编号（指令主题）
+      description_i18n:
+        zh: 远程开门指令按这个编号寻址。
+    - id: rtsp_url
+      name: Camera RTSP URL
+      type: text
+      required: true
+      default_template: "rtsp://admin:password@192.168.1.64:554/Streaming/Channels/101"
+      placeholder: "rtsp://admin:password@192.168.1.64:554/Streaming/Channels/101"
+      description: Test this URL from the host before deploying.
+      name_i18n:
+        zh: 摄像头 RTSP 地址
+      description_i18n:
+        zh: 部署前先在主机上测通这个地址。
+    - id: face_rec_api_image
+      name: Recognition Image (digest-pinned)
+      type: text
+      required: true
+      default: "sensecraft-missionpack.seeed.cn/solution/face-rec-api@sha256:0b0f37e2b170194f3e5b0577b6cd18ef6565143b7e637bd5d0ffb383aec0d5a1"
+      placeholder: "registry.example.com/face_rec_api@sha256:<64 hex>"
+      description: Keep the default unless you run your own build.
+      name_i18n:
+        zh: 识别服务镜像（digest 锁定）
+      description_i18n:
+        zh: 保持默认值，除非使用自己的构建。
+    - id: access_node_image
+      name: Access Node Image
+      type: text
+      required: true
+      default: "sensecraft-missionpack.seeed.cn/solution/unmanned-store-access-node:0.1.1"
+      placeholder: "sensecraft-missionpack.seeed.cn/solution/unmanned-store-access-node:0.1.1"
+      description: Keep the default unless you run your own build.
+      name_i18n:
+        zh: 门禁节点镜像
+      description_i18n:
+        zh: 保持默认值，除非使用自己的构建。
+    - id: gpio_backend
+      name: GPIO Interface
+      type: select
+      required: true
+      default: "sysfs"
+      description: sysfs for J20; libgpiod for J30 / J40.
+      options:
+        - value: "sysfs"
+          label: sysfs — /sys/class/gpio (J20, and other 4.9/5.10 kernels)
+          label_i18n:
+            zh: sysfs——/sys/class/gpio（J20，以及其它 4.9/5.10 内核）
+        - value: "libgpiod"
+          label: libgpiod — /dev/gpiochipN (J30/J40, JetPack 6 / Tegra 5.15)
+          label_i18n:
+            zh: libgpiod——/dev/gpiochipN（J30/J40，JetPack 6 / Tegra 5.15）
+      name_i18n:
+        zh: GPIO 接口
+      description_i18n:
+        zh: J20 选 sysfs；J30 / J40 选 libgpiod。
+    - id: gpiochip
+      name: GPIO Chip
+      type: text
+      default: "gpiochip0"
+      required: true
+      description: libgpiod only. gpiochip0 on reComputer J30 / J40.
+      validation:
+        pattern: "^gpiochip[0-9]+$"
+      name_i18n:
+        zh: GPIO 控制器
+      description_i18n:
+        zh: 仅 libgpiod。reComputer J30 / J40 上为 gpiochip0。
+    - id: gpio_line
+      name: GPIO Line Offset
+      type: text
+      required: false
+      placeholder: "106"
+      description: libgpiod only. Line offset from the pin table in the guide (pin 31 = 106). Do not use a line `gpioinfo` marks as used.
+      validation:
+        pattern: "^[0-9]*$"
+      name_i18n:
+        zh: GPIO 线号
+      description_i18n:
+        zh: 仅 libgpiod。按部署页对照表填写 line（pin 31 = 106），不要用 `gpioinfo` 标为 used 的线。
+    - id: do_gpio
+      name: DO sysfs GPIO Number
+      type: text
+      required: false
+      placeholder: "463"
+      description: sysfs only. DO1–DO4 are expected at 463/464/465/462; confirm with a multimeter.
+      validation:
+        pattern: "^[0-9]+$"
+      name_i18n:
+        zh: DO 的 sysfs GPIO 编号
+      description_i18n:
+        zh: 仅 sysfs。DO1–DO4 预期为 463/464/465/462，用万用表确认。
+    - id: active_high
+      name: Active Level
+      type: select
+      required: true
+      description: Which level triggers the relay. Get this wrong and the door pulses at boot, when the pin is initialised.
+      options:
+        - value: "true"
+          label: Active high — 1 triggers
+          label_i18n:
+            zh: 高有效——1 触发
+        - value: "false"
+          label: Active low — 0 triggers
+          label_i18n:
+            zh: 低有效——0 触发
+      name_i18n:
+        zh: 有效电平
+      description_i18n:
+        zh: 哪个电平触发继电器。填反的话，引脚初始化时门就会被脉冲一次。
+    - id: pulse_ms
+      name: Unlock Pulse (ms)
+      type: text
+      default: "1500"
+      required: true
+      description: How long the relay stays closed, 500–5000 ms.
+      validation:
+        pattern: "^[0-9]{3,4}$"
+      name_i18n:
+        zh: 开锁脉宽（毫秒）
+      description_i18n:
+        zh: 触点闭合多久，500–5000 ms。超界的值会被拒绝而不是钳位——钳位会把配错的 10 s 悄悄变成看起来合理的 5 s。
+    - id: relay_contact
+      name: Relay Contact
+      type: select
+      required: true
+      description: NC for a lock that opens on power loss, NO for one that stays locked.
+      options:
+        - value: "NC"
+          label: COM + NC — for fail-safe magnetic locks (unlock on power loss)
+          label_i18n:
+            zh: COM + NC——用于断电即开的电磁锁
+        - value: "NO"
+          label: COM + NO — for fail-secure strikes (stay locked on power loss)
+          label_i18n:
+            zh: COM + NO——用于断电即锁的电插锁
+      name_i18n:
+        zh: 继电器触点
+      description_i18n:
+        zh: 锁接在哪个触点上。断电即开的电磁锁接到 NO 上会长期敞门，而且看起来像装好了。
+    - id: fail_mode
+      name: Fail Mode
+      type: select
+      required: true
+      description: What the installation is supposed to do when it loses power. It must match the lock you actually bought and the contact you actually wired.
+      options:
+        - value: "fail_safe"
+          label: fail_safe — door opens on power loss (egress-critical)
+          label_i18n:
+            zh: fail_safe——断电开门（疏散优先）
+        - value: "fail_secure"
+          label: fail_secure — door stays locked on power loss
+          label_i18n:
+            zh: fail_secure——断电保持锁闭
+      name_i18n:
+        zh: 失效模式
+      description_i18n:
+        zh: 断电时这套安装应当怎样。它必须与你真正买的锁、真正接的触点一致。
+    - id: threshold
+      name: Match Threshold
+      type: text
+      default: "0.62"
+      required: true
+      description: Starting value; adjust after testing on the installed camera.
+      validation:
+        pattern: "^0(\\.[0-9]+)?$"
+      name_i18n:
+        zh: 匹配阈值
+      description_i18n:
+        zh: 初始值，在装好的摄像头上测试后调整。
+    - id: facedb_url
+      name: Face Library URL
+      type: text
+      required: true
+      default_template: "http://192.168.1.50:8080"
+      placeholder: "http://192.168.1.50:8080"
+      name_i18n:
+        zh: 人脸库地址
+    - id: facedb_signing_key
+      name: Library Signing Key
+      type: password
+      required: true
+      default_template: "{{facedb_signing_key}}"
+      generate: hex32
+      name_i18n:
+        zh: 人脸库签名密钥
+    - id: facedb_poll_s
+      name: Library Poll Interval (s)
+      type: text
+      default: "30"
+      required: true
+      description: Activation latency for a new library version is essentially this number plus the download. Lowering it costs requests, not correctness.
+      validation:
+        pattern: "^[0-9]{1,4}$"
+      name_i18n:
+        zh: 人脸库轮询周期（秒）
+      description_i18n:
+        zh: 新版本人脸库的激活时延基本就是这个数字加上下载时间。调小它花的是请求数，不影响正确性。
+    - id: mqtt_host
+      name: MQTT Broker Host
+      type: text
+      required: true
+      placeholder: "192.168.1.50"
+      name_i18n:
+        zh: MQTT Broker 地址
+    - id: mqtt_port
+      name: MQTT Port
+      type: text
+      default: "1883"
+      required: true
+      validation:
+        pattern: "^[0-9]{2,5}$"
+      name_i18n:
+        zh: MQTT 端口
+    - id: mqtt_tls
+      name: MQTT TLS
+      type: select
+      default: "false"
+      required: true
+      description: The bundled broker has no TLS; use Off with it.
+      options:
+        - value: "false"
+          label: Off — bench only
+          label_i18n:
+            zh: 关闭——仅限台面测试
+        - value: "true"
+          label: On — with a broker that has certificates and per-device ACLs
+          label_i18n:
+            zh: 开启——配合有证书与按设备 ACL 的 broker
+      name_i18n:
+        zh: MQTT TLS
+      description_i18n:
+        zh: 随包 broker 不带 TLS，配合它时选关闭。

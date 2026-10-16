@@ -4,15 +4,14 @@ Deploy Z-Image-Turbo as an HTTP API on your Jetson Orin NX for local text-to-ima
 
 | Device | Purpose |
 |--------|---------|
-| NVIDIA Jetson Orin NX (16GB) | Runs Z-Image-Turbo 6B model with TensorRT BF16 acceleration |
+| NVIDIA Jetson Orin NX (16GB) | Runs the Z-Image-Turbo model |
 
 **What you'll get:**
 - One-click deployment — remote via SSH or directly on the Jetson
 - HTTP API at port 8000 for text-to-image and img2img
 - Fully offline — no cloud dependency
-- 512px generation in ~100s, 384px in ~73s
 
-**Requirements:** Jetson Orin NX 16GB with JetPack 6, NVIDIA Docker runtime, internet access (model weights and TRT engines are auto-downloaded from HuggingFace on first deploy; falls back to hf-mirror.com if huggingface.co is blocked).
+**Requirements:** Jetson Orin NX 16GB with JetPack 6, NVIDIA Docker runtime, internet access (models are downloaded automatically on first deploy).
 
 ## Step 1: Deploy Image Generation Service {#deploy_service type=docker_deploy required=true config=devices/jetson_deploy.yaml}
 
@@ -40,11 +39,10 @@ Deploy to your Jetson Orin NX over SSH with one click.
 |-------|----------|
 | SSH connection failed | Verify IP, username, password, and that SSH service is running on Jetson |
 | Docker not found | Install Docker and NVIDIA Container Toolkit on Jetson |
-| HuggingFace download fails | The script auto-falls back to `hf-mirror.com`; if both are blocked, configure a proxy on the Jetson or pre-populate `$MODEL_ROOT` manually |
+| HuggingFace download fails | The script auto-falls back to `hf-mirror.com`; if both are blocked, configure a proxy on the Jetson or place the model files in the model root path manually |
 | Download interrupted | Re-run deploy — partial files (`.part`) are discarded and only missing files are re-fetched |
 | API not responding | Check container logs: `docker logs z-image-api` |
 | Docker permission denied | Run `sudo usermod -aG docker <user>` and re-login |
-| OOM during generation | The container auto-configures cache layers based on resolution (18 for 512, 23 for 384) |
 
 ### Target {#jetson_local type=local config=devices/jetson_deploy.yaml}
 
@@ -66,7 +64,7 @@ Deploy directly on your Jetson (keyboard and monitor connected).
 | Issue | Solution |
 |-------|----------|
 | NVIDIA runtime not found | Install NVIDIA Container Toolkit: `sudo apt install nvidia-container-toolkit && sudo systemctl restart docker` |
-| HuggingFace download fails | The script auto-falls back to `hf-mirror.com`; if both are blocked, configure a proxy or pre-populate `$MODEL_ROOT` manually |
+| HuggingFace download fails | The script auto-falls back to `hf-mirror.com`; if both are blocked, configure a proxy or place the model files in the model root path manually |
 | Download interrupted | Re-run deploy — partial files (`.part`) are discarded and only missing files are re-fetched |
 | API not responding | Check container logs: `docker logs z-image-api` |
 | Port 8000 already in use | Stop other services using port 8000 |

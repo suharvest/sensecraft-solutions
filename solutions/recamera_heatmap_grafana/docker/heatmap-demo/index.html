@@ -14,7 +14,9 @@
         #heatmapContainer { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
         #floorPlan { position: absolute; top: 0; left: 0; width: 100% !important; height: 100% !important; object-fit: fill !important; z-index: 1; display: block; }
         #heatmapLayer { position: absolute; top: 0; left: 0; width: 100% !important; height: 100% !important; z-index: 2; }
-        #status { position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.7); color: #0f0; padding: 8px 12px; font-family: monospace; font-size: 13px; z-index: 3; border-radius: 6px; pointer-events: none; }
+        #topbar { position: absolute; top: 10px; left: 10px; z-index: 3; display: flex; align-items: center; gap: 8px; }
+        #status { background: rgba(0,0,0,0.7); color: #0f0; padding: 8px 12px; font-family: monospace; font-size: 13px; border-radius: 6px; pointer-events: none; }
+        #camSelect { background: rgba(0,0,0,0.7); color: #fff; border: 1px solid rgba(255,255,255,0.2); border-radius: 6px; padding: 7px 10px; font-size: 13px; max-width: 240px; }
 
         /* ---- Settings Button ---- */
         #settingsBtn {
@@ -44,6 +46,9 @@
         .cal-header h2 { font-size: 18px; color: #1a1a1a; font-weight: 600; }
         .cal-close { background: none; border: none; font-size: 22px; cursor: pointer; color: #999; padding: 4px 8px; border-radius: 4px; }
         .cal-close:hover { color: #333; background: #f1f5f9; }
+
+        .cal-row { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+        .cal-row select { flex: 1; padding: 8px 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 13px; color: #1a1a1a; background: #fff; }
 
         .cal-tip {
             background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px;
@@ -96,7 +101,10 @@
     <img id="floorPlan" src="R2.png">
     <div id="heatmapLayer"></div>
 </div>
-<div id="status">Loading config...</div>
+<div id="topbar">
+    <select id="camSelect" title="Camera / &#25668;&#20687;&#22836;"><option value="">All cameras / 全部</option></select>
+    <span id="status">Loading config...</span>
+</div>
 
 <!-- Settings Button -->
 <button id="settingsBtn" title="Calibration / &#26657;&#20934;">&#9881;</button>
@@ -107,6 +115,11 @@
         <div class="cal-header">
             <h2>Heatmap Calibration / 热力图校准</h2>
             <button class="cal-close" id="calCloseBtn">&times;</button>
+        </div>
+
+        <div class="cal-row">
+            <label class="cal-col-title" for="calTarget">Camera to calibrate / 校准哪台摄像头</label>
+            <select id="calTarget"><option value="*">All cameras (default) / 全部（默认）</option></select>
         </div>
 
         <div class="cal-tip" id="calTip">
@@ -213,12 +226,15 @@
     // ==========================================
     // 2. Server-side Config API
     // ==========================================
+    // The store holds one shared floor plan plus a calibration per camera,
+    // keyed "<device>/<stream>". Key "*" is the fallback for cameras that
+    // have none of their own.
     async function loadServerConfig() {
         try {
             const resp = await fetch('/api/config');
-            if (!resp.ok) return null;
+            if (!resp.ok) return { floorPlan: null, streams: {} };
             return await resp.json();
-        } catch { return null; }
+        } catch { return { floorPlan: null, streams: {} }; }
     }
 
     async function saveServerConfig(cfg) {
@@ -233,13 +249,17 @@
         await fetch('/api/config', { method: 'DELETE' });
     }
 
+    async function loadStreams() {
+        try {
+            const resp = await fetch('/api/streams');
+            if (!resp.ok) return [];
+            return await resp.json();
+        } catch { return []; }
+    }
+
     // ==========================================
     // 3. Constants
     // ==========================================
-    const INFLUX_URL = window.location.protocol + '//' + window.location.hostname + ':8086';
-    const INFLUX_ORG = 'seeed';
-    const INFLUX_BUCKET = 'recamera';
-    const INFLUX_TOKEN = 'recamera-heatmap-token';
     const REFRESH_INTERVAL = 3000;
     const DATA_RANGE = '-1h';
     const CAM_WIDTH = 1920;
@@ -256,8 +276,18 @@
         ]
     };
 
-    // Global — set during init
-    let transformer = null;
+    // Globals — set during init
+    let config = { floorPlan: null, streams: {} };
+    let selected = { device: '', stream: '' };   // empty = every camera
+    const transformers = {};
+
+    function transformerFor(key) {
+        if (!transformers[key]) {
+            const cal = config.streams[key] || config.streams['*'] || DEFAULT_CALIBRATION;
+            transformers[key] = new PerspectiveTransform(cal.srcPoints, cal.dstPoints);
+        }
+        return transformers[key];
+    }
 
     // ==========================================
     // 4. Heatmap Logic
@@ -292,66 +322,43 @@
     }
 
     async function fetchData() {
-        const query = `
-            from(bucket: "${INFLUX_BUCKET}")
-            |> range(start: ${DATA_RANGE})
-            |> filter(fn: (r) => r["_measurement"] == "heatmap_raw")
-            |> filter(fn: (r) => r["_field"] == "x_pct" or r["_field"] == "y_pct")
-            |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
-            |> keep(columns: ["x_pct", "y_pct"])
-        `;
+        const params = new URLSearchParams({ range: DATA_RANGE });
+        if (selected.device) params.set('device', selected.device);
+        if (selected.stream) params.set('stream', selected.stream);
         try {
-            const resp = await fetch(`${INFLUX_URL}/api/v2/query?org=${INFLUX_ORG}&nocache=${Date.now()}`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Token ${INFLUX_TOKEN}`,
-                    'Content-Type': 'application/vnd.flux',
-                    'Accept': 'application/csv'
-                },
-                body: query
-            });
-            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-            processCSV(await resp.text());
+            const resp = await fetch(`/api/points?${params}`);
+            const body = await resp.json();
+            if (!resp.ok) throw new Error(body.error || `HTTP ${resp.status}`);
+            render(body.groups || []);
         } catch (err) {
             console.error(err);
             updateStatus(`Query failed: ${err.message}`);
         }
     }
 
-    function processCSV(csv) {
-        const lines = csv.trim().split('\n');
-        if (lines.length < 2) {
-            heatmapInstance.setData({ max: 2, data: [] });
-            updateStatus(`No data (${new Date().toLocaleTimeString()})`);
-            return;
-        }
-        const header = lines[0].split(',');
-        const xi = header.findIndex(h => h.trim() === 'x_pct');
-        const yi = header.findIndex(h => h.trim() === 'y_pct');
-        if (xi === -1 || yi === -1) return;
-
+    // Each camera carries its own perspective transform onto the shared floor
+    // plan, so points are mapped per group and only then merged into one layer.
+    function render(groups) {
         const points = [];
-        for (let i = 1; i < lines.length; i++) {
-            const cols = lines[i].split(',');
-            if (cols.length <= Math.max(xi, yi)) continue;
-            const xPct = parseFloat(cols[xi]);
-            const yPct = parseFloat(cols[yi]);
-            if (isNaN(xPct) || isNaN(yPct)) continue;
-
-            const mapPt = transformer.transformPoint((xPct / 100) * CAM_WIDTH, (yPct / 100) * CAM_HEIGHT);
-            if (mapPt.x >= -50 && mapPt.x <= 150 && mapPt.y >= -50 && mapPt.y <= 150) {
-                points.push({
-                    x: Math.round((Math.max(0, Math.min(100, mapPt.x)) / 100) * containerWidth),
-                    y: Math.round((Math.max(0, Math.min(100, mapPt.y)) / 100) * containerHeight),
-                    value: 1
-                });
-            }
-        }
+        groups.forEach(g => {
+            const t = transformerFor(`${g.device}/${g.stream}`);
+            g.points.forEach(([xPct, yPct]) => {
+                const mapPt = t.transformPoint((xPct / 100) * CAM_WIDTH, (yPct / 100) * CAM_HEIGHT);
+                if (mapPt.x >= -50 && mapPt.x <= 150 && mapPt.y >= -50 && mapPt.y <= 150) {
+                    points.push({
+                        x: Math.round((Math.max(0, Math.min(100, mapPt.x)) / 100) * containerWidth),
+                        y: Math.round((Math.max(0, Math.min(100, mapPt.y)) / 100) * containerHeight),
+                        value: 1
+                    });
+                }
+            });
+        });
 
         heatmapInstance.setData({ max: 2, data: points });
+        const time = new Date().toLocaleTimeString();
         updateStatus(points.length > 0
-            ? `${points.length} points (${new Date().toLocaleTimeString()})`
-            : `No data (${new Date().toLocaleTimeString()})`);
+            ? `${points.length} points · ${groups.length} camera(s) (${time})`
+            : `No data (${time})`);
     }
 
     function updateStatus(msg) {
@@ -379,7 +386,8 @@
         const COLORS = { cam: '#ef4444', fp: '#3b82f6' };
 
         // --- Open / Close ---
-        document.getElementById('settingsBtn').addEventListener('click', () => {
+        document.getElementById('settingsBtn').addEventListener('click', async () => {
+            await fillTargetSelect();
             camImg = null; fpImg = null;
             camPts = []; fpPts = [];
             camBox.classList.remove('has-image');
@@ -389,6 +397,20 @@
             refreshUI();
             overlay.classList.add('active');
         });
+
+        async function fillTargetSelect() {
+            const sel = document.getElementById('calTarget');
+            const current = sel.value;
+            sel.innerHTML = '<option value="*">All cameras (default) / 全部（默认）</option>';
+            (await loadStreams()).forEach(st => {
+                const key = `${st.device}/${st.stream}`;
+                const opt = document.createElement('option');
+                opt.value = key;
+                opt.textContent = config.streams[key] ? `${key} ✓` : key;
+                sel.appendChild(opt);
+            });
+            if (current) sel.value = current;
+        }
 
         function close() { overlay.classList.remove('active'); }
         document.getElementById('calCloseBtn').addEventListener('click', close);
@@ -510,15 +532,19 @@
         }
 
         // --- Save (server-side) ---
+        // Calibration is stored per camera; the floor plan is shared by all of
+        // them, so the last upload wins for the background image.
         saveBtn.addEventListener('click', async () => {
             const srcPoints = camPts.map(p => ({ x: p.ix, y: p.iy }));
             const dstPoints = fpPts.map(p => ({
                 x: (p.ix / fpImg.naturalWidth) * 100,
                 y: (p.iy / fpImg.naturalHeight) * 100
             }));
-            const floorPlanImage = resizeToDataUrl(fpImg, 1200, 900, 0.75);
 
-            await saveServerConfig({ srcPoints, dstPoints, floorPlanImage });
+            config.floorPlan = resizeToDataUrl(fpImg, 1200, 900, 0.75);
+            config.streams[document.getElementById('calTarget').value] = { srcPoints, dstPoints };
+
+            await saveServerConfig(config);
             location.reload();
         });
 
@@ -541,19 +567,28 @@
     // 6. Boot — load config from server, then start
     // ==========================================
     (async function boot() {
-        const saved = await loadServerConfig();
+        config = await loadServerConfig();
 
-        const cal = saved || DEFAULT_CALIBRATION;
-        transformer = new PerspectiveTransform(cal.srcPoints, cal.dstPoints);
+        const hasCal = Object.keys(config.streams).length > 0;
+        if (hasCal) document.getElementById('settingsBtn').classList.add('has-config');
 
-        if (saved) document.getElementById('settingsBtn').classList.add('has-config');
+        // Camera picker: default is every reporting camera merged onto one plan.
+        const camSelect = document.getElementById('camSelect');
+        (await loadStreams()).forEach(st => {
+            const opt = document.createElement('option');
+            opt.value = `${st.device}/${st.stream}`;
+            opt.textContent = `${st.device} · ${st.stream}`;
+            camSelect.appendChild(opt);
+        });
+        camSelect.addEventListener('change', () => {
+            const [device, stream] = camSelect.value ? camSelect.value.split('/') : ['', ''];
+            selected = { device, stream };
+            fetchData();
+        });
 
         const floorPlan = document.getElementById('floorPlan');
+        const imgSrc = config.floorPlan || 'R2.png';
 
-        // Set floor plan image (saved or default R2.png)
-        const imgSrc = (saved && saved.floorPlanImage) ? saved.floorPlanImage : 'R2.png';
-
-        // Wait for image load, then start heatmap
         if (floorPlan.src.endsWith(imgSrc) && floorPlan.complete) {
             initHeatmap();
         } else {
@@ -563,6 +598,7 @@
 
         initCalibrationUI();
     })();
+
 </script>
 </body>
 </html>

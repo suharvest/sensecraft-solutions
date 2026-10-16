@@ -1,0 +1,12 @@
+include:
+  - ../common/ha-services.yml
+services:
+  homeassistant:
+    extends:
+      file: ../common/ha-services.yml
+      service: homeassistant
+  esphome:
+    extends:
+      file: ../common/ha-services.yml
+      service: esphome
+    profiles: [esphome]

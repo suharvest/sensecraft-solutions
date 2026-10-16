@@ -1,0 +1,61 @@
+# Alarm panel host — the optional add-on for the reCamera 2002 and reCamera Pro
+# presets.
+#
+# Inference is NOT in this stack. On reCamera 2002 the detector is a native
+# process installed as a .deb; on reCamera Pro it is an App Center application.
+# Both publish MQTT on their own. This stack runs on a separate box that needs
+# no AI accelerator — a reComputer R1000, a NUC, an existing server — and turns
+# that event stream into zones, timeouts, an operator confirmation page, an
+# SQLite audit trail and a webhook.
+#
+# The J / RK / R (Hailo) presets do not use this file: there the panel is a
+# service inside the detector's own compose file.
+services:
+  # Bundled broker. Point the cameras at BROKER_PORT on this host to use it, or
+  # leave it running unused and set mqtt.host in config/alarm-panel.yaml to the
+  # broker the cameras already publish to. BROKER_PORT is settable because this
+  # box is whatever machine the site already has and 1883 may be taken.
+  mosquitto:
+    image: eclipse-mosquitto:2
+    restart: unless-stopped
+    ports:
+      - "${BROKER_PORT:-1883}:1883"
+    volumes:
+      - ./config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - alarm-panel-mosquitto:/mosquitto/data
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  alarm-panel:
+    # Pinned by digest. Both architectures are published; the deploy step
+    # rewrites this line to the amd64 image when the host is x86_64.
+    #   arm64 sha256:11623704f2af6272e9d8a7beb190439bc1631b7224f4e2ac38983810a690c618
+    #   amd64 sha256:b2455f73f1ce2be69532a5a6bee9be76be3597574bed016ba050b17860b8e87b
+    image: ${ALARM_PANEL_IMAGE:-sensecraft-missionpack.seeed.cn/solution/eldercare-alarm-arm64:0.1.0@sha256:11623704f2af6272e9d8a7beb190439bc1631b7224f4e2ac38983810a690c618}
+    command: ["--config", "/config/config.yaml"]
+    restart: unless-stopped
+    depends_on:
+      - mosquitto
+    ports:
+      - "${WEB_PORT:-8080}:8080"
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+    volumes:
+      # reCamera 2002 publishes to <device-name>/fall-detection/results (single
+      # stream, no stream-id suffix); reCamera Pro publishes to
+      # <base>/fall-detection/state and needs the recamera_pro_state adapter.
+      # Both are selected in this file under mqtt.subscriptions.
+      - ./config/alarm-panel.yaml:/config/config.yaml:ro
+      - alarm-panel-data:/data
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  alarm-panel-data:
+  alarm-panel-mosquitto:

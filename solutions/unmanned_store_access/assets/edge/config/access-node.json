@@ -1,0 +1,84 @@
+{
+  "_comment": [
+    "Door-side configuration template. The deployment step rewrites the",
+    "placeholder values from the answers given in the wizard; nothing here is a",
+    "working default.",
+    "",
+    "The four actuator fields below are null on purpose. ActuatorConfig fails to",
+    "construct while they are null, and that failure is the safety interlock: a",
+    "guessed relay_contact on a fail-safe magnetic lock leaves the door open",
+    "permanently, and a guessed active_high pulses the lock at boot. They must",
+    "come from a meter and a wiring check on the installed hardware.",
+    "",
+    "facedb.signature_key is mandatory whenever facedb.url is plaintext http://.",
+    "Devices with a broken clock cannot validate TLS certificates, so on those",
+    "the integrity boundary moves up to the application layer: an HMAC-SHA256",
+    "signature over the canonical manifest. No key, no start."
+  ],
+
+  "device_id": "REPLACED_BY_DEPLOY",
+  "door_id": "REPLACED_BY_DEPLOY",
+
+  "camera": {
+    "rtsp_url": "REPLACED_BY_DEPLOY",
+    "_max_frame_age_note": "The grabber thread keeps only the newest frame; the recogniser consumes at whatever rate face-rec-api answers. A frame older than this is dropped instead of recognised: opening the door on a three-second-old face opens it for whoever is standing there now, not for the person who was matched.",
+    "max_frame_age_ms": 800,
+    "stall_timeout_s": 5.0,
+    "reconnect_min_s": 1.0,
+    "reconnect_max_s": 30.0
+  },
+
+  "recognition": {
+    "base_url": "http://face-rec-api:8080",
+    "require_liveness_loaded": true,
+    "timeout_s": 5.0
+  },
+
+  "policy": {
+    "threshold": 0.62,
+    "require_liveness": true,
+    "debounce_s": 5.0,
+    "schedule": null,
+    "blocklist": [],
+    "_threshold_note": "0.62 is a starting point, not a calibrated value. The design spec forbids treating the upstream default as a result: sweep positive and negative pairs on the installed camera and set it from that. No FAR/FRR figure exists for this project."
+  },
+
+  "actuator": {
+    "kind": "sysfs_gpio",
+    "actuator_id": "door-front",
+    "backend": "sysfs",
+    "_backend_note": "sysfs drives /sys/class/gpio (bind-mounted into the container by the compose file). libgpiod drives /dev/gpiochipN instead and needs gpiochip + line below plus a --device passthrough; use it on kernels where the sysfs interface is gone.",
+    "gpio": null,
+    "gpiochip": null,
+    "line": null,
+    "active_high": null,
+    "pulse_ms": null,
+    "relay_contact": null,
+    "fail_mode": null,
+    "allow_takeover": false,
+    "_takeover_note": "allow_takeover stays false. The reCamera Pro survey found gpio131 already exported by another application; silently taking over a pin means either two processes fighting or driving something that is not the door relay. When a takeover is genuinely intended it is set explicitly and shows up in health()."
+  },
+
+  "facedb": {
+    "url": "REPLACED_BY_DEPLOY",
+    "poll_interval_s": 30,
+    "signature_key": null,
+    "signature_key_id": "default",
+    "model_tag": null,
+    "local_root": "/var/lib/unmanned-store-access/facedb"
+  },
+
+  "mqtt": {
+    "host": "REPLACED_BY_DEPLOY",
+    "port": 8883,
+    "tls": true,
+    "qos": 1,
+    "status_interval_s": 30,
+    "commands_enabled": true,
+    "command_ttl_max_s": 60
+  },
+
+  "audit": {
+    "path": "/var/lib/unmanned-store-access/audit/access.ndjson"
+  }
+}

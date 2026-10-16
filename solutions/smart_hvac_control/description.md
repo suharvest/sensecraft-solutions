@@ -1,36 +1,80 @@
 ## What This Solution Does
 
-HVAC systems in office buildings, shopping malls, and factories often run on fixed schedules - blasting cold air in empty rooms while struggling to keep busy areas comfortable. This solution makes your HVAC system "smart" by automatically adjusting temperature based on occupancy and environmental conditions, running efficiently when needed and saving energy when not.
+Central HVAC plants in offices, malls and factories usually run a fixed schedule: the same setpoint whether the floor is full or empty. This solution brings the HVAC controller and an energy meter into one point model, learns a setpoint recommendation from the building's own historical data with a KNN model, and writes it back to the controller — but only after the write has been read back from the field and compared against what was sent.
 
-## Key Benefits
+It starts in observe-first mode. Nothing is written until an operator enables control, and the safety limits that bound every write are placeholders until a site engineer approves them.
 
-| Benefit | Details |
-|---------|---------|
-| Automatic Energy Savings | Intelligently adjusts based on real-time occupancy and outdoor temperature, typically saving 15-25% on electricity |
-| No Manual Monitoring | System runs 24/7 automatically, no need for someone to constantly adjust parameters |
-| Quick Setup | Upload historical data and the system learns on its own - no HVAC expertise required |
-| Safe & Controlled | "Observe first" mode lets you verify suggestions before enabling automatic control |
+## What You Get
+
+**One point model for HVAC and energy.** The HVAC controller arrives over OPC UA, Modbus TCP/RTU or BACnet/IP. The energy meter arrives through a built-in Eastron SDM630 template (Modbus V2 register map, IEEE-754 float32 input registers) covering three-phase voltage and current, total active power in kW, total power factor, frequency and imported active energy in kWh. The template renders the same strict CSV an operator would write by hand, so a built-in template and a hand-written one are validated by the same parser and the same 256-row limit. Meter points are read-only and count against the 2,000-point registry total, not against the 50 writable points.
+
+**Setpoint prediction from your own data.** Import a CSV or Excel export of historical operation; the KNN model learns from that building rather than from a generic curve. Predictions are visible before any of them is allowed to reach the controller.
+
+**Writes that are read back, not assumed.** An acknowledgement from a controller is not proof that the plant moved. Every write freezes the last-known-good value, quality, timestamp and BACnet priority first, then reads the point back after a delay and compares within a tolerance. A readback whose quality is not good never counts as confirmed, whatever value it carries.
+
+**Rollback on five triggers.** Readback mismatch, source offline, prediction disabled, operator abort, and a partially applied batch. BACnet points are released with Null at the priority they were written at; Modbus points are restored in the reverse of the order they were applied. Compensation travels the same authorised write path as the original write, so it cannot bypass the write-enable flag or the write policy.
+
+**Alarms tied to causes, not to events.** Five alarm types — source offline, stale sample, write failed, readback mismatch, compensation failed — each identified by its cause, so repeating the same fault re-uses the open alarm instead of opening a second one. Compensation-failed is critical because the plant is left in an unknown state; the other four are warnings because the plant keeps its previous setpoint. Acknowledging an alarm records that an operator saw it; only a recovery clears it, and the recovery carries the id of the alarm it clears.
+
+**Bounded safety limits.** Setpoint minimum and maximum, a maximum change per time window, and a mode whitelist. The shipped defaults (18–30 °C, 1 °C per 5 minutes, off/fan/cool/heat/auto) stay unapproved until a named site engineer signs them off.
 
 ## Use Cases
 
-| Scenario | How It Helps |
-|----------|--------------|
-| Office Buildings | Cools more during busy work hours, automatically saves energy after hours; switches to eco-mode on weekends |
-| Shopping Malls | Adjusts cooling per floor based on foot traffic - less cooling where its quiet, more where its crowded |
-| Factory Floors | Syncs with production schedules, reducing HVAC power during off-shifts |
-| Hotel Lobbies | Dynamically adjusts based on occupancy rates and outdoor temperature for comfort and efficiency |
+| Scenario | How it is used |
+|----------|----------------|
+| Office buildings | Predict a setpoint per zone from that building's own history, run it in observe mode through a full occupancy cycle, then enable writes on one zone first |
+| Shopping malls | Register a meter per floor so power and energy sit next to the HVAC points that drive them, and compare predicted against actual before trusting either |
+| Factory floors | Line the prediction up with the production schedule, keeping the rate limit tight enough that a shift change cannot swing the plant in one step |
+| Retrofits on mixed plant | Bring an OPC UA chiller and a BACnet/IP air handler into the same point table and use one control path with one audit trail across both |
+
+## How Well It Works
+
+This is not a safety-certified control system. It is a supervisory setpoint recommender with a read-back write path; the plant's own interlocks and safety controls stay in charge, and every write stays inside limits a site engineer approves.
+
+Numbers below come from a simulator rig, not from a building.
+
+| What the building gets | Typical | Device |
+|---|---|---|
+| Field points sampled at the configured rate | **349.99 events/s** against a 350.0 target, 2,000 points | Development-board baseline |
+| Setpoint recommendations produced at 2,000 points | **0.939 cycle/s** | Development-board baseline |
+| Control admission latency / prediction cycle latency | 1.41 ms / 46.27 ms maximum | `northbound-smoke` rig, **smoke measurements only** (n = 2 / n = 4 cycles), upstream @ `f831bae` — samples this small describe nothing about a loaded system |
+| 24 h continuous run | **Failed the release gate** (`R14_GATE_FAILED`) | a bench unit (same SoC class as the reComputer R2000 series, arm64), 2026-09-05T05:01:19Z to 2026-09-06T05:01:59Z, source frozen at `b5fe4cc`, 2,000 points, full 86,400 s elapsed. CPU peaked above both the 1-minute and 5-minute limits (104.98% / 102.20%), MQTT dropped samples and the prediction ACK silence reached 120.04 s against a 90 s limit; BACnet and Modbus sampling had zero failures and memory, disk and temperature stayed in range. **No 7-day or 30-day run has been started** |
+
+One point model carries four protocols (OPC UA, Modbus TCP, Modbus RTU,
+BACnet/IP). **No energy-saving percentage is claimed anywhere in this package**:
+that number depends on the building, the weather and the occupancy pattern, so
+run a controlled before/after study on your own site.
+
+The load figures were taken on a **development-board baseline (a faster arm64 board, not a package device and not the R1000's CM4-class SoC)**. A run on 2026-09-07 added a **platform reference value** for the reComputer R1000: the same CM4-class SoC in a 2 GB configuration, on a bench board rather than the R1000 chassis. The prediction cycle there is roughly nine times slower than the development-board baseline, so size the cycle time for your point count on the platform you actually deploy. A run on an R1000 in its shipping 4 GB / 8 GB configuration is still to be done.
+
+The prediction loop sleeps a fixed interval after each cycle, so at 2,000 points its structural ceiling sits near 0.894 cycle/s. Size the cycle time for your point count accordingly.
+
+**Confirm the meter byte order at commissioning.** The SDM630 addresses follow the vendor's published register document and the template defaults to big-endian bytes and words. Check the order against the meter in front of you before trusting the values.
 
 ## Requirements
 
-**Hardware**:
-- reComputer R1100 edge computing device
-- HVAC controller must support industrial communication protocol (OPC-UA)
+**Hardware**
 
-**Data**:
-- At least 1 week of historical operation data (Excel or CSV format)
-- Data should include: timestamp, temperature setpoints, actual temperature, power consumption
+| Item | Purpose | Required |
+|---|---|---|
+| reComputer R1100 (or any Docker host, x86-64 or arm64) | Runs the point model, prediction, control path and console | Yes |
+| Eastron SDM630 energy meter | Power and energy points | For the meter workflow |
+| USB-to-RS-485 adapter | Only if the meter is on RS-485 rather than Modbus TCP | Modbus RTU only |
+| HVAC controller speaking OPC UA, Modbus or BACnet/IP | The plant being read and written | Yes for control; the built-in simulator covers a dry run |
 
-**Limitations**:
-- Initial setup requires uploading data for the system to learn (takes about 5-10 minutes)
-- Recommended to observe system suggestions for 1-2 days before enabling automatic control
-- This solution is designed for central HVAC systems, not split-unit air conditioners
+**Data**
+
+At least one week of historical operation as CSV or Excel, with timestamp, setpoint, measured temperature and power consumption. Import takes a few minutes.
+
+**Software**
+
+Docker Engine 20.10 or newer, about 1 GB free disk, and host ports 8280 (console) and 4841 (OPC UA simulator) free.
+
+## Usage Notes
+
+- **Observe before control.** Run predictions without writes through at least one full occupancy cycle. Enabling writes before the recommendations have been compared against what the plant actually does is how a supervisory layer causes a comfort complaint.
+- **Approve the safety limits.** The shipped 18–30 °C, 1 °C per 5 minutes and five-mode whitelist are placeholders. They report as unapproved until a named engineer signs them off, and they should be replaced with the plant's own commissioned limits, not merely confirmed.
+- **Confirm the meter's byte order.** Vendor defaults are not universal. Read a register with a known physical value before believing the scaled points.
+- **Modbus RTU needs the serial-device profile.** The standard Docker profile attaches no host serial device. Keep production writes disabled until the exact adapter and the target controller have passed hardware-in-the-loop validation.
+- **Central plant only.** This addresses central HVAC systems, not split-unit air conditioners.
+- **Image tag.** The published image "missionpack-knn:v1.6.5" predates the meter template, the rollback coordinator and the alarm envelope. The image carrying them has not been built or pushed and its immutable tag is still to be assigned. Check the tag before following the commissioning steps in the deployment guide.

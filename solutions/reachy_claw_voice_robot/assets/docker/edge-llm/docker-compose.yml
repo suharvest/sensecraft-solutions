@@ -3,7 +3,7 @@ services:
     # Qwen3.5-4B-AWQ with GDN (Gated DeltaNet) + MTP (eagle spec-decode).
     # int4 FFN, vocab 248320. Engine auto-downloads from HF on first boot
     # (flat repo → EDGELLM_ENGINE_DIR). Leaner than Qwen3-4B (more free RAM).
-    image: sensecraft-missionpack.seeed.cn/solution/edge-llm-chat-service:v0.8.0-gdn-mtp-merged
+    image: sensecraft-missionpack.seeed.cn/solution/edge-llm-chat-service:v0.8.0-gdn-mtp-fixdl
     container_name: edge-llm-chat-service
     runtime: nvidia
     privileged: true
@@ -18,14 +18,17 @@ services:
       # MTP (Multi-Token Prediction) eagle speculative decoding.
       EDGELLM_MTP_ENABLED: "1"
       EDGELLM_SPEC_DECODE_ENGINE_DIR: ${EDGELLM_ENGINE_DIR:-/workspace/qwen35-4b-awq-gdn-mtp}
+      # DRAFT_STEP x DRAFT_TOP_K <= maxDraftTreeSize (baked at 4). Within that
+      # ceiling throughput is monotonically better as the draft shrinks: on an
+      # Orin NX at 300 tokens step=1 gives 45.2 tok/s vs 32.7 at step=3.
       EDGELLM_DRAFT_TOP_K: "1"
-      EDGELLM_DRAFT_STEP: "3"
-      EDGELLM_VERIFY_TREE_SIZE: "4"
+      EDGELLM_DRAFT_STEP: "1"
+      EDGELLM_VERIFY_TREE_SIZE: "2"
       HF_ENDPOINT: ${HF_ENDPOINT:-}
       EDGELLM_MODEL_NAME: Qwen/Qwen3-4B-AWQ
       PORT: "8000"
-      WARMUP_TIMEOUT: ${WARMUP_TIMEOUT:-90}
-      WARMUP_INFERENCE_TIMEOUT: ${WARMUP_INFERENCE_TIMEOUT:-180}
+      WARMUP_TIMEOUT: ${WARMUP_TIMEOUT:-180}
+      WARMUP_INFERENCE_TIMEOUT: ${WARMUP_INFERENCE_TIMEOUT:-300}
       PYTHONUNBUFFERED: "1"
     volumes:
       - ${EDGELLM_WORKSPACE:-~/reachy-data/edgellm-workspace}:/workspace

@@ -1,0 +1,25 @@
+a2aa56779a19ec952360da90503d20eae65b1d46bc7a3c14a06c2c10b822a36a  rtdetrv2_s_neu6.onnx
+22301f168b419fa9965c13d2bf344076e8ee4cf5d7ba11d73d2d09bc3d6daffb  best.pth
+2ace52184b620204004509b72752ac7bfe64aadaf7fc1d076b18df8ab5a5c77e  rtdetrv2_r18vd_120e_coco_rerun_48.1.pth
+
+# metadata (not part of the checksum lines)
+# track          : rtdetrv2
+# status         : listing only — no CDN upload yet, same licence-clearance
+#                  gate as yolox_tiny_neu6 (dataset licence unconfirmed)
+# upstream       : https://github.com/lyuwenyu/RT-DETR
+# upstream_commit: 068dfde65f2667ad6555883c69d73de886518cad
+# upstream_license: Apache-2.0 (COCO-only weights used, no Objects365 checkpoint)
+# torch_version  : 2.14.0+cu130
+# onnx_version   : 1.22.0
+# input          : images:1x3x640x640 opset16
+# outputs        : labels,boxes,scores (NMS-free)
+# num_classes    : 7 (label_offset -1)
+# classes        : crazing,inclusion,patches,pitted_surface,rolled-in_scale,scratches
+# CPU golden     : mAP50 0.7317 (evaluation/runs/2026-09-06-a1-cpu/results.md)
+# Hailo-8 / RKNN : parser rejects GridSample x9 / GatherElements x3 / TopK x2
+#                  (Hailo) or falls back to CustomOperatorLower for GridSample
+#                  (RKNN, unverified on hardware) — see
+#                  evaluation/runs/2026-09-06-a1-probe/results.md
+# size           : rtdetrv2_s_neu6.onnx = 80295838 bytes
+# size           : best.pth = 322526061 bytes
+# size           : rtdetrv2_r18vd_120e_coco_rerun_48.1.pth = 81198974 bytes

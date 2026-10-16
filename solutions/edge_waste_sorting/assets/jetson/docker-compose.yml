@@ -1,0 +1,90 @@
+# Waste sorting on Jetson Orin.
+#
+# Adapted from the A project (edge-inspection-surface,
+# solutions/edge_inspection_surface/assets/jetson/docker-compose.yml), because
+# the upstream repo ~/project/edge-waste-sorting has no platforms/jetson
+# directory yet — platforms/README.md lists jetson/ and rpi-hailo/ as pending.
+# Changes from that source: Modbus removed (this project has no Modbus; the
+# actuator is a GPIO callback), the models/captures volumes and the container
+# and project names retargeted, and the service renamed.
+#
+# The image carries no CUDA or TensorRT of its own: L4T r36.x userspace is
+# Ubuntu 22.04, so the host's TensorRT/CUDA stack stays authoritative and is
+# mounted read-only. Only the host's `tensorrt` python package is mounted —
+# never the whole dist-packages, because the host's numpy would shadow the
+# image's own pinned one.
+#
+# Image published 2026-09-28 (0.1.2-dev supersedes 0.1.1-dev: rebuilt from
+# origin/main@a56b97c, which adds the web control panel the docs always
+# described — /preview.mjpg, /preview.jpg, /events — and drops the VLM path.
+# 0.1.1-dev had been origin/main@8b791fb, the file-source-EOF fix — see
+# ~/project/edge-waste-sorting evaluation/runs/2026-09-08-harvest-pi-acceptance
+# §"0.1.1-dev 断流回归"):
+#   sensecraft-missionpack.seeed.cn/solution/edge-waste-sorting-jetson:0.1.2
+#   manifest digest sha256:f2016480e88437ee9d198ff4ccfc017d891f62a34d8de981636d309d663c292b
+#   259 MB local.
+#
+# The TensorRT engine is not in the image and not in /models: build it once on
+# the Orin with
+#   backends/tensorrt/build_engine.sh /models/efficientnet_lite0_waste8.onnx \
+#       /models/efficientnet_lite0_waste8.engine
+services:
+  waste:
+    image: ${WASTE_IMAGE:-sensecraft-missionpack.seeed.cn/solution/edge-waste-sorting-jetson:0.1.2}
+    container_name: edge-waste-app
+    command: ["--config", "/app/config/config.json", "--device", "${DEVICE_NAME:-orin-nx}"]
+    restart: unless-stopped
+    runtime: nvidia
+    # host network: the web page and /trigger on 8080 are reachable directly,
+    # and MQTT goes to the local broker.
+    network_mode: host
+    depends_on:
+      - mosquitto
+    environment:
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: compute,video,utility
+      PYTHONUNBUFFERED: "1"
+    volumes:
+      # Config, engine and captures stay outside the image so the engine can be
+      # rebuilt for this exact GPU architecture + TensorRT version.
+      - ${CONFIG_FILE:-./config/config.json}:/app/config/config.json:ro
+      - ${MODELS_DIR:-./models}:/models:ro
+      - ${DATA_DIR:-./data}:/data:ro
+      # Captured images land here. The MQTT payload carries only the reference.
+      - ${CAPTURES_DIR:-./captures}:/var/lib/edge-waste-sorting/captures
+      - /usr/lib/python3.10/dist-packages/tensorrt:/host-python/tensorrt:ro
+      - /usr/lib/aarch64-linux-gnu:/host-lib:ro
+      - /usr/local/cuda:/usr/local/cuda:ro
+      - /usr/src/tensorrt:/usr/src/tensorrt:ro
+    # For a USB camera add the individual /dev/videoN nodes here. Never mount
+    # all of /dev — runc refuses to recreate the /dev/pts inodes.
+    # devices:
+    #   - /dev/video0:/dev/video0
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8080/healthz',timeout=3).status==200 else 1)\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # JetPack ships no MQTT broker, so the stack brings its own.
+  # allow_anonymous is on: this configuration is for local commissioning only.
+  # A deployment that leaves the bench must point at a broker with credentials.
+  mosquitto:
+    image: docker.m.daocloud.io/library/eclipse-mosquitto:2
+    container_name: edge-waste-mosquitto
+    restart: unless-stopped
+    network_mode: host
+    command: ["mosquitto", "-c", "/mosquitto/config/mosquitto.conf"]
+    volumes:
+      - ./config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

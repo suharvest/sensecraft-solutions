@@ -1,0 +1,240 @@
+# Evaluation demo for edge surface defect detection.
+# Model trained on the academic NEU-DET dataset with attribution in gallery/ATTRIBUTION.md.
+# Bundled weights and detection overlays are provided for algorithm capability and
+# edge throughput benchmarking. Commercial production use should retrain with site data.
+version: "1.0"
+id: edge_inspection_surface
+name: Surface Defect Inspection
+name_i18n:
+  zh: 表面缺陷质检
+  ja: 表面欠陥検査
+
+intro:
+  summary: >-
+    Detects six steel surface defect classes per frame and gives the PLC an
+    OK/NG verdict in real time on the edge. Evaluation demo with academic dataset
+    attribution; retrain with your own line data for production deployment.
+  summary_i18n:
+    zh: >-
+      逐帧识别六类钢材表面缺陷，OK/NG 判定由 PLC 直接可读。算法评估演示，训练数据源自学术公开集并已做版权说明；产线商用前请使用自有图像重训。
+    ja: >-
+      6種類の鋼材表面欠陥をフレームごとに検出し、PLCが直接読み取り可能なOK/NG判定を出力。学術データセットの帰属表記を含む評価用デモであり、商用展開時は独自データでの再学習を推奨。
+  description_file: description.md
+  description_file_i18n:
+    zh: description_zh.md
+  cover_image: gallery/defect-overlay-pair.jpg
+  gallery:
+    - type: image
+      src: gallery/defect-overlay-pair.jpg
+      caption: Two frames of rolled steel strip with the defects boxed. Left — four long inclusions down the strip, each blue box carrying its score against the thin white labelled box. Right — a pitted surface, where the flaw spreads across the sheet instead of sitting in one place
+      caption_i18n:
+        zh: 两帧钢带表面，缺陷已圈出。左：沿钢带分布的四处长条夹杂，每个蓝框带出分数，旁边细白框是标注；右：麻点表面，缺陷散布在整片上而不集中在一处
+    - type: image
+      src: gallery/recomputer-super-j4012.jpg
+      caption: reComputer J40 series (Jetson Orin NX 16GB) — the device this solution's numbers were measured on
+      caption_i18n:
+        zh: reComputer J40 系列（Jetson Orin NX 16GB）——本方案数字的实测设备
+    - type: image
+      src: gallery/architecture.svg
+      caption: Camera to device to line — RTSP in, the verdict out on Modbus TCP and MQTT, with the preview page alongside
+      caption_i18n:
+        zh: 从相机到设备再到产线——RTSP 进来，判定通过 Modbus TCP 与 MQTT 出去，旁边是预览页
+  # Two detection frames are shipped so the page shows what the solution does.
+  # Their underlying images come from NEU-DET, an academic dataset without a
+  # formal licence grant, so only these two are used and only to illustrate
+  # function. See gallery/ATTRIBUTION.md.
+  category: vision_video_ai
+  solution_type: solution
+  tags:
+    - surface-inspection
+    - defect-detection
+    - modbus
+    - mqtt
+    - yolox
+    - dfine
+    - rtdetrv2
+    - anomaly-detection
+    - industrial
+
+  output_interfaces:
+    - type: modbus
+      port: 502
+      endpoint: unit 1, coils 0-1 and holding registers 0-7
+      description: >-
+        Modbus TCP server. Coil 0 = NG, coil 1 = OK, always mutually exclusive.
+        HR 0 primary defect class id, HR 1 defect count, HR 2-5 the primary box
+        as cx/cy/w/h normalised x10000, HR 6-7 the heartbeat Unix seconds as the
+        high and low word of a uint32. Registers are updated atomically before
+        the coil is written, so a PLC that latches on the coil already sees the
+        matching frame's data.
+      schema_type: binary
+      description_i18n:
+        zh: >-
+          Modbus TCP 服务端。线圈 0 = NG，线圈 1 = OK，二者始终互斥。
+          HR 0 主缺陷类别 ID，HR 1 缺陷数，HR 2-5 主缺陷框的 cx/cy/w/h 归一化后 x10000，
+          HR 6-7 心跳 Unix 秒的 uint32 高字与低字。
+          每次判定先原子更新寄存器再写线圈，PLC 锁线圈时读到的就是同一帧的数据。
+    - type: mqtt
+      port: 1883
+      topic: <device-name>/inspection/<stream-id>/results
+      description: >-
+        One JSON message per frame, carrying the verdict and every detection in
+        that frame in one payload rather than one message per box. Boxes are
+        normalised [cx, cy, w, h]; "slot" is a within-frame index ordered by
+        score, not a track id. Every message is validated against the contract
+        schema before it is published; a message that fails is counted and
+        dropped rather than sent.
+      schema_type: json
+      payload_example: '{"type":"surface_inspection_result","version":"1.0.0","device":"orin-nx","stream_id":"line1-cam1","frame_id":10423,"verdict":"NG","verdict_reason":"2 defect(s) >= min_defects=1","defect_count":2,"primary_class_id":1,"coordinate_space":"normalized_center_wh","inference_time_ms":6.4,"pipeline_ms":21.8,"detections":[{"slot":0,"class_id":1,"class_name":"inclusion","score":0.87,"bbox":[0.4125,0.5312,0.1094,0.2031]}]}'
+      description_i18n:
+        zh: >-
+          一帧一条 JSON，判定与该帧内所有检测框放在同一条消息里，不逐框发。
+          框是归一化的 [cx, cy, w, h]；「slot」 是帧内按分数降序的下标，不是 track id。
+          每条消息发布前都过一遍契约 schema 校验，不合格的计数并丢弃，不发出去。
+    - type: http
+      port: 8080
+      endpoint: /preview.mjpg, /healthz, /events, /snapshot.jpg
+      description: >-
+        Read-only commissioning page. MJPEG preview with boxes drawn on it, a
+        health endpoint carrying inference time, capture-to-coil latency and the
+        MQTT/Modbus counters, and the most recent verdicts.
+      schema_type: json
+      description_i18n:
+        zh: >-
+          只读的调试页面。带检测框的 MJPEG 预览、含推理耗时与 capture→coil 时延
+          以及 MQTT / Modbus 计数的健康接口，还有最近的判定记录。
+  input_requirements:
+    - type: rtsp
+      description: >-
+        A fixed camera on the strip or part, framed so a defect fills a
+        meaningful part of the frame. The measured figures come from 640x640
+        crops at 10 FPS. Lighting must be stable — the model was trained on one
+        dataset's illumination and has not been evaluated under any other.
+      required: true
+      description_i18n:
+        zh: >-
+          对着钢带或工件的固定机位，取景要让缺陷在画面里占到有意义的比例。
+          实测数字取自 640x640、10 FPS 的画面。光照必须稳定——
+          模型只在一个数据集的光照下训练过，没有在其它光照条件下评测过。
+    - type: modbus
+      description: >-
+        A PLC or line controller that can act as a Modbus TCP master on the same
+        network segment as the device. The register map is fixed at unit 1.
+      required: false
+      description_i18n:
+        zh: >-
+          与设备同网段、能做 Modbus TCP 主站的 PLC 或产线控制器。
+          寄存器表固定在 unit 1 上。
+
+  device_catalog:
+    recomputer_j40:
+      description: Runs the detector on TensorRT (Orin NX 16GB, reComputer J40)
+      description_i18n:
+        zh: 用 TensorRT 运行检测器（Orin NX 16GB）
+      purchase:
+        require:
+          module: [orin_nx_16]
+    recomputer_j30:
+      description: Orin Nano 8GB option, running the same TensorRT detector
+      description_i18n:
+        zh: Orin Nano 8GB，跑同款 TensorRT 检测器
+      purchase:
+        require:
+          module: [orin_nano_8]
+    recomputer_r20_industrial:
+      description: Industrial box with a Hailo-8 (PCIe M.2), runs the INT8 HEF detector
+      description_i18n:
+        zh: PCIe M.2 装 Hailo-8，跑 INT8 检测器
+      purchase:
+        require:
+          ai_accelerator: [hailo-8]
+    generic_ip_camera:
+      name: IP Camera
+      name_i18n:
+        zh: IP 摄像头
+      description: Any RTSP camera pointed at the strip or part under inspection
+      description_i18n:
+        zh: 任意一台对着被检钢带或工件的 RTSP 摄像头
+
+  presets:
+    - id: orin
+      name: IP Camera + reComputer J30 / J40 (Orin)
+      name_i18n:
+        zh: IP 摄像头 + reComputer J30 / J40（Orin）
+      badge: Recommended
+      badge_i18n:
+        zh: 推荐
+      description: >-
+        TensorRT FP16 on Jetson Orin; the engine builds on-device during
+        deployment.
+      description_i18n:
+        zh: >-
+          Jetson Orin 跑 TensorRT FP16，engine 部署时在设备上构建。
+      device_groups:
+        - id: compute
+          name: Inspection Host
+          name_i18n:
+            zh: 检测主机
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_j40
+            - device_ref: recomputer_j30
+          default: recomputer_j40
+        - id: camera
+          name: IP Camera
+          name_i18n:
+            zh: IP 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: generic_ip_camera
+          default: generic_ip_camera
+
+    - id: pi_hailo
+      name: IP Camera + reComputer R2000 (Hailo-8)
+      name_i18n:
+        zh: IP 摄像头 + reComputer R2000（Hailo-8）
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: >-
+        Lower-cost Hailo-8 board, mAP50 0.7091. Deploy step verifies device
+        compatibility.
+      description_i18n:
+        zh: >-
+          成本更低的 Hailo-8 板，mAP50 0.7091。部署步骤会自动校验运行环境。
+      device_groups:
+        - id: compute
+          name: Inspection Host
+          name_i18n:
+            zh: 检测主机
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_r20_industrial
+          default: recomputer_r20_industrial
+        - id: camera
+          name: IP Camera
+          name_i18n:
+            zh: IP 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: generic_ip_camera
+          default: generic_ip_camera
+
+  stats:
+    difficulty: advanced
+    estimated_time: 40min
+
+  links:
+    wiki: https://wiki.seeedstudio.com/solutions/edge-surface-defect-inspection/
+    wiki_i18n:
+      zh: https://wiki.seeedstudio.com/cn/solutions/edge-surface-defect-inspection/
+
+deployment:
+  guide_file: guide.md
+  guide_file_i18n:
+    zh: guide_zh.md
+  selection_mode: sequential

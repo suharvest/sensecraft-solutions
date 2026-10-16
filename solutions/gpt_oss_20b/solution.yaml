@@ -1,11 +1,14 @@
 version: "1.0"
 id: gpt_oss_20b
 name: GPT OSS 20B on Jetson
+name_i18n:
+  zh: Jetson 部署 GPT OSS 20B
+  ja: Jetson 上の GPT OSS 20B
 intro:
   summary: One-click SSH deployment of GPT OSS 20B on NVIDIA Jetson with a prebuilt Docker image.
   description_file: description.md
-  cover_image: gallery/gpt-oss.gif
-  category: llm
+  cover_image: gallery/gpt-oss.webp
+  category: on_device_lm
   solution_type: technical
   tags: [jetson, llm, docker, edge-ai]
 
@@ -24,13 +27,12 @@ intro:
 
   device_catalog:
     recomputer_j40:
-      name: reComputer J40
-      product_url: https://www.seeedstudio.com/reComputer-J4012-p-5586.html
-      description: NVIDIA Jetson edge AI computer for local LLM serving
-      name_i18n:
-        zh: reComputer J40
+      description: Jetson edge AI computer; 20B model needs Orin NX 16GB
       description_i18n:
-        zh: NVIDIA Jetson 边缘 AI 计算机，用于本地大模型推理
+        zh: Jetson 计算机，20B 需 Orin NX 16GB
+      purchase:
+        require:
+          module: [orin_nx_16]
   presets:
     - id: jetson_got_oss
       name: Jetson GPT OSS 20B Service
@@ -63,5 +65,3 @@ deployment:
   selection_mode: sequential
   guide_file_i18n:
     zh: guide_zh.md
-name_i18n:
-  zh: Jetson 部署 GPT OSS 20B

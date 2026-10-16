@@ -1,0 +1,201 @@
+version: "1.0"
+id: multi_protocol_gateway
+name: Multi-Protocol Industrial Gateway
+name_i18n:
+  zh: 多协议工业网关
+  ja: マルチプロトコル産業用ゲートウェイ
+
+intro:
+  replaces: missionpack_industrial_gateway
+  summary: Bring OPC UA, Modbus, BACnet/IP, and MQTT devices into one point model, then read and control them through one MQTT interface.
+  summary_i18n:
+    zh: 把 OPC UA、Modbus、BACnet/IP 和 MQTT 设备汇入一套点位模型，再通过统一 MQTT 接口读取与控制。
+  description_file: description.md
+  description_file_i18n:
+    zh: description_zh.md
+  cover_image: gallery/cover-console-overview-zh.webp
+  category: industrial_control_automation
+  solution_type: solution
+  tags:
+    - industrial-iot
+    - opc-ua
+    - modbus
+    - bacnet
+    - mqtt
+    - protocol-integration
+    - unified-data
+    - edge-control
+    - northbound-publish
+    - store-and-forward
+    - recomputer-r
+    - reterminal-dm
+
+  gallery:
+    - type: image
+      src: gallery/console-overview-zh.webp
+      caption: Site overview — device and point counts, unacknowledged alarms, 24-hour poll-success and write-readback rates, points grouped by protocol, and one card per source with its last successful poll
+      caption_i18n:
+        zh: 站点总览——设备与点位数、未处理告警、24 小时采集成功率与写入回读一致率、按协议分组的点位，以及每个数据源一张卡片带最近一次成功采集时间
+    - type: image
+      src: gallery/console-overview-en.webp
+      caption: The same overview in English — four protocols, thirteen devices, one hundred and twenty points on a single page
+      caption_i18n:
+        zh: 同一总览的英文界面——四种协议、13 台设备、120 个点位在同一页
+    - type: image
+      src: gallery/console-topology-zh.webp
+      caption: Device topology — source to protocol to device to point, with quality and writability on every leaf and offline sources greyed out
+      caption_i18n:
+        zh: 设备拓扑——数据源 → 协议 → 设备 → 点位，每个叶子标出质量与可写性，离线数据源置灰
+    - type: image
+      src: gallery/console-topology-en.webp
+      caption: The same tree in English — an offline Modbus source still shows its points, marked unknown rather than dropped
+      caption_i18n:
+        zh: 同一棵树的英文界面——离线的 Modbus 源仍然列出点位，标为"未知"而不是消失
+    - type: video
+      src: gallery/demo.mp4
+      thumbnail: gallery/cover.png
+      caption: End-to-end source onboarding and data service workflow
+      caption_i18n:
+        zh: 从协议接入到统一数据服务的完整操作流程
+    - type: image
+      src: gallery/architecture.png
+      src_i18n:
+        zh: gallery/architecture_zh.png
+      caption: System architecture — OPC UA, Modbus, BACnet/IP and MQTT devices connect to one data hub host (reComputer R11 Series by default, reComputer R10 Series or reTerminal DM), which serves the browser console and northbound MQTT
+      caption_i18n:
+        zh: 系统架构——OPC UA、Modbus、BACnet/IP 与 MQTT 设备接入一台数据中枢主机（默认 reComputer R11 系列，也可选 reComputer R10 系列或 reTerminal DM），主机提供浏览器控制台与北向 MQTT
+
+  input_requirements:
+    - type: opc_ua
+      description: An OPC UA endpoint reachable from the edge device
+      description_i18n:
+        zh: 边缘设备能够访问的 OPC UA 服务地址
+    - type: modbus_tcp
+      description: A Modbus TCP controller reachable over the local network
+      description_i18n:
+        zh: 局域网内可访问的 Modbus TCP 控制器
+    - type: modbus_rtu
+      description: An optional USB-to-RS-485 adapter for Modbus RTU; production writes require hardware validation
+      description_i18n:
+        zh: Modbus RTU 可选用 USB 转 RS-485 适配器；生产写控制需先通过真实硬件验证
+    - type: bacnet_ip
+      description: >-
+        A BACnet/IP network reachable from the selected network interface. Scope is Who-Is
+        discovery plus ReadProperty/WriteProperty with priority and Null relinquish. COV
+        subscription, BBMD/Foreign-Device registration, and BACnet MS-TP are not implemented.
+      description_i18n:
+        zh: >-
+          所选网卡能够访问的 BACnet/IP 网络。能力范围为 Who-Is 发现，以及带优先级的
+          ReadProperty/WriteProperty 与 Null 释放。未实现 COV 订阅、BBMD/外部设备注册和
+          BACnet MS-TP。
+    - type: mqtt
+      description: An MQTT broker and explicit topic-to-point mappings when MQTT is used as a data source
+      description_i18n:
+        zh: MQTT 作为数据源时，需要可访问的 Broker 与明确的主题到点位映射
+
+  output_interfaces:
+    - type: http
+      description: Browser-based source, point, command receipt, and plugin management
+      description_i18n:
+        zh: 通过浏览器管理数据源、点位、控制回执和插件
+      port: 8280
+      endpoint: /
+    - type: mqtt
+      description: Versioned point telemetry, presence, command, and receipt topics from the embedded broker
+      description_i18n:
+        zh: 内置 Broker 提供带版本的点位遥测、在线状态、命令与回执主题
+      port: 1883
+      topic: missionpack/v1/{gateway}/points/{point_id}
+      schema_type: MissionPack v1 JSON envelope
+    - type: mqtt
+      description: >-
+        Northbound publish to an external/cloud MQTT broker with on-disk store-and-forward:
+        batched telemetry (QoS1), retained per-source health and last-will status, and QoS0
+        heartbeat. Requires the pending image tag; see the deployment guide.
+      description_i18n:
+        zh: >-
+          向外部/云端 MQTT Broker 的北向上云通道，带落盘断网缓存补传：批量遥测（QoS1）、
+          每个数据源的 retained 健康与遗嘱状态、QoS0 心跳。需要待构建镜像 tag，见部署指南。
+      port: 8883
+      topic: missionpack/v1/{gateway}/telemetry
+      schema_type: MissionPack v1 batched telemetry envelope
+      payload_example: |-
+        {
+          "schema_version": "missionpack.northbound.v1",
+          "message_id": "0f3a...",
+          "gateway_id": "gw-01",
+          "created_at": "2026-09-05T05:01:19.045514Z",
+          "samples": [
+            {
+              "source_id": "ahu-bacnet",
+              "point_id": "analog-value:12",
+              "ts": "2026-09-05T05:01:18.900000Z",
+              "quality": "good",
+              "value": 23.5,
+              "source_revision": 4,
+              "point_revision": 7
+            }
+          ]
+        }
+
+  device_catalog:
+    recomputer_r10:
+      description: Unifies field protocols into one point model and MQTT interface
+      description_i18n:
+        zh: 将现场协议统一为一套点位模型和 MQTT 接口
+    recomputer_r11:
+      description: Unifies field protocols into one point model and MQTT interface
+      description_i18n:
+        zh: 将现场协议统一为一套点位模型和 MQTT 接口
+    reterminal_dm:
+      description: Unifies field protocols, with a local touch display for setup
+      description_i18n:
+        zh: 统一现场协议，并通过本机触控屏完成配置与日常操作
+
+  presets:
+    - id: standard
+      name: Multi-Protocol Data Hub
+      name_i18n:
+        zh: 多协议数据中枢
+      description: Deploy a reusable protocol layer, onboard controllers, expose a unified MQTT interface.
+      description_i18n:
+        zh: 部署一套可复用的协议融合层，接入现场控制器，并提供统一 MQTT 读写接口。
+      device_groups:
+        - id: gateway_host
+          name: Data Hub Host
+          name_i18n:
+            zh: 数据中枢主机
+          type: single
+          required: true
+          description: >-
+            A 2,000-point workload did not pass the capacity test on the R1000's
+            CM4-class platform, so pick the R1100 or reTerminal DM for point
+            counts at that scale. The R1000 stays available for smaller
+            deployments — size the point count with your own capacity run.
+          description_i18n:
+            zh: >-
+              2,000 点这一负载在 R1000 的 CM4 级平台上未通过容量测试，该量级的点位数请选
+              R1100 或 reTerminal DM。R1000 仍可用于更小规模的部署——点位规模请按自己的容量测试定。
+          options:
+            - device_ref: recomputer_r10
+            - device_ref: recomputer_r11
+            - device_ref: reterminal_dm
+          default: recomputer_r11
+
+  stats:
+    difficulty: intermediate
+    estimated_time: 15min
+
+  # links.github 暂不填：实现仓库 Seeed-Solution/Solution_HVAC_SmartControl 目前私有，
+  # 对外是 404；仓库公开后再加回 `links: { github: <url> }`。
+
+  links:
+    wiki: https://wiki.seeedstudio.com/solutions/industrial-protocol-gateway/
+    wiki_i18n:
+      zh: https://wiki.seeedstudio.com/cn/solutions/industrial-protocol-gateway/
+
+deployment:
+  guide_file: guide.md
+  guide_file_i18n:
+    zh: guide_zh.md
+  selection_mode: sequential

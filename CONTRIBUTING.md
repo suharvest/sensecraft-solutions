@@ -16,11 +16,17 @@ Thanks for contributing SenseCraft solutions and tooling improvements!
 ```bash
 uv sync
 uv run --package sensecraft-solutionctl solutionctl validate solutions/<your_solution>
+uv run python scripts/ci/validate_product_families.py
 ```
 
 Read `spec/CONTRACT.md` for the field rules, `docker_deploy` view-derivation,
 path resolution, and `guide.md` Step/Target syntax. Start from
-`skills/solution-copywriting` and the `prepare-*` skills.
+`skills/solution-copywriting` and the `prepare-*` skills. For product hardware,
+read [`docs/product-family-contract.md`](docs/product-family-contract.md) and
+select the family/capability requirement from the offline
+[`spec/product-family-manifest.json`](spec/product-family-manifest.json). Do not
+author a concrete SKU, product image, or purchase URL in Solution YAML; for a
+product-backed entry, `purchase` may contain only `require`.
 
 ## Pull requests
 
@@ -38,7 +44,7 @@ and should be green too:
 | Check | What it gates |
 |-------|---------------|
 | `guard` | Open/closed boundary (no engine internals leak into this repo). |
-| `validate` | `solutionctl validate --check-urls` on every solution — schema, referenced files exist, i18n completeness, duplicate ids, device-ref integrity, dead-link (4xx) detection, compose/flow parseability, ≥1 verify step per preset, EN/ZH structure parity, and `verified:` claim consistency. |
+| `validate` | `solutionctl validate --check-urls` on every solution plus offline product-family validation — schema, referenced files exist, i18n completeness, duplicate ids, device-ref integrity, dead-link (4xx) detection, compose/flow parseability, ≥1 verify step per preset, EN/ZH structure parity, `verified:` claim consistency, known family ids, matching `purchase.require`, and no duplicated SKU/name/image/URL or unsupported `purchase` metadata. |
 | `docker-smoke` | For presets that opt in with `docker.ci_smoke: true`, brings the compose stack up on a CI runner and checks each declared service's health endpoint — proves the solution **can deploy**. |
 
 **What CI does NOT check** (and the maintainer reviews by hand):

@@ -1,6 +1,6 @@
 ## What This Solution Does
 
-Security cameras are everywhere, but someone still has to watch them 24/7 to spot a threat. This solution adds AI-powered gun detection to your existing cameras — the system watches every frame and alerts you the moment a gun appears.
+This solution adds gun detection to existing cameras. Every frame is analysed on the device, and an alert is raised when a gun is detected, without a person watching the feed.
 
 ## Core Value
 
@@ -9,7 +9,7 @@ Security cameras are everywhere, but someone still has to watch them 24/7 to spo
 | Instant detection | AI scans every video frame in real-time, no human fatigue |
 | Works offline | Runs entirely on local hardware, no cloud dependency, no data leaves your network |
 | Easy to set up | One-click deployment, starts with demo videos so you can see it working immediately |
-| Hardware flexible | Choose NVIDIA Jetson (GPU) or reComputer R2000 + Hailo (NPU) based on your needs |
+| Hardware flexible | Choose NVIDIA Jetson (GPU) or reComputer AI Industrial R21 + Hailo (NPU) based on your needs |
 
 ## Use Cases
 
@@ -42,9 +42,9 @@ Security cameras are everywhere, but someone still has to watch them 24/7 to spo
 
 | Option | Acceleration | Recommended Streams | Device Price | Cost per Stream |
 |--------|--------------|---------------------|--------------|-----------------|
-| **reComputer R2000 + Hailo** | Hailo NPU | ~2 streams | $350 | $175/stream |
-| **reComputer J3011** (Jetson entry) | TensorRT GPU | ~2 streams | $630 | $315/stream |
-| **reComputer J4012** (Jetson multi) ⭐ | TensorRT GPU | ~6 streams | $1000 | $150/stream (best value) |
-| **reComputer J5012** (Jetson high-end) | TensorRT GPU | ~9 streams | $2500 | $300/stream |
+| **reComputer AI Industrial R21 + Hailo** | Hailo NPU | ~2 streams | $350 | $175/stream |
+| **reComputer J30 series** (Jetson entry) | TensorRT GPU | ~2 streams | $630 | $315/stream |
+| **reComputer J40 series** (Jetson multi) ⭐ | TensorRT GPU | ~6 streams | $1000 | $150/stream (best value) |
+| **reComputer J50 series** (Jetson high-end) | TensorRT GPU | ~9 streams | $2500 | $300/stream |
 
-Choose based on your stream count needs: R2000+Hailo or J3011 for few cameras; J4012 for best multi-stream value; J5012 for high frame rate / many streams.
+Choose based on your stream count needs: R21+Hailo or J30 series for few cameras; J40 series for best multi-stream value; J50 series for high frame rate / many streams.

@@ -1,0 +1,130 @@
+[
+  {
+    "requested_category": "Paper / 纸",
+    "source_image": "data/cls/waste8/val/paper/trashnet_paper102.jpg",
+    "predicted_class": "paper",
+    "china_category": "recyclable",
+    "confidence": 0.901146,
+    "top3": [
+      {
+        "rank": 0,
+        "class_id": 0,
+        "class_name": "paper",
+        "confidence": 0.901146,
+        "china_category": "recyclable"
+      },
+      {
+        "rank": 1,
+        "class_id": 1,
+        "class_name": "cardboard",
+        "confidence": 0.041887,
+        "china_category": "recyclable"
+      },
+      {
+        "rank": 2,
+        "class_id": 3,
+        "class_name": "metal",
+        "confidence": 0.013016,
+        "china_category": "recyclable"
+      }
+    ],
+    "inference_ms": 2.136250026524067,
+    "output": "/tmp/waste_demo/waste-paper-local-20260907.jpg"
+  },
+  {
+    "requested_category": "Bottles-Cans / 瓶罐",
+    "source_image": "data/cls/waste8/val/metal/trashnet_metal104.jpg",
+    "predicted_class": "metal",
+    "china_category": "recyclable",
+    "confidence": 0.937907,
+    "top3": [
+      {
+        "rank": 0,
+        "class_id": 3,
+        "class_name": "metal",
+        "confidence": 0.937907,
+        "china_category": "recyclable"
+      },
+      {
+        "rank": 1,
+        "class_id": 2,
+        "class_name": "glass",
+        "confidence": 0.018431,
+        "china_category": "recyclable"
+      },
+      {
+        "rank": 2,
+        "class_id": 0,
+        "class_name": "paper",
+        "confidence": 0.011507,
+        "china_category": "recyclable"
+      }
+    ],
+    "inference_ms": 1.8041660077869892,
+    "output": "/tmp/waste_demo/waste-metal-local-20260907.jpg"
+  },
+  {
+    "requested_category": "Plastic / 塑料",
+    "source_image": "data/cls/waste8/val/plastic/trashnet_plastic103.jpg",
+    "predicted_class": "plastic",
+    "china_category": "recyclable",
+    "confidence": 0.977743,
+    "top3": [
+      {
+        "rank": 0,
+        "class_id": 4,
+        "class_name": "plastic",
+        "confidence": 0.977743,
+        "china_category": "recyclable"
+      },
+      {
+        "rank": 1,
+        "class_id": 6,
+        "class_name": "organic",
+        "confidence": 0.004542,
+        "china_category": "kitchen"
+      },
+      {
+        "rank": 2,
+        "class_id": 5,
+        "class_name": "textile",
+        "confidence": 0.003853,
+        "china_category": "recyclable"
+      }
+    ],
+    "inference_ms": 1.9157079514116049,
+    "output": "/tmp/waste_demo/waste-plastic-local-20260907.jpg"
+  },
+  {
+    "requested_category": "Other / 其它",
+    "source_image": "data/cls/waste8/val/residual/trashnet_trash108.jpg",
+    "predicted_class": "plastic",
+    "china_category": "recyclable",
+    "confidence": 0.482031,
+    "top3": [
+      {
+        "rank": 0,
+        "class_id": 4,
+        "class_name": "plastic",
+        "confidence": 0.482031,
+        "china_category": "recyclable"
+      },
+      {
+        "rank": 1,
+        "class_id": 7,
+        "class_name": "residual",
+        "confidence": 0.303888,
+        "china_category": "residual"
+      },
+      {
+        "rank": 2,
+        "class_id": 0,
+        "class_name": "paper",
+        "confidence": 0.07517,
+        "china_category": "recyclable"
+      }
+    ],
+    "inference_ms": 2.08666711114347,
+    "output": "/tmp/waste_demo/waste-residual-local-20260907.jpg"
+  }
+]

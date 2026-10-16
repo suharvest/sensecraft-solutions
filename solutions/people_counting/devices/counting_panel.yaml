@@ -1,0 +1,28 @@
+version: "1.0"
+id: counting_panel
+name: Counting Zone Setup
+type: serial_camera
+
+serial_camera:
+  camera_port:
+    port_from_device: grove_himax
+    baudrate: 921600
+    protocol: sscma_json
+  startup_commands:
+    - "AT+SENSOR=1,1,0"
+    - cmd: "AT+MODEL=3"
+      delay: 3.0
+      status: "Loading person detection model..."
+    - "AT+INVOKE=-1,0,0"
+  display:
+    # The camera streams a square 240x240 frame by default
+    aspect_ratio: "1:1"
+    show_stats: true
+  panels:
+    - type: counting_config
+      max_lines: 4
+      max_rois: 4
+      default_anchor_mode: 0
+
+name_i18n:
+  zh: 计数区域配置

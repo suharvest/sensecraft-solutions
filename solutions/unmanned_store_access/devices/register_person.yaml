@@ -1,0 +1,21 @@
+version: "1.0"
+id: register_person
+name: Enrol People and Publish the Library
+name_i18n:
+  zh: 注册人员并发布人脸库
+type: web_dashboard
+inherit_host_from: cloud_facedb
+
+web_dashboard:
+  url: "http://{{deploy.host}}:8088/"
+  title: Management Console — Person Library
+  title_i18n:
+    zh: 管理界面 —— 人员库
+  description: >-
+    Sign in with the admin token, open Person Library, and enrol each person
+    with 3 to 8 photos. Each enrolment or deletion publishes a new library
+    version; devices pick it up within about 30 s.
+  description_i18n:
+    zh: >-
+      用 admin token 登录，打开「人员库」，每人上传 3 到 8 张照片完成注册。
+      每次注册或删除都会发布一个新的库版本，设备约 30 s 内拿到。

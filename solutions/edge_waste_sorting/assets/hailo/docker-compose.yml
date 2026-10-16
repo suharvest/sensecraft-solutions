@@ -1,0 +1,85 @@
+# Waste sorting on Raspberry Pi 5 + Hailo-8.
+#
+# Adapted from the A project (edge-inspection-surface,
+# solutions/edge_inspection_surface/assets/hailo/docker-compose.yml), because
+# the upstream repo ~/project/edge-waste-sorting has no platforms/rpi-hailo
+# directory yet — platforms/README.md lists it as pending. Changes from that
+# source: Modbus removed, models/captures volumes and names retargeted.
+#
+# The HEF this stack loads is `efficientnet_lite0_waste8_u8.hef` (DFC 3.31.0 /
+# HailoRT 4.21.0, 4,551,414 bytes, sha256 c514a463…). It is published on the
+# CDN; `devices/hailo_waste.yaml` downloads and sha256-verifies it. The
+# open-vocabulary tower has no HEF — its INT8 quantisation fails at
+# `hailo optimize`.
+#
+# Image published 2026-09-28 (0.1.2-dev supersedes 0.1.1-dev: rebuilt from
+# origin/main@a56b97c, which adds the web control panel the docs always
+# described — /preview.mjpg, /preview.jpg, /events — and drops the VLM path.
+# 0.1.1-dev had been origin/main@8b791fb, the file-source-EOF fix — see
+# ~/project/edge-waste-sorting evaluation/runs/2026-09-08-harvest-pi-acceptance
+# §"0.1.1-dev 断流回归"):
+#   sensecraft-missionpack.seeed.cn/solution/edge-waste-sorting-hailo:0.1.2
+#   manifest digest sha256:1fb24d7cf9a9bf5f89ae8bcccb8e8f06f4a67e285223ce052cd6cd67cd91f187
+#   355 MB local.
+#
+# The image carries the HailoRT python bindings (cp311 wheel, 4.21.0) but no
+# user-space library of its own: the HEF is ABI-locked to the host's HailoRT
+# 4.21 (driver and library move together), so the host's `libhailort.so.4.21.0`
+# is mounted read-only rather than pinned inside the image where it could drift
+# away from the driver. The host's python bindings are NOT mounted — the
+# hailort deb does not install them, so that mount pointed at a path that does
+# not exist and docker would create an empty directory on the host.
+services:
+  waste:
+    image: ${WASTE_IMAGE:-sensecraft-missionpack.seeed.cn/solution/edge-waste-sorting-hailo:0.1.2}
+    container_name: edge-waste-app
+    command: ["--config", "/app/config/config.json", "--device", "${DEVICE_NAME:-pi5-hailo}"]
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      - mosquitto
+    environment:
+      PYTHONUNBUFFERED: "1"
+    devices:
+      - /dev/hailo0:/dev/hailo0
+    volumes:
+      - ${CONFIG_FILE:-./config/config.json}:/app/config/config.json:ro
+      - ${MODELS_DIR:-./models}:/models:ro
+      - ${DATA_DIR:-./data}:/data:ro
+      - ${CAPTURES_DIR:-./captures}:/var/lib/edge-waste-sorting/captures
+      # Host HailoRT user-space library only. The python bindings live in the
+      # image (cp311 wheel); _pyhailort's .so dlopens this host library, so the
+      # two must stay on the same 4.21.x.
+      - /usr/lib/libhailort.so.4.21.0:/usr/lib/libhailort.so.4.21.0:ro
+    # For a USB camera add the individual /dev/videoN nodes here. Never mount
+    # all of /dev.
+    # devices:
+    #   - /dev/video0:/dev/video0
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8080/healthz',timeout=3).status==200 else 1)\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Raspberry Pi OS ships no MQTT broker, so the stack brings its own.
+  # allow_anonymous is on: local commissioning only. A deployment that leaves
+  # the bench must point at a broker with credentials.
+  mosquitto:
+    image: docker.m.daocloud.io/library/eclipse-mosquitto:2
+    container_name: edge-waste-mosquitto
+    restart: unless-stopped
+    network_mode: host
+    command: ["mosquitto", "-c", "/mosquitto/config/mosquitto.conf"]
+    volumes:
+      - ./config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

@@ -1,0 +1,25 @@
+version: "1.0"
+id: preview_stream
+name: Live Stream Preview
+name_zh: Live Stream Preview
+type: preview
+
+video:
+  type: rtsp_proxy
+
+display:
+  aspect_ratio: "16:9"
+  auto_start: false
+  show_stats: true
+
+user_inputs:
+  - id: rtsp_url
+    name: RTSP URL
+    name_zh: RTSP URL
+    type: text
+    required: true
+    default_template: "{{RTSP_URL_TEMPLATE}}"
+    placeholder: "rtsp://<jetson-ip>:{{RTSP_PORT}}/{{RTSP_PATH}}"
+    description: RTSP output URL from the Jetson inference pipeline
+    description_zh: RTSP output URL from the Jetson inference pipeline
+

@@ -1,0 +1,150 @@
+version: "1.0"
+id: mcp_bridge
+name: SenseCAP PaaS MCP Bridge
+type: docker_deploy
+
+# Single source-of-truth device YAML. Backend derives docker_local and
+# docker_remote views via derive_docker_views().
+#
+# This container only dials OUT to a XiaoZhi MCP access point over
+# WebSocket (MCP_ENDPOINT) — it publishes no inbound port and has no
+# local web UI, so there is no device_class / hardware identity probe
+# needed. Any Docker host works for the local target; remote SSH targets
+# are validated via the docker_remote `requirements` block.
+
+detection:
+  method: local
+  requirements:
+    - docker_installed
+    - docker_running
+    - docker_compose_installed
+
+docker:
+  compose_file: assets/docker/docker-compose.yml
+  environment:
+    ACCESS_ID: "{{access_id}}"
+    ACCESS_KEY: "{{access_key}}"
+    SENSECRAFT_SITE_ENV: "{{site_env}}"
+    SENSECRAFT_TIMEZONE: "{{timezone}}"
+    MCP_ENDPOINT: "{{mcp_endpoint}}"
+  options:
+    project_name: sensecraft_data_mcp
+    remove_orphans: true
+  services:
+    - name: sensecraft-data-mcp
+      required: true
+
+ssh:
+  port: 22
+  default_user: recomputer
+  auth_methods:
+    - password
+
+user_inputs:
+  - id: access_id
+    name: SenseCAP PaaS Access ID
+    type: text
+    required: true
+    placeholder: "your-access-id"
+    description: API credential from the SenseCAP PaaS open platform (sensecap.seeed.cc → API keys)
+    name_i18n:
+      zh: SenseCAP PaaS Access ID
+    description_i18n:
+      zh: SenseCAP PaaS 开放平台的 API 凭据（sensecap.seeed.cc → API 密钥）
+  - id: access_key
+    name: SenseCAP PaaS Access Key
+    type: password
+    required: true
+    placeholder: "your-access-key"
+    description: API secret paired with the Access ID above. Stored only as a deploy-time environment variable, never baked into the image.
+    name_i18n:
+      zh: SenseCAP PaaS Access Key
+    description_i18n:
+      zh: 与上面 Access ID 配对的 API 密钥。仅作为部署时的环境变量注入，不会打进镜像。
+  - id: site_env
+    name: SenseCAP Site
+    type: select
+    required: false
+    default: "global"
+    options:
+      - value: "global"
+        label: Global
+        label_i18n:
+          zh: 国际站
+      - value: "china"
+        label: China
+        label_i18n:
+          zh: 国内站
+      - value: "develop"
+        label: Develop (internal)
+        label_i18n:
+          zh: develop（内部测试）
+    description: Which SenseCAP PaaS environment to talk to
+    name_i18n:
+      zh: SenseCAP 站点
+    description_i18n:
+      zh: 要对接的 SenseCAP PaaS 环境
+  - id: timezone
+    name: Device Timezone (optional)
+    type: text
+    required: false
+    default: ""
+    placeholder: "Asia/Shanghai"
+    description: IANA timezone (e.g. Asia/Shanghai) used when speaking device report times back to you. Leave blank to use the China site's default (Asia/Shanghai) or UTC otherwise — it will never guess a timezone it isn't sure about.
+    name_i18n:
+      zh: 设备所在时区（可选）
+    description_i18n:
+      zh: 播报设备上报时间时使用的 IANA 时区（如 Asia/Shanghai）。留空时国内站默认用北京时间，其余站点默认用 UTC——不会猜一个不确定的时区。
+  - id: mcp_endpoint
+    name: XiaoZhi MCP Endpoint
+    type: password
+    required: true
+    placeholder: "ws://<host>:8004/mcp_endpoint/mcp/?token=xxx"
+    description: The MCP access point URL from your XiaoZhi console (includes an auth token, so treated as a secret)
+    name_i18n:
+      zh: 小智 MCP 接入点地址
+    description_i18n:
+      zh: 从小智智控台获取的 MCP 接入点地址（带鉴权 token，按密钥处理）
+
+pre_checks:
+  - type: docker_version
+    min_version: "20.0"
+    description: Check Docker version
+  - type: docker_compose_version
+    min_version: "2.0"
+    description: Check Docker Compose version
+  - type: disk_space
+    min_gb: 1
+    description: Check available disk space
+
+post_deployment:
+  message: "SenseCAP PaaS MCP bridge is running and connected to your XiaoZhi MCP endpoint. Ask your voice assistant about your SenseCAP devices to try it."
+  message_i18n:
+    zh: "SenseCAP PaaS MCP 数据桥已启动并连接到小智 MCP 接入点。对语音助手问一句设备相关的问题即可体验。"
+
+name_i18n:
+  zh: SenseCAP PaaS MCP 数据桥
+
+remote_overrides:
+  remote_path: /home/{{username}}/sensecraft_data_mcp
+  compose_dir: assets/docker
+  detection:
+    method: network_scan
+    manual_entry: true
+    requirements:
+      - docker_installed
+      - docker_running
+  pre_checks:
+    - type: docker_version
+      min_version: "20.0"
+      description: Check Docker version
+    - type: docker_compose_version
+      min_version: "2.0"
+      description: Check Docker Compose version
+    - type: disk_space
+      min_gb: 1
+      description: Check available disk space
+  post_deployment:
+    message: "SenseCAP PaaS MCP bridge is running on {{host}} and connected to your XiaoZhi MCP endpoint. Ask your voice assistant about your SenseCAP devices to try it."
+    message_i18n:
+      zh: "SenseCAP PaaS MCP 数据桥已在 {{host}} 上启动，并连接到小智 MCP 接入点。对语音助手问一句设备相关的问题即可体验。"

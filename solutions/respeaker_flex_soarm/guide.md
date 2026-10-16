@@ -5,14 +5,14 @@ Deploy a voice-controlled robotic arm in one step: a single Docker container on 
 | Device | Purpose |
 |--------|---------|
 | SO-ARM101 Follower Arm | 6-DoF robotic arm — receives `send_action` via USB serial |
-| reComputer Super J4012 | Jetson Orin NX 16GB — runs the voice + arm container |
+| reComputer J40 series | Jetson Orin NX 16GB — runs the voice + arm container |
 | reSpeaker Flex XVF3800 | 4-microphone array for far-field voice capture |
 | Speaker | Output for the assistant's voice replies |
 
 **What you'll get:**
 - A robotic arm you control hands-free with natural language
 - Wake word activation ("Hey Jarvis") — arm listens only when called
-- Fully local AI: Paraformer ASR + Qwen3-4B-AWQ LLM + Matcha-TTS, all on the Jetson GPU
+- Speech recognition, LLM and TTS all run locally on the Jetson
 - A library of named poses + gesture sequences, editable as YAML without rebuilding the image
 - Live joint state at `GET /observation` for integration with other solutions
 
@@ -28,7 +28,7 @@ A brand-new SO-ARM kit needs three one-time setup tasks from the upstream wiki b
 
 On the Jetson (or any Linux host with USB to the arm), follow the upstream walkthrough for each of the three tasks. Photos + interactive prompts are all on the wiki.
 
-1. **[Find the USB port](https://wiki.seeedstudio.com/lerobot_so100m_new/#find-the-usb-ports)** — `lerobot-find-port` tells you which `/dev/ttyACM*` is the arm
+1. **[Find the USB port](https://wiki.seeedstudio.com/lerobot_so100m_new/#find-the-usb-ports)** — `lerobot-find-port` reports which `/dev/ttyACM*` is the arm
 2. **[Configure motor IDs](https://wiki.seeedstudio.com/lerobot_so100m_new/#configure-the-motors)** — factory servos are all ID 1; plug one at a time, the script re-IDs them 1–6
 3. **[Calibrate](https://wiki.seeedstudio.com/lerobot_so100m_new/#calibrate)** — pose to mid-position + sweep each joint so `/observation` returns normalized -100..100 (body joints) / 0..100 (gripper)
 
@@ -45,7 +45,7 @@ The calibration file lands at `~/.cache/huggingface/lerobot/calibration/robots/s
 
 ## Step 2: Deploy Voice Arm {#voice_arm type=docker_deploy required=true config=devices/voice_brain.yaml}
 
-Deploy the voice + arm container to the Jetson. The container probes the SO-ARM serial port and microphone on first boot, writes default `actions.yaml` / `prompt.yaml` if they're missing, then starts the voice pipeline plus an HTTP server on port 8765 for `GET /observation`.
+Deploy the voice + arm container to the Jetson. On first boot the container detects the SO-ARM serial port and microphone, and serves joint state on port 8765.
 
 ### Troubleshooting
 

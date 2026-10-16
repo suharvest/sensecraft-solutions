@@ -46,6 +46,7 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash, WebFetch, WebSearch
 | `image_text_chat` | 视觉语言模型（VLM）—— 图 + 文字 prompt |
 | `image_text_to_image` | 文生图 / 图生图 —— 输入提示词（或图），看生成的图 |
 | `voice_chat` | 语音助手 —— 说话、听 ASR/TTS |
+| `video_stream` | RTSP / MJPEG / HLS 视频输出 —— 直接在 app 的预览窗口看画面 |
 | `robot_inspect` | **机器人 / 机械臂** —— 实时观测面板，轮询机器人主容器的 `/observation` 端点显示关节/传感器状态 |
 | `http_debug` | **其他任意 HTTP 接口** —— 发请求看响应的通用调试器（**通用兜底**） |
 | 任意步加 `verify=true` | 把一个非标准步骤（如手动 demo）标成 verify 步 |
@@ -55,6 +56,8 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash, WebFetch, WebSearch
 **(b) 没有合适类型怎么拓展**（按优先级，前 3 条都不改引擎就能做）：
 
 1. **先用通用兜底**：服务暴露 HTTP API 但不是 chat/vision → 用 `http_debug`（任意请求/响应）；只是要打开个页面 → `web_dashboard`（任意 URL）。这俩能覆盖绝大多数「没有专门类型」的情况。
+   - 如果结果本身是 RTSP / MJPEG / HLS 视频流，优先用 `video_stream`，不要写成“打开 ffplay/VLC 手动验证”。能在 app 里看到的结果就应在 app 里预览。
+   - 如果一个视频方案同时暴露“最新结果 API”（例如二维码识别文本、检测 JSON），不要为了 curl 再单独加一个 `http_debug` 验证步骤；优先用 `video_stream` 的 overlay，在预览窗口里直接叠加结果。原理是：`video.*_url_template` 提供视频流，`data.http_url_template` 轮询最新 JSON（app 通过 `/api/commands/http-proxy` 代理，避免浏览器 CORS），`overlay.script_file` 是前端 canvas renderer，签名为 `(ctx, data, canvas, img)`，每次数据更新时把二维码文本、检测框或状态卡画到视频上。MQTT 输出则用 `mqtt.*` 触发同一个 renderer。只有当 API 返回本身是用户要看的主要结果、且没有可视化预览时，才用 `http_debug`。
 2. **自定义校验 / 健康检查**：在 device YAML 的 `actions.before` / `actions.after` 写 `run:` 脚本（设备上跑任意 shell，可 `sudo: true`）—— 做部署前预检、部署后健康检查。参考 `solutions/gpt_oss_20b/devices/jetson_deploy.yaml` 的 "Validate Jetson runtime"。**这是不改引擎就能拓展的主力。** 字段名（`actions` / `before` / `after` / `run` / `sudo`）以 `spec/device.schema.json` 为准。
 3. **标记任意步**：`{#id type=... verify=true}` 把任意步骤当成 verify 步。
 4. **以上都不满足**（需要一个全新的交互式 verify 类型 / 新 UI 控件）：这是**引擎（闭源）侧能力**，本仓库加不了 —— 要么用插件原型化（见 `docs/plugin-development.md`），要么提一个[能力需求 issue](https://github.com/suharvest/sensecraft-solutions/issues/new?template=new-capability-request.md)说明你要的交互形态。
@@ -101,7 +104,7 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash, WebFetch, WebSearch
 
 ```
 ## 方案概述
-- 名称 / 解决什么问题 / 核心硬件 / 核心软件
+- 名称 / 解决什么问题 / 核心硬件（产品族 + 能力要求）/ 核心软件
 
 ## 部署步骤（原始）
 1. ...
@@ -111,6 +114,34 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash, WebFetch, WebSearch
 
 ## 方案类型判定（solution / technical）
 ```
+
+**核心硬件必须先对照离线产品族快照（强制）**：
+
+```bash
+# 按 family id、英文标题或中文标题搜索
+jq --arg q 'J40' '
+  ($q | ascii_downcase) as $needle
+  | .families | to_entries[]
+  | select(
+      ([.key, .value.title.en // "", .value.title["zh-hans"] // ""]
+       | join(" ") | ascii_downcase | contains($needle))
+    )
+  | {family_id: .key, title: .value.title}
+' spec/product-family-manifest.json
+
+# 查看选中产品族可以约束的 axes / values
+jq --arg id 'recomputer_j40' \
+  '.families[$id] | {title, axes}' spec/product-family-manifest.json
+```
+
+- 找到产品族：记录其 `family_id`，后续直接用作 `device_catalog` key、
+  `device_ref` 和 default；需要 16 GB、特定模组等能力时，记录 manifest
+  中的 axis/value，后续写入 `purchase.require`。
+- **禁止**按页面产品名自造 key，也禁止记录或写入具体 SKU、具体产品名、
+  产品图或购买链接。运行时 App 会从 Typesense `purchase_profile` 获取这些数据。
+- 只有快照确实找不到该硬件时，才能使用 `generic_` / `external_` 前缀，并在
+  结构化摘要中说明为什么没有可用的 `purchase_profile` family。
+- 完整规则和更多查询示例见 `docs/product-family-contract.md`。
 
 ### 方案类型判定（必须做）
 
@@ -173,6 +204,40 @@ scp package.deb recamera@192.168.42.1:/tmp/ && ssh recamera@192.168.42.1 "opkg i
 
 - 下载脚本里不要硬编码 `huggingface.co`，用环境变量 `HF_ENDPOINT` / `HF_ENDPOINT_HOST` 控制 endpoint，受限网络下可切换镜像
 - 验收：下载脚本的 curl/wget 命令里不出现硬编码 `huggingface.co`（注释里写没关系）
+- 没有共享下载库：模型优先在容器内用 `HF_ENDPOINT` 环境变量下载（部署器会按地区注入镜像）；确需宿主机侧下载脚本时，把 `solutions/z_image_turbo/assets/scripts/hf_download.sh` 复制到本方案的 `assets/scripts/` 并随部署上传
+
+### Phase 2.6: Docker 镜像与受限网络
+
+引擎会在部署时探测目标设备的网络，判定为受限网络（CN）后**自动把 compose 里的公共镜像改写成国内镜像源**（`mysql:latest` → `docker.m.daocloud.io/library/mysql:latest`）。作者不用自己配镜像源，但要满足两个前提，否则重写会被静默跳过。
+
+**1. compose 文件名必须能被引擎识别**
+
+引擎只对它认得的文件名做重写，判定规则见 `docker_remote_deployer._looks_like_compose_file`：
+
+| 写法 | 是否识别 |
+|---|---|
+| `docker-compose.yml` / `compose.yaml` | ✓ |
+| `docker-compose.face-jetson.yml`（点号限定） | ✓ |
+| `docker-compose-jetson-voice.yml`（连字符限定） | ✓ |
+| `voice-stack.yml`、`my-compose.yaml` | ✗ |
+
+不被识别的文件原样上传，公共镜像直连 Docker Hub，在国内部署超时失败，**而日志只报 `Pull failed`，完全指不回文件名**。2026-08-27 客户 Jetson 上踩过（smart_warehouse 步骤 6，`mysql:latest` / `redis:8.0` 拉不下来）。
+
+CI 的 `scripts/check_compose_naming.py` 会拦住不合规的命名。
+
+**2. 私有 registry 的镜像不会被改写**
+
+第一段含 `.` 或 `:` 的镜像（如 `sensecraft-missionpack.seeed.cn/solution/xxx`）被视为已固定到特定 registry，引擎跳过不动。这是对的——自建 registry 本来就该直连。所以**自建镜像要确保国内可达**，别指望镜像源兜底。
+
+**3. action 脚本里自己拉的镜像用 `${DOCKER_REGISTRY_PREFIX}`**
+
+`before` / `after` 动作里如果有 `docker run`/`docker pull`，compose 重写管不到，要显式加前缀变量：
+
+```bash
+docker run --rm ${DOCKER_REGISTRY_PREFIX}library/alpine sh -c '...'
+```
+
+该变量由引擎按探测结果注入，非受限网络下为空串，不影响。官方镜像必须写全 `library/<name>`：Docker 只在直连 Docker Hub 时自动补 `library/`，加了镜像源前缀后 `docker.m.daocloud.io/alpine` 与 `docker.m.daocloud.io/library/alpine` 是两个路径，前者实测间歇性 401/502。空前缀时 `library/alpine` 等同 `alpine`。`solutionctl validate` 会拦截 `${DOCKER_REGISTRY_PREFIX}<不带 / 的名字>`。
 
 ---
 
@@ -204,6 +269,8 @@ device YAML 的字段、各部署类型（`docker_local` / `docker_remote` / `es
 | 手动跑的 shell 命令 | `actions.before` / `actions.after` |
 | 用户需要填的值 | `user_inputs` 列表 |
 
+> **reCamera C++ 应用必须优先做 deb 包**：如果原项目产物是 C/C++ 可执行文件，不要在 solution 里用 `files:` 复制裸二进制，也不要用 `actions.after` 做 `chmod + nohup`。正确做法是使用 `skills/prepare-deb-package` 打包成 `.deb`，在 device YAML 中写 `binary.deb_package.path/name/includes_init_script/checksum`，并提供 `/etc/init.d/S92<service>` 管理启动、停止和卸载。这样切换应用、重复部署、卸载还原才可控。只有一次性诊断脚本或非长期运行文件才考虑 `files:`。
+
 > **`docker_deploy` 派生规则**（一个 device YAML 写成 `type: docker_deploy`，引擎在加载时拆成 `docker_local` + `docker_remote` 两个视图）的完整规则见 `spec/CONTRACT.md`「docker_deploy view 派生规则」。要点：`remote_path` 必填且无 `solution_id` 兜底；`remote_overrides.actions` 是整体替换不是合并。
 
 **Step 10**：编写 guide.md
@@ -225,6 +292,10 @@ One-line description.
 | Docker not found | Install Docker Desktop |
 ```
 
+> **Step 摘要不要太长**：
+>
+> `## Step ...` 后、首个 `###` 子标题前的正文会显示在折叠步骤卡片上。这里只写 1 句“用户现在做什么 / 看到什么算成功”，不要塞 URL、参数解释、排障判据、命令或长背景。详细检查项放到 `### What to check` / `### 检查内容`，排障放到 `### Troubleshooting` / `### 故障排查`。目标长度：中文不超过 60 字，英文不超过 120 个字符。
+
 > **Target 命名规范**：
 >
 > **Target 标题不写名字** — 写成 `### Target {#id ...}`，冒号和名字都省略。前端会根据 `type=` + `device_name=` 自动从 i18n 决定显示名：
@@ -243,6 +314,28 @@ One-line description.
 > - `type` 是部署类型识别依据（local / remote），不是 ID
 > - 本地部署 ID 可叫 `local` 或加前缀（`backend_local`）
 > - 远程部署 ID 用具体设备/服务名（如 `rk3576`），不要笼统叫 `remote`
+
+> **多语言 guide 语法与可见文案（必须检查）**：
+>
+> 结构关键字既是语法也是可见标题，必须匹配文件语言：`guide.md` 用
+> `## Preset:` / `## Step N:` / `### Target` / `### Troubleshooting`；
+> `guide_zh.md` 用 `## 套餐:` / `## 步骤 N:` / `### 部署目标` /
+> `### 故障排查`。不要写半翻译形式，例如 `### 目标 {...}`（解析不了）
+> 或在中文文件里保留 `### Troubleshooting`、`| Symptom | Cause / fix |`。
+>
+> 中文文件的正文、表头、故障现象、按钮说明必须中文优先。允许保留的英文只限：
+> 产品/品牌名、命令、环境变量、文件路径、URL、API 名、模型名，以及设备实际播报
+> 或用户必须说出的英文短句。即使保留英文短句，也要先给中文解释，例如
+> `播报物体太大、夹不住（英文提示类似 "too big for me to grip"）`。
+>
+> 交付前至少运行一次：
+>
+> ```bash
+> rg -n "Troubleshooting|Symptom|Cause / fix|Issue \\| Solution|What you'll get|Requirements|Prerequisites|Wiring|Deployment Complete" solutions/<id>/*_zh.md
+> uv run --package sensecraft-solutionctl solutionctl deploy-info <id> --lang zh
+> ```
+>
+> 第一条只应命中允许保留的英文命令/产品名；第二条要人眼检查中文部署页没有英文模板表头、没有原始 `{#...}` 标记泄漏。
 
 > **多个 docker_deploy 步部署到同一台机器** —— 用 `target_inherit_from=<upstream_step_id>` 让下游步自动跟随上游的 local/remote 选择。只继承 method（local/remote），不绑死 target id。同一 preset 内才能继承；引用的 step 必须在自己之前、且自己有 targets。
 
@@ -265,12 +358,15 @@ One-line description.
 > ```
 
 > **`### Wiring` 段严格限定为接线说明**，不要塞 Docker 安装、API key 获取等非接线内容。
+>
+> 该段里**列表项**渲染成编号步骤，**列表之外的内容**（引子、列表后的说明、`> **Note:**` 提示、代码块）渲染在编号列表下方。所以"为什么要等几分钟""这个填充是有意为之"这类解释可以直接写在列表后面，不必硬塞进某一条。
 
 > **guide.md 里 H2 只能是 `## Preset:` 或 `## Step N:`（必带 `{#id}`）** —— 其他任何顶层 `## ...`（如 `## Quick Verification` / `## API Reference` / `## Next Steps`）都是孤儿 H2，校验会拦。
 >
 > - 部署完成后的总结/验证/链接 → 写成 `### Deployment Complete`，放在该 preset **最后一个 step 的所有 `### Target` 之前**。
 > - 附录小节（验证、API 表、下一步等）→ 写成 `#### XXX`（H4），嵌在 `### Deployment Complete` 下面。
-> - 前置条件 / 系统要求 / 介绍性文字 → 放进 `description.md`，guide.md 只讲怎么部署。
+> - **某个步骤**的硬性前提（驱动、运行时、端口占用、磁盘余量）→ 写成该 step 下的 `### Prerequisites` / `### 前置条件`，渲染在步骤正文上方（标题「开始之前 / Before You Start」）。
+> - **整个方案**的介绍性文字、选型说明 → 放进 `description.md`，guide.md 只讲怎么部署。
 
 ```markdown
 ## Step 3: Open Dashboard {#dashboard type=web_dashboard ...}
@@ -295,6 +391,13 @@ Your service is now running.
 - technical 类需声明输出接口（含路由标识 port/endpoint/topic/path/url）
 - 需要外部输入的方案声明输入要求
 - `device_ref` 必须能在 `intro.device_catalog` 中找到
+- 产品硬件必须先检索 `spec/product-family-manifest.json`：选中的 `family_id`
+  直接作为 `device_catalog` key、`device_ref` 和 device group 的 `default`，
+  不再建立第二层映射
+- 能力要求只用 manifest 中声明的 axis/value 写到 `purchase.require`；禁止写
+  具体 SKU，也禁止在产品族 entry 重复具体产品名、图片和购买 URL
+- 只有 manifest 中确实没有对应产品族，才使用 `generic_` / `external_` key，
+  并在交付说明中写明原因；禁止凭产品名自造 key
 - 设备/封面图片用稳定可达的源：方案自带本地图（`gallery/cover.png`，相对路径）或公共 CDN（`files.seeedstudio.com`、`media-cdn.seeedstudio.com`、`sensecraft-statics.seeed.cc` 都行）。`--check-urls` 只把 404/410 当死链；`files.seeedstudio.com` 的 Cloudflare 403 会被放过，可放心用。
 
 #### 最小可复制的 `solution.yaml` 骨架（solution 类型）
@@ -321,12 +424,11 @@ intro:
   tags: [demo, dashboard]
 
   device_catalog:                        # 介绍页展示的设备（device_ref 来源）
-    server:
+    generic_edge_server:                 # 无 purchase_profile 时才使用 generic_
       name: Edge Server
       name_i18n:
         zh: 边缘服务器
       image: gallery/cover.png
-      product_url: https://www.seeedstudio.com/reComputer-R1100-p-6253.html
       description: Runs the dashboard container
       description_i18n:
         zh: 运行看板容器
@@ -349,8 +451,8 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: server
-          default: server
+            - device_ref: generic_edge_server
+          default: generic_edge_server
 
   stats:
     difficulty: beginner
@@ -398,6 +500,7 @@ user_inputs:
 
 ```bash
 uv run --package sensecraft-solutionctl solutionctl validate solutions/<solution_id> --spec-dir spec
+uv run python scripts/ci/validate_product_families.py
 ```
 
 校验工具从本仓库内运行（clone-first，不依赖 PyPI 发布）。如果要在仓库外的位置校验某个 solution，指向本仓库的 `spec/` 即可：
@@ -413,6 +516,10 @@ uv run --package sensecraft-solutionctl solutionctl validate <solution_path> --s
 - **孤儿 H2**：每个 `##` 必须是 `## Preset:` / `## 套餐:` 或 `## Step N:` / `## 步骤 N:`，其它顶层 H2 报错；
 - **target 命名**：`### Target` 名不得是方向词（Local / Remote / 本地 / 远程 / 本机 / 远端）；
 - **中英文结构一致**：guide.md 与 guide_zh.md 的 preset / step / target ID 必须一一对应。
+
+`validate_product_families.py` 同样完全离线，使用
+`spec/product-family-manifest.json` 检查产品族 key、`device_ref` / default、
+`purchase.require` 以及是否误写具体 SKU/产品名/图片/购买链接。
 
 **必须全绿**才算合格。
 
@@ -443,14 +550,23 @@ uv run --package sensecraft-solutionctl solutionctl validate <solution_path> --s
 
 ```bash
 uv run --package sensecraft-solutionctl solutionctl validate solutions/<solution_id> --spec-dir spec
+uv run python scripts/ci/validate_product_families.py
+uv run python scripts/check_compose_naming.py
 ```
 
 **人眼自检清单**（工具查不到的）：
 - [ ] 打开 cover_image，画面有真实数据、无空 dashboard、无 loading 状态
 - [ ] 每个 deploy step 都对得上一个 verify step（看 guide.md 步骤列表）
+- [ ] RTSP + HTTP 结果类方案使用 `video_stream` 在 App 内预览并叠加结果，不把预览和 API 查询拆成两步
+- [ ] reCamera C++ 长驻应用使用 `.deb + init script`，不使用裸二进制 `files:` + `chmod/nohup`
 - [ ] `### Wiring` 段确实只放接线说明
 - [ ] description 风格匹配类型（solution: 四段式 / technical: 能力产物 → 集成场景 → 接口详情）
 - [ ] technical 首屏不是端口表或 curl；首段专业缩写不超过 2 个，并有通俗解释
+- [ ] 产品硬件已从 `spec/product-family-manifest.json` 选择 family；能力要求只写 `purchase.require`，没有具体 SKU
+- [ ] `device_catalog` key、`device_ref` 和 default 使用同一 `family_id`；只有确无 family 时才使用并说明 `generic_` / `external_`
+- [ ] compose 文件名以 `docker-compose` / `compose` 开头（见 Phase 2.6）；否则镜像源重写被静默跳过，受限网络下拉公共镜像超时
+- [ ] action 脚本里自己 `docker run` / `docker pull` 的镜像带上 `${DOCKER_REGISTRY_PREFIX}` 前缀，官方镜像写 `library/<name>`
+- [ ] 自建 registry 的镜像国内可达（引擎不会给私有 registry 加镜像源前缀）
 
 ---
 
@@ -467,6 +583,7 @@ uv run --package sensecraft-solutionctl solutionctl validate solutions/<solution
 - [ ] `assets/` — 部署产物
 - [ ] 手动部署通过（Phase 2）
 - [ ] `solutionctl validate solutions/<id> --spec-dir spec` 全绿（Phase 4 / Phase 7）
+- [ ] `uv run python scripts/ci/validate_product_families.py` 全绿（Phase 4 / Phase 7）
 - [ ] 文案优化完成（Phase 6）
 
 ---
@@ -477,6 +594,8 @@ uv run --package sensecraft-solutionctl solutionctl validate solutions/<solution
 |---|---|
 | `spec/CONTRACT.md` | 机器可读契约：device/solution schema 字段、guide.md Step/Target 语法、docker_deploy 派生规则、heading 关键字 |
 | `spec/*.json` | solution / device / capabilities / plugin schema |
+| `spec/product-family-manifest.json` | 产品族 family id、标题、能力轴与离线 SKU 属性快照 |
+| `docs/product-family-contract.md` | 产品族选型、`purchase.require` 与快照刷新流程 |
 | `skills/solution-copywriting` | 文案优化规范（介绍页四段式、术语通俗化、质量检查） |
 | `skills/prepare-docker-images` | 准备 Docker 镜像与 compose 文件 |
 | `skills/prepare-recamera-nodered` | 准备 reCamera Node-RED flow |

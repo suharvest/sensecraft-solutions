@@ -38,7 +38,7 @@
 | 部件 | 作用 |
 |------|------|
 | SO-ARM101 从动机械臂 | 六自由度机械臂，接收容器的 `send_action` 调用 |
-| reComputer Super J4012 | Jetson Orin NX 16GB，跑语音 + 机械臂容器 |
+| reComputer J40 系列 | Jetson Orin NX 16GB，跑语音 + 机械臂容器 |
 | reSpeaker Flex XVF3800 | 4 麦圆形阵列，远场语音采集 |
 | 音箱 | 输出助手语音回复 |
 | USB-C 线 | Jetson ↔ SO-ARM、Jetson ↔ reSpeaker |

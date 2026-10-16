@@ -1,0 +1,439 @@
+version: "1.0"
+id: hailo_detector
+name: Hailo Security Stack
+name_i18n:
+  zh: Hailo 安防服务栈
+type: docker_deploy
+
+docker:
+  compose_file: assets/hailo/docker-compose.yml
+  compose_dir: assets/hailo
+  options:
+    project_name: edge_security_hailo
+    remove_orphans: true
+  services:
+    - name: mosquitto
+      port: 1883
+      required: true
+    - name: hub
+      port: 8090
+      required: true
+    - name: detector
+      port: 8099
+      required: true
+
+ssh:
+  port: 22
+  default_user: pi
+  # password only, because `key` here would be a claim the engine cannot
+  # honour. auth_methods has no consumer: the only two occurrences in the
+  # engine are defaults (models/device.py, services/solution_manager.py) and
+  # nothing reads it. Key auth is selected by `key_file` in device_connections
+  # (deployers/docker_remote_deployer.py), which deploy-info does not expose
+  # in its request_template -- and utils/ssh.py connects with
+  # look_for_keys=False, allow_agent=False, so an agent key or ~/.ssh default
+  # is never picked up. Declaring `key` here makes a deploy sent with an empty
+  # password fail at Connect with nothing pointing at the cause.
+  auth_methods:
+    - password
+  connection_timeout: 30
+  command_timeout: 1800
+
+pre_checks:
+  # Advisory, not a gate: the engine logs "⚠ Low disk space" below this and
+  # carries on to completion. Observed at 3.1 GB free, where the whole deploy
+  # still succeeded. Treat it as a warning the operator reads, not a stop.
+  - type: disk_space
+    min_gb: 4
+    description: Detector image, hub image, the staged HailoRT package and the alert database all live on the board
+
+post_deployment:
+  open_browser: false
+
+remote_overrides:
+  remote_path: /home/{{username}}/edge-security-hailo
+  compose_dir: assets/hailo
+  detection:
+    method: network_scan
+    manual_entry: true
+
+  actions:
+    before:
+      - name: Validate the Hailo runtime
+        name_i18n:
+          zh: 校验 Hailo 运行环境
+        run: |
+          set -e
+          if [ ! -e /dev/hailo0 ]; then
+            echo "/dev/hailo0 missing — the Hailo PCIe driver is not loaded." >&2
+            echo "Install hailort-pcie-driver and reboot, then retry." >&2
+            exit 1
+          fi
+          if [ ! -e /usr/lib/libhailort.so ]; then
+            echo "libhailort.so not found. Install the board's hailort package first." >&2
+            exit 1
+          fi
+          # Printed rather than asserted: the library is staged by version-
+          # agnostic copy later, so no version has to match the compose file.
+          # This is here so a driver/library mismatch is visible in the log
+          # before the detector fails with something less legible.
+          ls -l /usr/lib/libhailort.so /usr/lib/libhailort.so.* 2>/dev/null || true
+          echo "driver: $(dpkg -l 2>/dev/null | awk '/hailort-pcie-driver/ {print $3}')"
+          echo "library: $(dpkg -l 2>/dev/null | awk '/^.i  hailort /{print $3}')"
+          echo "Hailo runtime OK"
+
+      - name: Check the accelerator is not already in use
+        name_i18n:
+          zh: 检查加速器是否已被占用
+        run: |
+          # HailoRT hands a VDevice to ONE process at a time unless every
+          # consumer on the board goes through the multi-process service, which
+          # is off by default. A second app holding /dev/hailo0 makes the
+          # detector fail at startup with HAILO_OUT_OF_PHYSICAL_DEVICES(74).
+          #
+          # `hailortcli fw-control identify` is NOT this check: it opens a
+          # control handle, not a VDevice, and succeeds against a fully
+          # occupied device. Look at who holds the fd instead.
+          holders=""
+          for p in /proc/[0-9]*; do
+            if ls -l "$p/fd" 2>/dev/null | grep -q hailo; then
+              holders="$holders ${p##*/}($(tr '\0' ' ' < "$p/cmdline" 2>/dev/null | cut -c1-60))"
+            fi
+          done
+          if [ -n "$holders" ]; then
+            echo "/dev/hailo0 is already held by:$holders" >&2
+            echo "Stop that process or container first — the accelerator takes one at a time." >&2
+            exit 1
+          fi
+          echo "accelerator is free"
+
+      - name: Locate the HailoRT Python wheel
+        name_i18n:
+          zh: 定位 HailoRT Python wheel
+        run: |
+          set -e
+          # Unlike the Rockchip boards, there is nothing to copy out of
+          # site-packages here: Raspberry Pi OS ships Python 3.13 and Hailo
+          # publishes a cp311 wheel, so `import hailo_platform` fails on the
+          # board's own interpreter even when HailoRT is correctly installed.
+          # The container carries Python 3.11, so the wheel is unpacked into a
+          # staging directory instead.
+          WHEEL=$(find /home /opt /usr/share -maxdepth 4 -name 'hailort-*-cp311-*linux_aarch64.whl' 2>/dev/null | head -1)
+          if [ -z "$WHEEL" ]; then
+            echo "No hailort cp311 wheel found on this board." >&2
+            echo "Download it from the Hailo developer zone (same version as the" >&2
+            echo "installed driver) and leave it under your home directory." >&2
+            exit 1
+          fi
+          echo "wheel: $WHEEL"
+          echo "$WHEEL" > /tmp/esk-hailo-wheel-path
+
+      - name: Check ports 8090 and 1883 are free
+        name_i18n:
+          zh: 检查 8090 与 1883 端口是否空闲
+        ignore_error: true
+        run: |
+          # Broker and hub run on this same board, so both ports must be free.
+          # A redeploy sees its own containers holding them, so only complain
+          # about a listener that is not part of this stack.
+          mine=$(docker ps --filter "label=com.docker.compose.project=edge_security_hailo" -q 2>/dev/null | wc -l)
+          for p in 8090 1883; do
+            if command -v ss >/dev/null 2>&1 && ss -ltn "sport = :$p" | grep -q LISTEN; then
+              if [ "$mine" -gt 0 ]; then
+                echo "Port $p is held by this stack's own containers; redeploy will replace them."
+              else
+                echo "Port $p is already in use. Stop the other service or the stack will fail to start." >&2
+              fi
+            fi
+          done
+          echo "port check done"
+
+      - name: Ensure docker compose command
+        name_i18n:
+          zh: 确保 docker compose 可用
+        sudo: true
+        run: |
+          if docker compose version >/dev/null 2>&1; then
+            echo "docker compose plugin present"
+            exit 0
+          fi
+          apt-get update
+          apt-get install -y docker-compose-plugin || apt-get install -y docker-compose-v2
+          docker compose version
+
+    after_upload:
+      - name: Stage the board's HailoRT Python package
+        name_i18n:
+          zh: 准备板卡的 HailoRT Python 包
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/edge-security-hailo/hailo_detector"
+          DEST="$WORKDIR/hailosite"
+          WHEEL=$(cat /tmp/esk-hailo-wheel-path)
+          rm -rf "$DEST"
+          mkdir -p "$DEST"
+          # A wheel is a zip. Unpacking it beats `pip install --target` here:
+          # no pip in the loop, no chance of it resolving a different version
+          # off an index, and the extension modules are cp311 which is exactly
+          # what the container's interpreter is.
+          if command -v unzip >/dev/null 2>&1; then
+            unzip -q -o "$WHEEL" -d "$DEST"
+          else
+            python3 -c "import zipfile,sys; zipfile.ZipFile(sys.argv[1]).extractall(sys.argv[2])" "$WHEEL" "$DEST"
+          fi
+          # Only hailo_platform is needed on PYTHONPATH. Dropping the rest keeps
+          # the mount from shadowing anything the image already carries.
+          find "$DEST" -maxdepth 1 -mindepth 1 ! -name 'hailo_platform' -exec rm -rf {} + 2>/dev/null || true
+          ls -1 "$DEST"
+          test -d "$DEST/hailo_platform" || { echo "hailo_platform missing after unpack" >&2; exit 1; }
+
+      - name: Stage the board's HailoRT library
+        name_i18n:
+          zh: 准备板卡的 HailoRT 运行库
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/edge-security-hailo/hailo_detector"
+          DEST="$WORKDIR/hailolib"
+          rm -rf "$DEST"; mkdir -p "$DEST"
+          # Copied, not bind-mounted per file. Naming the versioned file in the
+          # compose would pin it to one HailoRT release, and on a board with a
+          # different one Docker creates an empty directory at the missing path
+          # instead of failing -- the unversioned symlink then resolves to a
+          # directory and the error that surfaces says nothing about versions.
+          # -L dereferences, so the copy is the real object under both names.
+          REAL=$(readlink -f /usr/lib/libhailort.so)
+          cp -L "$REAL" "$DEST/$(basename "$REAL")"
+          ln -sf "$(basename "$REAL")" "$DEST/libhailort.so"
+          # The soname is what the extension module actually asks the loader
+          # for; if it differs from the filename, provide it too.
+          SONAME=$(objdump -p "$REAL" 2>/dev/null | awk '/SONAME/ {print $2}')
+          if [ -n "$SONAME" ] && [ ! -e "$DEST/$SONAME" ]; then
+            ln -sf "$(basename "$REAL")" "$DEST/$SONAME"
+          fi
+          ls -l "$DEST"
+
+      - name: Write the camera and detector configuration
+        name_i18n:
+          zh: 写入摄像头与检测器配置
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/edge-security-hailo/hailo_detector"
+          # data/ holds the alert database, the snapshots and the rule
+          # configuration for the hub that runs on this same board.
+          mkdir -p "$WORKDIR/config" "$WORKDIR/data" "$WORKDIR/mosquitto-data"
+          # decode_primary is sw and there is no require_hw_decode switch: this
+          # board has no H.264 decoder, so software decode is the primary path
+          # rather than a fallback, and health.fallback_active stays false.
+          # Quoted delimiter: the {{...}} placeholders are substituted by the
+          # engine before this script runs, so nothing here needs shell
+          # expansion -- and an unquoted heredoc would evaluate $(...) or a
+          # backtick that arrived inside a camera URL or username.
+          cat > "$WORKDIR/config/detector.yaml" <<'CFG'
+          device_id: {{device_id}}
+          stream_id: {{stream_id}}
+          source: {{rtsp_url}}
+          rtsp_transport: tcp
+          decode_primary: sw
+          model: /app/models/yolov8n.hef
+          input_size: 640
+          conf_threshold: 0.35
+          iou_threshold: 0.45
+          infer_timeout_ms: 5000
+          track_iou_threshold: 0.2
+          track_max_lost_s: 0.75
+          mqtt_host: mosquitto
+          mqtt_port: 1883
+          topic_prefix: sensecraft/security
+          status_interval_s: 30
+          preview_enabled: true
+          preview_bind: 0.0.0.0
+          preview_port: 8099
+          preview_advertise_host: "{{host}}"
+          CFG
+          # Printed with the source line masked: an RTSP URL normally carries
+          # the camera's user and password, and deploy output is kept.
+          sed 's#^source: .*#source: <rtsp url, hidden>#' "$WORKDIR/config/detector.yaml"
+
+    after:
+      - name: Wait for the hub to answer
+        name_i18n:
+          zh: 等待 hub 响应
+        ignore_error: true
+        timeout: 180
+        run: |
+          echo "Waiting for the hub API ..."
+          # Deadline-driven rather than a fixed iteration count: without
+          # --max-time a stalled connection makes each pass take as long as
+          # curl's own default, and the loop then overruns the step timeout and
+          # is killed mid-way instead of reporting anything useful.
+          deadline=$(( $(date +%s) + 150 ))
+          while [ "$(date +%s)" -lt "$deadline" ]; do
+            if curl -fsS --max-time 4 "http://127.0.0.1:8090/api/health" >/dev/null 2>&1; then
+              curl -sS --max-time 4 "http://127.0.0.1:8090/api/health"
+              echo
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Hub did not answer on 8090 — check: docker compose logs hub" >&2
+
+      - name: Report the admin credential
+        name_i18n:
+          zh: 输出管理员登录信息
+        ignore_error: true
+        timeout: 60
+        run: |
+          # On a first boot with no HUB_ADMIN_PASSWORD the hub creates a random
+          # password, writes it to /data/initial-password.txt and logs it.
+          docker exec edge_security_hailo-hub-1 cat /data/initial-password.txt 2>/dev/null || docker logs edge_security_hailo-hub-1 2>&1 | grep -iE "password" | tail -3 || true
+
+      - name: Confirm the detector reached the accelerator
+        name_i18n:
+          zh: 确认检测器已用上加速器
+        # Deliberately NOT ignore_error. A detector that crash-loops on every
+        # frame otherwise rides through: this step prints the traceback, the
+        # step still reports completed, and the deployment ends with
+        # status "completed" and errors []. Observed exactly that with an
+        # image that could not infer -- the evidence was in the log and the
+        # status said success.
+        timeout: 360
+        run: |
+          # Three things are checked here because the obvious two both lie.
+          #
+          # `docker ps` says healthy while the detector crash-loops: /healthz
+          # answers as soon as the preview server binds, deliberately, so that
+          # a briefly unreachable camera cannot restart-loop the container. It
+          # says nothing about inference.
+          #
+          # The hub's /api/devices needs a session cookie. Fetched without one
+          # it returns {"error":"unauthenticated"} and a 200, which looks the
+          # same whether the stack works or the detector never published.
+          #
+          # /preview.jpg is the honest one: 503 until a frame has been decoded
+          # AND run through the model, 200 image/jpeg after. Paired with the
+          # restart count, which is what a crash-loop actually shows up as.
+          echo "Waiting for the detector to produce a frame ..."
+          ok=0
+          deadline=$(( $(date +%s) + 200 ))
+          while [ "$(date +%s)" -lt "$deadline" ]; do
+            code=$(curl -s --max-time 4 -o /tmp/esk-prev.jpg -w '%{http_code}' "http://127.0.0.1:8099/preview.jpg" 2>/dev/null || echo 000)
+            if [ "$code" = "200" ]; then
+              # Magic bytes, not just a 200: the guide promises a decodable
+              # JPEG, and an endpoint that answered with an error page or a
+              # truncated body would otherwise pass as proof of a frame.
+              # Start-of-image AND end-of-image. SOI alone passes a body that
+              # was truncated mid-transfer, which is exactly the failure this
+              # check is meant to catch.
+              soi=$(head -c 3 /tmp/esk-prev.jpg 2>/dev/null | od -An -tx1 | tr -d ' \n')
+              eoi=$(tail -c 2 /tmp/esk-prev.jpg 2>/dev/null | od -An -tx1 | tr -d ' \n')
+              magic="$soi/$eoi"
+              if [ "$soi" = "ffd8ff" ] && [ "$eoi" = "ffd9" ]; then
+                echo "preview.jpg: HTTP 200, JPEG, $(wc -c < /tmp/esk-prev.jpg) bytes"
+                ok=1
+                break
+              fi
+              echo "preview.jpg answered 200 but the body is not a JPEG (magic $magic)" >&2
+            fi
+            sleep 5
+          done
+          # Sampled twice rather than required to be zero. The detector opens
+          # its MQTT connection synchronously at startup and exits if the
+          # broker is not accepting yet; compose's depends_on waits for the
+          # container to exist, not for mosquitto to be ready, so one early
+          # restart is normal on a slow board. A crash-loop keeps incrementing;
+          # a startup race settles. Requiring zero would fail working
+          # deployments.
+          r1=$(docker inspect -f '{{.RestartCount}}' edge_security_hailo-detector-1 2>/dev/null || echo "?")
+          sleep 20
+          r2=$(docker inspect -f '{{.RestartCount}}' edge_security_hailo-detector-1 2>/dev/null || echo "?")
+          # State as well as the counter. Docker backs a crash-loop off
+          # exponentially, so a container can sit in Restarting for the whole
+          # 20 s window with its count unchanged -- and the preview that set
+          # ok=1 was served before it died. Running=true / Restarting=false at
+          # the second sample is what rules that out.
+          state=$(docker inspect -f '{{.State.Running}}/{{.State.Restarting}}' edge_security_hailo-detector-1 2>/dev/null || echo "?/?")
+          echo "detector restart count: $r1 -> $r2, state running/restarting: $state"
+          rm -f /tmp/esk-prev.jpg
+          if [ "$ok" = "1" ] && [ "$r1" = "$r2" ] && [ "$r1" != "?" ] && [ "$state" = "true/false" ]; then
+            echo "detector is decoding and inferring"
+            exit 0
+          fi
+          # Say which of the three checks failed. The negative control for this
+          # step showed the cost of not doing so: the container was simply
+          # stopped, and the message told the operator to look for a crash-loop.
+          if [ "$state" != "true/false" ]; then
+            echo "The detector container is not running (state $state)." >&2
+          elif [ "$r1" != "$r2" ]; then
+            echo "The detector is crash-looping: restart count rose $r1 -> $r2" >&2
+            echo "while the container kept reporting healthy — /healthz answers" >&2
+            echo "as soon as the preview server binds, before any inference." >&2
+          else
+            echo "The detector is running but produced no decodable frame." >&2
+          fi
+          echo "Last lines:" >&2
+          docker logs --tail 25 edge_security_hailo-detector-1 2>&1 | sed 's/^/  /' >&2
+          # The pipeline above exits 0 whatever it prints, which would hand the
+          # engine a success for the exact case this step exists to catch.
+          exit 1
+
+  user_inputs:
+    - id: host
+      name: Board IP
+      name_i18n:
+        zh: 板卡 IP
+      type: text
+      required: true
+      placeholder: "192.168.1.100"
+      description: Where the workbench will be served — http://<this address>:8090 — and also the preview address written into the detector config
+      description_i18n:
+        zh: 工作台的访问地址（http://该地址:8090），同时写入检测器配置作为预览画面地址
+    - id: username
+      name: SSH Username
+      name_i18n:
+        zh: SSH 用户名
+      type: text
+      default: pi
+      required: true
+      description: "Depends on the board image — commonly pi or recomputer on Raspberry Pi OS."
+      description_i18n:
+        zh: "取决于板卡系统镜像，Raspberry Pi OS 上常见的是 pi 或 recomputer。"
+    - id: password
+      name: SSH Password
+      name_i18n:
+        zh: SSH 密码
+      type: password
+      required: true
+    - id: device_id
+      name: Detector Name
+      name_i18n:
+        zh: 检测器名称
+      type: text
+      default: "hailo-01"
+      required: true
+      description: Second segment of the MQTT topic and the name shown in the workbench device list
+      description_i18n:
+        zh: MQTT 主题的第二段，也是工作台设备列表里显示的名字
+      validation:
+        pattern: "^[A-Za-z0-9_-]+$"
+    - id: stream_id
+      name: Stream ID
+      name_i18n:
+        zh: 流编号
+      type: text
+      default: "cam-0"
+      required: true
+      description: Appended to the topic so several cameras on one board stay separable
+      description_i18n:
+        zh: 拼在主题后面，用于区分同一板卡上的多路摄像头
+      validation:
+        pattern: "^[A-Za-z0-9_-]+$"
+    - id: rtsp_url
+      name: Camera RTSP URL
+      name_i18n:
+        zh: 摄像头 RTSP 地址
+      type: text
+      required: true
+      placeholder: "rtsp://admin:password@192.168.1.64:554/Streaming/Channels/101"
+      description: Decoded in software on this board, which costs CPU — budget for it before adding a second camera
+      description_i18n:
+        zh: 该板卡走软解，会占用 CPU——加第二路摄像头前先把这部分算进去

@@ -1,0 +1,13 @@
+4eb5e4ff6144810e919f2a63ad8f7dcd1c1ac5309d207b1d9ff832ba6cd63aba  yolox_tiny_neu6.onnx
+17774346dddcf39a99c4127a3b2940e782f2410100bde791f22671ad37400cdd  best_ckpt.pth
+
+# metadata (not part of the checksum lines)
+# repo_commit    : 637694ca9f96fb466fe6a9bc1b8ebe8f19ba5045
+# yolox_commit   : 419778480ab6ec0590e5d3831b3afb3b46ab2aa3
+# yolox_version  : 0.3.0
+# torch_version  : 2.14.0+cu130
+# onnx_version   : 1.22.0
+# input          : images:1x3x640x640 opset11
+# classes        : crazing,inclusion,patches,pitted_surface,rolled-in_scale,scratches
+# size           : yolox_tiny_neu6.onnx = 20172980 bytes
+# size           : best_ckpt.pth = 40589795 bytes

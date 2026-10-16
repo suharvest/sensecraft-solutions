@@ -1,0 +1,73 @@
+version: "1.0"
+id: plc_check
+name: Check the Modbus Output
+type: manual
+
+# Why this step is manual.
+#
+# What has to be verified is that a PLC reading Modbus TCP sees the coil flip
+# and the registers already holding the same verdict's data. No deployer type
+# reads Modbus registers, and the generic web_dashboard/http_debug fallbacks
+# cannot speak the protocol at all, so the step hands the operator the exact
+# command instead of pretending to run it. The upstream repo ships
+# `evaluation/read_modbus.py` for this; any Modbus master works equally well.
+#
+# This step is optional: skip it on an installation that consumes MQTT only.
+
+steps:
+  - id: read_registers
+    name: Read the coils and holding registers
+    name_i18n:
+      zh: 读取线圈与保持寄存器
+    description: >-
+      From a machine that can reach the device, poll unit 1 on port 502 and read
+      coils 0-1 and holding registers 0-7. The upstream repo's helper does this
+      directly:
+      `python evaluation/read_modbus.py --host <device-ip> --port 502 --unit 1`.
+      Any Modbus master (a PLC, modpoll, pymodbus) reads the same addresses.
+    description_i18n:
+      zh: >-
+        在能访问到设备的机器上，按 unit 1、端口 502 轮询，读线圈 0-1 与保持寄存器 0-7。
+        上游仓库自带的脚本可以直接做这件事：
+        `python evaluation/read_modbus.py --host <设备 IP> --port 502 --unit 1`。
+        任何 Modbus 主站（PLC、modpoll、pymodbus）读的都是同一组地址。
+    optional: false
+
+  - id: confirm_exclusive
+    name: Confirm the coils are mutually exclusive
+    name_i18n:
+      zh: 确认两个线圈互斥
+    description: >-
+      Coil 0 is NG and coil 1 is OK. They must never both read 1 in the same
+      sample. On the Orin NX check, 20 Hz sampling caught two transitions and no
+      sample had both set. If you ever see (1,1), stop and report it — a PLC
+      latching on either coil would act on a verdict that does not exist.
+    description_i18n:
+      zh: >-
+        线圈 0 是 NG，线圈 1 是 OK，同一次采样里两者绝不能同时为 1。
+        Orin NX 上以 20 Hz 连续采样抓到两次翻转，没有一次两者同时为 1。
+        如果读到 (1,1)，先停下来上报——PLC 无论锁哪一个线圈，都会对一个不存在的判定动作。
+    optional: false
+
+  - id: confirm_order
+    name: Confirm the registers lead the coil
+    name_i18n:
+      zh: 确认寄存器先于线圈更新
+    description: >-
+      Each verdict updates the holding registers atomically and only then writes
+      the coil, so by the time your PLC sees the coil flip the registers already
+      describe that same frame. Verify it on an NG frame: HR 0 is the defect
+      class id, HR 1 the defect count, HR 2-5 the primary box as cx/cy/w/h
+      normalised x10000 (so 0-10000), HR 6-7 the heartbeat Unix seconds as the
+      high and low word of a uint32. On an OK frame HR 0-5 are all zero, while
+      the heartbeat keeps ticking on its own interval whether or not a new
+      verdict arrived.
+    description_i18n:
+      zh: >-
+        每次判定都先原子更新保持寄存器、再写线圈，所以 PLC 看到线圈翻转时，
+        寄存器里已经是同一帧的数据。在一帧 NG 上验证：
+        HR 0 是缺陷类别 ID，HR 1 是缺陷数，HR 2-5 是主缺陷框的 cx/cy/w/h，
+        归一化后 x10000（因此落在 0-10000），HR 6-7 是心跳 Unix 秒的
+        uint32 高字与低字。OK 帧上 HR 0-5 全为 0；心跳按自己的间隔独立递增，
+        不管有没有新判定。
+    optional: false

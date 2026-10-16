@@ -1,6 +1,9 @@
 version: "1.0"
 id: z_image_turbo
 name: Z-Image-Turbo on Jetson
+name_i18n:
+  zh: Jetson 一键部署 Z-Image-Turbo
+  ja: Jetson 上の Z-Image-Turbo
 intro:
   summary: Run Z-Image-Turbo (6B) locally on Jetson Orin NX — text-to-image and img2img via HTTP API, fully offline.
   description_file: description.md
@@ -11,7 +14,7 @@ intro:
       caption: image-to-image comparison — reference (left) vs output with red collar prompt (right)
       caption_i18n:
         zh: 图生图对比——左为参考图，右为加上红色项圈提示词的输出
-  category: generative_ai
+  category: on_device_lm
   solution_type: technical
   tags: [jetson, image-generation, tensorrt, docker, edge-ai]
 
@@ -49,22 +52,17 @@ intro:
       description_i18n:
         zh: 通过网络访问 Jetson 设备上的 API（部署后模型完全离线运行）
   device_catalog:
-    recomputer_j4012:
-      name: reComputer J4012
-      product_url: https://www.seeedstudio.com/reComputer-J4012-p-5586.html
-      description: NVIDIA Jetson Orin NX 16GB — runs Z-Image-Turbo with TensorRT BF16 acceleration
-      name_i18n:
-        zh: reComputer J4012
+    recomputer_j40:
+      description: Jetson Orin NX 16GB — runs Z-Image-Turbo with TensorRT BF16
       description_i18n:
-        zh: NVIDIA Jetson Orin NX 16GB — 使用 TensorRT BF16 加速运行 Z-Image-Turbo
-    recomputer_j501:
-      name: reComputer J501
-      product_url: https://www.seeedstudio.com/reComputer-J501-p-6511.html
-      description: NVIDIA Jetson AGX Orin 64GB — runs Z-Image-Turbo with TensorRT BF16 acceleration
-      name_i18n:
-        zh: reComputer J501
+        zh: BF16 跑 Z-Image-Turbo（NX 16GB）
+      purchase:
+        require:
+          module: [orin_nx_16]
+    recomputer_j50:
+      description: Jetson AGX Orin 64GB — runs Z-Image-Turbo with TensorRT BF16
       description_i18n:
-        zh: NVIDIA Jetson AGX Orin 64GB — 使用 TensorRT BF16 加速运行 Z-Image-Turbo
+        zh: BF16 跑 Z-Image-Turbo（AGX 64GB）
   presets:
     - id: jetson_image_gen
       name: Deploy Image Generation Service
@@ -75,16 +73,15 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: recomputer_j4012
-            - device_ref: recomputer_j501
-          default: recomputer_j4012
-
+            - device_ref: recomputer_j40
+            - device_ref: recomputer_j50
+          default: recomputer_j40
           name_i18n:
             zh: Jetson 设备
       name_i18n:
         zh: 部署图片生成服务
       description_i18n:
-        zh: 通过 SSH 将 Z-Image-Turbo HTTP API 部署到 Jetson Orin NX
+        zh: 通过 SSH 将 Z-Image-Turbo API 部署到 Jetson Orin NX
   stats:
     difficulty: intermediate
     estimated_time: 15min
@@ -92,7 +89,7 @@ intro:
     likes_count: 0
 
   links:
-    github: https://github.com/suharvest/z-image-turbo-jetson-trt
+    github: https://github.com/suharvest/z-image-turbo-tensorrt-jetson
 
   summary_i18n:
     zh: 在 Jetson Orin NX 上本地运行 Z-Image-Turbo（6B）——通过 HTTP API 实现文生图和图生图，完全离线。
@@ -103,5 +100,3 @@ deployment:
   selection_mode: sequential
   guide_file_i18n:
     zh: guide_zh.md
-name_i18n:
-  zh: Jetson 一键部署 Z-Image-Turbo

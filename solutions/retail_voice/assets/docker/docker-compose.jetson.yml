@@ -1,0 +1,63 @@
+# Retail Voice — Jetson local ASR target (J3011/J4012).
+# Local runs speech and the capture client on the device.
+services:
+  speech:
+    image: sensecraft-missionpack.seeed.cn/solution/seeed-local-voice:jetson-stable
+    container_name: openvoicestream
+    runtime: nvidia
+    ipc: host
+    network_mode: host
+    command: ["python3", "-m", "uvicorn", "server.main:app", "--host", "0.0.0.0", "--port", "8621"]
+    environment:
+      - OVS_PROFILE=${OVS_PROFILE:-jetson-sensevoice-c64}
+      - OVS_PROFILE_DEFAULT=${OVS_PROFILE_DEFAULT:-jetson-sensevoice-c64}
+      - OVS_LOG_FORMAT=json
+      - OVS_ADMIN_KEY=
+      - ASR_MODEL_DIR=/opt/models
+      - SENSEVOICE_TRT_MODEL_DIR=${SENSEVOICE_TRT_MODEL_DIR:-/opt/models/sensevoice-trt}
+      - OVS_VAD_BACKEND=${OVS_VAD_BACKEND:-silero}
+      - OVS_VAD_SILENCE_MS=${OVS_VAD_SILENCE_MS:-400}
+      - HF_ENDPOINT=${HF_ENDPOINT:-https://hf-mirror.com}
+      - CUDA_MODULE_LOADING=LAZY
+      - LD_LIBRARY_PATH=/usr/local/lib/python3.10/dist-packages/onnxruntime/capi:/host-cuda:/host-nvidia-libs:/host-libs
+      - PYTHONPATH=/opt/speech:/usr/lib/python3.10/dist-packages
+      - ORT_CUDA_ARENA_EXTEND_STRATEGY=kSameAsRequested
+    volumes:
+      - speech-models:/opt/models
+      - /usr/local/cuda/lib64:/host-cuda:ro
+      - /usr/lib/aarch64-linux-gnu/nvidia:/host-nvidia-libs:ro
+      - /lib/aarch64-linux-gnu:/host-libs:ro
+      - /usr/lib/python3.10/dist-packages/tensorrt:/usr/lib/python3.10/dist-packages/tensorrt:ro
+      - /usr/src/tensorrt:/usr/src/tensorrt:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8621/readyz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 900s
+
+  voice-client:
+    image: ${VOICE_CLIENT_IMAGE:-sensecraft-missionpack.seeed.cn/solution/sensecraft-voice-client@sha256:136ae96c400f7ec45a3197d0686ac1b7fcf9b706afee27083a77abf8dfad2af5}
+    container_name: sensecraft-voice-client
+    depends_on:
+      speech:
+        condition: service_healthy
+    network_mode: host
+    devices:
+      - /dev/snd
+    group_add:
+      - audio
+    environment:
+      - TZ=${TZ:-Asia/Shanghai}
+      - AUDIO_CARD_ID=${AUDIO_CARD_ID:-1}
+      - AUDIO_DEVICE_ID=${AUDIO_DEVICE_ID:-0}
+    volumes:
+      - ./config/voice-client.yaml:/app/config.yaml:ro
+      - ${OUTPUT_DIR:-/home/recomputer/retail-voice}:/app/recordings
+      - ${OUTPUT_DIR:-/home/recomputer/retail-voice}/voiceprints:/app/voiceprints
+    restart: unless-stopped
+
+volumes:
+  speech-models:
+    name: speech-models

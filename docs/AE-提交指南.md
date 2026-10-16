@@ -56,6 +56,23 @@
 
 > 💡 最关键的是**「部署素材 + 部署步骤」**——这是把你的项目变成一键部署的核心。其余文案/图片 AI 能帮很多。
 
+### 硬件只选「产品族 + 能力」
+
+不要选某一个 4G / 8G 或某一个 SKU。先在仓库快照里找到产品族：
+
+```bash
+# 按 family id、英文或中文名称搜索
+jq --arg q 'J40' '($q|ascii_downcase) as $q | .families | to_entries[] | select(([.key,.value.title.en//"",.value.title["zh-hans"]//""]|join(" ")|ascii_downcase|contains($q))) | {family_id:.key,title:.value.title}' spec/product-family-manifest.json
+
+# 查看该产品族可选的能力（如内存/模组）
+jq --arg id 'recomputer_j40' '.families[$id] | {title,axes}' spec/product-family-manifest.json
+```
+
+把 `family_id` 直接交给 AI；如果方案确实需要 16 GB，再把快照里的
+axis/value 作为「能力要求」。方案不写具体 SKU、产品图或购买链接；
+App 运行时会自动从产品数据库选出匹配型号。完整规则见
+[`docs/product-family-contract.md`](product-family-contract.md)。
+
 ---
 
 ## 第 ① 步：转化（AI 帮你生成方案）
@@ -88,9 +105,26 @@ solutions/你的方案/
 
 ```bash
 uv run --package sensecraft-solutionctl solutionctl validate solutions/你的方案 --check-urls
+uv run python scripts/ci/validate_product_families.py
 ```
 
-它会检查：字段对不对、引用的文件在不在、中英文齐不齐、**链接有没有失效**、能不能部署起来等。**有红色报错就让 AI 帮你修，改到全绿**。
+第一条检查字段、引用文件、中英文、**失效链接**和部署结构；
+第二条检查产品族是否存在、能力要求是否真有匹配型号，以及是否误写了
+具体 SKU/产品名/图片/购买链接。**有红色报错就让 AI 帮你修，改到全绿**。
+
+其中几条容易踩的规则，报错时会解释原因，这里提前说明白：
+
+- **步骤 id 不能跨套餐撞车**：`## 步骤 N: …… {#id}` 里的 `#id` 是全文件级别的。两个套餐用同一个 id，引擎会"先到先得"——后面那个套餐显示的是前面套餐的内容。同 id 仅在**两处内容逐字一致**（有意共享）时允许；内容有差异必须改名（如 `#dashboard_edge_computing`）。
+- **`config=` 指针要能干活**：步骤标题里的 `config=devices/xxx.yaml` 指向真正执行的配置（固件地址、sha256、烧录参数都在那里，guide 正文只是给用户看的说明）。指针指向不存在的文件、或 YAML 缺少该步骤类型的必填字段（如 `esp32_usb` 缺 `firmware.flash_config`），都会报错。
+- **孤儿 YAML 会警告**：`devices/` 下没被任何步骤引用的 YAML——改它不会有任何效果，通常说明指针写错了或文件该删。
+
+想直观看到「每一步到底部署什么」，用装配视图：
+
+```bash
+uv run --package sensecraft-solutionctl solutionctl steps solutions/你的方案 --lang zh
+```
+
+它把每个套餐的步骤和背后的载荷（固件 URL/sha256、compose 文件等）拼在一起打印，发布前核对固件校验值也用它。
 
 ### 2.2 在 App 里预览（看长啥样）
 
@@ -126,7 +160,7 @@ git push   # 然后在 GitHub 上开 Pull Request
 
 提交后，**CI 会自动检查**（你不用管，等结果）：
 - `guard` —— 边界检查
-- `validate` —— 就是 2.1 那套（含死链检查）
+- `validate` —— 就是 2.1 那套（含死链和产品族检查）
 - `docker-smoke` —— 如果是 Docker 方案、能在 CI 起服务
 
 **全绿才能合并**。红了点进去看哪条挂了，让 AI 帮你修、再推。
@@ -146,7 +180,7 @@ git push   # 然后在 GitHub 上开 Pull Request
 | 阶段 | 怎么确认成功 |
 |---|---|
 | 转化 | `solutions/你的方案/` 目录生成,有 solution.yaml + 中英文 guide/description |
-| 本地校验 | `solutionctl validate ... --check-urls` **全绿无报错** |
+| 本地校验 | `solutionctl validate ... --check-urls` + 产品族校验 **全绿无报错** |
 | App 预览 | App 里能看到方案，图片/文案/中英文都正常，部署页步骤清晰 |
 | 真机部署 | 按步骤在真设备上**部署成功 + 效果对** |
 | 提交 | PR 的 CI **guard / validate / docker-smoke 全绿** |

@@ -1,0 +1,80 @@
+services:
+  warehouse:
+    # 按 digest 固定。`latest` 会随每次发布漂走，同一份方案在不同时间部署会拿到
+    # 不同的后端。2026-09-08 发布 warehouse_system 630e1f7（API Key 功能），
+    # tag `20260908-apikey-warehouse`（amd64 + arm64 manifest list）：
+    #   docker manifest inspect sensecraft-missionpack.seeed.cn/solution/warehouse:20260908-apikey-warehouse
+    #   index digest:  sha256:6b3346b8c1178fa6af4f9c259e0b6d7fad9c4337026f34e7e159dc324b529195
+    #   amd64 digest:  sha256:88dafb2b1108c0f5826495b31833a9918031b926d2b1e7183d9cffb8f12aba7c
+    #   arm64 digest:  sha256:1821b940dba8336692bf2b57c6a6435cd039ea2f445cb4c778f549622d794585
+    # 按 index digest 引用（tag 存在但仍按 digest 固定，防止后续同 tag 覆盖漂走）。发新版时改这一行。
+    image: sensecraft-missionpack.seeed.cn/solution/warehouse@sha256:5712d2e058e970f6b9fcda5c9fec62355ace243b47d8752b0d1f549ff090bc5d  # tag: 20260917-we2sim-warehouse
+    container_name: mcp_warehouse
+    ports:
+      - "2125:2125"
+    environment:
+      - PORT=2125
+      - DATABASE_PATH=/data/warehouse.db
+      - INIT_MOCK_DATA=${INIT_MOCK_DATA:-false}
+      - ENABLE_SECURITY_HEADERS=${ENABLE_SECURITY_HEADERS:-true}
+      - CORS_ORIGINS=${CORS_ORIGINS:-*}
+      - FACE_REC_API_URL=http://face-rec:8001
+      # lan 模式下发给摄像头设备的识别代理地址。容器内自动探测只能拿到 docker
+      # 网络地址（如 172.18.0.3），局域网设备永远连不到 —— 必须由部署流程注入
+      # 宿主机局域网 IP。留空时后端会在下发人脸库时直接报错并提示如何设置。
+      - WAREHOUSE_DEVICE_BASE_URL=${WAREHOUSE_DEVICE_BASE_URL:-}
+      - FACE_ENABLED=true
+      # 保持 0，原因同 docker-compose.yml 里同名注释（这个开关只管对外的
+      # /api/face/we2 HTTP 端点，本方案无消费方；录入与下发不看它）。
+      - FACE_WE2_SIMULATOR_ENABLED=0
+    volumes:
+      - warehouse_data:/data
+      # 客户通过智控台上传的 ERP Provider（.py）落在这里。必须是卷 ——
+      # 镜像不含它（.dockerignore 排除了 mcp/providers/custom/**），不挂卷
+      # 就只能活在容器可写层，`docker compose up -d` 换镜像即丢失，系统会
+      # 静默回退到 DefaultProvider（本地演示数据），查询看着能跑但全是假数据。
+      - warehouse_providers:/app/mcp/providers/custom
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:2125/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  face-rec:
+    image: sensecraft-missionpack.seeed.cn/solution/face-rec-api:v1.1-jetson
+    container_name: mcp_face_rec
+    runtime: nvidia
+    ports:
+      - "8001:8001"
+    environment:
+      - FACE_BACKEND=jetson
+      - LIVENESS_ENABLED=true
+    volumes:
+      # TensorRT / CUDA come from the host JetPack (not baked in the image).
+      - /usr/lib/python3.10/dist-packages/tensorrt:/usr/lib/python3.10/dist-packages/tensorrt:ro
+      - /usr/lib/python3.10/dist-packages/tensorrt_dispatch:/usr/lib/python3.10/dist-packages/tensorrt_dispatch:ro
+      - /usr/lib/python3.10/dist-packages/tensorrt_lean:/usr/lib/python3.10/dist-packages/tensorrt_lean:ro
+      - /usr/lib/aarch64-linux-gnu:/usr/lib/aarch64-linux-gnu:ro
+      - /usr/local/cuda:/usr/local/cuda:ro
+      # Default JetPack 6.2 .engine files + .onnx sources are baked into the
+      # image at /models (since v1.1-jetson). On a different JetPack the
+      # backend rebuilds engines from ONNX at first start (takes minutes).
+      - face_rec_data:/data
+      - ./face/photos:/photos
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+
+volumes:
+  warehouse_data:
+    driver: local
+  warehouse_providers:
+    driver: local
+  face_rec_data:
+    driver: local

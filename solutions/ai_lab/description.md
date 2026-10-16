@@ -55,12 +55,12 @@ curl http://<device-ip>:8001/v1/chat/completions \
 | LLM token speed | Depends on variant — 1.5B fastest, 7B strongest |
 | Memory needed | 4GB for 1.5B LLM · 8GB+ for 7B LLM and Vision Chat |
 | Disk needed | 3–10GB per preset, depending on model |
-| Supported hardware | reComputer RK3576 (all presets) · reComputer RK3588 / ROCK 5T (Object Detection only) |
+| Supported hardware | reComputer RK3576 (all presets) · reComputer RK3588 series (Object Detection only) |
 
 ## Good to Know
 
 - Each preset deploys independently — you can have all three running on the same RK3576 (they use different ports: 8000 / 8001 / 8002)
 - First startup downloads the Docker image (1–4GB) and loads the model — allow a few minutes
-- Object Detection works with or without a camera (image upload always works)
+- Object Detection works without a camera: keep **Video source** on **Sample video** and the video feed plays a bundled sample clip. Picking a camera number with no camera attached stops the detection service, image upload included
 - LLM and Vision Chat are RK3576-only because they require RKLLM NPU support not yet available on RK3588
 - All conversations and detections stay on-device — nothing is sent to a cloud

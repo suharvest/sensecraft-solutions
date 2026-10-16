@@ -47,7 +47,7 @@ services:
   # SLV speech backend is pure ASR+TTS pass-through over the /v2v WebSocket.
   # cm4/hailo presets point speech/LLM at a remote Jetson via ${VOICE_ASSISTANT_HOST}.
   reachy-voice:
-    image: sensecraft-missionpack.seeed.cn/solution/reachy-voice:v0.5.0
+    image: sensecraft-missionpack.seeed.cn/solution/reachy-voice:v0.6.0
     container_name: reachy-voice
     restart: unless-stopped
     network_mode: host
@@ -70,6 +70,11 @@ services:
       - REACHY_VOICE_CONFIG=/data/reachy-voice.yaml
       - REACHY_VOICE_DATA_DIR=/data
       - REACHY_LOG_LEVEL=INFO
+      # Canonical Realtime V2 server-loop — the SLV gateway owns the LLM + tool
+      # loop; set OVS_V2V_SERVER_LOOP=1 on the speech service to match. Roll back
+      # to the legacy client-loop with REACHY_SERVER_LOOP=0.
+      - REACHY_SERVER_LOOP=${REACHY_SERVER_LOOP:-1}
+      - REACHY_REALTIME_PROTOCOL_VERSION=2
       # Speech (SLV) + LLM endpoints. Default localhost (jetson all-in-one).
       # cm4/hailo presets set VOICE_ASSISTANT_HOST to the remote Jetson.
       - VOICE_ASSISTANT_HOST=${VOICE_ASSISTANT_HOST:-127.0.0.1}

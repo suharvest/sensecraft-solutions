@@ -1,0 +1,147 @@
+version: "1.0"
+id: ovs_voice_deploy
+name: Speech Service (OpenVoiceStream)
+type: docker_deploy
+
+# 私有云方案（套餐二B）用：只部署 OpenVoiceStream，不部署 EdgeLLM。
+#
+# 该套餐语音识别与合成在本地跑、大模型走云端 API，所以不需要本地大模型。
+# 需要本地大模型的边缘计算方案（套餐三）用 ovs_jetson_deploy.yaml。
+#
+# 本步骤此前是缺失的：语音服务步骤要求填「语音服务地址」指向 OpenVoiceStream，
+# 但没有任何一步把它装起来。
+#
+# device_class=jetson 引入共享的 Jetson 预部署修复与硬件检测探针，
+# 见 devices/profiles/jetson.yaml。
+device_class: jetson
+
+docker:
+  compose_file: assets/docker/docker-compose-jetson-voice.yml
+  options:
+    project_name: smart_warehouse_voice
+    remove_orphans: true
+  services:
+    # 首次启动要下载模型产物，健康检查默认只有 90 秒远远不够 ——
+    # 上游 compose 自己的 start_period 就写了 15 分钟。
+    - name: speech
+      port: 8621
+      health_check_endpoint: /readyz
+      health_check_port: 8621
+      health_check_timeout: 1800
+      required: true
+
+ssh:
+  port: 22
+  default_user: recomputer
+  auth_methods:
+    - password
+    - key
+  connection_timeout: 30
+  command_timeout: 3600
+
+actions:
+  before:
+    - name: Ensure speech runtime host libraries
+      # OVS 的语音镜像并不自带 libsentencepiece —— 它依赖宿主的
+      # /lib/aarch64-linux-gnu（compose 把它挂成 /host-libs 并加进
+      # LD_LIBRARY_PATH）来提供。参考机 orin-nx 上碰巧有（Ubuntu jammy
+      # 自带），而干净的 JetPack 镜像没有，于是 MOSS TTS worker 的启动
+      # 预检加载不到符号，整个 speech 容器 crash-loop —— 报错是一大串
+      # undefined symbol，完全指不回「宿主缺个库」。客户机器上实测踩过。
+      #
+      # 幂等：已存在则直接跳过，不碰 apt。
+      scope: remote
+      ignore_error: false
+      run: |
+        set -e
+        MISSING=""
+        for LIB in libsentencepiece.so.0; do
+          ldconfig -p 2>/dev/null | grep -q "$LIB" || MISSING="$MISSING $LIB"
+        done
+        if [ -z "$MISSING" ]; then
+          echo "语音运行时依赖的宿主库齐全"
+        else
+          echo "缺少宿主库：$MISSING，尝试安装..."
+          if sudo apt-get install -y libsentencepiece0 >/dev/null 2>&1; then
+            echo "已安装 libsentencepiece0"
+          else
+            echo "自动安装失败。请手工执行： sudo apt-get install -y libsentencepiece0" >&2
+            echo "不装的话 speech 容器会在启动预检阶段反复崩溃，报 undefined symbol。" >&2
+            exit 1
+          fi
+        fi
+      name_i18n:
+        zh: 检查语音运行时的宿主依赖
+    - name: Check for conflicting containers
+      run: |
+        set -e
+        # container_name 是固定的（与上游一致，便于文档里直接 docker logs）。
+        # 但如果设备上已经有同名容器属于**别的 compose project**（例如手工
+        # 用 openvoicestream 仓库的 install.sh 装过），up -d 会因名字冲突失败，
+        # 且 remove_orphans 跨 project 不起作用。这里提前拦下并说清怎么处理，
+        # 不自动删 —— 删掉别人的容器不是本步骤该做的决定。
+        CONFLICT=""
+        CONFLICT_NAMES=""
+        # 升级到 v0.10 时旧的 seeed-voice-v091 容器通常还在，且占着 8621，
+        # 所以两个名字都要查出来一并提示清理。
+        for NAME in seeed-voice-v010 seeed-voice-v091; do
+          # `|| true`：set -e 下命令替换失败会直接中断脚本。容器不存在、
+          # 或 docker 短暂不可用，都应该当作「无冲突」继续，而不是让整个
+          # 部署炸在检查环节。
+          EXIST=$(docker ps -a --filter "name=^/${NAME}$" --format '{{.Names}}' 2>/dev/null || true)
+          if [ -n "$EXIST" ]; then
+            PROJ=$(docker inspect "$NAME" --format '{{index .Config.Labels "com.docker.compose.project"}}' 2>/dev/null || true)
+            # v091 容器即使属于本 project 也必须让位：它和 v010 抢同一个
+            # 容器端口，且模型根路径不同，不能共存。
+            if [ "$PROJ" != "smart_warehouse_voice" ] || [ "$NAME" = "seeed-voice-v091" ]; then
+              # 两个串分开：CONFLICT 带 project 供人读，CONFLICT_NAMES 是纯容器名，
+              # 供下面拼 docker rm 命令。混用会打印出
+              # `docker rm -f name(project=xxx)`，用户照抄进 shell 直接语法报错。
+              CONFLICT="$CONFLICT $NAME(project=${PROJ:-无})"
+              CONFLICT_NAMES="$CONFLICT_NAMES $NAME"
+            fi
+          fi
+        done
+        if [ -n "$CONFLICT" ]; then
+          echo "部署中止：以下容器已存在且属于其它 compose project：$CONFLICT" >&2
+          echo "" >&2
+          echo "这台设备上可能已经手工装过语音服务（例如用 openvoicestream 仓库的" >&2
+          echo "deploy/install.sh）。两者会抢同一个容器名和 8621 端口，不能共存。" >&2
+          echo "" >&2
+          echo "处理：先停掉原有部署，再重新执行本步骤 —— " >&2
+          echo "  docker rm -f$CONFLICT_NAMES" >&2
+          echo "数据卷不会被删除，模型无需重新下载。" >&2
+          exit 1
+        fi
+        echo "容器名检查通过"
+      name_i18n:
+        zh: 检查容器名冲突
+
+pre_checks:
+  - type: docker_version
+    min_version: "20.0"
+    description: Check Docker version
+  - type: nvidia_runtime
+    description: Check NVIDIA container runtime is available
+  - type: disk_space
+    min_gb: 15
+    description: Check available disk space (speech model artifacts ~5GB)
+
+post_deployment:
+  message: "Speech service is running on port 8621 (ASR + TTS + voiceprint)."
+  message_i18n:
+    zh: "语音服务已部署，端口 8621（语音识别 + 语音合成 + 声纹）。"
+
+name_i18n:
+  zh: 语音服务（OpenVoiceStream）
+
+remote_overrides:
+  remote_path: /home/{{username}}/smart_warehouse_voice
+  compose_dir: assets/docker
+  detection:
+    method: network_scan
+    manual_entry: true
+    requirements:
+      - docker_installed
+      - docker_running
+      - nvidia_runtime

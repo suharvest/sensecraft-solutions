@@ -1,0 +1,25 @@
+version: "1.0"
+id: preview_assembly
+name: Open the Inspection Panel
+name_i18n:
+  zh: 打开质检面板
+type: web_dashboard
+
+# Not the video_stream preview other solutions use. That renderer draws an
+# overlay from MQTT on top of an RTSP stream, and here the interesting output
+# is not a box on a frame — it is the verdict with its reasons, the missing
+# slot list and the measured millimetres. The runtime already serves exactly
+# that on its own panel (/ plus /healthz, /events, /preview.mjpg, with the
+# assembly ROIs drawn into the MJPEG), so this step opens that page instead of
+# reproducing half of it against data the overlay renderer cannot show.
+#
+# {{host}} is templated from the preceding deploy step's user_inputs, so the
+# same file serves both the Jetson and the Hailo preset.
+web_dashboard:
+  url: "http://{{host}}:8080/"
+  title: Inspection Panel
+  title_i18n:
+    zh: 质检面板
+  description: The panel shows live counters and recent verdicts. Confirm three things — frames_processed is increasing, the MJPEG preview shows the station with the assembly ROIs drawn in, and a recent event carries both an assembly and a dimension section.
+  description_i18n:
+    zh: 面板上是实时计数与最近的判定结果。确认三件事——frames_processed 在增长、MJPEG 预览里能看到工位画面并带着缺件 ROI、最近一条事件里 assembly 与 dimension 两段都在。

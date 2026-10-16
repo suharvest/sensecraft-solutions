@@ -1,0 +1,304 @@
+version: "1.0"
+id: p5_recamera_std
+name: Install F1 Access on the Camera
+name_i18n:
+  zh: 在摄像头上安装 F1 门禁
+type: recamera_cpp
+device_class: recamera
+
+# f1-access 0.1.0 is a published .deb for the standard reCamera (SG2002,
+# riscv64) -- self-contained: its own recogniser binary and its own five
+# cvimodels, so it replaces the stock face-recognition app rather than
+# extending it (DEBIAN/control: Conflicts/Replaces face-recognition). Its
+# init script K92f1-access starts and stops both processes -- the recogniser
+# and the access agent -- as one unit and only returns 0 once both have
+# actually exited (source: unmanned-store-access docs/SPEC.md §14.3).
+#
+# This file is the plain 2002 / 2002w variant only. Those units have no usable
+# header, so [gpio] enabled is fixed to false here and the relay is driven from
+# a separate node over MQTT. The 2002 HQ PoE route is a separate preset
+# (devices/p6_recamera_poe.yaml).
+#
+# Source of every path and figure below: unmanned-store-access
+# packaging/recamera-deb/ (the package build), docs/SPEC.md §14.3 (lifecycle
+# timing) and evaluation/runs/2026-09-07-recamera-poe-p1/results.md (the
+# on-hardware run this package shipped from).
+
+detection:
+  method: network_scan
+  manual_entry: true
+  requirements: []
+
+ssh:
+  port: 22
+  default_user: recamera
+  default_host: 192.168.42.1
+  connection_timeout: 30
+  command_timeout: 300
+
+binary:
+  # Gallery app: the deb ships /etc/init.d/K92f1-access (K, not S). The
+  # camera is exclusive -- two apps opening VPSS at once fails to stream at
+  # best and wedges the driver at worst -- so the app stays parked at K and
+  # the console's appMgr starts exactly one.
+  deb_package:
+    path: https://sensecraft-statics.seeed.cc/solution-app/unmanned_store_access/packages/f1-access_0.1.0_riscv64.deb
+    name: f1-access
+    includes_init_script: true
+    checksum:
+      sha256: eb81a7061f3733590c0d3ee331493bb057b41d3915d9c7782a007d6fd37d6a0d
+
+  # The five cvimodels the bundled recogniser loads: detection, embedding, two
+  # liveness heads and the landmark model for blink fusion. They are already
+  # inside the .deb (packaging/recamera-deb keeps this package self-contained,
+  # unlike a stock gallery app), and are declared here too so the deployer's
+  # own integrity check runs against the same files by the same shas.
+  models:
+    - path: https://sensecraft-statics.seeed.cc/solution-app/unmanned_store_access/models/scrfd_500m_int8_qi.cvimodel
+      target_path: /userdata/local/models
+      filename: scrfd_500m_int8_qi.cvimodel
+      checksum:
+        sha256: 0d0f3cee677c9d053ea377d557f27fa18eba280dce13aa80c55fb85e58cd2723
+    - path: https://sensecraft-statics.seeed.cc/solution-app/unmanned_store_access/models/arcface_mbf_bf16.cvimodel
+      target_path: /userdata/local/models
+      filename: arcface_mbf_bf16.cvimodel
+      checksum:
+        sha256: 762c2509309cec8acb63339eea2be0a25d32359f3c57a0a8b9c21314750938ed
+    - path: https://sensecraft-statics.seeed.cc/solution-app/unmanned_store_access/models/liveness_minifasnet_bf16.cvimodel
+      target_path: /userdata/local/models
+      filename: liveness_minifasnet_bf16.cvimodel
+      checksum:
+        sha256: 1a135d994f7de04c4b5f404e0277049618f0506a543d8409c21ab407b7d3b6f6
+    - path: https://sensecraft-statics.seeed.cc/solution-app/unmanned_store_access/models/liveness_minifasnet_v1se_bf16.cvimodel
+      target_path: /userdata/local/models
+      filename: liveness_minifasnet_v1se_bf16.cvimodel
+      checksum:
+        sha256: 26a31b1ecbe71712c65abe336a25f3875a3c725327fb2593a8afcda0bc0d1695
+    - path: https://sensecraft-statics.seeed.cc/solution-app/unmanned_store_access/models/face_landmark_cv181x_bf16.cvimodel
+      target_path: /userdata/local/models
+      filename: face_landmark_cv181x_bf16.cvimodel
+      checksum:
+        sha256: 1dc567ccb53cac071cd529a673c12a04135a67d69b3604731dfcece8024a638c
+
+  service_name: f1-access
+  service_priority: 92
+  auto_start: true
+
+actions:
+  after:
+    # postinst seeds /userdata/f1-access/face-recognition.conf from the
+    # package's shipped default only when that file does not already exist,
+    # and never overwrites it again -- an upgrade must not silently reset a
+    # site's calibrated threshold or GPIO polarity. So the signing key and the
+    # per-site fields below are written into that seeded copy, after install,
+    # not baked into the package.
+    - name: Write the face library signing key
+      # Passed as environment variables, not spliced into the script:
+      # a quote, $ or & in the value cannot change what runs.
+      env:
+        INPUT_FACEDB_SIGNING_KEY: "{{facedb_signing_key}}"
+      run: |
+        set -e
+        printf '%s' "$INPUT_FACEDB_SIGNING_KEY" > /userdata/f1-access/facedb.key
+        chmod 600 /userdata/f1-access/facedb.key
+      sudo: true
+      name_i18n:
+        zh: 写入人脸库签名密钥
+    - name: Configure the access agent
+      # Section-scoped, verified writes -- not a bare `sed`. A key name is not
+      # unique across the file (`pulse_ms` appears under both [policy] and
+      # [gpio]), so an unscoped `s#^key = .*#...#` can hit the wrong section
+      # silently; and a plain sed with no match still exits 0, so a renamed or
+      # missing key would look configured when it was not touched at all. The
+      # awk helper below only replaces inside the named `[section]` and exits
+      # non-zero -- failing the whole step under `set -e` -- when the key
+      # never matched, so a config drift is a failed deploy, not a silent
+      # no-op.
+      # Passed as environment variables, not spliced into the script:
+      # a quote, $ or & in the value cannot change what runs.
+      env:
+        INPUT_FACEDB_URL: "{{facedb_url}}"
+      run: |
+        set -e
+        CONF=/userdata/f1-access/face-recognition.conf
+        set_conf() {
+          section="$1"; key="$2"; value="$3"
+          tmp="$CONF.tmp.$$"
+          awk -v s="$section" -v k="$key" -v v="$value" '
+            BEGIN { insec = 0; done = 0 }
+            /^\[/ { insec = ($0 == "[" s "]") }
+            insec && $0 ~ ("^" k " *=") { print k " = " v; done = 1; next }
+            { print }
+            END { exit(done ? 0 : 1) }
+          ' "$CONF" > "$tmp" || { rm -f "$tmp"; echo "config key not found: [$section] $key" >&2; exit 1; }
+          mv "$tmp" "$CONF"
+        }
+        # `delete_op` is not in the shipped conf, so set_conf (replace-only)
+        # would fail the step. This one appends the key at the end of its
+        # section when it is missing and replaces it when present. Measured
+        # 2026-09-16: without it a first deploy on a stock unit dies with
+        # "config key not found: [facedb] delete_op".
+        add_conf() {
+          section="$1"; key="$2"; value="$3"
+          tmp="$CONF.tmp.$$"
+          awk -v s="$section" -v k="$key" -v v="$value" '
+            BEGIN { insec = 0; done = 0 }
+            /^\[/ {
+              if (insec && !done) { print k " = " v; done = 1 }
+              insec = ($0 == "[" s "]")
+            }
+            insec && $0 ~ ("^" k " *=") { print k " = " v; done = 1; next }
+            { print }
+            END { if (insec && !done) { print k " = " v; done = 1 }
+                  exit(done ? 0 : 1) }
+          ' "$CONF" > "$tmp" || { rm -f "$tmp"; echo "config section not found: [$section]" >&2; exit 1; }
+          mv "$tmp" "$CONF"
+        }
+        set_conf device device_id '{{device_id}}'
+        set_conf device actuator_id '{{actuator_id}}'
+        set_conf facedb url "$INPUT_FACEDB_URL"
+        set_conf facedb key_id 'facedb-key-1'
+        # The packaged recogniser only accepts `remove`; the agent's default is
+        # `delete` (agent_config.py DEFAULT_DELETE_OP) and the shipped conf does
+        # not set this key. Measured on a real unit 2026-09-16: every `delete`
+        # came back "unknown op; expected enroll, remove, list, reload or
+        # liveness_capture", so a person revoked in the cloud stayed on the
+        # device and kept opening the door.
+        add_conf facedb delete_op 'remove'
+        set_conf recognition match_threshold '{{match_threshold}}'
+        # spec §10.5: the agent compares its own conf against the recogniser's
+        # actual argv on start and refuses to run when they disagree
+        # ("thresholds are not single-sourced"). The recogniser's --match comes
+        # from /usr/share/f1-access/recogniser.conf (shipped 0.40); K92f1-access
+        # sources that first and then $RUNDIR/recogniser.conf, so writing the
+        # single overridden key here keeps both sides on the value entered
+        # above. Without it, any threshold other than 0.40 installs fine and
+        # then never starts.
+        # Events and device status go to the console's broker, and the same
+        # [mqtt] section is also the recogniser's command channel, which the
+        # gate byte-compares against its `-m`. So both sides are moved together:
+        # the broker host is the face library server (same host runs mosquitto),
+        # written into the conf and into the recogniser override below. Leaving
+        # it at the shipped `localhost` keeps every event on the camera and the
+        # console's device page stays empty.
+        BROKER=$(printf '%s' "$INPUT_FACEDB_URL" | sed -e 's#^[a-z]*://##' -e 's#[:/].*##')
+        set_conf mqtt host "$BROKER"
+        set_conf mqtt port '1883'
+        {
+          printf 'MATCH_THRESHOLD=%s\n' '{{match_threshold}}'
+          printf 'MQTT_HOST=%s\n' "$BROKER"
+          printf 'MQTT_PORT=%s\n' '1883'
+        } > /userdata/f1-access/recogniser.conf
+        # A plain 2002 / 2002w has no usable header, so [gpio] stays disabled
+        # or the first start tries to export a pin that is not wired to
+        # anything. Applied here, before the service's first start, not as a
+        # manual post-deploy edit -- auto_start means the console starts the
+        # service right after this step.
+        set_conf gpio enabled 'false'
+      sudo: true
+      name_i18n:
+        zh: 配置门禁代理
+
+# Face Library URL, Match Threshold and the signing key are carried over from
+# Step 1 (p5_cloud_facedb) by default_template; only the camera address, its
+# password and the two per-door identifiers are per-device.
+#
+# actuator_id stays an input on purpose. The relay sits on a separate MQTT node
+# whose id is chosen when that node is flashed, so there is nothing earlier in
+# this preset to derive it from -- and a wrong value here means the event log
+# names a door that is not the one that opened.
+user_inputs:
+  - id: host
+    name: Device IP Address
+    type: text
+    default: "192.168.42.1"
+    placeholder: "192.168.42.1"
+    required: true
+    validation:
+      pattern: "^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$"
+    name_i18n:
+      zh: 设备 IP 地址
+  - id: password
+    name: SSH Password
+    type: password
+    default: "recamera"
+    description: SSH password (try 'recamera' or 'recamera.2')
+    required: true
+    name_i18n:
+      zh: SSH 密码
+    description_i18n:
+      zh: SSH 密码（尝试 'recamera' 或 'recamera.2'）
+  - id: device_id
+    name: Device ID
+    type: text
+    default: "recamera-2002-01"
+    description: Letters, digits, underscore, dot and hyphen only
+    required: true
+    row: 1
+    validation:
+      pattern: "^[A-Za-z0-9_.-]{1,64}$"
+    name_i18n:
+      zh: 设备 ID
+    description_i18n:
+      zh: 仅限字母、数字、下划线、点和连字符
+  - id: actuator_id
+    name: Actuator ID
+    type: text
+    default: "gateway-relay-1"
+    description: The relay channel on the gateway node that this camera opens -- must match the Relay ID on that node. Letters, digits, underscore, dot and hyphen only
+    required: true
+    row: 1
+    validation:
+      pattern: "^[A-Za-z0-9_.-]{1,64}$"
+    name_i18n:
+      zh: 执行器 ID
+    description_i18n:
+      zh: 这台摄像头要开的那一路网关侧继电器——必须与该节点上的 Relay ID 一致。仅限字母、数字、下划线、点和连字符
+  - id: facedb_url
+    name: Face Library URL
+    type: text
+    # Filled in from the Step 1 server address and library port. Typing it by
+    # hand is the most common way this step ends with a device that installs
+    # cleanly and then never activates a library version.
+    default_template: "http://{{p5_cloud_facedb.host}}:{{facedb_port}}"
+    placeholder: "http://192.168.1.50:8080"
+    description: The server from Step 1. Leave the filled-in value unless you deployed Step 1 on this computer; then enter this computer's IP.
+    required: true
+    row: 2
+    validation:
+      pattern: "^https?://[A-Za-z0-9_.-]+(:[0-9]{1,5})?(/[A-Za-z0-9_./-]*)?$"
+    name_i18n:
+      zh: 人脸库地址
+    description_i18n:
+      zh: 步骤 1 的服务器。步骤 1 部署在这台电脑上时，填这台电脑的 IP。
+  - id: facedb_signing_key
+    name: Face Library Signing Key
+    type: password
+    required: true
+    default_template: "{{facedb_signing_key}}"
+    generate: hex32
+    row: 3
+    validation:
+      pattern: "^[A-Za-z0-9_+/=.-]{16,128}$"
+    name_i18n:
+      zh: 人脸库签名密钥
+  - id: match_threshold
+    name: Match Threshold
+    type: text
+    default: "0.40"
+    # Carried over from Step 1. A device whose threshold differs from the
+    # library's rejects every version the server publishes, so this is not a
+    # value to re-type per door.
+    default_template: "{{match_threshold}}"
+    description: Carried over from Step 1. The device rejects library versions built at a different threshold.
+    required: true
+    row: 3
+    validation:
+      pattern: "^(0(\\.[0-9]+)?|1(\\.0+)?)$"
+    name_i18n:
+      zh: 匹配阈值
+    description_i18n:
+      zh: 沿用步骤 1 的值。与步骤 1 不一致时设备会拒绝服务端发布的库版本。
+
+post_deployment:
+  open_browser: false

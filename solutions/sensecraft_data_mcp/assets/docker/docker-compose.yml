@@ -1,0 +1,19 @@
+# SenseCAP PaaS MCP Bridge — dials OUT to a XiaoZhi MCP access point over
+# WebSocket, so no inbound port is published. No pre-built registry image
+# yet: the image is built from source on first `docker compose up`.
+#
+# Build context is the public GitHub mirror of the MCP server source
+# (sensecraft_data_mcp/ subdirectory, `main` branch). Swap this for a
+# private registry `image:` once one is available (see prepare-docker-images).
+services:
+  sensecraft-data-mcp:
+    build:
+      context: https://github.com/Love4yzp/sensecraft-data-mcp.git#main:sensecraft_data_mcp
+    container_name: sensecraft-data-mcp
+    restart: unless-stopped
+    environment:
+      - ACCESS_ID=${ACCESS_ID}
+      - ACCESS_KEY=${ACCESS_KEY}
+      - SENSECRAFT_SITE_ENV=${SENSECRAFT_SITE_ENV:-global}
+      - SENSECRAFT_TIMEZONE=${SENSECRAFT_TIMEZONE:-}
+      - MCP_ENDPOINT=${MCP_ENDPOINT}

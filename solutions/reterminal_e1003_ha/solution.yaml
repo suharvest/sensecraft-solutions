@@ -1,0 +1,60 @@
+version: "1.0"
+id: reterminal_e1003_ha
+name: E1003 Light Panel Setup Demo
+name_i18n:
+  zh: E1003 灯光面板配置演示
+# Technical review only. Requires compatible App/contract, public firmware and acceptance.
+enabled: false
+intro:
+  summary: Connect E1003 and specify a Home Assistant light; the App handles firmware checks and setup.
+  summary_i18n:
+    zh: 连接 E1003 并指定 Home Assistant 调光灯，App 会自动检查固件并完成配置。
+  description_file: description.md
+  description_file_i18n:
+    zh: description_zh.md
+  cover_image: gallery/e1003-keyless-cover.png
+  category: sensing
+  solution_type: technical
+  tags: [home-assistant, esphome, epaper, usb]
+  output_interfaces:
+    - type: serial
+      endpoint: UART0
+      description: Improv Serial at 115200 baud returns device identity and network status.
+      description_i18n:
+        zh: UART0 以 115200 波特率运行 Improv Serial，返回设备身份和联网状态。
+  input_requirements:
+    - type: network
+      description: The setup computer, panel, and Home Assistant must be on the same reachable LAN, with an existing dimmable light entity.
+      description_i18n:
+        zh: 配置电脑、面板和 Home Assistant 需在同一可达局域网，且已有一盏可调光的灯。
+  device_catalog:
+    reterminal_e_series:
+      description: Runs the fixed E1003 screen and touch interface.
+      description_i18n:
+        zh: 运行固定的 E1003 屏幕与触控界面。
+      purchase:
+        require:
+          model: [e1003]
+  presets:
+    - id: usb_candidate
+      name: Configure E1003
+      name_i18n:
+        zh: 配置 E1003
+      description: Select the USB serial port, enter the light entity ID, click Save settings, and keep power connected until verification completes.
+      description_i18n:
+        zh: 选择 USB 串口并填写灯实体 ID，点击保存配置，保持通电直到验证完成。
+      device_groups:
+        - id: panel
+          name: Dashboard panel
+          name_i18n:
+            zh: 控制面板
+          type: single
+          required: true
+          options:
+            - device_ref: reterminal_e_series
+          default: reterminal_e_series
+deployment:
+  guide_file: guide.md
+  guide_file_i18n:
+    zh: guide_zh.md
+  selection_mode: sequential

@@ -1,11 +1,11 @@
-<!-- contract_version: 1 -->
+<!-- contract_version: 5 -->
 # SenseCraft Solution Contract
 
 > **GENERATED FILE — mechanical sections only.** Regenerate with
 > `uv run python scripts/export_spec.py`. The drift guard is
 > `tests/unit/test_contract_freeze.py`.
 >
-> `contract_version: 1`. Tables below are rendered from the
+> `contract_version: 5`. Tables below are rendered from the
 > committed `spec/*.json` artifacts. The "Derived rules" prose sections are
 > **human-authored** and preserved across regenerations (they live between
 > `<!-- AUTHORED:<key> BEGIN/END -->` sentinels) — the generator never
@@ -63,12 +63,16 @@ provisioning engine and open-source consumers. Authoritative artifacts:
 | `nodered` | NodeRedConfig \| null | no | None |  |
 | `binary` | BinaryConfig \| null | no | None |  |
 | `ha_integration` | HAIntegrationConfig \| null | no | None |  |
+| `recamera_pro_app` | RecameraProAppConfig \| null | no | None |  |
+| `recamera_console_app` | RecameraConsoleAppConfig \| null | no | None |  |
 | `video` | PreviewVideoConfig \| null | no | None |  |
 | `mqtt` | PreviewMqttConfig \| null | no | None |  |
+| `data` | PreviewDataConfig \| null | no | None |  |
 | `overlay` | PreviewOverlayConfig \| null | no | None |  |
 | `display` | PreviewDisplayConfig \| null | no | None |  |
 | `behavior` | PreviewBehaviorConfig \| null | no | None |  |
 | `serial_camera` | SerialCameraConfig \| null | no | None |  |
+| `network_camera` | NetworkCameraConfig \| null | no | None |  |
 | `voice_demo` | VoiceDemoConfig \| null | no | None |  |
 | `voice_chat` | VoiceDemoConfig \| null | no | None |  |
 | `http_debug` | HttpDebugConfig \| null | no | None |  |
@@ -84,10 +88,12 @@ provisioning engine and open-source consumers. Authoritative artifacts:
 | `influxdb` | object \| null | no | None |  |
 | `user_inputs` | array<UserInputConfig> | no | [] |  |
 | `device_detection` | array<DeviceDetectionProbe> | no | [] |  |
+| `preconditions` | array<PreconditionProbe> | no | [] |  |
 | `pre_checks` | array<PreCheck> | no | [] |  |
 | `steps` | array<DeploymentStep> | no | [] |  |
 | `post_deployment` | PostDeploymentConfig | no |  |  |
 | `network_region` | string | no | auto |  |
+| `deploy_timeout` | integer \| null | no | None | Maximum wall-clock seconds for this device's entire deployment. None (the default) means unlimited. |
 | `base_path` | string \| null | no | None |  |
 
 ## Deployer capabilities
@@ -105,9 +111,12 @@ provisioning engine and open-source consumers. Authoritative artifacts:
 | `image_text_chat` | _(none)_ |
 | `image_text_to_image` | _(none)_ |
 | `manual` | `steps[]` |
+| `network_camera` | `network_camera`, `network_camera.panels[]` |
 | `preview` | _(none)_ |
+| `recamera_console_app` | _(none)_ |
 | `recamera_cpp` | `binary` |
 | `recamera_nodered` | `nodered`, `nodered.flow_file` |
+| `recamera_pro_app` | _(none)_ |
 | `robot_inspect` | _(none)_ |
 | `script` | `script` |
 | `serial_camera` | _(none)_ |
@@ -268,9 +277,32 @@ body and associated with the enclosing Step:
 
 Other recognized `###` sub-sections within a Step — `Prerequisites` (`前置条件`),
 `Wiring` (`接线`), `Troubleshooting` (`故障排查`/`故障排除`), `Deployment Complete`
-(`部署完成`) — are matched by `SUBSECTION_PATTERNS` (`:299-312`) and folded into
-the Step's section content.
+(`部署完成`) — are matched by `SUBSECTION_PATTERNS` and each lands in its own
+`SectionContent` field: `prerequisites`, `wiring`, `troubleshoot`,
+`post_deploy`. Everything else (the leading paragraph, unrecognized `###`
+headings) goes to `subtitle` / `description`.
+
+`Wiring` is the one sub-section that is not stored verbatim: list items and
+table rows become `wiring.steps` (an ordered list in the UI), the first image
+becomes `wiring.image`, and everything else in the section — lead-in prose,
+explanations after the list, `> **Note:**` callouts, fenced blocks — becomes
+`wiring.notes`, rendered below the step list. Before `notes` existed that
+content was silently dropped.
 <!-- AUTHORED:guide_step_target_syntax END -->
+
+### Step id uniqueness across presets
+
+<!-- AUTHORED:step_id_uniqueness BEGIN -->
+Step ids (`{#id}`) are resolved **globally per guide file, first preset
+wins** — a later preset reusing an id renders the earlier preset's step
+content, regardless of what is written under the later heading. Therefore:
+
+- Reusing a step id across presets is allowed **only when both step
+  definitions are byte-identical** (an intentional "shared step").
+- If the definitions diverge at all, the later preset silently shows the
+  wrong content. `solutionctl validate` rejects this as an error — rename
+  one of the ids (e.g. `#dashboard_edge_computing`).
+<!-- AUTHORED:step_id_uniqueness END -->
 
 ### extra 字段处理
 

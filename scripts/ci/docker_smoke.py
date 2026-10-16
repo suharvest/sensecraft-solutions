@@ -95,8 +95,20 @@ def find_docker_deploy_presets(solution_dir: Path, preset: str | None) -> list[t
 
 
 def resolve_compose_file(device_yaml: Path, compose_rel: str) -> Path:
-    """Resolve docker.compose_file (relative to the device YAML's parent dir)."""
-    return (device_yaml.parent / compose_rel).resolve()
+    """Resolve docker.compose_file the way the engine does: relative to the
+    **solution root**, not to the device YAML's own directory.
+
+    The engine sets ``base_path`` to the solution directory
+    (solution_manager.py:1082) and resolves assets with
+    ``resolve_within(base_path, relative_path)`` (:1184), which also rejects
+    paths escaping the solution root. Resolving against ``devices/`` here
+    instead made this script accept exactly the paths the engine rejects
+    (``../docker/x.yml`` resolves fine from ``devices/`` but escapes the root)
+    and reject the ones it accepts (``assets/docker/x.yml``) — i.e. the smoke
+    test was green precisely when the real deployment was broken.
+    """
+    solution_root = device_yaml.parent.parent
+    return (solution_root / compose_rel).resolve()
 
 
 def write_env_file(environment: dict) -> Path | None:

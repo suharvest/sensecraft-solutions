@@ -5,8 +5,8 @@ Build a voice-controlled robot that understands natural language commands and mo
 | Device | Purpose |
 |--------|---------|
 | LeKiwi Kit | 3-wheeled Kiwi-drive chassis with 3× STS3215 smart servos |
-| XIAO ESP32S3 | Motor controller — receives serial commands from Raspberry Pi |
-| Raspberry Pi 5 | Voice AI brain — runs wake word detection, STT, LLM, and TTS |
+| XIAO ESP32S3 | Motor controller — receives serial commands from the Pi 5 |
+| Pi 5 (8GB) | Voice AI brain — runs wake word detection, STT, LLM, and TTS |
 | reSpeaker Flex XVF3800 | 4-microphone array for far-field voice capture |
 
 **What you'll get:**
@@ -15,7 +15,7 @@ Build a voice-controlled robot that understands natural language commands and mo
 - Groq-powered AI: Whisper (speech recognition) + Llama 3 (reasoning) + Orpheus (voice reply)
 - Kiwi-drive omnidirectional movement + emergency stop
 
-**Requirements:** LeKiwi Kit · XIAO ESP32S3 · Raspberry Pi 5 · reSpeaker Flex XVF3800 · Speaker · Groq API key (free) · Internet access on Pi
+**Requirements:** LeKiwi Kit · XIAO ESP32S3 · Pi 5 (8GB) · reSpeaker Flex XVF3800 · Speaker · Groq API key (free) · Internet access on Pi
 
 ## Step 1: Assemble Hardware {#hardware type=manual required=true}
 

@@ -1,0 +1,101 @@
+version: "1.0"
+id: gate_controller
+name: Gate Controller (reComputer R1124-10)
+type: script
+
+# DRAFT（NRD-3 G1 未验收）。在 R1124-10 上安装：
+#   1. mosquitto broker（NRD-2 §S12 / P7b，含 ACL）
+#   2. gate-controller systemd 服务（python -m core_parking.plate.gate，
+#      订阅 plate 事件、白名单命中驱动 DO）
+#   3. 降级模式下另启用 plate-host.service（Y6b）
+# 真正的安装入口是应用仓库的 platforms/r1124/install.sh——仓库尚未发布
+# （NRD-2 §11 D1 为推荐地址），下面 curl 的 URL 待建库后回填。
+# do_line（DO 的 gpiod 线名）需核实 R1000 wiki 后由 G1 回填进 gate.json，
+# 这里以用户输入形式暴露，默认留空由 install.sh 拒绝并提示。
+
+ssh:
+  port: 22
+  default_user: recomputer
+  connection_timeout: 30
+  command_timeout: 600
+
+script:
+  start_command:
+    command: |
+      set -e
+      # 1. broker（NRD-2 §S12）：mosquitto 缺失时安装
+      if ! command -v mosquitto >/dev/null 2>&1; then
+        apt-get update && apt-get install -y mosquitto
+      fi
+      systemctl enable --now mosquitto
+      systemctl is-active mosquitto
+
+      # 2. gate 服务：由应用仓库的安装脚本完成（systemd unit、gate.json、
+      #    白名单目录）。仓库 URL 待回填（NRD-2 §11 D1）。
+      if [ -z "{{do_line}}" ]; then
+        echo "Gate output line is empty — look it up in the digital output (DO) section of the reComputer R1000 Series wiki" >&2
+        exit 1
+      fi
+      curl -fsSL "https://raw.githubusercontent.com/Seeed-Solution/edge-parking-vision/main/platforms/r1124/install.sh" \
+        -o /tmp/edge-parking-install.sh
+      SITE_ID="{{site_id}}" GATE_ID="{{gate_id}}" DO_LINE="{{do_line}}" \
+        bash /tmp/edge-parking-install.sh --with-gate
+    sudo: true
+    timeout: 600
+  health_check:
+    type: log_pattern
+    pattern: "active"
+    timeout_seconds: 60
+
+user_inputs:
+  - id: gate_host
+    name: R1124 IP Address
+    type: text
+    required: true
+    placeholder: "192.168.1.50"
+    description: IP address of the reComputer R1124-10 that controls the barrier
+    name_i18n:
+      zh: R1124 IP 地址
+    description_i18n:
+      zh: 控制道闸的 reComputer R1124-10 的 IP 地址
+  - id: site_id
+    name: Site ID
+    type: text
+    default: "demo-lot"
+    default_template: "{{site_id}}"
+    required: true
+    description: Filled in from the Site ID of the recognition host in Step 1
+    validation:
+      pattern: "^[A-Za-z0-9_-]+$"
+    name_i18n:
+      zh: 站点编号
+    description_i18n:
+      zh: 自动带入步骤 1 识别主机填写的站点编号
+  - id: gate_id
+    name: Gate ID
+    type: text
+    default: "gate-a-barrier"
+    required: true
+    description: Tells this barrier apart in the gate records
+    validation:
+      pattern: "^[A-Za-z0-9_-]+$"
+    name_i18n:
+      zh: 道闸编号
+    description_i18n:
+      zh: 在开闸记录里区分这道闸
+  - id: do_line
+    name: Gate Output Line
+    type: text
+    required: true
+    placeholder: "see the reComputer R1000 Series wiki"
+    description: System name of the digital output wired to the relay — listed in the digital output (DO) section of the reComputer R1000 Series wiki
+    name_i18n:
+      zh: 道闸输出线名
+    description_i18n:
+      zh: 接继电器的那一路数字输出在系统里的名称——见 reComputer R1000 系列 Wiki 的数字输出（DO）章节
+
+post_deployment:
+  open_browser: false
+
+name_i18n:
+  zh: 道闸控制器（reComputer R1124-10）

@@ -1,0 +1,135 @@
+version: "1.0"
+id: enable_anomaly
+name: Enable Unsupervised Anomaly Detection
+name_i18n:
+  zh: 启用无监督异常检测
+type: manual
+
+# Why this step is manual.
+#
+# There is no deployer capability for "swap in a second model artifact and
+# recalibrate a threshold on it" — it is a config.json edit plus placing the
+# ONNX file, not a deployable artifact of its own. The EfficientAD-S model is
+# additive to the config schema (contracts/config.schema.json's `anomaly`
+# section) and never enters the verdict path unless `anomaly.enabled` is
+# explicitly set to true.
+#
+# This step is optional and additive: leaving `anomaly.enabled` at its
+# default (false) reproduces every measurement on the intro page exactly.
+
+user_inputs:
+  - id: anomaly_model_path
+    name: Anomaly Model Path on Device
+    type: text
+    default: "/models/efficientad_s_pcb.onnx"
+    required: true
+    description: >-
+      Path inside the container where the EfficientAD-S ONNX will live. The
+      model is not on the CDN yet (same licence-clearance gate as the
+      detector); copy the file onto the device at this path under
+      config/../models/ before enabling.
+    name_i18n:
+      zh: 异常模型在容器内的路径
+    description_i18n:
+      zh: >-
+        EfficientAD-S ONNX 在容器内的路径。模型尚未上传 CDN（与检测器同一个
+        许可确认关卡），启用前先手工把文件拷到设备对应的 models 目录下。
+  - id: anomaly_threshold
+    name: Anomaly Score Threshold
+    type: text
+    default: "0"
+    required: true
+    description: >-
+      Must be calibrated on your own OK-sample images run through this same
+      pipeline — EfficientAD's raw score is not in [0,1] and does not
+      transfer across datasets. 0 means score-only (the field is published
+      but no anomaly_verdict is derived). See the solution page's caveat on
+      why the shipped evaluation's OK set (DeepPCB template scans) is not a
+      substitute for your own camera's OK images.
+    validation:
+      pattern: "^[0-9]+(\\.[0-9]+)?$"
+    name_i18n:
+      zh: 异常分数阈值
+    description_i18n:
+      zh: >-
+        必须用你自己拍的 OK 样本在同一条管线上标定——EfficientAD 的原始分数
+        不在 [0,1] 区间，也不能跨数据集搬用。0 表示只发分数（字段照发，
+        但不产出 anomaly_verdict）。方案页有一条经验：随包评测的 OK 集是
+        DeepPCB 的模板扫描图，不能替代你自己相机拍的 OK 样本。
+
+steps:
+  - id: place_anomaly_model
+    name: Copy the EfficientAD-S ONNX onto the device
+    name_i18n:
+      zh: 把 EfficientAD-S ONNX 拷到设备上
+    description: >-
+      Copy your evaluated efficientad_s_pcb.onnx (or your own retrained
+      EfficientAD-S export) to the path you entered above, under this
+      solution's models/ directory on the device (the same directory that
+      already holds the detector's engine/HEF). The runtime loads it with
+      onnxruntime CPUExecutionProvider — `accelerator: "cpu"` in the config
+      is the only backend wired up so far; tensorrt/hailo/rknn accelerators
+      for this model are unimplemented.
+    description_i18n:
+      zh: >-
+        把你评测过的 efficientad_s_pcb.onnx（或自己重训导出的 EfficientAD-S）
+        拷到上面填的路径，放在设备上这个方案的 models/ 目录里（与检测器的
+        engine/HEF 同一个目录）。运行时用 onnxruntime CPUExecutionProvider
+        加载它——配置里 `accelerator: "cpu"` 是目前唯一接好的后端，
+        TensorRT/Hailo/RKNN 版的异常模型加速器尚未实现。
+    optional: false
+
+  - id: edit_anomaly_config
+    name: Edit config.json to enable the anomaly track
+    name_i18n:
+      zh: 编辑 config.json 启用异常检测
+    description: >-
+      On the device, edit config/config.json and add or update the top-level
+      anomaly section: {"enabled": true, "path": "<the path you entered>",
+      "accelerator": "cpu", "input_size": [256, 256], "threshold": <the
+      threshold you entered>, "queue_size": 2, "join_timeout_ms": 500,
+      "heatmap_enabled": true, "heatmap_dir": "/tmp/anomaly-heatmaps",
+      "heatmap_max_files": 200}. Restart the inspection container
+      (docker compose restart inspection) to pick up the change. Leaving
+      "enabled" at its default false is always safe — the anomaly section is
+      optional and additive in the schema, and every measured figure on the
+      intro page holds with it left off.
+    description_i18n:
+      zh: >-
+        在设备上编辑 config/config.json，新增或更新顶层的 anomaly 段：
+        {"enabled": true, "path": "<你填的路径>", "accelerator": "cpu",
+        "input_size": [256, 256], "threshold": <你填的阈值>, "queue_size": 2,
+        "join_timeout_ms": 500, "heatmap_enabled": true,
+        "heatmap_dir": "/tmp/anomaly-heatmaps", "heatmap_max_files": 200}。
+        改完重启质检容器（docker compose restart inspection）让配置生效。
+        保持 "enabled" 为默认的 false 永远是安全的——anomaly 段在 schema 里
+        是可选 additive 字段，介绍页上的每一个实测数字关掉它都照样成立。
+    optional: false
+
+  - id: verify_anomaly_score
+    name: Verify — see an anomaly_score field in the results event
+    name_i18n:
+      zh: 验证——results 事件里看到 anomaly_score 字段
+    description: >-
+      Subscribe with "mosquitto_sub -h <device-ip> -t
+      '<device-name>/inspection/+/results' -v" and confirm each JSON payload
+      now carries anomaly_score, anomaly_latency_ms and heatmap_ref (the
+      anomaly_score/anomaly_latency_ms/heatmap_ref group appears together or
+      not at all — a missing group means that frame's anomaly worker dropped
+      or timed out, not a score of zero). Treat anomaly_score as a
+      pixel/region-level signal, not an image/frame-level normal-vs-abnormal
+      decision — the solution page's measured image-level AUROC (0.52, near
+      random) is why. If nothing appears, confirm "enabled": true was saved
+      and the container restarted, and check the container logs for a model
+      load error at the path you set.
+    description_i18n:
+      zh: >-
+        用 "mosquitto_sub -h <设备IP> -t '<设备名>/inspection/+/results' -v"
+        订阅，确认每条 JSON payload 里出现了 anomaly_score、
+        anomaly_latency_ms 与 heatmap_ref（这三个字段要么一起出现要么一起
+        缺席——缺席表示那一帧的异常 worker 丢帧或超时了，不代表分数是 0）。
+        把 anomaly_score 当成像素/区域级信号来用，不要当成图像/帧级的
+        正常-异常判定——方案页实测的图像级 AUROC 是 0.52（接近随机），
+        这就是原因。如果什么都没出现，确认 "enabled": true 已保存且容器
+        已重启，并检查容器日志里模型加载是否在你填的路径上报错。
+    optional: false

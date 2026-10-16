@@ -1,0 +1,57 @@
+version: "1.0"
+id: remote_unlock
+name: Verify the Door End to End
+name_i18n:
+  zh: 端到端验证这道门
+type: manual
+
+steps:
+  - id: enrolled_person
+    name: An enrolled person opens the door once
+    name_i18n:
+      zh: 已注册人员开门一次
+    description: >-
+      Stand in front of the camera as an enrolled person. Expect one relay
+      click and one allowed event in the console. Step back and forward again
+      right away: expect a `debounced` event and no second click.
+    description_i18n:
+      zh: >-
+        已注册人员站到摄像头前。预期继电器响一次、管理界面出现一条放行事件。
+        马上退开再上前：预期出现 `debounced` 事件，继电器不再响。
+    optional: false
+
+  - id: photograph
+    name: A printed photo does not open the door
+    name_i18n:
+      zh: 打印照片打不开门
+    description: >-
+      Hold a printed photo of the same person up to the camera. Expect a
+      `liveness_failed` event and no relay click.
+    description_i18n:
+      zh: >-
+        把同一个人的打印照片举到摄像头前。预期出现 `liveness_failed` 事件，继电器不响。
+    optional: false
+
+  - id: remote_unlock
+    name: Remote unlock from the console
+    name_i18n:
+      zh: 从管理界面远程开门
+    description: >-
+      On the console's Devices page, signed in with the admin token, click
+      unlock. Expect one relay click and a receipt in the executed state.
+    description_i18n:
+      zh: >-
+        用 admin token 登录管理界面，在「设备」页点开门。预期继电器响一次，回执状态为 executed。
+    optional: false
+
+  - id: deletion_barrier
+    name: Delete a person, then try to roll back
+    name_i18n:
+      zh: 删除一个人后尝试回滚
+    description: >-
+      Delete an enrolled person. Within about 30 s the door stops admitting
+      them. Rolling back to a version that still contains them is refused.
+    description_i18n:
+      zh: >-
+        删除一位已注册人员，约 30 s 后门不再为他打开。回滚到仍包含此人的版本会被拒绝。
+    optional: false

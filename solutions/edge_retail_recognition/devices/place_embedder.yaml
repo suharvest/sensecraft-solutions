@@ -1,0 +1,133 @@
+version: "1.0"
+id: place_embedder
+name: Place the Embedding Model
+name_i18n:
+  zh: 放置嵌入模型
+type: manual
+inherit_host_from: console_stack
+
+# Manual because the file cannot be shipped. The embedder is DINOv2-base
+# fine-tuned with an ArcFace head on JD Products-10K, whose terms read "The
+# database can only be used for non-commercial research and educational
+# purposes." Weights fine-tuned on it inherit that scope, so
+# MODEL-CARD.embedder.json records `use_scope: non-commercial` and
+# `redistributable: false`. A solution package that anyone can download cannot
+# carry it.
+#
+# This is the RK3588/Jetson variant. The Pi preset uses a different file
+# (devices/place_embedder_pi.yaml, DINOv2-small dynamic-INT8) because its
+# embedder runs on the Pi's own CPU, not the RK3588/Jetson CPU this file's
+# figures assume. The gallery is bound to whichever embedder produced its
+# vectors: switching models without rebuilding the gallery from scratch
+# produces silent noise, not an error.
+#
+# Skipping this step is allowed and is not silent about consequences here, but
+# it is silent at runtime. Upstream server/config.py:57 defaults
+# `embedder_backend` to `fake`; server/api.py:53 only constructs OnnxEmbedder
+# when it is `onnx`, otherwise FakeEmbedder. FakeEmbedder produces a
+# deterministic vector from the image bytes, so registration succeeds, the
+# gallery gets versions, the UI works and every retrieval result is noise.
+# GET /api/health returns `ok`, the collector counters and the gallery version
+# (server/api.py:302-305) — it does not report which embedder is loaded, and
+# nothing is logged at startup. There is no runtime signal at all. That is why
+# this step exists as a step rather than a footnote.
+
+steps:
+  - id: embed_obtain
+    name: Obtain the ONNX
+    name_i18n:
+      zh: 取得 ONNX
+    description: >-
+      The file is `dinov2b_arcface_products10k_224_b1.onnx`, 348,115,086 bytes,
+      sha256
+      `01ae07d10f638a2ebeb85100325ad79765a325d1026b728b60f1ee106e76eaae`. It is
+      produced by the upstream training and export pipeline in the
+      edge-retail-recognition repository; the checksum is recorded there in
+      `models/SHA256SUMS.dinov2b_arcface_products10k_224` and the full card in
+      `models/MODEL-CARD.embedder.json`. A batch-16 variant
+      (`..._b16.onnx`, sha256
+      `3aca79c31e45fdf3d11b981bcd43c76d01ddd79e1560f7ad890bbecca8615f67`)
+      exists and also works — OnnxEmbedder splits input according to the batch
+      the model declares. Verify with `sha256sum` before using it: a gallery is
+      only comparable to vectors produced by the same file, so a silently
+      different model means a silently wrong gallery.
+    description_i18n:
+      zh: >-
+        文件是 `dinov2b_arcface_products10k_224_b1.onnx`，348,115,086 字节，
+        sha256 `01ae07d10f638a2ebeb85100325ad79765a325d1026b728b60f1ee106e76eaae`。
+        它由上游 edge-retail-recognition 仓库的训练与导出流水线产出，校验和记在那里的
+        `models/SHA256SUMS.dinov2b_arcface_products10k_224`，完整模型卡在
+        `models/MODEL-CARD.embedder.json`。还有一个 batch-16 变体
+        （`..._b16.onnx`，sha256
+        `3aca79c31e45fdf3d11b981bcd43c76d01ddd79e1560f7ad890bbecca8615f67`）
+        同样可用——OnnxEmbedder 按模型声明的静态 batch 自行切分。用之前先 `sha256sum`
+        核对：商品库只与产生它的那一份模型可比，模型悄悄换了，库就悄悄错了。
+    optional: false
+
+  - id: embed_licence
+    name: Check the licence before you use it
+    name_i18n:
+      zh: 用之前先确认许可
+    description: >-
+      `license_id: products10k-terms`, `use_scope: non-commercial`,
+      `redistributable: false`. The backbone `facebook/dinov2-base` is
+      Apache-2.0; the restriction comes from the training data, not the
+      backbone. The verbatim clause is in the upstream `data/DATASET-embed.md`
+      §4.1. This is fine for an evaluation and not fine for a paid deployment.
+      A commercial deployment has to retrain the embedder on first-party or
+      permissively licensed capture and rebuild every gallery version, because
+      vectors from one model are not comparable to vectors from another. Do not
+      redistribute the file with this package or with any image built from it.
+    description_i18n:
+      zh: >-
+        `license_id: products10k-terms`、`use_scope: non-commercial`、
+        `redistributable: false`。骨干 `facebook/dinov2-base` 是 Apache-2.0；
+        非商用的限制来自训练数据，不来自骨干。原文条款在上游
+        `data/DATASET-embed.md` §4.1。这份权重用于评估没问题，用于付费部署不行。
+        商用部署必须用自采或许可宽松的数据重训嵌入器，并重建每一个商品库版本——
+        一个模型产出的向量与另一个模型的向量不可比。不要把这个文件随本包分发，
+        也不要打进任何由本包构建的镜像。
+    optional: false
+
+  - id: embed_place
+    name: Put it where compose mounts it, and switch the backend on
+    name_i18n:
+      zh: 放到 compose 挂载的位置，并把后端切过去
+    description: >-
+      In this package's local layout the file lives at
+      `assets/console/models/` next to the compose file — that directory
+      ships empty and is what `server` mounts as `/models:ro`. Once
+      `console_stack` has deployed, that directory exists on the console host
+      at `/home/{{username}}/edge-retail-recognition/console_stack/models/`
+      (the same remote path `console_stack`'s compose file and `.env` were
+      uploaded to); copy the ONNX there, not to a fresh location. Then set
+      `RETAIL_EMBEDDER=onnx` in the `.env` at
+      `/home/{{username}}/edge-retail-recognition/console_stack/.env` and
+      restart the service with `docker compose up -d server`.
+      `RETAIL_EMBEDDER_ONNX` already defaults to
+      `/models/dinov2b_arcface_products10k_224_b1.onnx`; override it only if
+      you placed a different filename. Upstream refuses to start with
+      `embedder_backend=onnx` and no path (server/config.py:87-88), and
+      onnxruntime fails on a missing file, so a typo shows up as a container
+      that will not come up rather than as bad vectors. Registering a SKU
+      before this step and keeping the gallery afterwards does not work:
+      vectors written by FakeEmbedder are not comparable to vectors written by
+      the real model. Register everything again after switching.
+    description_i18n:
+      zh: >-
+        在本包的本地目录结构里，文件放在 compose 文件旁边的 `assets/console/models/`
+        ——这个目录随包发布时是空的，是 `server` 挂载为 `/models:ro` 的那个目录。
+        `console_stack` 部署完之后，管理端主机上会有这同一个目录：
+        `/home/{{username}}/edge-retail-recognition/console_stack/models/`
+        （与 `console_stack` 的 compose 文件、`.env` 上传到的是同一个远端路径）；
+        把 ONNX 拷到那里，不要另找位置。然后在
+        `/home/{{username}}/edge-retail-recognition/console_stack/.env` 里设
+        `RETAIL_EMBEDDER=onnx`，用 `docker compose up -d server` 重启该服务。
+        `RETAIL_EMBEDDER_ONNX` 已经默认指向
+        `/models/dinov2b_arcface_products10k_224_b1.onnx`，只有换了文件名才需要覆盖。
+        上游在 `embedder_backend=onnx` 而路径为空时拒绝启动
+        （server/config.py:87-88），onnxruntime 在文件缺失时同样会失败，
+        所以写错路径表现为容器起不来，而不是算出错的向量。
+        在这一步之前注册的 SKU 不能留着用：FakeEmbedder 写进去的向量与真模型写的
+        向量不可比。切换之后全部重新注册一遍。
+    optional: false

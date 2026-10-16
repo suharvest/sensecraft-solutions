@@ -1,0 +1,21 @@
+# The analytics backend config in this directory is mirrored from the
+# open-source project, which is the authority for it. Changes go there first
+# and are copied down; editing the copy here makes the two drift and the CI
+# check below will fail the PR.
+#
+#   repo: https://github.com/Seeed-Solution/retail-vision
+#   ref:  backend-v0.1.0
+#   path: backend/
+#
+# Mirrored: grafana/ mosquitto/ telegraf/ heatmap-demo/ go2rtc/
+#
+# NOT mirrored, and owned here: the docker-compose files. The solution's
+# deploy engine needs them present at validation time and they carry
+# deployment-specific service definitions (published image tags, the detector
+# services for each preset).
+#
+# To re-sync after an upstream release, from the repository root:
+#   scripts/sync_retail_vision_backend.sh <tag>
+repo=https://github.com/Seeed-Solution/retail-vision
+ref=backend-v0.1.0
+path=backend
