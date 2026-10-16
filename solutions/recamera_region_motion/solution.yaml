@@ -1,0 +1,69 @@
+version: "1.0"
+# Candidate solution: enable only after real-frame capture, motion-event, and snapshot acceptance.
+enabled: false
+id: recamera_region_motion
+name: reCamera Region Motion Detection
+name_i18n:
+  zh: reCamera 选区运动检测
+intro:
+  summary: Detect motion only inside user-drawn camera regions, keep event snapshots, and send webhook alerts from a reCamera.
+  summary_i18n:
+    zh: 在 reCamera 画面中自定义检测区域，只监测指定位置，保存事件抓拍并通过 Webhook 告警。
+  description_file: description.md
+  description_file_i18n:
+    zh: description_zh.md
+  cover_image: gallery/cover.svg
+  category: vision_video_ai
+  solution_type: technical
+  tags: [recamera, motion-detection, camera, rtsp, webhook, home-assistant]
+  output_interfaces:
+    - type: http
+      port: 8080
+      endpoint: /api/health
+      description: Health, motion status, events, configuration, and JPEG snapshots over HTTP.
+      description_i18n:
+        zh: 通过 HTTP 提供健康状态、运动状态、事件、配置和 JPEG 抓拍接口。
+    - type: rtsp
+      port: 8554
+      path: /live0
+      description: H.264 camera stream.
+      description_i18n:
+        zh: H.264 摄像头视频流。
+  input_requirements:
+    - type: camera
+      description: Built-in reCamera camera module.
+      description_i18n:
+        zh: reCamera 内置摄像头模组。
+  device_catalog:
+    recamera_2002:
+      description: reCamera 2002 camera running the motion detection service.
+      description_i18n:
+        zh: 运行选区运动检测服务的 reCamera 2002 摄像头。
+  presets:
+    - id: recamera_2002
+      name: reCamera 2002
+      name_i18n:
+        zh: reCamera 2002
+      description: Install the native motion detection service and verify its HTTP API.
+      description_i18n:
+        zh: 安装原生运动检测服务并检查 HTTP API。
+      device_groups:
+        - id: camera
+          name: AI Camera
+          name_i18n:
+            zh: AI 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: recamera_2002
+          default: recamera_2002
+  stats:
+    difficulty: intermediate
+    estimated_time: 10min
+  links:
+    github: https://github.com/yyling0101-a11y/recamera_motion_detection
+deployment:
+  guide_file: guide.md
+  guide_file_i18n:
+    zh: guide_zh.md
+  selection_mode: sequential
