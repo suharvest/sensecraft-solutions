@@ -21,11 +21,11 @@ Before starting, make sure you have:
 3. Click **Save settings**. The App automatically checks firmware, saves settings, and verifies after reboot.
 4. Once verified, follow the on-screen instructions to add the ESPHome device in Home Assistant and enable action execution.
 
-> **Functional note**: Only five touch areas have actions defined: on/off and 25%, 50%, 75%, and 100% brightness. Other screen graphics are static. Physical touch control and bi-directional display synchronization are still pending acceptance.
+> **Functional note**: Only five touch areas have actions defined: on/off and 25%, 50%, 75%, and 100% brightness. Other screen graphics are static. For hardware acceptance, install firmware 0.2.1 on a real E1003, tap each of the five areas, confirm the Home Assistant light changes, then change the light from Home Assistant and confirm the panel display updates.
 
 <details>
 <summary>Technical details and verification status</summary>
 <p>The reference firmware is based on 0.2.1 and uses plaintext native API (TCP 6053). It does not use API encryption or key copying, requires no MQTT or device web server, and supports USB updates only.</p>
-<p>Software builds and UI checks have passed; final 0.2.1 hardware upload and physical control are still pending acceptance. E-paper display persistence when unpowered is normal and does not indicate touch circuit power.</p>
+<p>Software builds and UI checks have passed. The hardware acceptance procedure covers the 0.2.1 upload, all five touch actions, Home Assistant state changes, and display updates after an external light change. E-paper display persistence when unpowered is normal and does not indicate touch circuit power.</p>
 <p>This solution candidate is currently in a technical review state and remains disabled. Formal release depends on public App contract 15 synchronization, app package distribution, a public firmware download URL, and hardware acceptance. Display state and brightness synchronization for arbitrary lights still require a Home Assistant Blueprint or adapter.</p>
 </details>
