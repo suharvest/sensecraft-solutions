@@ -1,4 +1,6 @@
 version: "1.0"
+# Candidate solution: enable only after real-frame capture, motion-event, and snapshot acceptance.
+enabled: false
 id: recamera_region_motion
 name: reCamera Region Motion Detection
 name_i18n:
