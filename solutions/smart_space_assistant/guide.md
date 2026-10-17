@@ -44,10 +44,11 @@ Add "eyes" to voice conversation: camera-based proactive visual wake-up greets y
 - **Hardware:** SenseCAP Watcher, USB-C data cable.
 - **Network:** 2.4 GHz Wi-Fi.
 
-## Step 1: Experience Proactive Greeting {#vision_wake_intro type=manual required=true}
+## Step 1: Enable Face Detection and Experience Proactive Greeting {#vision_wake_intro type=manual required=true}
 
-1. Place the configured Watcher on your desk at face height (distance ~0.5 to 1.5 m).
-2. Walk up to Watcher and pause:
+1. Confirm vision detection mode: say to Watcher "Enable face detection" or "Set vision mode to 1" (`self.vision.mode: 1`). Watcher confirms entering on-device person/face detection mode.
+2. Place the configured Watcher on your desk at face height (distance ~0.5 to 1.5 m).
+3. Walk up to Watcher and pause for longer than the validation duration (default 3 s):
    - When the camera detects a person present, Watcher switches expressions and greets you proactively (e.g. "Hello! Good to see you!"), entering conversation without requiring a wake word.
 
 ---
@@ -74,29 +75,40 @@ Go from detecting "a person" to recognising "who they are": activate the Himax W
 - **Network:** 2.4 GHz Wi-Fi.
 - **Privacy:** Detection, alignment, and 128D embedding extraction happen entirely on-device; no facial photos uploaded to cloud.
 
-## Step 1: Flash Himax WE2 AI Models {#face_himax_flash type=himax_usb required=true config=devices/watcher_himax.yaml}
+## Step 1: Flash Himax WE2 AI Models {#face_himax type=himax_usb required=true config=devices/watcher_himax.yaml}
 
-1. Connect Watcher and select the SERIAL-A port (the lower-numbered port on macOS/Linux).
+1. Connect Watcher and select the SERIAL-A port (the lower-numbered port on macOS/Linux, e.g. `ttyACM0`).
 2. Flash Himax WE2 AI models (SCRFD 500M + MobileFaceNet 128D).
 
 ---
 
-## Step 2: Enrol Face Database {#face_enroll type=serial_camera config=devices/face_enroll.yaml required=true}
+## Step 2: Connect ESP32 Main Controller {#face_esp32 type=esp32_usb required=false config=devices/watcher_esp32.yaml}
+
+Face database embeddings are stored in ESP32-S3 local NVS flash:
+1. Select the SERIAL-B port (the ESP32-S3 serial port).
+2. If already flashed in stage 1, select the port to connect; if not, flash the Xiaozhi firmware.
+
+---
+
+## Step 3: Enrol Face Database {#face_enroll type=serial_camera config=devices/face_enroll.yaml required=true}
 
 Connect via USB to manage the local face database:
 
-1. Click **Connect** to start real-time camera preview.
-2. Click **Enrol** in the Face Database panel and enter a name.
+1. Click **Connect** to start real-time camera preview (reads from Himax port).
+2. Click **Enrol** in the Face Database panel (reads/writes NVS via ESP32 port) and enter a name.
 3. Face the camera in good lighting for ~5 seconds to extract the 128D embedding.
 4. Up to 20 faces stored in on-device NVS.
 
 ---
 
-## Step 3: Experience Name Greeting & Familiar Mode {#face_demo type=manual required=true}
+## Step 4: Switch to Face Recognition Mode & Greet {#face_demo type=manual required=true}
 
-1. **Familiar Greeting:** When enrolled person approaches, Watcher greets them by name.
-2. **Stranger Alert:** When an unrecognised person approaches, Watcher notes an unknown visitor.
-3. **Voice Commands:**
+Disconnect USB cable; Watcher runs standalone:
+
+1. **Enable Recognition Mode**: Say to Watcher "Enable face recognition" or "Set vision mode to 2" (`self.vision.mode: 2`).
+2. **Familiar Greeting:** When an enrolled person approaches, Watcher extracts features locally and greets them by name (e.g. "Hello, John!").
+3. **Stranger Alert:** When an unrecognised person approaches, Watcher notes an unknown visitor.
+4. **Voice Commands:**
    - "Who do you know?": lists enrolled names.
    - "Can you recognise me?": captures live frame and tests recognition.
-   - "Enable familiar mode": mutes greetings for known faces; only alerts on strangers.
+   - "Enable familiar mode": mutes greetings for known faces (`mode: 3`); only alerts on strangers.
