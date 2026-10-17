@@ -19,9 +19,9 @@ detection:
 
 firmware:
   source:
-    path: https://sensecraft-statics.seeed.cc/solution-app/smart_warehouse/assets/watcher_firmware/xiaozhi-merged-91bf9963.bin
+    path: https://sensecraft-statics.seeed.cc/solution-app/smart_space_assistant/assets/watcher_firmware/xiaozhi-merged-d762b68d.bin
     checksum:
-      sha256: de6b73a23b797e3f028aad84790755a8739ed2547e343fc0aa9c1c8aa4aed3da
+      sha256: 7551773b260c9964c5043ba2d5c692dad93f392263df8393648608b3cac9eb57
   flash_config:
     chip: esp32s3
     baud_rate: 921600
@@ -34,7 +34,7 @@ firmware:
     partitions:
       - name: merged_firmware
         offset: "0x0"
-        file: https://sensecraft-statics.seeed.cc/solution-app/smart_warehouse/assets/watcher_firmware/xiaozhi-merged-91bf9963.bin
+        file: https://sensecraft-statics.seeed.cc/solution-app/smart_space_assistant/assets/watcher_firmware/xiaozhi-merged-d762b68d.bin
 
 user_inputs:
   - id: serial_port
