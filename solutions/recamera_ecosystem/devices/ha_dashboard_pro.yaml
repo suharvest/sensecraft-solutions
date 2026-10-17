@@ -16,7 +16,7 @@ type: web_dashboard
 # inherit_host_from points at the Home Assistant deploy step, so the address is
 # filled in for anyone who ran it. That step is optional, so the input below
 # stays typeable for anyone pointing at a Home Assistant they already had.
-inherit_host_from: deploy_ha_pro
+inherit_host_from: deploy_ha
 
 user_inputs:
   - id: host
