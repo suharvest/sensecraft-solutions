@@ -222,18 +222,18 @@ intro:
         github: https://github.com/suharvest/sscma-example-sg200x
 
     - id: spatial_retail
-      name: Spatial Vision & Retail Flow
+      name: Retail Flow & Passenger Analytics
       name_i18n:
-        zh: 空间感知与客流分析
-        ja: 空間認識と動線分析
-      badge: Advanced Commercial
+        zh: 商业客流与动线分析
+        ja: 商業動線と人数カウント
+      badge: Commercial Vision
       badge_i18n:
-        zh: 进阶商业
-        ja: 応用商業
-      description: 2D-to-3D monocular depth estimation (FastDepth) and multi-target tracking with virtual tripwire trip counts and dwell times.
+        zh: 商业视觉
+        ja: 商業向けビジョン
+      description: ByteTrack multi-target tracking with virtual tripwires. Counts passenger entries and exits while tracking dwell time and assistance states.
       description_i18n:
-        zh: 单目 3D 深度图感知（近红远蓝）与多目标追踪（ByteTrack），实现进出绊线客流统计与停留时长分析。
-        ja: 単眼 3D 深度推定（赤=近、青=遠）と、トラッキング＋仮想トリップワイヤーによる入退店人数・滞留時間分析を行います。
+        zh: 结合 ByteTrack 多目标追踪与虚拟绊线，统计出入客流人数，并实时识别驻足停留与求助状态。
+        ja: ByteTrack によるマルチオブジェクト追跡と仮想トリップワイヤーを組み合わせ、入退店人数のカウントと滞留・対応必要状態を判定します。
       verified:
         - hardware
       device_groups:

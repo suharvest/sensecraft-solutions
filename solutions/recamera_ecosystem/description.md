@@ -17,7 +17,7 @@ publishes them over MQTT and Home Assistant picks them up automatically.
 | Privacy by default | AI runs on the camera. Video and detections stay on your local network, and the console can blur faces before the frame is even encoded |
 | Works with what you already have | RTSP for any player, ONVIF discovery for an NVR or VMS (reCamera) |
 
-## The Four Scenario Presets
+## Suitable Scenarios: The Four Presets
  
 The solution provides four scenario presets designed for progressive edge vision learning and hands-on experimentation. Each preset allows choosing between **reCamera (SG2002)** and **reCamera Pro (RV1126B)**:
 
@@ -26,7 +26,7 @@ The solution provides four scenario presets designed for progressive edge vision
 | **Object Detection & Environment** | Visual Hello World: bounding boxes, confidence, class labels | YOLO 80-class detection, weather classification | reCamera / reCamera Pro |
 | **Human Behavior & Pose** | Keypoint landmarks & temporal actions: on-device privacy blur | Face analysis, drowsiness alert, fitness trainer, fall detection | reCamera / reCamera Pro |
 | **Text & Code Reading** | Two-stage vision pipeline: detection + OCR decoding | Chinese & English PP-OCR, dense multi-QR reading | reCamera / reCamera Pro |
-| **Spatial Vision & Retail Flow** | Spatial perception & commercial logic: 2D-to-3D depth & tripwire | FastDepth monocular depth, passenger counting & dwell time | reCamera / reCamera Pro |
+| **Retail Flow & Passenger Analytics** | Multi-target tracking & tripwires: customer count & dwell time | ByteTrack tracking, virtual tripwire, retail people counting (retail-vision) | reCamera / reCamera Pro |
 
 Each preset includes hands-on quests with live WebRTC verification, and detection events publish over MQTT with automatic Home Assistant discovery.
 
