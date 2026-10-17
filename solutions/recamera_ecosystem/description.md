@@ -17,16 +17,18 @@ publishes them over MQTT and Home Assistant picks them up automatically.
 | Privacy by default | AI runs on the camera. Video and detections stay on your local network, and the console can blur faces before the frame is even encoded |
 | Works with what you already have | RTSP for any player, ONVIF discovery for an NVR or VMS (reCamera) |
 
-## The Two Presets
+## The Four Scenario Presets
+ 
+The solution provides four scenario presets designed for progressive edge vision learning and hands-on experimentation. Each preset allows choosing between **reCamera (SG2002)** and **reCamera Pro (RV1126B)**:
 
-| Preset | Hardware | Where apps come from | MQTT broker |
-|--------|----------|----------------------|-------------|
-| **reCamera** | reCamera 2002 | The reCamera Console's app gallery, installed by this solution | On the camera, plus the one you deploy with Home Assistant |
-| **reCamera Pro** | reCamera Pro | The camera's own App Center, delivered by firmware | None on the camera — the broker comes from the Home Assistant step |
+| Scenario Preset | Educational & Experience Focus | Included Capabilities & Apps | Hardware |
+|---|---|---|---|
+| **Object Detection & Environment** | Visual Hello World: bounding boxes, confidence, class labels | YOLO 80-class detection, weather classification | reCamera / reCamera Pro |
+| **Human Behavior & Pose** | Keypoint landmarks & temporal actions: on-device privacy blur | Face analysis, drowsiness alert, fitness trainer, fall detection | reCamera / reCamera Pro |
+| **Text & Code Reading** | Two-stage vision pipeline: detection + OCR decoding | Chinese & English PP-OCR, dense multi-QR reading | reCamera / reCamera Pro |
+| **Spatial Vision & Retail Flow** | Spatial perception & commercial logic: 2D-to-3D depth & tripwire | FastDepth monocular depth, passenger counting & dwell time | reCamera / reCamera Pro |
 
-Both follow the same five steps: get the device current, pick an app, deploy
-Home Assistant if you want it, point both ends at the same broker, then build
-the dashboard.
+Each preset includes hands-on quests with live WebRTC verification, and detection events publish over MQTT with automatic Home Assistant discovery.
 
 ## Apps in the Gallery
 

@@ -83,16 +83,19 @@ intro:
         zh: 边缘设备，运行 HA 和 MQTT broker
 
   presets:
-    - id: recamera
-      name: reCamera
+    - id: object_detection
+      name: Object Detection & Environment
       name_i18n:
-        zh: reCamera
+        zh: 目标检测与环境感知
+        ja: 物体検出と環境認識
       badge: Start Here
       badge_i18n:
-        zh: 从这里开始
-      description: Update console, pick a gallery app, forward results to Home Assistant via MQTT.
+        zh: 新手入门
+        ja: 入門推奨
+      description: The visual "Hello World". Runs YOLO (COCO 80 classes) or weather classification with real-time bounding boxes and confidence scores.
       description_i18n:
-        zh: 升级控制台，从画廊选应用，通过 MQTT 转发到 Home Assistant。
+        zh: 边缘视觉的“Hello World”。运行 YOLO 检测常见 80 类物体或天气分类，实时画框并输出置信度，适合初次体验端侧推理。
+        ja: エッジビジョンの「Hello World」。80 クラスの YOLO 物体検出や天候分類を実行し、リアルタイムにバウンディングボックスを描画します。
       verified:
         - hardware
       device_groups:
@@ -100,15 +103,24 @@ intro:
           name: AI Camera
           name_i18n:
             zh: AI 摄像头
+            ja: AI カメラ
           type: single
           required: true
           options:
             - device_ref: recamera_2002
+              label: reCamera (SG2002)
+              label_i18n:
+                zh: reCamera (SG2002)
+            - device_ref: recamera_pro
+              label: reCamera Pro (RV1126B)
+              label_i18n:
+                zh: reCamera Pro (RV1126B)
           default: recamera_2002
         - id: server
           name: Home Assistant Server
           name_i18n:
             zh: Home Assistant 服务器
+            ja: Home Assistant サーバー
           type: single
           required: false
           options:
@@ -117,37 +129,143 @@ intro:
       links:
         github: https://github.com/suharvest/sscma-example-sg200x
 
-    - id: recamera_pro
-      name: reCamera Pro
+    - id: human_behavior
+      name: Human Behavior & Pose
       name_i18n:
-        zh: reCamera Pro
-      badge: New Hardware
+        zh: 人体姿态与行为分析
+        ja: 人体姿勢と行動分析
+      badge: Interactive & Privacy
       badge_i18n:
-        zh: 新硬件
-      description: Newer camera; update firmware, pick an app from the App Center, forward via MQTT.
+        zh: 交互与隐私
+        ja: インタラクティブ・プライバシー
+      description: Landmark tracking and temporal actions — face analysis with on-device blur, drowsiness monitoring (468 points), fitness rep counting, and fall detection.
       description_i18n:
-        zh: 新一代摄像头，更新固件、从应用中心选应用，通过 MQTT 转发。
+        zh: 拓扑关键点与时序动作识别——人脸属性与端侧隐私打码、468 点人脸困倦监测、健身动作计数与跌倒报警，体验端侧隐私闭环。
+        ja: 特徴点追跡と時系列行動認識——オンデバイス顔ぼかし、468 点の眠気検知、フィットネス回数カウント、転倒検知を体験できます。
+      verified:
+        - hardware
       device_groups:
         - id: camera
           name: AI Camera
           name_i18n:
             zh: AI 摄像头
+            ja: AI カメラ
           type: single
           required: true
           options:
+            - device_ref: recamera_2002
+              label: reCamera (SG2002)
+              label_i18n:
+                zh: reCamera (SG2002)
             - device_ref: recamera_pro
-          default: recamera_pro
+              label: reCamera Pro (RV1126B)
+              label_i18n:
+                zh: reCamera Pro (RV1126B)
+          default: recamera_2002
         - id: server
           name: Home Assistant Server
           name_i18n:
             zh: Home Assistant 服务器
+            ja: Home Assistant サーバー
           type: single
           required: false
           options:
             - device_ref: recomputer_r11
           default: recomputer_r11
       links:
-        github: https://github.com/Seeed-Studio/reCamera-OS
+        github: https://github.com/suharvest/sscma-example-sg200x
+
+    - id: text_reading
+      name: Text & Code Reading
+      name_i18n:
+        zh: 文字与符号识别
+        ja: テキストとコード認識
+      badge: Industrial OCR
+      badge_i18n:
+        zh: 轻工识读
+        ja: 産業向け OCR
+      description: Two-stage detection + recognition pipeline. Extracts Chinese & English characters via PP-OCR and decodes dense QR/barcodes on the fly.
+      description_i18n:
+        zh: 两阶段视觉流水线。通过 PP-OCR 实时识别包装、标签和屏幕上的中英文字符，或一次性解析画面的所有二维码。
+        ja: 2段階の検出＋認識パイプライン。PP-OCR による中英テキスト読み取りや複数 QR コードの一括認識を行います。
+      verified:
+        - hardware
+      device_groups:
+        - id: camera
+          name: AI Camera
+          name_i18n:
+            zh: AI 摄像头
+            ja: AI カメラ
+          type: single
+          required: true
+          options:
+            - device_ref: recamera_2002
+              label: reCamera (SG2002)
+              label_i18n:
+                zh: reCamera (SG2002)
+            - device_ref: recamera_pro
+              label: reCamera Pro (RV1126B)
+              label_i18n:
+                zh: reCamera Pro (RV1126B)
+          default: recamera_2002
+        - id: server
+          name: Home Assistant Server
+          name_i18n:
+            zh: Home Assistant 服务器
+            ja: Home Assistant サーバー
+          type: single
+          required: false
+          options:
+            - device_ref: recomputer_r11
+          default: recomputer_r11
+      links:
+        github: https://github.com/suharvest/sscma-example-sg200x
+
+    - id: spatial_retail
+      name: Spatial Vision & Retail Flow
+      name_i18n:
+        zh: 空间感知与客流分析
+        ja: 空間認識と動線分析
+      badge: Advanced Commercial
+      badge_i18n:
+        zh: 进阶商业
+        ja: 応用商業
+      description: 2D-to-3D monocular depth estimation (FastDepth) and multi-target tracking with virtual tripwire trip counts and dwell times.
+      description_i18n:
+        zh: 单目 3D 深度图感知（近红远蓝）与多目标追踪（ByteTrack），实现进出绊线客流统计与停留时长分析。
+        ja: 単眼 3D 深度推定（赤=近、青=遠）と、トラッキング＋仮想トリップワイヤーによる入退店人数・滞留時間分析を行います。
+      verified:
+        - hardware
+      device_groups:
+        - id: camera
+          name: AI Camera
+          name_i18n:
+            zh: AI 摄像头
+            ja: AI カメラ
+          type: single
+          required: true
+          options:
+            - device_ref: recamera_2002
+              label: reCamera (SG2002)
+              label_i18n:
+                zh: reCamera (SG2002)
+            - device_ref: recamera_pro
+              label: reCamera Pro (RV1126B)
+              label_i18n:
+                zh: reCamera Pro (RV1126B)
+          default: recamera_2002
+        - id: server
+          name: Home Assistant Server
+          name_i18n:
+            zh: Home Assistant 服务器
+            ja: Home Assistant サーバー
+          type: single
+          required: false
+          options:
+            - device_ref: recomputer_r11
+          default: recomputer_r11
+      links:
+        github: https://github.com/suharvest/sscma-example-sg200x
 
   stats:
     deployed_count: 0
