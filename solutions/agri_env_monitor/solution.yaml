@@ -84,10 +84,10 @@ intro:
 
   input_requirements:
     - type: lorawan
-      description: SenseCAP LoRaWAN nodes and a gateway that covers them, both configured for the same regional band. The nodes' DevEUI, JoinEUI and AppKey are needed for the two self-hosted presets.
+      description: SenseCAP LoRaWAN nodes and a gateway that covers them, both configured for the same regional band. The nodes' DevEUI, JoinEUI and AppKey are needed for the self-hosted preset.
       required: true
       description_i18n:
-        zh: SenseCAP LoRaWAN 节点，以及能覆盖它们的网关，两者频段一致。两个自建套餐需要节点的 DevEUI、JoinEUI 与 AppKey。
+        zh: SenseCAP LoRaWAN 节点，以及能覆盖它们的网关，两者频段一致。自建套餐需要节点的 DevEUI、JoinEUI 与 AppKey。
     - type: mqtt
       description: A Linux host with Docker for Home Assistant, the broker and the bridge. It needs no inbound internet access — the offline scenario keeps it entirely on the local network.
       required: true
@@ -172,90 +172,6 @@ intro:
             - device_ref: generic_arm64_host
           default: generic_arm64_host
 
-    - id: tts_local
-      name: Self-hosted The Things Stack
-      name_i18n:
-        zh: 自建 The Things Stack
-      badge: Beta
-      badge_i18n:
-        zh: 测试版
-      description: Self-hosted LoRaWAN network server on reComputer R12 — full control, most setup.
-      description_i18n:
-        zh: 自建 LoRaWAN 网络服务器（reComputer R12），控制更多，配置也更多。
-      device_groups:
-        - id: sensors
-          name: Sensor Nodes
-          name_i18n:
-            zh: 传感节点
-          type: quantity
-          required: true
-          device_ref: sensecap_s21xx_sensor
-          min_count: 1
-          max_count: 50
-          default_count: 3
-        - id: gateway_host
-          name: Gateway and Network Server Host
-          name_i18n:
-            zh: 网关与网络服务器主机
-          type: single
-          required: true
-          options:
-            - device_ref: recomputer_r12
-          default: recomputer_r12
-        - id: host
-          name: Dashboard Host
-          name_i18n:
-            zh: 看板主机
-          type: single
-          required: true
-          options:
-            - device_ref: generic_arm64_host
-          default: generic_arm64_host
-
-    - id: chirpstack_local
-      name: Local ChirpStack
-      name_i18n:
-        zh: 本地 ChirpStack
-      badge: Beta
-      badge_i18n:
-        zh: 测试版
-      description: ChirpStack network server, built into the M2 gateway or run on reComputer R12.
-      description_i18n:
-        zh: 用 ChirpStack 做网络服务器，跑在 M2 或 reComputer R12 上。
-      device_groups:
-        - id: sensors
-          name: Sensor Nodes
-          name_i18n:
-            zh: 传感节点
-          type: quantity
-          required: true
-          device_ref: sensecap_s21xx_sensor
-          min_count: 1
-          max_count: 50
-          default_count: 3
-        - id: network_server
-          name: Network Server
-          name_i18n:
-            zh: 网络服务器
-          type: single
-          required: true
-          description: The M2 runs ChirpStack itself; the reComputer R12 Series gateway runs it in Docker
-          description_i18n:
-            zh: M2 自己就能跑 ChirpStack；reComputer R12 系列网关则用 Docker 跑
-          options:
-            - device_ref: sensecap_m2_gateway
-            - device_ref: recomputer_r12
-          default: sensecap_m2_gateway
-        - id: host
-          name: Dashboard Host
-          name_i18n:
-            zh: 看板主机
-          type: single
-          required: true
-          options:
-            - device_ref: generic_arm64_host
-          default: generic_arm64_host
-
     - id: custom_dashboard
       name: Custom Ops Dashboard
       name_i18n:
@@ -280,6 +196,50 @@ intro:
             - device_ref: recomputer_r10
             - device_ref: generic_arm64_host
           default: recomputer_r10
+
+    - id: local_lns
+      name: Local Network Server
+      name_i18n:
+        zh: 本地网络服务器
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: Self-hosted LoRaWAN network server (ChirpStack or The Things Stack) for complete off-grid deployment.
+      description_i18n:
+        zh: 自建 LoRaWAN 网络服务器（ChirpStack 或 The Things Stack），适用于完全离网私有化部署。
+      device_groups:
+        - id: sensors
+          name: Sensor Nodes
+          name_i18n:
+            zh: 传感节点
+          type: quantity
+          required: true
+          device_ref: sensecap_s21xx_sensor
+          min_count: 1
+          max_count: 50
+          default_count: 3
+        - id: network_server
+          name: Network Server
+          name_i18n:
+            zh: 网络服务器
+          type: single
+          required: true
+          description: ChirpStack (runs on M2 or R12 in Docker) or The Things Stack (runs on R12 in Docker)
+          description_i18n:
+            zh: ChirpStack（M2 网关内置或 R12 Docker 运行）或 The Things Stack（R12 Docker 运行）
+          options:
+            - device_ref: sensecap_m2_gateway
+            - device_ref: recomputer_r12
+          default: sensecap_m2_gateway
+        - id: host
+          name: Dashboard Host
+          name_i18n:
+            zh: 看板主机
+          type: single
+          required: true
+          options:
+            - device_ref: generic_arm64_host
+          default: generic_arm64_host
 
   stats:
     difficulty: intermediate
