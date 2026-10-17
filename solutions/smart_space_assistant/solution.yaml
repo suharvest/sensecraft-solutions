@@ -157,7 +157,7 @@ intro:
           default: sensecap_watcher
           name_i18n:
             zh: 语音与视觉终端
-            ja: 音声・视覚端末
+            ja: 音声・視覚端末
       links:
         github: https://github.com/78/xiaozhi-esp32
 

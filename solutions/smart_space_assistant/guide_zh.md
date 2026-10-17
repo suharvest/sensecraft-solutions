@@ -54,11 +54,12 @@
 - **设备：** SenseCAP Watcher，USB-C 数据线。
 - **网络：** 2.4 GHz WiFi。
 
-## 步骤 1: 体验主动打招呼 {#vision_wake_intro type=manual required=true}
+## 步骤 1: 开启人脸检测并体验主动打招呼 {#vision_wake_intro type=manual required=true}
 
-1. 将已配网的 Watcher 放置在桌面或工位正对人脸的高度（距离约 0.5 ~ 1.5 米）。
-2. 走到 Watcher 面前并停留：
-   - 摄像头检测到有人出现并停留时，Watcher 屏幕切换为灵动表情，主动开口向你打招呼（如“你好呀，看到你了！”），直接进入对话监听状态，无需呼唤唤醒词。
+1. 确认视觉检测模式：对 Watcher 说出“开启人脸检测”或“把视觉模式设为 1”（`self.vision.mode: 1`），Watcher 确认进入端侧人脸检测模式。
+2. 将已配网的 Watcher 放置在桌面或工位正对人脸的高度（距离约 0.5 ~ 1.5 米）。
+3. 走到 Watcher 面前并停留：
+   - 摄像头检测到有人出现并停留超过持续确认时间（默认 3 秒）时，Watcher 屏幕切换为灵动表情，主动开口向你打招呼（如“你好呀，看到你了！”），直接进入对话监听状态，无需呼唤唤醒词。
 
 ---
 
@@ -84,7 +85,7 @@
 - **网络：** 2.4 GHz WiFi。
 - **隐私：** 人脸检测、对齐与特征提取全部在端侧芯片完成，不上传人脸照片到云端。
 
-## 步骤 1: 烧录 Himax WE2 人脸模型 {#face_himax_flash type=himax_usb required=true config=devices/watcher_himax.yaml}
+## 步骤 1: 烧录 Himax WE2 人脸模型 {#face_himax type=himax_usb required=true config=devices/watcher_himax.yaml}
 
 Watcher 内部由 ESP32-S3（主控兼语音）和 Himax WE2（视觉 AI NPU）组成：
 1. 切换到 SERIAL-A 串口（macOS/Linux 选编号较小的那个，如 `...51` / `ttyACM0`）。
@@ -92,25 +93,34 @@ Watcher 内部由 ESP32-S3（主控兼语音）和 Himax WE2（视觉 AI NPU）�
 
 ---
 
-## 步骤 2: 录入人脸特征库 {#face_enroll type=serial_camera config=devices/face_enroll.yaml required=true}
+## 步骤 2: 连接 ESP32 主控串口 {#face_esp32 type=esp32_usb required=false config=devices/watcher_esp32.yaml}
+
+人脸特征数据库存储在 ESP32-S3 的本地 NVS 分区中：
+1. 切换到 SERIAL-B 串口（即 ESP32-S3 对应的串口）。
+2. 若在第一阶段已烧录固件，在此处选中串口即可直接通信；若未烧录，点击烧录小智固件。
+
+---
+
+## 步骤 3: 录入人脸特征库 {#face_enroll type=serial_camera config=devices/face_enroll.yaml required=true}
 
 通过 USB 连接电脑，在本地人脸数据库管理面板录入家人或同事的人脸：
 
-1. 点击**连接**启动摄像头实时预览
-2. 点击**人脸数据库**面板中的**注册**
+1. 点击**连接**启动摄像头实时预览（读取 Himax 端口）
+2. 点击**人脸数据库**面板中的**注册**（通过 ESP32 端口读写 NVS）
 3. 输入姓名（例如“张三”）
 4. 正对摄像头保持充足光线，点击**开始采集**，保持约 5 秒完成 128 维特征向量提取与写入
 5. 注册成功后，该人脸记录保存在 Watcher 本地 NVS 存储中（最多 20 人）
 
 ---
 
-## 步骤 3: 体验熟人直呼其名与免打扰 {#face_demo type=manual required=true}
+## 步骤 4: 切换到人脸识别模式并体验迎宾 {#face_demo type=manual required=true}
 
 拔掉 USB 数据线，Watcher 独立运行：
 
-1. **熟人迎宾**：已录入人员走到 Watcher 前，Watcher 自动识别并直呼其名问候（例如“张三，你好！”）。
-2. **陌生人提醒**：未录入人员出现时，触发陌生人提醒。
-3. **语音管理命令**：
+1. **开启人脸识别**：对 Watcher 说“开启人脸识别”或“把视觉模式设为 2”（`self.vision.mode: 2`）。
+2. **熟人迎宾**：已录入人员走到 Watcher 前，Himax 端侧提取特征并在本地比对，Watcher 自动识别并直呼其名问候（例如“张三，你好！”）。
+3. **陌生人提醒**：未录入人员出现时，触发陌生人提醒。
+4. **语音管理命令**：
    - "你认识谁"：列出当前本地人脸库中录入的所有人员名字。
    - "你能认出我吗"：现场拍一张照提取特征并汇报当前匹配姓名与相似度。
-   - "打开熟人模式"：开启免打扰，熟人经过不再逐个问候，仅在陌生人出现时发声提醒。
+   - "打开熟人模式"：开启免打扰（`mode: 3`），熟人经过不再逐个问候，仅在陌生人出现时发声提醒。
