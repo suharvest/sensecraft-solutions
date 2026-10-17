@@ -5,8 +5,13 @@ name_i18n:
   zh: 打造空间AI智能体
   ja: 空間 AI エージェントを構築する
 intro:
-  summary: Make your AI assistant see faces, remember people, and serve you proactively
+  summary: Turn SenseCAP Watcher into your voice and vision AI agent — voice dialog, proactive wake-up, and on-device face recognition
+  summary_i18n:
+    zh: 用一台 Watcher 快速上手端侧 AI 智能体——自然语音对话、视觉主动打招呼，以及端侧双芯人脸识别
+    ja: 1 台の Watcher でエッジ AI エージェントを体験——自然な音声対話、視覚による能動的挨拶、オンデバイス顔認識
   description_file: description.md
+  description_file_i18n:
+    zh: description_zh.md
   cover_image: gallery/cover.svg
   gallery:
     - type: image
@@ -23,121 +28,142 @@ intro:
   solution_type: solution
   tags:
     - watcher
-    - face_recognition
-    - display
     - voice
+    - vision
+    - face_recognition
     - xiaozhi
+    - sensecraft-ai
+    - mcp
 
   output_interfaces:
     - type: mqtt
       port: 1883
-      description: Face recognition events
+      description: Face recognition and vision events
       schema_type: json
       payload_example: '{"event":"face_recognized","name":"John","confidence":0.92}'
-
       description_i18n:
-        zh: 人脸识别事件
+        zh: 人脸识别与视觉检测事件
+
   input_requirements:
     - type: usb
-      description: SenseCAP Watcher connected via USB
+      description: SenseCAP Watcher connected via USB-C
       description_i18n:
-        zh: 通过 USB 连接的 SenseCAP Watcher
+        zh: 通过 USB-C 连接的 SenseCAP Watcher
+
   device_catalog:
     sensecap_watcher:
-      description: AI voice assistant with camera
+      description: AI voice and vision assistant terminal with camera
       description_i18n:
-        zh: 带摄像头的 AI 语音助手
+        zh: 带摄像头的 AI 语音与视觉交互终端
     recomputer_r11:
-      description: Edge computing device for display service
+      description: Edge computing device for local MCP services and workstation apps
       description_i18n:
-        zh: 边缘计算设备，用于投屏服务
-    reterminal_d1001:
-      description: 8" touch HMI voice agent with camera (ESP32-P4)
-      description_i18n:
-        zh: 8 寸触摸屏语音智能体，带摄像头（ESP32-P4）
+        zh: 边缘计算设备，用于本地 MCP 服务与工作站应用
+
   stats:
     deployed_count: 0
     likes_count: 0
-    difficulty: intermediate
-    estimated_time: 40min
+    difficulty: beginner
+    estimated_time: 20min
+
   links:
     github: https://github.com/78/xiaozhi-esp32
+
   presets:
-    - id: reterminal_d1001
-      verify_exempt: true
-      name: reTerminal D1001 Voice Agent
-      name_i18n: {zh: reTerminal D1001 语音智能体}
-      description: Xiaozhi voice agent on the 8" touch HMI — Wi-Fi setup, face wake, local push panel.
-      description_i18n: {zh: 8 寸触摸屏上的小智语音智能体：屏上配网、人脸唤醒、局域网推送面板。}
-      device_groups:
-        - id: d1001_device
-          name: Device
-          name_i18n: {zh: 设备}
-          type: single
-          required: true
-          options:
-            - {device_ref: reterminal_d1001}
-          default: reterminal_d1001
-    - id: display_cast
-      verify_exempt: true
-      name: Display Cast
-      badge: Recommended
-      description: Cast Xiaozhi conversations to large display
-      architecture_image: gallery/architecture.svg
+    - id: voice_agent
+      name: Voice Dialog & Agent
+      name_i18n:
+        zh: 语音对话与智能体接入
+        ja: 音声対話とエージェント連携
+      badge: Start Here
+      badge_i18n:
+        zh: 新手入门
+        ja: 入門推奨
+      description: Get started with low-latency streaming voice conversation. Connect to SenseCraft AI platform via a 6-digit pairing code, configure agent roles and prompts, and explore voice interaction.
+      description_i18n:
+        zh: 开箱即用的流式语音对话：通过 6 位验证码连接 SenseCraft AI 云平台，配置智能体角色模板与 Prompt，体验低延迟自然语言对话。
+        ja: 開箱後すぐに使えるストリーミング音声対話：6 桁の認証コードで SenseCraft AI クラウドと連携し、エージェントロールやプロンプトを設定して自然な音声対話を体験。
       device_groups:
         - id: voice_assistant
-          name: Voice Assistant Device
+          name: Voice & Vision Terminal
           type: single
           required: true
           options:
             - device_ref: sensecap_watcher
           default: sensecap_watcher
           name_i18n:
-            zh: 语音助手设备
-        - id: edge_device
-          name: Edge Computing Device
+            zh: 语音与视觉终端
+            ja: 音声・視覚端末
+        - id: workstation_host
+          name: Workstation Host (Optional)
           type: single
           required: false
           options:
             - device_ref: recomputer_r11
           default: recomputer_r11
           name_i18n:
-            zh: 边缘计算设备
+            zh: 工作站主机（可选）
+            ja: ワークステーションホスト（任意）
       links:
         github: https://github.com/78/xiaozhi-esp32
+
+    - id: vision_wake
+      name: Proactive Vision Wake
       name_i18n:
-        zh: 大屏投屏
+        zh: 视觉主动唤醒与参数配置
+        ja: 視覚プロアクティブウェイクとパラメータ設定
+      badge: Proactive Wake
       badge_i18n:
-        zh: 推荐
+        zh: 主动交互
+        ja: 能動的対話
+      description: Camera detects people and greets proactively. Experience voice-based parameter explanations and tuning (threshold, duration, cooldown interval, mode).
       description_i18n:
-        zh: 把小智对话投射到电视/大屏
-    - id: face_recognition
-      name: Face Recognition
-      description: Add face recognition to Xiaozhi - greet family by name
-      architecture_image: gallery/demo.svg
+        zh: 摄像头看到人主动打招呼！通过语音对话讲解并调节端侧视觉检测参数（置信度阈值、持续确认时间、冷却间隔与免打扰模式）。
+        ja: カメラが人を捉えて能動的に挨拶！音声対話でエッジ視覚検出パラメータ（確信度閾値、継続確認時間、クールダウン間隔、モード）の説明と調整を体験します。
       device_groups:
         - id: voice_assistant
-          name: Voice Assistant Device
+          name: Voice & Vision Terminal
           type: single
           required: true
           options:
             - device_ref: sensecap_watcher
           default: sensecap_watcher
           name_i18n:
-            zh: 语音助手设备
+            zh: 语音与视觉终端
+            ja: 音声・視覚端末
       links:
         github: https://github.com/78/xiaozhi-esp32
+
+    - id: face_recognition
+      name: On-Device Face Recognition
       name_i18n:
-        zh: 人脸识别
+        zh: 端侧人脸识别与迎宾
+        ja: オンデバイス顔認識と出迎え
+      badge: On-Device AI
+      badge_i18n:
+        zh: 端侧视觉
+        ja: オンデバイス AI
+      description: Dual-chip edge pipeline (Himax WE2 + ESP32-S3). Recognises registered faces and greets by name; stores up to 20 faces on-device in NVS with familiar mode.
       description_i18n:
-        zh: 给小智装上"眼睛"，认识家人朋友
-  summary_i18n:
-    zh: 让AI助手认识你、记住你、主动服务你——适用于家庭、办公室、展厅的空间智能化
-  description_file_i18n:
-    zh: description_zh.md
+        zh: 双芯端侧推理（Himax WE2 + ESP32-S3）。识别人脸并直呼其名，本地 NVS 存储最多 20 人，支持熟人免打扰与语音查询。
+        ja: 2チップ構成のエッジ推論（Himax WE2 + ESP32-S3）。登録者の顔を認識して名前で挨拶し、最大20名をデバイス内NVSに保存。顔なじみモードにも対応。
+      device_groups:
+        - id: voice_assistant
+          name: Voice & Vision Terminal
+          type: single
+          required: true
+          options:
+            - device_ref: sensecap_watcher
+          default: sensecap_watcher
+          name_i18n:
+            zh: 语音与视觉终端
+            ja: 音声・视覚端末
+      links:
+        github: https://github.com/78/xiaozhi-esp32
+
 deployment:
   auto_detect: true
   guide_file: guide.md
-  selection_mode: sequential
   guide_file_i18n:
     zh: guide_zh.md
+  selection_mode: sequential

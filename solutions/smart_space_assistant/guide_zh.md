@@ -1,286 +1,116 @@
-## 套餐: 人脸识别 {#face_recognition}
+## 套餐: 语音对话与智能体接入 {#voice_agent}
 
-让 SenseCAP Watcher 识别已录入的人脸并主动问候，在页面上录入和管理人脸（最多 20 人），用语音开关、查询和删除人脸。
+用最少的硬件（一台 SenseCAP Watcher 和一根 USB-C 线）开箱体验流式语音对话：将 Watcher 连入网络并接入 SenseCraft AI 云平台，配置智能体角色，通过 MCP 协议联动工作站，直接开始自然语言对话。
+
+- **设备：** SenseCAP Watcher，USB-C 数据线；可选一台工位电脑或边缘主机（如 reComputer R1100）。
+- **网络：** 2.4 GHz WiFi。
+- **账号：** [SenseCraft AI 平台账号](https://sensecraft.seeed.cc/ai/)（免费注册）或 [小智 App](https://github.com/78/xiaozhi-esp32)。
+
+## 步骤 1: 烧录小智固件 {#voice_esp32 type=esp32_usb required=true config=devices/watcher_esp32.yaml}
+
+将小智语音主控固件写入 Watcher 以启用语音交互。
+
+### 接线与烧录
+
+![连接设备](gallery/watcher.svg)
+
+1. 用 USB-C 数据线将 Watcher 连接到电脑
+2. 串口通常会自动选好；如果没选上，Windows 选名字里带 **SERIAL-B** 的 COM 口，macOS / Linux 选编号较大的那个（如 `...53` / `ttyACM1`）
+3. 点击烧录按钮完成固件写入
+
+### 故障排查
+
+| 现象 | 处理 |
+|------|------|
+| 找不到串口 | 换一条 USB-C 数据线（确保支持数据传输，非仅充电线）或换个 USB 口 |
+| 选错串口（烧录无反应或立刻失败） | 列表里换另一个 CH342 串口再试 |
+| 烧录卡住或失败 | 按住 BOOT 键，按一下 RESET 键，松开 BOOT 键，重新点击烧录 |
+
+---
+
+## 步骤 2: Watcher 配网与获取 6 位绑定码 {#voice_network type=manual required=true}
+
+1. 打开 Watcher 电源，长按滚轮按钮开机
+2. 手机连接 Watcher 发出的热点（Watcher-XXXX），在弹出的配网页中选择 2.4 GHz WiFi 并输入密码
+3. 连接成功后 Watcher 自动重启，屏幕上会显示专属的 **6 位设备绑定码**
+
+---
+
+## 步骤 3: 绑定 SenseCraft AI 并开启语音对话 {#voice_agent_setup type=manual required=true}
+
+1. 浏览器登录 [SenseCraft AI 平台](https://sensecraft.seeed.cc/ai/device/local/37/)
+2. 在模型列表中找到「SenseCAP Watcher」，选择「Watcher Agent」并点击「Bind Device」
+3. 输入 Watcher 屏幕上的 6 位验证码完成硬件绑定
+4. 点击「Create」新建专属智能体（如工位助手、迎宾接待或仓管员），按需设定 System Prompt 与交互音色
+5. 对 Watcher 说出唤醒词「小智小智」或直接开始对话，即可体验低延迟流式语音问答
+6. （可选联动工作站）在 Agent 页面底部获取「MCP Setting」端点，填入仓管系统或本地服务，Watcher 即可通过 MCP 工具直接读写业务数据
+
+---
+
+## 套餐: 视觉主动唤醒与参数配置 {#vision_wake}
+
+在语音对话的基础上，让 Watcher 拥有“眼睛”：开启视觉主动唤醒，摄像头看到人出现在面前时主动开口打招呼并进入对话；通过语音随时讲解与调节视觉感知核心参数。
 
 - **设备：** SenseCAP Watcher，USB-C 数据线。
 - **网络：** 2.4 GHz WiFi。
-- **账号：** [小智 App](https://github.com/78/xiaozhi-esp32)，用于绑定设备。
 
-## 步骤 1: 烧录小智固件 {#face_esp32 type=esp32_usb required=true config=devices/watcher_esp32.yaml}
+## 步骤 1: 体验主动打招呼 {#vision_wake_intro type=manual required=true}
 
-将语音助手程序写入 Watcher 以启用语音交互。
-
-### 接线
-
-![连接设备](gallery/watcher.svg)
-
-1. 用 USB-C 线连接 Watcher 到电脑
-2. 串口通常会自动选好；如果没选上，Windows 选名字里带 **SERIAL-B** 的 COM 口，macOS / Linux 选编号较大的那个（如 `...53` / `ttyACM1`）
-3. 点击烧录按钮
-
-### 故障排查
-
-| 现象 | 处理 |
-|------|------|
-| 找不到串口 | 换一条 USB 线或换个 USB 口 |
-| 选错串口（烧录无反应或立刻失败） | 列表里换另一个 CH342 串口再试 |
-| 收不到串口数据 | 按住 BOOT 按钮，按一下 RESET，松开 BOOT，然后重试 |
-| 烧录失败 | 重新插拔设备再试 |
+1. 将已配网的 Watcher 放置在桌面或工位正对人脸的高度（距离约 0.5 ~ 1.5 米）。
+2. 走到 Watcher 面前并停留：
+   - 摄像头检测到有人出现并停留时，Watcher 屏幕切换为灵动表情，主动开口向你打招呼（如“你好呀，看到你了！”），直接进入对话监听状态，无需呼唤唤醒词。
 
 ---
 
-## 步骤 2: 烧录人脸识别固件 {#face_himax type=himax_usb required=true config=devices/watcher_himax.yaml}
+## 步骤 2: 语音讲解与微调检测参数 {#vision_wake_params type=manual required=true}
 
-将人脸识别程序写入 Watcher 的 AI 芯片。
+在对话中，试着询问 Watcher 它的视觉参数，Watcher 会调用内部工具并为你讲解与设置：
 
-### 接线
-
-![连接设备](gallery/watcher.svg)
-
-1. 确保 Watcher 已连接到电脑
-2. 串口通常会自动选好；如果没选上，Windows 选名字里带 **SERIAL-A** 的 COM 口，macOS / Linux 选编号较小的那个（如 `...51` / `ttyACM0`）—— 和上一步不是同一个口
-3. 点击烧录按钮
-4. 点击烧录后，按一下设备的重启按钮进入烧录模式
-
-### 故障排查
-
-| 现象 | 处理 |
-|------|------|
-| 设备无响应 | 重新插拔 USB 线 |
-| 烧录卡住或失败 | 按重启按钮重试 |
-| 反复烧录失败 | 换一条 USB 线或换个 USB 口 |
-| 烧录到 99% 失败或中途重启 | 关闭其他占用串口的程序，重新插拔 USB 后重试 |
+| 对 Watcher 说 | 触发动作与效果 |
+|---|---|
+| "查询视觉参数" 或 "你的视觉参数怎么设置的" | Watcher 汇报当前置信度阈值、持续确认时间与冷却间隔 |
+| "把检测阈值调到 80" | 提高置信度阈值（`threshold`，范围 0-100），要求更清晰的人脸才触发，有效减少误报 |
+| "把持续时间改成 2 秒" | 调整持续检测时长（`duration`，范围 0-60 秒），人必须在视野内停留指定时长后才确认识别，防止走过路过误触发 |
+| "把冷却时间设为 10 秒" | 调整唤醒冷却时间（`interval`，范围 0-60 秒），对话结束后等待指定秒数才允许下一次视觉唤醒，避免反复打扰 |
+| "切换到人脸检测模式" / "关闭主动唤醒" | 切换视觉模式（`mode`）：0=关闭主动唤醒，1=人脸检测（只识别人在不在），2=人脸识别（报名字），3=熟人免打扰 |
 
 ---
 
-## 步骤 3: 配置小智 {#face_configure type=manual required=false}
+## 套餐: 端侧人脸识别与迎宾 {#face_recognition}
 
-将 Watcher 连接 WiFi，通过手机 App 绑定账号。
+在能感知“有人”的基础上，进一步识别“具体是谁”：启用 Himax WE2 独立视觉 NPU 运行 SCRFD + MobileFaceNet 双模型，端侧离线识别人脸、直呼其名，并在本地 NVS 存储最多 20 人的人脸特征库。
 
-### 连接 WiFi
-
-设备开机后会提示配网，按语音指引完成 WiFi 连接。
-
-### 绑定小智账号
-
-1. 打开小智 App
-2. 扫描设备上显示的二维码
-3. 完成绑定
-
-### 测试语音
-
-说"小智小智"唤醒设备，测试语音交互是否正常。如能正常对话，说明配置成功。
-
-### 故障排查
-
-| 现象 | 处理 |
-|------|------|
-| WiFi 连接失败 | 确保使用 2.4 GHz 网络，检查密码 |
-| 二维码不显示 | 重启设备，等待完全启动 |
-
----
-
-## 步骤 4: 人脸数据库管理 {#face_enroll type=serial_camera config=devices/face_enroll.yaml required=false}
-
-通过应用界面管理人脸识别数据库。
-
-### 使用方法
-
-1. 点击**连接**启动摄像头预览
-2. 画面会显示实时的人脸检测框
-3. 使用下方的**人脸数据库**面板管理已注册的人脸
-
-### 注册新人脸
-
-1. 点击人脸数据库面板中的**注册**
-2. 输入姓名
-3. 点击**开始采集** — 正对摄像头，保持光线充足
-4. 等待采集完成（约 5 秒）
-5. 新人脸会出现在列表中
-
-### 故障排查
-
-| 现象 | 处理 |
-|------|------|
-| 提示"请先完成第 X 步" | 返回对应步骤选择正确的串口 |
-| 摄像头无画面 | 检查 USB 连接，在步骤 2 中刷新端口 |
-| 注册失败 | 确保光线充足，正对摄像头，重新尝试 |
-
-### 部署完成
-
-**第一步：录入人脸**
-
-在**人脸数据库**面板录入人脸（见上方"注册新人脸"）。
-
-**第二步：语音开启人脸识别**
-
-拔掉 USB 线，说 **"小智小智"** 唤醒设备，然后说：
-
-> "打开人脸识别"
-
-设备确认后，Watcher 待机时会自动扫描面前的人。
-
-**第三步：体验自动识别**
-
-走到 Watcher 面前，它会认出你并打招呼。
-
-**语音命令一览**
-
-| 说这句话 | 效果 |
-|----------|------|
-| "打开人脸识别" | 开启识别功能（首次使用必须先开启） |
-| "关闭人脸识别" | 关闭识别功能 |
-| "删除人脸 XXX" | 删除已录入的人脸 |
-| "你认识谁" | 列出所有已录入的人脸 |
-| "打开熟人模式" | 熟人免打扰，只在陌生人出现时提醒 |
-| "关闭熟人模式" | 所有人都会触发问候 |
-
----
-
-## 套餐: 大屏投屏 {#display_cast}
-
-把小智对话实时显示在电视或大屏上，用语音连接投屏设备；讲述模式下可按对话内容切换背景图片。
-
-- **设备：** SenseCAP Watcher，USB-C 数据线，HDMI 显示器；投屏服务运行在 reComputer R1100 或本地电脑上。
-- **网络：** 所有设备在同一网络。
-
-## 步骤 1: 烧录 Watcher 固件 {#display_watcher type=esp32_usb required=true config=devices/display_watcher.yaml}
-
-将语音助手程序写入 Watcher。
-
-### 接线
-
-![连接设备](gallery/watcher.svg)
-
-1. 使用 USB-C 数据线连接 Watcher 到电脑
-2. 串口通常会自动选好；如果没选上，Windows 选名字里带 **SERIAL-B** 的 COM 口，macOS / Linux 选编号较大的那个（如 `...53` / `ttyACM1`）
-3. 点击烧录按钮
-
-### 故障排查
-
-| 现象 | 处理 |
-|------|------|
-| 找不到串口 | 换一条 USB 线或换个 USB 口 |
-| 选错串口（烧录无反应或立刻失败） | 列表里换另一个 CH342 串口再试 |
-| 烧录失败 | 重新插拔设备再试 |
-
----
-
-## 步骤 2: 部署投屏服务 {#display_service type=docker_deploy required=true config=devices/display_service_deploy.yaml}
-
-启动投屏服务，将对话内容显示在屏幕上。
-
-### 部署目标 {#display_service_local type=local config=devices/display_service_deploy.yaml}
-
-部署到本地电脑，电脑须已安装并运行 Docker。
-
-### 接线
-
-![架构图](gallery/architecture.svg)
-
-1. 确保 Docker 已安装并运行
-2. 设置显示名称（如"客厅显示器"）用于 mDNS 发现
-3. 点击部署按钮启动服务
-
-### 故障排查
-
-| 现象 | 处理 |
-|------|------|
-| 找不到 Docker | 安装 Docker Desktop |
-| 端口 8765 被占用 | 停止占用该端口的其他服务 |
-
-### 部署目标 {#display_service_remote type=remote config=devices/display_service_deploy.yaml default=true}
-
-将投屏服务部署到 reComputer R1100。
-
-### 接线
-
-![架构图](gallery/architecture.svg)
-
-1. 将 reComputer 连接到网络和 HDMI 显示器
-2. 输入 IP 地址和 SSH 凭据
-3. 设置显示名称（如"会议室显示器"）用于 mDNS 发现
-4. 点击部署安装到远程设备
-
-### 故障排查
-
-| 现象 | 处理 |
-|------|------|
-| SSH 连接失败 | 检查 IP 地址和凭据 |
-| Docker 拉取失败 | 检查网络连接，重试部署 |
-| Watcher 找不到投屏设备 | 确保在同一网络，检查防火墙 |
-
-### 部署完成
-
-**测试方法：**
-1. 在显示设备浏览器打开 `http://<设备IP>:8765`
-2. 按 `F` 进入全屏模式
-3. 说「投屏到[显示名称]」开始投屏
-
-**语音命令：** 「打开投屏」、「关闭投屏」、「投屏状态」
-
-**讲述模式：** 根据对话内容切换背景图片。
-
-1. 点击左上角齿轮图标打开配置面板
-2. 开启「启用讲述模式」
-3. 填入小智 WebSocket MCP 地址，启用 AI 自动切换背景图
-4. 添加触发条件：关键词 + 图片 URL，对话匹配时自动切换背景
-5. 按 `N` 切换讲述模式，点击小窗可调整大小
-
-## 套餐: reTerminal D1001 语音智能体 {#reterminal_d1001}
-
-在 reTerminal D1001 上运行小智语音智能体：唤醒词对话、回答中打断、屏上设置、摄像头人脸唤醒，以及 8080 端口的局域网推送面板（Markdown 上屏、屏上选择、相机快照）。
-
-- **设备：** reTerminal D1001，支持数据传输的 USB-C 线。
+- **设备：** SenseCAP Watcher，USB-C 数据线。
 - **网络：** 2.4 GHz WiFi。
-- **账号：** [小智 App](https://github.com/78/xiaozhi-esp32)，用于绑定设备。
+- **隐私：** 人脸检测、对齐与特征提取全部在端侧芯片完成，不上传人脸照片到云端。
 
-## 步骤 1: 烧录 D1001 固件 {#d1001_esp32 type=esp32_usb required=true config=devices/d1001_esp32.yaml}
+## 步骤 1: 烧录 Himax WE2 人脸模型 {#face_himax_flash type=himax_usb required=true config=devices/watcher_himax.yaml}
 
-把语音智能体固件写入设备。
-
-### 接线
-
-1. 用 USB-C 数据线连接 D1001 与电脑
-2. 端口通常自动选中（ESP32-P4 原生 USB，`usbmodem*` / `ttyACM*`）
-3. 点击烧录按钮
-
-### 故障排查
-
-| 现象 | 处理 |
-|------|------|
-| 找不到串口 | 换用支持数据的 USB-C 线，换个 USB 口 |
-| 烧录中途失败 | 重插线缆重试，避免使用 USB Hub |
+Watcher 内部由 ESP32-S3（主控兼语音）和 Himax WE2（视觉 AI NPU）组成：
+1. 切换到 SERIAL-A 串口（macOS/Linux 选编号较小的那个，如 `...51` / `ttyACM0`）。
+2. 点击烧录，将人脸检测（SCRFD 500M）与特征提取（MobileFaceNet 128D）固件写入 Himax WE2 芯片。
 
 ---
 
-## 步骤 2: 联网与绑定 {#d1001_setup type=manual required=false}
+## 步骤 2: 录入人脸特征库 {#face_enroll type=serial_camera config=devices/face_enroll.yaml required=true}
 
-在触摸屏上完成配网，再绑定设备。
+通过 USB 连接电脑，在本地人脸数据库管理面板录入家人或同事的人脸：
 
-### 连接 WiFi
+1. 点击**连接**启动摄像头实时预览
+2. 点击**人脸数据库**面板中的**注册**
+3. 输入姓名（例如“张三”）
+4. 正对摄像头保持充足光线，点击**开始采集**，保持约 5 秒完成 128 维特征向量提取与写入
+5. 注册成功后，该人脸记录保存在 Watcher 本地 NVS 存储中（最多 20 人）
 
-1. 首次开机设备会提示配置网络
-2. 点击状态栏的网络图标
-3. 选择 2.4 GHz 网络并在屏上输入密码
+---
 
-### 绑定小智账号
+## 步骤 3: 体验熟人直呼其名与免打扰 {#face_demo type=manual required=true}
 
-1. 打开小智 App
-2. 扫描设备屏幕上的二维码
-3. 完成绑定
+拔掉 USB 数据线，Watcher 独立运行：
 
-### 测试语音
-
-说"小智小智"唤醒设备；回答途中再说一次即可打断。
-
-### 可选：人脸唤醒
-
-点状态栏的人形图标打开人脸设置：模式（关闭/检测唤醒/识别唤醒）、持续确认、唤醒冷却、识别服务地址。
-
-### 故障排查
-
-| 现象 | 处理 |
-|------|------|
-| WiFi 连接失败 | 确认是 2.4 GHz 网络，屏上重新输入密码 |
-| 没有二维码 | 等待开机完成，或重启设备 |
+1. **熟人迎宾**：已录入人员走到 Watcher 前，Watcher 自动识别并直呼其名问候（例如“张三，你好！”）。
+2. **陌生人提醒**：未录入人员出现时，触发陌生人提醒。
+3. **语音管理命令**：
+   - "你认识谁"：列出当前本地人脸库中录入的所有人员名字。
+   - "你能认出我吗"：现场拍一张照提取特征并汇报当前匹配姓名与相似度。
+   - "打开熟人模式"：开启免打扰，熟人经过不再逐个问候，仅在陌生人出现时发声提醒。

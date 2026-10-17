@@ -1,286 +1,102 @@
-## Preset: Face Recognition {#face_recognition}
+## Preset: Voice Dialog & Agent {#voice_agent}
 
-SenseCAP Watcher recognizes enrolled faces and greets them. Enroll and manage faces from the panel (up to 20 people), and enable, query or delete faces by voice.
+Experience low-latency streaming voice conversation with minimal hardware (one SenseCAP Watcher and a USB-C cable): connect Watcher to 2.4 GHz Wi-Fi, link to the SenseCraft AI platform via a 6-digit code, configure custom agent personalities, and start natural conversations.
 
-- **Devices:** SenseCAP Watcher, USB-C data cable.
-- **Network:** 2.4 GHz WiFi.
-- **Account:** [Xiaozhi App](https://github.com/78/xiaozhi-esp32) for device binding.
+- **Hardware:** SenseCAP Watcher, USB-C data cable; optional edge computer (e.g. reComputer R1100).
+- **Network:** 2.4 GHz Wi-Fi.
+- **Account:** [SenseCraft AI Platform](https://sensecraft.seeed.cc/ai/) (free registration) or [Xiaozhi App](https://github.com/78/xiaozhi-esp32).
 
-## Step 1: Flash Xiaozhi Firmware {#face_esp32 type=esp32_usb required=true config=devices/watcher_esp32.yaml}
+## Step 1: Flash Xiaozhi Firmware {#voice_esp32 type=esp32_usb required=true config=devices/watcher_esp32.yaml}
 
-Write the voice assistant program to the Watcher to enable voice interaction.
+Flash the Xiaozhi voice controller firmware onto Watcher.
 
-### Wiring
-
-![Connect Device](gallery/watcher.svg)
-
-1. Connect Watcher to computer via USB-C cable
-2. The port is usually selected for you; if not, pick the COM port containing **SERIAL-B** on Windows, or the higher-numbered one on macOS / Linux (`...53` / `ttyACM1`)
-3. Click the Flash button
-
-### Troubleshooting
-
-| Symptom | Fix |
-|---------|-----|
-| Serial port not found | Try a different USB cable or USB port |
-| Wrong port picked (flash hangs or fails instantly) | Try the other CH342 port in the list |
-| No serial data received | Hold BOOT button, press RESET, release BOOT, then retry |
-| Flash failed | Unplug and reconnect the device |
-
----
-
-## Step 2: Flash Face Recognition Firmware {#face_himax type=himax_usb required=true config=devices/watcher_himax.yaml}
-
-Write the face recognition program to the Watcher's AI chip.
-
-### Wiring
+### Wiring and Flashing
 
 ![Connect Device](gallery/watcher.svg)
 
-1. Ensure Watcher is connected to computer
-2. The port is usually selected for you; if not, pick the COM port containing **SERIAL-A** on Windows, or the lower-numbered one on macOS / Linux (`...51` / `ttyACM0`) — not the same port as the previous step
-3. Click the Flash button
-4. After clicking Flash, press the reset button on the device to enter flash mode
-
-### Troubleshooting
-
-| Symptom | Fix |
-|---------|-----|
-| Device not responding | Unplug and reconnect the USB cable |
-| Flash stuck or fails | Press the reset button and try again |
-| Flash fails repeatedly | Use a different USB cable or port |
-| Flash fails at 99% or restarts mid-flash | Close other apps using serial ports, reconnect USB and retry |
+1. Connect Watcher to your computer via USB-C cable.
+2. Select the SERIAL-B COM port (Windows) or the higher-numbered port (macOS/Linux).
+3. Click the flash button to write the firmware.
 
 ---
 
-## Step 3: Configure Xiaozhi {#face_configure type=manual required=false}
+## Step 2: Connect Watcher & Get 6-Digit Code {#voice_network type=manual required=true}
 
-Connect the Watcher to WiFi and bind it to your account using the mobile app.
-
-### Connect to WiFi
-
-Device will prompt for network setup on first boot. Follow voice instructions to connect to WiFi.
-
-### Bind Xiaozhi Account
-
-1. Open Xiaozhi App
-2. Scan the QR code displayed on device
-3. Complete the binding process
-
-### Test Voice
-
-Wake up the device by saying "Xiaozhi Xiaozhi" to test voice interaction. If it responds normally, the setup is successful.
-
-### Troubleshooting
-
-| Symptom | Fix |
-|---------|-----|
-| WiFi connection failed | Ensure using 2.4 GHz network, check password |
-| QR code not showing | Restart device, wait for boot complete |
+1. Power on Watcher and connect to 2.4 GHz Wi-Fi via phone AP setup (Watcher-XXXX).
+2. Once connected, Watcher restarts and displays a **6-digit pairing code** on screen.
 
 ---
 
-## Step 4: Face Database Management {#face_enroll type=serial_camera config=devices/face_enroll.yaml required=false}
+## Step 3: Bind to SenseCraft AI & Start Voice Dialog {#voice_agent_setup type=manual required=true}
 
-Manage the face recognition database through the app interface.
-
-### How to Use
-
-1. Click **Connect** to start the camera preview
-2. You'll see a live feed with face detection boxes
-3. Use the **Face Database** panel below to manage enrolled faces
-
-### Register a New Face
-
-1. Click **Register** in the Face Database panel
-2. Enter a name for the person
-3. Click **Start Capture** — face the camera with good lighting
-4. Wait for the capture to complete (5 seconds)
-5. The new face will appear in the table
-
-### Troubleshooting
-
-| Symptom | Fix |
-|---------|-----|
-| "Please complete Step X first" | Go back and select the correct serial port in the indicated step |
-| Camera not showing | Check USB connection, try refreshing ports in Step 2 |
-| Enrollment failed | Ensure good lighting, face the camera directly, try again |
-
-### Deployment Complete
-
-**Step 1: Enroll faces**
-
-Enroll faces in the **Face Database** panel (see "Register a New Face" above).
-
-**Step 2: Enable face recognition by voice**
-
-Unplug the USB cable, wake up the device by saying **"Xiaozhi Xiaozhi"**, then say:
-
-> "Turn on face recognition"
-
-Once confirmed, Watcher will automatically scan for faces while idle.
-
-**Step 3: Experience automatic recognition**
-
-Walk in front of the Watcher; it recognizes you and greets you by name.
-
-**Voice Commands**
-
-| Say this | Effect |
-|----------|--------|
-| "Turn on face recognition" | Enable recognition (required on first use) |
-| "Turn off face recognition" | Disable recognition |
-| "Delete face XXX" | Remove an enrolled face |
-| "Who do you know" | List all enrolled faces |
-| "Turn on familiar mode" | Only alert for strangers, ignore familiar faces |
-| "Turn off familiar mode" | Greet everyone |
+1. Log in to [SenseCraft AI Platform](https://sensecraft.seeed.cc/ai/device/local/37/).
+2. In Models, find SenseCAP Watcher, select "Watcher Agent" -> "Bind Device", and enter the 6-digit code.
+3. Click "Create" to build a new agent (e.g. Workstation Assistant or Receptionist), configuring system prompt and voice.
+4. Say the wake word "Xiaozhi Xiaozhi" or speak directly to experience low-latency streaming conversation.
+5. (Optional Workstation Link) In Agent Settings, scroll down to "MCP Setting" to get the WebSocket endpoint and connect business backends.
 
 ---
 
-## Preset: Display Cast {#display_cast}
+## Preset: Proactive Vision Wake {#vision_wake}
 
-Show Xiaozhi conversations live on a TV or large display and connect to it by voice; narrate mode switches background images based on the conversation.
+Add "eyes" to voice conversation: camera-based proactive visual wake-up greets you upon seeing you and initiates voice conversation, while explaining and tuning key vision detection parameters (threshold, duration, cooldown interval, and mode) over voice.
 
-- **Devices:** SenseCAP Watcher, USB-C data cable, HDMI display; the display service runs on a reComputer R1100 or a local computer.
-- **Network:** all devices on the same network.
+- **Hardware:** SenseCAP Watcher, USB-C data cable.
+- **Network:** 2.4 GHz Wi-Fi.
 
-## Step 1: Flash Watcher Firmware {#display_watcher type=esp32_usb required=true config=devices/display_watcher.yaml}
+## Step 1: Experience Proactive Greeting {#vision_wake_intro type=manual required=true}
 
-Write the voice assistant program to the Watcher.
-
-### Wiring
-
-![Connect Device](gallery/watcher.svg)
-
-1. Connect Watcher to your computer using USB-C cable
-2. The port is usually selected for you; if not, pick the COM port containing **SERIAL-B** on Windows, or the higher-numbered one on macOS / Linux (`...53` / `ttyACM1`)
-3. Click the Flash button
-
-### Troubleshooting
-
-| Symptom | Fix |
-|---------|-----|
-| Serial port not found | Try a different USB cable or USB port |
-| Wrong port picked (flash hangs or fails instantly) | Try the other CH342 port in the list |
-| Flash failed | Unplug and reconnect the device |
+1. Place the configured Watcher on your desk at face height (distance ~0.5 to 1.5 m).
+2. Walk up to Watcher and pause:
+   - When the camera detects a person present, Watcher switches expressions and greets you proactively (e.g. "Hello! Good to see you!"), entering conversation without requiring a wake word.
 
 ---
 
-## Step 2: Deploy Display Service {#display_service type=docker_deploy required=true config=devices/display_service_deploy.yaml}
+## Step 2: Voice Query & Parameter Adjustment {#vision_wake_params type=manual required=true}
 
-Start the display service that shows conversations on your screen.
+During the conversation, ask Watcher about its vision settings:
 
-### Target {#display_service_local type=local config=devices/display_service_deploy.yaml}
-
-Deploy on your local computer; Docker must be installed and running.
-
-### Wiring
-
-![Architecture](gallery/architecture.svg)
-
-1. Ensure Docker is installed and running
-2. Set a display name (e.g. "Living Room Display") for mDNS discovery
-3. Click Deploy button to start services
-
-### Troubleshooting
-
-| Symptom | Fix |
-|---------|-----|
-| Docker not found | Install Docker Desktop |
-| Port 8765 busy | Stop other services using this port |
-
-### Target {#display_service_remote type=remote config=devices/display_service_deploy.yaml default=true}
-
-Deploy the display service to reComputer R1100.
-
-### Wiring
-
-![Architecture](gallery/architecture.svg)
-
-1. Connect reComputer to network and HDMI display
-2. Enter IP address and SSH credentials
-3. Set a display name (e.g. "Meeting Room Display") for mDNS discovery
-4. Click Deploy to install on remote device
-
-### Troubleshooting
-
-| Symptom | Fix |
-|---------|-----|
-| SSH connection failed | Check IP address and credentials |
-| Docker pull failed | Check network connection, retry deployment |
-| Watcher can't find display | Ensure both devices on same network, check firewall |
-
-### Deployment Complete
-
-**Test it:**
-1. Open `http://<device-ip>:8765` on display browser
-2. Press `F` for fullscreen mode
-3. Say "Cast to [Display Name]" to start
-
-**Voice commands:** "Start casting", "Stop casting", "Cast status"
-
-**Narrate Mode:** switches background images based on the conversation.
-
-1. Click the gear icon (top-left) to open the config panel
-2. Toggle "Enable Narrate Mode"
-3. Enter your Xiaozhi WebSocket MCP URL to enable AI-driven image switching
-4. Add trigger rules: keyword + image URL pairs for automatic background changes
-5. Press `N` to toggle narrate mode, click the PiP window to resize it
-
-## Preset: reTerminal D1001 Voice Agent {#reterminal_d1001}
-
-Run a Xiaozhi voice agent on the reTerminal D1001: wake-word conversation with barge-in, on-screen settings, camera face wake, and a LAN push panel on port 8080 (markdown to the screen, on-screen choices, camera snapshot).
-
-- **Devices:** reTerminal D1001, data-capable USB-C cable.
-- **Network:** 2.4 GHz WiFi.
-- **Account:** [Xiaozhi App](https://github.com/78/xiaozhi-esp32) for device binding.
-
-## Step 1: Flash D1001 Firmware {#d1001_esp32 type=esp32_usb required=true config=devices/d1001_esp32.yaml}
-
-Write the voice agent firmware to the device.
-
-### Wiring
-
-1. Connect the D1001 to your computer via USB-C
-2. The port is picked automatically (ESP32-P4 native USB, `usbmodem*` / `ttyACM*`)
-3. Click the Flash button
-
-### Troubleshooting
-
-| Symptom | Fix |
-|---------|-----|
-| Serial port not found | Use a data-capable USB-C cable, try another port |
-| Flash failed midway | Reconnect the cable and retry; avoid USB hubs |
+| Say to Watcher | Action & Effect |
+|---|---|
+| "Query vision parameters" | Watcher reports current confidence threshold, validation duration, and cooldown interval |
+| "Set detection threshold to 80" | Adjusts confidence threshold (`threshold`, 0-100); higher values prevent false triggers |
+| "Set duration to 2 seconds" | Sets required presence duration (`duration`, 0-60 s) before confirming detection |
+| "Set cooldown interval to 10 seconds" | Sets cooldown interval (`interval`, 0-60 s) after conversation ends before re-waking |
+| "Switch to face detection mode" / "Turn off vision wake" | Sets vision mode (`mode`): 0=off, 1=person detection, 2=face recognition, 3=familiar mute |
 
 ---
 
-## Step 2: Connect and Bind {#d1001_setup type=manual required=false}
+## Preset: On-Device Face Recognition {#face_recognition}
 
-Set up WiFi on the touch screen, then bind the device.
+Go from detecting "a person" to recognising "who they are": activate the Himax WE2 NPU to run SCRFD and MobileFaceNet on-device, recognise registered faces by name, and maintain a local database of up to 20 people in NVS.
 
-### Connect to WiFi
+- **Hardware:** SenseCAP Watcher, USB-C data cable.
+- **Network:** 2.4 GHz Wi-Fi.
+- **Privacy:** Detection, alignment, and 128D embedding extraction happen entirely on-device; no facial photos uploaded to cloud.
 
-1. The device prompts for setup on first boot
-2. Tap the network icon in the status bar
-3. Pick your 2.4 GHz network and enter the password
+## Step 1: Flash Himax WE2 AI Models {#face_himax_flash type=himax_usb required=true config=devices/watcher_himax.yaml}
 
-### Bind Xiaozhi Account
+1. Connect Watcher and select the SERIAL-A port (the lower-numbered port on macOS/Linux).
+2. Flash Himax WE2 AI models (SCRFD 500M + MobileFaceNet 128D).
 
-1. Open the Xiaozhi App
-2. Scan the QR code on the device
-3. Complete the binding
+---
 
-### Test Voice
+## Step 2: Enrol Face Database {#face_enroll type=serial_camera config=devices/face_enroll.yaml required=true}
 
-Say "Xiaozhi Xiaozhi" to wake it; repeat mid-reply to interrupt.
+Connect via USB to manage the local face database:
 
-### Optional: Face Wake
+1. Click **Connect** to start real-time camera preview.
+2. Click **Enrol** in the Face Database panel and enter a name.
+3. Face the camera in good lighting for ~5 seconds to extract the 128D embedding.
+4. Up to 20 faces stored in on-device NVS.
 
-Tap the person icon for face settings: mode (off / detect-wake / recognize-wake), confirm duration, cooldown, endpoint.
+---
 
-### Troubleshooting
+## Step 3: Experience Name Greeting & Familiar Mode {#face_demo type=manual required=true}
 
-| Symptom | Fix |
-|---------|-----|
-| WiFi connection failed | Ensure a 2.4 GHz network; recheck the password on screen |
-| No QR code | Wait for boot to complete, or restart the device |
+1. **Familiar Greeting:** When enrolled person approaches, Watcher greets them by name.
+2. **Stranger Alert:** When an unrecognised person approaches, Watcher notes an unknown visitor.
+3. **Voice Commands:**
+   - "Who do you know?": lists enrolled names.
+   - "Can you recognise me?": captures live frame and tests recognition.
+   - "Enable familiar mode": mutes greetings for known faces; only alerts on strangers.
