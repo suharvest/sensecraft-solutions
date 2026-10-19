@@ -7,7 +7,9 @@ and whether they can be fully offline (``plan``), download it here
 deploy (``export`` / ``import``).
 
 Zero engine logic lives here: every subcommand is one call to the engine's
-REST API, started headless for the duration (see ``_engine_http``).
+REST API. With the Rust engine that is the shared engine instance (``daemon
+ensure`` + a lease held while the command runs); older engines get a
+temporary ``serve --headless`` (see ``_engine_http.engine_session``).
 """
 
 from __future__ import annotations
@@ -16,13 +18,27 @@ import json
 import sys
 import time
 import urllib.error
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from .._engine_http import EngineHttpError, get, headless_engine, post
+from .._engine_http import EngineConflictError, EngineConn, EngineHttpError, engine_session
 from .._redact import redact as _redact
 from .._redact import redacted_json as _redacted_json
 
 _POLL_SECONDS = 1.0
+
+# Same codes as ``manage`` and the Rust engine CLI: instance conflict /
+# shutting down (3), "needs the desktop App" (HTTP 501 -> 4).
+EXIT_CONFLICT = 3
+EXIT_REQUIRES_APP = 4
+
+
+def get(conn: EngineConn, path: str, timeout: float = 60.0) -> Any:
+    return conn.get(path, timeout=timeout)
+
+
+def post(conn: EngineConn, path: str, payload: Any = None, timeout: float = 60.0) -> Any:
+    return conn.post(path, payload, timeout=timeout)
 
 # Engine messages can quote the request that caused them, and a deploy
 # request carries an SSH password. Never print one.
@@ -118,8 +134,8 @@ def _exit_code(entries: List[dict], require_full: bool = False) -> int:
 
 def plan(args) -> int:
     payload = _plan_payload(args)  # before the engine starts: fail fast on typos
-    with headless_engine(args.solutions_dir) as base_url:
-        data = post(base_url, "/api/staging/plan", payload)
+    with engine_session(args.solutions_dir) as conn:
+        data = post(conn, "/api/staging/plan", payload)
     entries = data.get("entries") or []
     if args.json:
         print(_redacted_json(data))
@@ -134,13 +150,13 @@ def prepare(args) -> int:
     payload = dict(_plan_payload(args), refresh=bool(args.refresh))
     # Built first, so a malformed --target/--arch/--params never costs an
     # engine start.
-    with headless_engine(args.solutions_dir) as base_url:
-        job = post(base_url, "/api/staging/prepare", payload)
+    with engine_session(args.solutions_dir) as conn:
+        job = post(conn, "/api/staging/prepare", payload)
         job_id = job["id"]
         seen = None
         while job.get("status") == "running":
             time.sleep(_POLL_SECONDS)
-            job = get(base_url, f"/api/staging/jobs/{job_id}")
+            job = get(conn, f"/api/staging/jobs/{job_id}")
             message = _redact(f"{job.get('progress', 0):>3}% {job.get('message', '')}")
             if message != seen and not args.json:
                 print(message, file=sys.stderr)
@@ -158,10 +174,10 @@ def prepare(args) -> int:
 
 
 def list_entries(args) -> int:
-    with headless_engine(args.solutions_dir) as base_url:
-        data = get(base_url, "/api/staging/entries")
+    with engine_session(args.solutions_dir) as conn:
+        data = get(conn, "/api/staging/entries")
         changes = (
-            post(base_url, "/api/staging/entries/changes").get("changes") or []
+            post(conn, "/api/staging/entries/changes").get("changes") or []
             if args.check
             else []
         )
@@ -227,8 +243,8 @@ def delete(args) -> int:
         print("Nothing to delete: pass --entry solution/preset/step[/target[/arch]]",
               file=sys.stderr)
         return 2
-    with headless_engine(args.solutions_dir) as base_url:
-        data = post(base_url, "/api/staging/entries/delete", refs)
+    with engine_session(args.solutions_dir) as conn:
+        data = post(conn, "/api/staging/entries/delete", refs)
     if args.json:
         print(_redacted_json(data))
     else:
@@ -241,9 +257,10 @@ def delete(args) -> int:
 
 
 def export(args) -> int:
-    payload = {"path": args.file, "entries": _refs(args)}  # before the engine starts
-    with headless_engine(args.solutions_dir) as base_url:
-        data = post(base_url, "/api/staging/export", payload, timeout=3600.0)
+    path = str(Path(args.file).resolve())
+    payload = {"path": path, "entries": _refs(args)}  # before the engine starts
+    with engine_session(args.solutions_dir) as conn:
+        data = post(conn, "/api/staging/export", payload, timeout=3600.0)
     if args.json:
         print(_redacted_json(data))
     else:
@@ -255,10 +272,9 @@ def export(args) -> int:
 
 
 def import_(args) -> int:
-    with headless_engine(args.solutions_dir) as base_url:
-        data = post(
-            base_url, "/api/staging/import", {"path": args.file}, timeout=3600.0
-        )
+    path = str(Path(args.file).resolve())
+    with engine_session(args.solutions_dir) as conn:
+        data = post(conn, "/api/staging/import", {"path": path}, timeout=3600.0)
     if args.json:
         print(_redacted_json(data))
         return 1 if (data.get("conflicts") or data.get("incomplete")) else 0
@@ -293,7 +309,18 @@ def run(args) -> int:
         # (`--params '{"password": ...}'`).
         print(f"error: {_redact(e)}", file=sys.stderr)
         return 2
+    except EngineConflictError as e:
+        print(f"error: {_redact(e)}", file=sys.stderr)
+        return EXIT_CONFLICT
     except EngineHttpError as e:
+        if e.status == 501 and e.error == "requires_desktop_app":
+            print(
+                "error: this engine does not serve offline staging (requires the SenseCraft "
+                "Solution desktop App's Python backend). Install or start the desktop App, or "
+                "point SENSECRAFT_ENGINE_BIN at its provisioning-station binary.",
+                file=sys.stderr,
+            )
+            return EXIT_REQUIRES_APP
         print(f"error: {_redact(e.detail)}", file=sys.stderr)
         return 2
     except (RuntimeError, urllib.error.URLError, OSError, TimeoutError) as e:

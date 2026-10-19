@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import json
 from contextlib import contextmanager
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -56,22 +57,22 @@ def _entry(statuses=("ready",), verdict="unknown", errors=(), **kw):
 
 @contextmanager
 def _engine(responses):
-    """Stub the headless engine: {(method, path): payload}."""
+    """Stub the engine session: {(method, path): payload}."""
     calls = []
 
     @contextmanager
     def fake_engine(solutions_dir=None):
         yield "http://engine"
 
-    def fake_get(base_url, path, timeout=60.0):
+    def fake_get(conn, path, timeout=60.0):
         calls.append(("GET", path, None))
         return responses[("GET", path)]
 
-    def fake_post(base_url, path, payload=None, timeout=60.0):
+    def fake_post(conn, path, payload=None, timeout=60.0):
         calls.append(("POST", path, payload))
         return responses[("POST", path)]
 
-    with patch.object(stage, "headless_engine", fake_engine), patch.object(
+    with patch.object(stage, "engine_session", fake_engine), patch.object(
         stage, "get", fake_get
     ), patch.object(stage, "post", fake_post):
         yield calls
@@ -235,21 +236,31 @@ def test_import_reports_conflicts_and_fails(capsys):
         "conflicts": ["reg/b:1: a different file is already cached at b.tar"],
         "incomplete": [],
     }
-    with _engine({("POST", "/api/staging/import"): result}):
+    with _engine({("POST", "/api/staging/import"): result}) as calls:
         assert stage.import_(_args(file="kit.tar")) == 1
+        assert calls[0][2]["path"] == str(Path("kit.tar").resolve())
     captured = capsys.readouterr()
     assert "imported 1" in captured.out
     assert "already cached" in captured.err
+
+
+def test_export_resolves_relative_path(capsys):
+    result = {"path": str(Path("out.tar").resolve()), "entries": 1, "files": 2, "bytes": 1024}
+    with _engine({("POST", "/api/staging/export"): result}) as calls:
+        assert stage.export(_args(file="out.tar", entry=["s/p/step"])) == 0
+        assert calls[0][2]["path"] == str(Path("out.tar").resolve())
+    captured = capsys.readouterr()
+    assert "wrote " in captured.out
 
 
 def test_delete_while_a_deployment_runs_is_reported(capsys):
     def boom(*a, **kw):
         raise stage.EngineHttpError(409, "A deployment is running; try again later")
 
-    with patch.object(stage, "headless_engine") as engine, patch.object(
+    with patch.object(stage, "engine_session") as engine, patch.object(
         stage, "post", boom
     ):
-        engine.return_value.__enter__ = lambda _s: "http://engine"
+        engine.return_value.__enter__ = lambda _s: object()
         engine.return_value.__exit__ = lambda *_a: False
         assert stage.run(_args(stage_command="delete", entry=["s/p/step"])) == 2
     assert "A deployment is running" in capsys.readouterr().err
@@ -300,7 +311,7 @@ def test_http_error_detail_is_redacted(capsys):
     def fake_engine(solutions_dir=None):
         yield "http://engine"
 
-    with patch.object(stage, "headless_engine", fake_engine), patch.object(
+    with patch.object(stage, "engine_session", fake_engine), patch.object(
         stage, "post", boom
     ):
         assert stage.run(_args()) == 2
@@ -314,7 +325,7 @@ def test_engine_that_will_not_start_is_reported_not_raised(capsys):
         raise RuntimeError("engine did not report a ready line (serve --headless)")
         yield  # pragma: no cover
 
-    with patch.object(stage, "headless_engine", fake_engine):
+    with patch.object(stage, "engine_session", fake_engine):
         assert stage.run(_args()) == 2
     assert "engine unavailable" in capsys.readouterr().err
 
