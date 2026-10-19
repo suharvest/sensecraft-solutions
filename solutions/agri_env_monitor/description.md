@@ -10,7 +10,7 @@ SenseCAP LoRaWAN nodes measure air temperature and humidity, soil temperature, m
 - **Threshold alerts**: a notification is raised when a value crosses a threshold and dismissed when it recovers.
 - **Offline indication**: a node silent past the configured time shows as offline, with its last value kept.
 - **Cloud history backfill**: the SenseCAP cloud preset fills in history from before installation on first start.
-- **Switch paths without changing dashboards**: entity names are the same across presets.
+- **Switch paths without changing dashboards**: entity naming is identical across the two Home Assistant ingest presets (SenseCAP Cloud and Local Network Server), while the Custom Ops Dashboard provides an independent, focused ops view.
 - **Fully local option**: the local network server preset needs no cloud account and no outbound connection.
 
 ## Where it fits

@@ -1,0 +1,131 @@
+version: "1.0"
+id: join_tts_device
+name: Join the Sensors to The Things Stack
+type: manual
+
+# Manual, because provisioning happens in the Console and on the node itself
+# (NFC or the SenseCAP Mate app) — neither is reachable from a deployment step.
+#
+# NOT VERIFIED ON HARDWARE. No node was joined to a self-hosted The Things Stack
+# during packaging.
+
+steps:
+  - id: create_application
+    name: Create the application
+    name_i18n:
+      zh: 新建 application
+    description: >-
+      In the Console, create an application — its ID becomes part of the MQTT
+      username the bridge uses (`{application-id}@{tenant-id}`). Then under
+      Integrations → MQTT, generate an API key with rights to read application
+      traffic. That key is the MQTT password. Copy both now; the key is shown
+      once.
+    description_i18n:
+      zh: >-
+        在 Console 里新建一个 application——它的 ID 会成为桥使用的 MQTT 用户名的一部分
+        （`{application-id}@{tenant-id}`）。然后在「Integrations → MQTT」里生成一个
+        有读取 application 流量权限的 API key，这个 key 就是 MQTT 密码。
+        两个都现在复制下来；API key 只显示一次。
+    optional: false
+
+  - id: install_decoder
+    name: Install the SenseCAP payload formatter
+    name_i18n:
+      zh: 安装 SenseCAP payload formatter
+    description: >-
+      SenseCAP uplinks are binary. Without a decoder the bridge sees no
+      measurements at all. Take the decoder for your node's series from
+      https://github.com/Seeed-Solution/SenseCAP-Decoder (the TTN directory —
+      commit d0a2342 is what this package's measurement table was read from) and
+      paste it into the application's Payload formatters → Uplink → Custom
+      JavaScript. Note that this repository carries no LICENSE file; its
+      licensing is unconfirmed, so treat installing it as your own decision.
+    description_i18n:
+      zh: >-
+        SenseCAP 的上行是二进制的。不装 decoder，桥就一个测量项也解不出来。
+        从 https://github.com/Seeed-Solution/SenseCAP-Decoder 取你的节点系列对应的
+        decoder（TTN 目录——本方案的测量项表读自 commit d0a2342），
+        粘贴到 application 的「Payload formatters → Uplink → Custom JavaScript」里。
+        注意该仓库没有 LICENSE 文件，许可状态未确认，是否安装请自行判断。
+    optional: false
+
+  - id: register_node
+    name: Register the node and join it
+    name_i18n:
+      zh: 注册节点并入网
+    description: >-
+      Add an end device with OTAA activation, entering the DevEUI, JoinEUI
+      (AppEUI) and AppKey printed on the node or read from the SenseCAP Mate
+      app. Match the LoRaWAN version and regional parameters to the node's
+      datasheet. Then power the node on — or press its button to force a join —
+      and watch Live data in the Console: a `Join accept` followed by the first
+      uplink means the radio side is done.
+    description_i18n:
+      zh: >-
+        添加一台 end device，激活方式选 OTAA，填入节点上印的或用 SenseCAP Mate app
+        读到的 DevEUI、JoinEUI（AppEUI）与 AppKey。LoRaWAN 版本和区域参数按节点数据手册选。
+        然后给节点上电——或按按钮强制入网——并在 Console 的 Live data 里观察：
+        出现 `Join accept` 且随后有第一条上行，就说明射频这一侧完成了。
+    optional: false
+
+  - id: check_decoded
+    name: Confirm the uplink decodes
+    name_i18n:
+      zh: 确认上行能解出来
+    description: >-
+      Open the uplink in Live data and expand it. `decoded_payload` must contain
+      a `messages` array whose entries carry `measurementId` and
+      `measurementValue`. That is exactly what the bridge reads. If
+      `decoded_payload` is missing or empty, the formatter is wrong or is
+      attached to the wrong application — fix that before looking at Home
+      Assistant, because the bridge cannot invent measurements the stack did not
+      decode.
+    description_i18n:
+      zh: >-
+        在 Live data 里展开那条上行。`decoded_payload` 里必须有一个 `messages` 数组，
+        其中每项带 `measurementId` 与 `measurementValue`——桥读的就是这两个字段。
+        如果 `decoded_payload` 缺失或为空，说明 formatter 写错了或挂在了别的 application 上。
+        先修这里，再去看 Home Assistant：网络服务器没解出来的测量项，桥变不出来。
+    optional: false
+
+# These are collected so the values are in front of the operator while they fill
+# the Console form, and so the AppKey is masked rather than typed into a
+# scratch file. No step writes them anywhere — provisioning happens in the
+# Console, which no deployment step can reach.
+user_inputs:
+  - id: dev_eui
+    name: DevEUI
+    type: text
+    required: true
+    placeholder: "2CF7F1C044300001"
+    description: 16 hex characters, printed on the node and readable with the SenseCAP Mate app
+    validation:
+      pattern: "^[0-9A-Fa-f]{16}$"
+    name_i18n:
+      zh: DevEUI
+    description_i18n:
+      zh: 16 位十六进制，印在节点上，也可用 SenseCAP Mate app 读出
+  - id: join_eui
+    name: JoinEUI (AppEUI)
+    type: text
+    required: true
+    placeholder: "0000000000000000"
+    description: 16 hex characters. Some nodes ship with all zeros; enter what the node reports rather than assuming.
+    validation:
+      pattern: "^[0-9A-Fa-f]{16}$"
+    name_i18n:
+      zh: JoinEUI（AppEUI）
+    description_i18n:
+      zh: 16 位十六进制。部分节点出厂是全零；按节点实际值填，不要想当然。
+  - id: app_key
+    name: AppKey
+    type: password
+    required: true
+    description: 32 hex characters. This is the root key that protects the node's session — anyone holding it can impersonate the node.
+    name_i18n:
+      zh: AppKey
+    description_i18n:
+      zh: 32 位十六进制。这是保护节点会话的根密钥——拿到它就能冒充这台节点。
+
+name_i18n:
+  zh: 让传感器接入 The Things Stack

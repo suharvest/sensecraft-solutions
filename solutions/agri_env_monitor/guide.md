@@ -205,9 +205,29 @@ Deploy to this machine, which must be a Linux host with Docker.
 
 ---
 
-## Step 2: Bring Up the Gateway Radio {#r12_gateway_lns type=manual required=false config=devices/r12_gateway_chirpstack.yaml}
+## Step 2: Switch the M2 to Local Network Server {#m2_local_lns type=manual required=false config=devices/m2_local_lns.yaml}
 
-Perform this step when using a reComputer R12 Series gateway: connect the antenna, confirm the SPI device, and bring up the concentrator radio. If using an M2 gateway, skip this step and proceed to step 3.
+Take the M2 off the cloud and turn on its built-in ChirpStack. If using an R12 gateway, skip this step.
+
+### Prerequisites
+
+1. The M2's LAN IP and web interface credentials.
+2. The model, band and firmware version from its status page, written down. The menu path is `LoRa → LoRa Network`; if yours differs, check the firmware version first.
+3. An MQTT host, port, username and password for the built-in network server to publish to; the bridge subscribes to that broker.
+
+### Troubleshooting
+
+| Symptom | Fix |
+|-------|----------|
+| Uplinks stop appearing in the Portal | Expected in local mode |
+| The built-in ChirpStack has no application | Create the tenant, application and device profile before joining nodes in step 7 |
+| Uplinks arrive with no `object` | Paste the SenseCAP decoder for your node series into the device profile's codec |
+
+---
+
+## Step 3: Bring Up the reComputer R12 Gateway Radio (ChirpStack) {#r12_gateway_cs type=manual required=false config=devices/r12_gateway_chirpstack.yaml}
+
+Perform this step when using a reComputer R12 Series gateway with ChirpStack: connect the antenna, confirm the SPI device, and point the packet forwarder to the local ChirpStack bridge. If using an M2 or an R12 with The Things Stack, skip this step.
 
 ### Wiring
 
@@ -226,33 +246,34 @@ Perform this step when using a reComputer R12 Series gateway: connect the antenn
 
 ---
 
-## Step 3: Switch the M2 to Local Network Server {#m2_local_lns type=manual required=false config=devices/m2_local_lns.yaml}
+## Step 4: Bring Up the reComputer R12 Gateway Radio (The Things Stack) {#r12_gateway_tts type=manual required=false config=devices/r12_gateway_tts.yaml}
 
-Take the M2 off the cloud and turn on its built-in ChirpStack. If using an R12 gateway configured in step 2, skip this step.
+Perform this step when using a reComputer R12 Series gateway with The Things Stack: connect the antenna, confirm the SPI device, and run a packet forwarder pointed at The Things Stack. If using an M2 or an R12 with ChirpStack, skip this step.
 
-### Prerequisites
+### Wiring
 
-1. The M2's LAN IP and web interface credentials.
-2. The model, band and firmware version from its status page, written down. The menu path is `LoRa → LoRa Network`; if yours differs, check the firmware version first.
-3. An MQTT host, port, username and password for the built-in network server to publish to; the bridge subscribes to that broker.
+1. Connect the LoRa antenna to its SMA jack before applying power; transmitting without an antenna can damage the radio.
+2. Confirm `/dev/spidev0.0` is present; if not, enable SPI and reboot.
+3. Look up the reset, power-enable and SX1261 pin numbers in the R12 product wiki and write them down for the packet forwarder configuration.
+4. Check that the regional band the gateway was ordered on matches the nodes' band; the band cannot be changed in software.
 
 ### Troubleshooting
 
 | Symptom | Fix |
 |-------|----------|
-| Uplinks stop appearing in the Portal | Expected in local mode |
-| The built-in ChirpStack has no application | Create the tenant, application and device profile before joining nodes in step 6 |
-| Uplinks arrive with no `object` | Paste the SenseCAP decoder for your node series into the device profile's codec |
+| Forwarder exits without printing an EUI | Confirm `/dev/spidev0.0` exists, then check the reset pin |
+| Gateway stays disconnected in the Console | Check that the firewall passes UDP 1700 to the stack host |
+| Concentrator starts but no uplinks | Check that the gateway band, frequency plan and node band match |
 
 ---
 
-## Step 4: Deploy ChirpStack and the Bridge {#deploy_chirpstack type=docker_deploy required=false config=devices/chirpstack_stack.yaml}
+## Step 5: Deploy ChirpStack and the Bridge {#deploy_chirpstack type=docker_deploy required=false config=devices/chirpstack_stack.yaml}
 
-Choose `m2` to start only the bridge, or `local` to start ChirpStack on this host as well. If using The Things Stack (step 5), skip this step.
+Choose `m2` to start only the bridge, or `local` to start ChirpStack on this host as well. If using The Things Stack (step 6), skip this step.
 
 ### Prerequisites
 
-1. On the `m2` route: the M2's broker address, port, username and password from step 3.
+1. On the `m2` route: the M2's broker address, port, username and password from step 2.
 2. On the `local` route: at least 8 GB free disk, and a frequency plan matching the gateway and the nodes.
 3. The broker address, port, username and password from step 1.
 4. The application ID; `+` subscribes to every application on that broker.
@@ -276,9 +297,9 @@ Deploy to this machine, which will run the bridge.
 
 ---
 
-## Step 5: Deploy The Things Stack and the Bridge {#deploy_tts type=docker_deploy required=false config=devices/tts_stack.yaml}
+## Step 6: Deploy The Things Stack and the Bridge {#deploy_tts type=docker_deploy required=false config=devices/tts_stack.yaml}
 
-If choosing The Things Stack, starts The Things Stack (with Postgres and Redis), initialises it, and starts the bridge. Allow 15–30 min for the first run. If ChirpStack was deployed in step 4, skip this step.
+If choosing The Things Stack, starts The Things Stack (with Postgres and Redis), initialises it, and starts the bridge. Allow 15–30 min for the first run. If ChirpStack was deployed in step 5, skip this step.
 
 ### Prerequisites
 
@@ -286,7 +307,7 @@ If choosing The Things Stack, starts The Things Stack (with Postgres and Redis),
 2. The host's LAN IP (not `127.0.0.1`, or other machines cannot sign in to the Console).
 3. Ports 1885 (Console) and 1700/udp (packet forwarder) free.
 4. The broker address, port, username and password from step 1.
-5. The application ID and API key are created in step 6: deploy this step, create them in the Console and fill them in, then run `docker compose restart bridge`.
+5. The application ID and API key are created in step 8: deploy this step, create them in the Console and fill them in, then run `docker compose restart bridge`.
 
 ### Troubleshooting
 
@@ -294,7 +315,7 @@ If choosing The Things Stack, starts The Things Stack (with Postgres and Redis),
 |-------|----------|
 | `is-db migrate` fails | Postgres was not ready; re-run the initialisation |
 | Console loads but sign-in loops | Redeploy with the host's LAN IP |
-| Bridge log shows no `TTS MQTT connected` | Create the application and API key in step 6, then restart the bridge |
+| Bridge log shows no `TTS MQTT connected` | Create the application and API key in step 8, then restart the bridge |
 | Stack container is killed on start | Check the host's available memory |
 
 ### Target {#tts_stack_remote type=remote device_name="Gateway Host" config=devices/tts_stack.yaml default=true}
@@ -307,28 +328,49 @@ Deploy to this machine, which must be the gateway host.
 
 ---
 
-## Step 6: Join the Sensors to the Network Server {#join_lns_sensors type=manual required=true config=devices/join_chirpstack_device.yaml}
+## Step 7: Join the Sensors to ChirpStack {#join_chirpstack type=manual required=false config=devices/join_chirpstack_device.yaml}
 
-Register the nodes in your chosen network server (ChirpStack or The Things Stack), configure the payload decoder, and join the nodes.
+Register the nodes in ChirpStack, configure the payload decoder, and join the nodes.
 
 ### Prerequisites
 
-1. A device profile or application created in the network server matching the nodes, configured with the SenseCAP decoder for their series (the upstream repository has no LICENSE file and its licensing is unconfirmed).
+1. A device profile created in ChirpStack matching the nodes, configured with the SenseCAP decoder for their series (the upstream repository has no LICENSE file and its licensing is unconfirmed).
 2. Each node's DevEUI, JoinEUI and AppKey, printed on the node or readable with the SenseCAP Mate app over NFC.
-3. The gateway is visible in the network server and shows online/connected.
+3. The gateway is visible in ChirpStack and shows online/connected.
 
 ### Troubleshooting
 
 | Symptom | Fix |
 |-------|----------|
+| ChirpStack rejects the DevEUI | The DevEUI already exists in another tenant, common when moving nodes from another network |
 | Join request but no accept | Check the keys and regional parameters |
 | No join request at all | Check the gateway status first to confirm it hears the node |
-| Uplinks arrive with no decoded data (`object.messages` or `decoded_payload`) | Configure the SenseCAP decoder for the node series in the device profile / application |
-| ChirpStack rejects the DevEUI | The DevEUI already exists in another tenant, common when moving nodes from another network |
+| Uplinks arrive with no decoded data (`object.messages`) | Set the codec for the node series in the device profile |
 
 ---
 
-## Step 7: Check the Data in Home Assistant {#verify_lns type=web_dashboard required=false config=devices/ha_dashboard.yaml}
+## Step 8: Join the Sensors to The Things Stack {#join_tts type=manual required=false config=devices/join_tts_device.yaml}
+
+Create the application, install the payload formatter, and join the nodes.
+
+### Prerequisites
+
+1. The gateway shows as `Connected` in the Console.
+2. Each node's DevEUI, JoinEUI and AppKey, printed on the node or readable with the SenseCAP Mate app over NFC.
+3. The SenseCAP decoder for your node series (upstream repository); without it no entity appears. That repository has no LICENSE file and its licensing is unconfirmed.
+
+### Troubleshooting
+
+| Symptom | Fix |
+|-------|----------|
+| Join request but no join accept | Check the keys and regional parameters |
+| No join request at all | Check the gateway status first to confirm it hears the node |
+| Uplinks arrive with no `decoded_payload` | Install the payload formatter on this application |
+| `decoded_payload` present but no `messages` array | Use the decoder for your node series |
+
+---
+
+## Step 9: Check the Data in Home Assistant {#verify_lns type=web_dashboard required=false config=devices/ha_dashboard.yaml}
 
 Open Home Assistant and confirm the nodes arrived; for an offline deployment, also confirm it keeps working with the internet cut.
 

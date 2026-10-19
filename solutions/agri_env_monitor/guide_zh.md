@@ -205,9 +205,29 @@ SenseCAP S21xx 节点已通过 SenseCAP M2 网关上报到 SenseCAP 云，射频
 
 ---
 
-## 步骤 2: 启用网关集中器射频 {#r12_gateway_lns type=manual required=false config=devices/r12_gateway_chirpstack.yaml}
+## 步骤 2: 将 M2 切换为本地网络服务器 {#m2_local_lns type=manual required=false config=devices/m2_local_lns.yaml}
 
-用 reComputer R12 系列网关时进行本步骤，接好天线、确认 SPI 设备并启用集中器射频。如果使用 M2 网关，可跳过此步并执行步骤 3。
+让 M2 脱离云端并打开内置的 ChirpStack。如果使用 R12 网关，可跳过本步骤。
+
+### 前置条件
+
+1. M2 的局域网 IP 与 Web 界面凭据。
+2. 在状态页记下型号、频段与固件版本；菜单路径为 `LoRa → LoRa Network`，与此不同时先核对固件版本。
+3. 内置网络服务器要发布到的 MQTT 地址、端口、用户名与密码，桥会订阅这个 broker。
+
+### 故障排查
+
+| 现象 | 处理 |
+|-------|----------|
+| Portal 里不再出现上行 | 本地模式下属正常 |
+| 内置 ChirpStack 里没有 application | 在步骤 7 入网前先建好 tenant、application 与 device profile |
+| 上行到了但没有 `object` | 把节点系列对应的 SenseCAP decoder 粘进 device profile 的 codec |
+
+---
+
+## 步骤 3: 启用 reComputer R12 网关射频（ChirpStack） {#r12_gateway_cs type=manual required=false config=devices/r12_gateway_chirpstack.yaml}
+
+使用 reComputer R12 系列网关搭配 ChirpStack 时进行本步骤：接好天线、确认 SPI 设备并将 packet forwarder 指向本地 ChirpStack 桥。如果使用 M2 网关或搭配 The Things Stack 的 R12，可跳过此步。
 
 ### 接线
 
@@ -226,33 +246,34 @@ SenseCAP S21xx 节点已通过 SenseCAP M2 网关上报到 SenseCAP 云，射频
 
 ---
 
-## 步骤 3: 把 M2 切到本地网络服务器 {#m2_local_lns type=manual required=false config=devices/m2_local_lns.yaml}
+## 步骤 4: 启用 reComputer R12 网关射频（The Things Stack） {#r12_gateway_tts type=manual required=false config=devices/r12_gateway_tts.yaml}
 
-让 M2 脱离云端并打开内置的 ChirpStack。如果已使用 R12 网关完成步骤 2，可跳过本步骤。
+使用 reComputer R12 系列网关搭配 The Things Stack 时进行本步骤：在 R12 上接好天线、确认 SPI 设备，并运行指向 The Things Stack 的 packet forwarder。如果使用 M2 网关或搭配 ChirpStack 的 R12，可跳过此步。
 
-### 前置条件
+### 接线
 
-1. M2 的局域网 IP 与 Web 界面凭据。
-2. 在状态页记下型号、频段与固件版本；菜单路径为 `LoRa → LoRa Network`，与此不同时先核对固件版本。
-3. 内置网络服务器要发布到的 MQTT 地址、端口、用户名与密码，桥会订阅这个 broker。
+1. 上电前先把 LoRa 天线接到 SMA 座上，未接天线发射可能损坏射频。
+2. 确认 `/dev/spidev0.0` 存在，没有就打开 SPI 后重启。
+3. 从 R12 产品 wiki 查到 reset、power-enable 与 SX1261 的引脚编号并记下，packet forwarder 配置要用。
+4. 核对网关下单时的地区频段与节点频段一致，频段无法在软件里修改。
 
 ### 故障排查
 
 | 现象 | 处理 |
 |-------|----------|
-| Portal 里不再出现上行 | 本地模式下属正常 |
-| 内置 ChirpStack 里没有 application | 在步骤 6 入网前先建好 tenant、application 与 device profile |
-| 上行到了但没有 `object` | 把节点系列对应的 SenseCAP decoder 粘进 device profile 的 codec |
+| forwarder 退出且没打印 EUI | 确认 `/dev/spidev0.0` 存在，再核对 reset 引脚 |
+| Console 里网关一直未连接 | 检查防火墙是否放行到 stack 主机的 UDP 1700 |
+| 集中器起来了但没有上行 | 核对网关频段、频率计划与节点频段是否一致 |
 
 ---
 
-## 步骤 4: 部署 ChirpStack 网络服务器与桥 {#deploy_chirpstack type=docker_deploy required=false config=devices/chirpstack_stack.yaml}
+## 步骤 5: 部署 ChirpStack 网络服务器与桥 {#deploy_chirpstack type=docker_deploy required=false config=devices/chirpstack_stack.yaml}
 
-选 `m2` 只启动桥；选 `local` 则在本机同时启动 ChirpStack。如果选择使用 The Things Stack（步骤 5），可跳过本步骤。
+选 `m2` 只启动桥；选 `local` 则在本机同时启动 ChirpStack。如果选择使用 The Things Stack（步骤 6），可跳过本步骤。
 
 ### 前置条件
 
-1. `m2` 路线：步骤 3 里 M2 的 broker 地址、端口、用户名与密码。
+1. `m2` 路线：步骤 2 里 M2 的 broker 地址、端口、用户名与密码。
 2. `local` 路线：至少 8 GB 可用磁盘，频率计划与网关和节点一致。
 3. 步骤 1 的 broker 地址、端口、用户名与密码。
 4. application ID，填 `+` 订阅该 broker 上的所有 application。
@@ -276,9 +297,9 @@ SenseCAP S21xx 节点已通过 SenseCAP M2 网关上报到 SenseCAP 云，射频
 
 ---
 
-## 步骤 5: 部署 The Things Stack 与桥 {#deploy_tts type=docker_deploy required=false config=devices/tts_stack.yaml}
+## 步骤 6: 部署 The Things Stack 与桥 {#deploy_tts type=docker_deploy required=false config=devices/tts_stack.yaml}
 
-如果选择使用 The Things Stack，启动 The Things Stack（含 Postgres 与 Redis）并初始化，同时启动桥。首次运行预留 15–30 分钟。如果已在步骤 4 部署 ChirpStack，可跳过本步骤。
+如果选择使用 The Things Stack，启动 The Things Stack（含 Postgres 与 Redis）并初始化，同时启动桥。首次运行预留 15–30 分钟。如果已在步骤 5 部署 ChirpStack，可跳过本步骤。
 
 ### 前置条件
 
@@ -286,7 +307,7 @@ SenseCAP S21xx 节点已通过 SenseCAP M2 网关上报到 SenseCAP 云，射频
 2. 主机的局域网 IP（不要填 `127.0.0.1`，否则其他机器无法登录 Console）。
 3. 1885（Console）与 1700/udp（packet forwarder）端口空闲。
 4. 步骤 1 的 broker 地址、端口、用户名与密码。
-5. application ID 与 API key 在步骤 6 创建：先部署本步骤，在 Console 创建后填入，再执行 `docker compose restart bridge`。
+5. application ID 与 API key 在步骤 8 创建：先部署本步骤，在 Console 创建后填入，再执行 `docker compose restart bridge`。
 
 ### 故障排查
 
@@ -294,7 +315,7 @@ SenseCAP S21xx 节点已通过 SenseCAP M2 网关上报到 SenseCAP 云，射频
 |-------|----------|
 | `is-db migrate` 失败 | Postgres 未就绪，重跑初始化 |
 | Console 打得开但登录反复跳转 | 用主机局域网 IP 重新部署 |
-| 桥的日志里没有 `TTS MQTT connected` | 在步骤 6 创建 application 和 API key 后重启桥 |
+| 桥的日志里没有 `TTS MQTT connected` | 在步骤 8 创建 application 和 API key 后重启桥 |
 | stack 容器一起来就被杀 | 检查主机可用内存 |
 
 ### 部署目标 {#tts_stack_remote type=remote device_name="Gateway Host" config=devices/tts_stack.yaml default=true}
@@ -307,15 +328,36 @@ SenseCAP S21xx 节点已通过 SenseCAP M2 网关上报到 SenseCAP 云，射频
 
 ---
 
-## 步骤 6: 让传感器接入网络服务器 {#join_lns_sensors type=manual required=true config=devices/join_chirpstack_device.yaml}
+## 步骤 7: 让传感器接入 ChirpStack {#join_chirpstack type=manual required=false config=devices/join_chirpstack_device.yaml}
 
-在所选的网络服务器（ChirpStack 或 The Things Stack）中注册节点，配置 payload decoder 并让节点入网。
+在 ChirpStack 里注册节点、配置 payload decoder，并让节点入网。
 
 ### 前置条件
 
-1. 网络服务器中已创建好匹配节点的 device profile 或 application，并配置好对应节点系列的 SenseCAP decoder（上游仓库没有 LICENSE 文件，许可状态未确认）。
+1. 在 ChirpStack 里创建好与节点匹配的 device profile，配置好对应系列的 SenseCAP decoder（上游仓库没有 LICENSE 文件，许可状态未确认）。
 2. 每个节点的 DevEUI、JoinEUI 与 AppKey，印在节点上，也可用 SenseCAP Mate app 通过 NFC 读出。
-3. 网关在网络服务器中可见，状态为在线/已连接。
+3. 网关在 ChirpStack 里可见并显示为在线/已连接。
+
+### 故障排查
+
+| 现象 | 处理 |
+|-------|----------|
+| ChirpStack 提示 DevEUI 已存在 | DevEUI 在另一个租户下已存在，从其他网络迁入节点时很常见 |
+| 有 join request 但没有 accept | 核对密钥和区域参数 |
+| 连 join request 都没有 | 先看网关状态，确认网关能收到节点信号 |
+| 上行到了但没有 `object.messages` | 在 device profile 里配好对应节点系列的编解码器 |
+
+---
+
+## 步骤 8: 让传感器接入 The Things Stack {#join_tts type=manual required=false config=devices/join_tts_device.yaml}
+
+创建 application、安装 payload formatter、让节点入网。
+
+### 前置条件
+
+1. 网关在 Console 里显示为 `Connected`。
+2. 每个节点的 DevEUI、JoinEUI 与 AppKey，印在节点上，也可用 SenseCAP Mate app 通过 NFC 读出。
+3. 节点系列对应的 SenseCAP decoder（上游仓库），没有它实体不会出现。该仓库没有 LICENSE 文件，许可状态未确认。
 
 ### 故障排查
 
@@ -323,12 +365,12 @@ SenseCAP S21xx 节点已通过 SenseCAP M2 网关上报到 SenseCAP 云，射频
 |-------|----------|
 | 有 join request 但没有 join accept | 核对密钥和区域参数 |
 | 连 join request 都没有 | 先看网关状态，确认网关收到节点信号 |
-| 上行到了但没有解码数据（`object.messages` 或 `decoded_payload`） | 给 device profile / application 配上与节点系列对应的 SenseCAP decoder |
-| ChirpStack 拒绝 DevEUI | 该 DevEUI 已存在于另一个 tenant，从其他网络迁移节点时常见 |
+| 上行到了但没有 `decoded_payload` | 在该 application 上安装 payload formatter |
+| 有 `decoded_payload` 但没有 `messages` 数组 | 换成与节点系列对应的 decoder |
 
 ---
 
-## 步骤 7: 在 Home Assistant 里核对数据 {#verify_lns type=web_dashboard required=false config=devices/ha_dashboard.yaml}
+## 步骤 9: 在 Home Assistant 里核对数据 {#verify_lns type=web_dashboard required=false config=devices/ha_dashboard.yaml}
 
 打开 Home Assistant 确认节点已出现；无公网部署还要确认断网后照常工作。
 
