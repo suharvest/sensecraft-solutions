@@ -267,10 +267,6 @@ intro:
       description: On-device face recognition via MQTT; HQ PoE model has relay header
       description_i18n:
         zh: 机载人脸识别，MQTT 控制；HQ PoE 型号带继电器排针
-    recomputer_j20:
-      description: Industrial box; recognition in containers, door via opto-isolated DO
-      description_i18n:
-        zh: 工业盒子，容器跑识别，门控走光隔数字输出
     recomputer_j40:
       description: Compute host for the MQTT-relay preset; no local door wiring
       description_i18n:
@@ -547,11 +543,10 @@ intro:
           type: single
           required: true
           options:
-            - device_ref: recomputer_j20
-            - device_ref: recomputer_j40
             - device_ref: recomputer_j30
+            - device_ref: recomputer_j40
             - device_ref: recomputer_r10
-          default: recomputer_j20
+          default: recomputer_j30
         - id: camera
           name: Camera
           name_i18n:
