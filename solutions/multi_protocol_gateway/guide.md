@@ -42,7 +42,7 @@ Deploy over SSH to a reComputer R1000 / R1100 or reTerminal DM on the controller
 
 ### Wiring
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/industrial-protocol-gateway/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/industrial-protocol-gateway/#how-to-deploy-on-site).
 
 
 ![Connection architecture](gallery/architecture.svg)
@@ -71,7 +71,7 @@ Open the web console, create an administrator, and connect the first controller.
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/industrial-protocol-gateway/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/industrial-protocol-gateway/#how-to-deploy-on-site).
 
 
 The service from Step 1 is healthy.
@@ -101,7 +101,7 @@ Send gateway data to an external or cloud MQTT broker. During a broker outage da
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/industrial-protocol-gateway/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/industrial-protocol-gateway/#how-to-deploy-on-site).
 
 
 > **The deployed image `v1.6.7` does not include this feature, so this step cannot be completed yet.** Every call below returns HTTP 404.

@@ -44,7 +44,7 @@ The load figures were taken on a **development-board baseline (a faster arm64 bo
 
 Open issues carried by these runs:
 
-- The prediction loop runs on a per-cycle schedule, with a structural throughput ceiling of approximately 0.894 cycle/s at 2,000 points. For higher update frequencies, plan for fewer points per gateway (e.g. under 1,000 points) or configure a polling cycle > 1.5 s.
+- The prediction loop runs on a per-cycle schedule, with a structural throughput ceiling of approximately 0.894 cycle/s at 2,000 points. To achieve higher cycle rates, allocate fewer points per gateway (e.g. under 1,000 points); conversely, to reduce gateway CPU load, set a longer polling interval (e.g. >= 2.0 s).
 - All northbound measurements ran over plaintext on a single machine's loopback. Validate the strict-TLS path and your own link quality on site.
 - An outage is a killed broker process or container, not a degraded link.
 

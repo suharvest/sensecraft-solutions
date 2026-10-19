@@ -116,7 +116,7 @@ Enter the board address and your camera URL; three containers are started on the
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-security/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-security/#how-to-deploy-on-site).
 
 
 - The `rknpu2` runtime installed (`/usr/lib/librknnrt.so` exists), and `rknn_toolkit_lite2` importable by the board's `python3`.
@@ -187,7 +187,7 @@ Enter the board address and your camera URL; three containers are started on the
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-security/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-security/#how-to-deploy-on-site).
 
 
 - The Hailo PCIe driver loaded (`/dev/hailo0` exists) and the matching `hailort` package installed (`/usr/lib/libhailort.so` exists).
@@ -272,7 +272,7 @@ Enter this machine's address; the broker and the hub are started.
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-security/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-security/#how-to-deploy-on-site).
 
 
 - An always-on arm64 or x86_64 machine with Docker.

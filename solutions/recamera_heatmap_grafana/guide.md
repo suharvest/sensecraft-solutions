@@ -35,7 +35,7 @@ Make sure Docker Desktop is running.
 
 ### Wiring
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/retail-heatmap-grafana/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/retail-heatmap-grafana/#how-to-deploy-on-site).
 
 
 ![Wiring](gallery/architecture.svg)
@@ -61,7 +61,7 @@ Install the retail analytics app on the reCamera and set the broker it publishes
 
 ### Wiring
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/retail-heatmap-grafana/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/retail-heatmap-grafana/#how-to-deploy-on-site).
 
 
 1. Over USB the IP is `192.168.42.1`; over Ethernet or WiFi, find the IP in your router admin page

@@ -6,11 +6,11 @@ A reCamera 2002 decides on-device whether someone fell and publishes the event o
 
 ## Step 1: Update the reCamera Console {#update_console type=recamera_cpp required=false config=devices/recamera_console.yaml}
 
-Install console 0.5.5, which manages the camera apps. Already current? It's skipped.
+Install console 0.5.6, which manages the camera apps. Already current? It's skipped.
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/elderly-fall-detection/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-fall-detection/#how-to-deploy-on-site).
 
 
 1. Connect the reCamera over USB, or put it on the same network as this computer.
@@ -34,7 +34,7 @@ Install the pose model and the fall detector, then start it on the camera.
 
 ### Wiring
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/elderly-fall-detection/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-fall-detection/#how-to-deploy-on-site).
 
 
 ![Camera placement: a side or corner view at 2–3 m works; straight-down and long-shot or occluded views do not.](https://files.seeedstudio.com/Solution/landpage_asset/fall-detection/camera-placement-be3fb598.svg)
@@ -101,7 +101,7 @@ Take it and you install an alarm panel on a separate host: a site overview, zone
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/elderly-fall-detection/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-fall-detection/#how-to-deploy-on-site).
 
 
 The panel goes on a separate box on the camera's network and needs no AI accelerator: a reComputer R1000 Series, or a Linux machine you already run.
@@ -170,7 +170,7 @@ What the answer does:
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/elderly-fall-detection/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-fall-detection/#how-to-deploy-on-site).
 
 
 An OpenVoiceStream instance on the same LAN, with a USB microphone and a speaker plugged into the box running it, not into the camera.
@@ -283,7 +283,7 @@ Take it and you install an alarm panel on a separate host: a site overview, zone
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/elderly-fall-detection/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-fall-detection/#how-to-deploy-on-site).
 
 
 The panel goes on a separate box on the camera's network and needs no AI accelerator: a reComputer R1000 Series, or a Linux machine you already run.
@@ -352,7 +352,7 @@ What the answer does:
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/elderly-fall-detection/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-fall-detection/#how-to-deploy-on-site).
 
 
 An OpenVoiceStream instance on the same LAN, with a USB microphone and a speaker plugged into the box running it, not into the camera.
@@ -391,7 +391,7 @@ Deploy the detector and build its inference engine on the Jetson. Allow 10–20 
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/elderly-fall-detection/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-fall-detection/#how-to-deploy-on-site).
 
 
 1. The Jetson runs JetPack 6.x with the NVIDIA container runtime available.
@@ -501,7 +501,7 @@ What the answer does:
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/elderly-fall-detection/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-fall-detection/#how-to-deploy-on-site).
 
 
 An OpenVoiceStream instance on the same LAN, with a USB microphone and a speaker plugged into the box running it, not into the camera.
@@ -540,7 +540,7 @@ Deploy the detector to your Rockchip board. Allow about 5 minutes.
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/elderly-fall-detection/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-fall-detection/#how-to-deploy-on-site).
 
 
 1. The board runs a vendor image with the NPU driver and `librknnrt.so` present, plus Docker.
@@ -642,7 +642,7 @@ What the answer does:
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/elderly-fall-detection/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-fall-detection/#how-to-deploy-on-site).
 
 
 An OpenVoiceStream instance on the same LAN, with a USB microphone and a speaker plugged into the box running it, not into the camera.
@@ -681,7 +681,7 @@ Deploy the detector to your Hailo-equipped device. Allow about 5 minutes.
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/elderly-fall-detection/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-fall-detection/#how-to-deploy-on-site).
 
 
 1. A Hailo-8 accelerator present as `/dev/hailo0`, with **HailoRT 4.21** installed (GStreamer plugin, user library and kernel driver all at that version).
@@ -785,7 +785,7 @@ What the answer does:
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/elderly-fall-detection/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-fall-detection/#how-to-deploy-on-site).
 
 
 An OpenVoiceStream instance on the same LAN, with a USB microphone and a speaker plugged into the box running it, not into the camera.
@@ -811,4 +811,4 @@ A distress word beats a safe word in the same sentence.
 | The service starts but never speaks | Confirm the alarm host's audio device is passed into the container, and check `docker compose logs eldercare-alarm` for TTS or playback errors. |
 
 ### Next Steps
-- [View Full Engineering Wiki and Integration Guide](https://wiki.seeedstudio.com/solutions/elderly-fall-detection/)
+- [View Full Engineering Wiki and Integration Guide](https://wiki.seeedstudio.com/solutions/edge-fall-detection/)

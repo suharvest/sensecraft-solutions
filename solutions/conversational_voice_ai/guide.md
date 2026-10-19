@@ -45,7 +45,7 @@ Deploy to this machine. It must be a Jetson Orin with JetPack 6.2, Docker, and N
 
 ### Wiring
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/conversational-voice-ai/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/conversational-voice-ai/#how-to-deploy-on-site).
 
 
 1. Connect the reSpeaker XVF3800 and speaker to this machine
@@ -69,7 +69,7 @@ Run speech on RK3588 and connect to a cloud or LAN model. Requires at least 12 G
 
 ### Wiring
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/conversational-voice-ai/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/conversational-voice-ai/#how-to-deploy-on-site).
 
 
 1. Connect the reSpeaker XVF3800 and speaker
@@ -93,7 +93,7 @@ Run speech on Orin Nano or Orin NX and connect to a cloud or LAN model. Requires
 
 ### Wiring
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/conversational-voice-ai/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/conversational-voice-ai/#how-to-deploy-on-site).
 
 
 1. Connect the reSpeaker XVF3800 and speaker
@@ -117,7 +117,7 @@ Run speech on the CPU of a reComputer Industrial R20 series and connect to a clo
 
 ### Wiring
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/conversational-voice-ai/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/conversational-voice-ai/#how-to-deploy-on-site).
 
 
 1. Connect the reSpeaker XVF3800 and speaker
@@ -190,7 +190,7 @@ Run Qwen3-ASR, Matcha-TTS, and Qwen3.5-4B on Orin NX 16GB. Requires JetPack 6.2 
 
 ### Wiring
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/conversational-voice-ai/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/conversational-voice-ai/#how-to-deploy-on-site).
 
 
 1. Connect the reSpeaker XVF3800 and speaker
@@ -214,7 +214,7 @@ Deploy to this machine. It must be an Orin NX 16GB running JetPack 6.2, with at 
 
 ### Wiring
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/conversational-voice-ai/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/conversational-voice-ai/#how-to-deploy-on-site).
 
 
 1. Connect the reSpeaker XVF3800 and speaker
@@ -238,7 +238,7 @@ Run speech on RK3588 and Qwen3-4B on the RK1828 / RM182X card. Requires at least
 
 ### Wiring
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/conversational-voice-ai/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/conversational-voice-ai/#how-to-deploy-on-site).
 
 
 1. Confirm the RK1828 has independent 12V power, a running driver service, and its device node

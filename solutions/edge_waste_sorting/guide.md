@@ -18,7 +18,7 @@ Fill in the device, camera and classifier options. The step downloads the model,
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-waste-sorting/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-waste-sorting/#how-to-deploy-on-site).
 
 
 - A Jetson Orin on JetPack 6.x with the NVIDIA container runtime configured.
@@ -71,7 +71,7 @@ Put an item under the camera, fire one trigger, and confirm one classification r
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-waste-sorting/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-waste-sorting/#how-to-deploy-on-site).
 
 
 - Step 1 finished and the container running.
@@ -145,7 +145,7 @@ Switches to the SigLIP 2 open-vocabulary classifier: it can reject out-of-vocabu
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-waste-sorting/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-waste-sorting/#how-to-deploy-on-site).
 
 
 - Step 1 working with `model_track: baseline`.
@@ -185,7 +185,7 @@ Fill in the device and camera details. The step checks the Hailo environment, do
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-waste-sorting/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-waste-sorting/#how-to-deploy-on-site).
 
 
 - Raspberry Pi OS with Docker, a Hailo-8 installed, and `/dev/hailo0` present.
@@ -234,7 +234,7 @@ Put an item under the camera, fire one trigger, and confirm one classification r
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-waste-sorting/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-waste-sorting/#how-to-deploy-on-site).
 
 
 - Step 1 finished and the container running.
@@ -343,7 +343,7 @@ You need the web console's admin credentials and about 10 MB free on `/userdata`
 
 ### Wiring
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-waste-sorting/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-waste-sorting/#how-to-deploy-on-site).
 
 
 Fill in a device name. To send results to another system, also fill in a broker address; each classification is published as one JSON record on `waste/<device name>/results`. With the broker left empty, results are shown only in the app's panel on the camera.

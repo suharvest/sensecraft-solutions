@@ -41,7 +41,7 @@ Connect the gateway to enable wireless communication between tracker and positio
 
 ### Wiring
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#how-to-deploy-on-site).
 
 
 1. Power on gateway, connect to network (Ethernet or WiFi)
@@ -69,7 +69,7 @@ Deploy the positioning application on your local computer.
 
 ### Wiring
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#how-to-deploy-on-site).
 
 
 1. Ensure Docker Desktop is installed and running
@@ -98,7 +98,7 @@ Deploy the positioning application to a remote server via SSH.
 
 ### Wiring
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#how-to-deploy-on-site).
 
 
 1. Connect target device to network
@@ -131,7 +131,7 @@ Set up the tracker and confirm both indoor and outdoor positions are reported.
 
 ### Wiring
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#how-to-deploy-on-site).
 
 
 1. Press power button 3 s to turn on, blinking green = joining network
@@ -158,7 +158,7 @@ Align the floor plan with the outdoor map so indoor and outdoor trails show in o
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#how-to-deploy-on-site).
 
 
 - The floor plan is uploaded and its real-world size in metres is set
@@ -167,7 +167,7 @@ Align the floor plan with the outdoor map so indoor and outdoor trails show in o
 
 ### Wiring
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#how-to-deploy-on-site).
 
 
 1. Select the **Outdoor** entry in the map dropdown and pan to your site
@@ -200,7 +200,7 @@ Draw a fence on the outdoor map and alarm when a tracker enters or leaves it. No
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#how-to-deploy-on-site).
 
 
 - At least one tracker is reporting GNSS positions
@@ -208,7 +208,7 @@ Draw a fence on the outdoor map and alarm when a tracker enters or leaves it. No
 
 ### Wiring
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#how-to-deploy-on-site).
 
 
 1. Create the geofence: a GeoJSON polygon, or a centre point plus `radius_m`
@@ -279,7 +279,7 @@ covered by GNSS only (yards, roads, parking) need no beacons.
 
 ### Wiring
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#how-to-deploy-on-site).
 
 
 1. Place at least 3 beacons per area (trilateration) or 1 beacon (room level)
@@ -303,7 +303,7 @@ Connect the gateway to enable wireless communication between tracker and positio
 
 ### Wiring
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#how-to-deploy-on-site).
 
 
 1. Power on gateway, connect to network (Ethernet or WiFi)
@@ -331,7 +331,7 @@ Deploy the positioning application on your local computer.
 
 ### Wiring
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#how-to-deploy-on-site).
 
 
 1. Ensure Docker Desktop is installed and running
@@ -360,7 +360,7 @@ Deploy the positioning application to a remote server via SSH.
 
 ### Wiring
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#how-to-deploy-on-site).
 
 
 1. Connect target device to network
@@ -393,7 +393,7 @@ Set up the tracker and confirm both indoor and outdoor positions are reported.
 
 ### Wiring
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#how-to-deploy-on-site).
 
 
 1. Press power button 3 s to turn on, blinking green = joining network
@@ -420,7 +420,7 @@ Align the floor plan with the outdoor map so indoor and outdoor trails show in o
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#how-to-deploy-on-site).
 
 
 - The floor plan is uploaded and its real-world size in metres is set
@@ -429,7 +429,7 @@ Align the floor plan with the outdoor map so indoor and outdoor trails show in o
 
 ### Wiring
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#how-to-deploy-on-site).
 
 
 1. Select the **Outdoor** entry in the map dropdown and pan to your site
@@ -462,7 +462,7 @@ Draw a fence on the outdoor map and alarm when a tracker enters or leaves it. No
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#how-to-deploy-on-site).
 
 
 - At least one tracker is reporting GNSS positions
@@ -470,7 +470,7 @@ Draw a fence on the outdoor map and alarm when a tracker enters or leaves it. No
 
 ### Wiring
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#how-to-deploy-on-site).
 
 
 1. Create the geofence: a GeoJSON polygon, or a centre point plus `radius_m`
@@ -540,7 +540,7 @@ covered by GNSS only (yards, roads, parking) need no beacons.
 
 ### Wiring
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#how-to-deploy-on-site).
 
 
 1. Place at least 3 beacons per area (trilateration) or 1 beacon (room level)
@@ -564,7 +564,7 @@ Connect the gateway to enable wireless communication between tracker and positio
 
 ### Wiring
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#how-to-deploy-on-site).
 
 
 1. Power on gateway, connect to network (Ethernet or WiFi)
@@ -592,7 +592,7 @@ Deploy the positioning application on your local computer.
 
 ### Wiring
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#how-to-deploy-on-site).
 
 
 1. Ensure Docker Desktop is installed and running
@@ -621,7 +621,7 @@ Deploy the positioning application to a remote server via SSH.
 
 ### Wiring
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#how-to-deploy-on-site).
 
 
 1. Connect target device to network
@@ -654,7 +654,7 @@ Set up the tracker and confirm both indoor and outdoor positions are reported.
 
 ### Wiring
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#how-to-deploy-on-site).
 
 
 1. Press power button 3 s to turn on, blinking green = joining network
@@ -681,7 +681,7 @@ Align the floor plan with the outdoor map so indoor and outdoor trails show in o
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#how-to-deploy-on-site).
 
 
 - The floor plan is uploaded and its real-world size in metres is set
@@ -690,7 +690,7 @@ Align the floor plan with the outdoor map so indoor and outdoor trails show in o
 
 ### Wiring
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#how-to-deploy-on-site).
 
 
 1. Select the **Outdoor** entry in the map dropdown and pan to your site
@@ -723,7 +723,7 @@ Draw a fence on the outdoor map and alarm when a tracker enters or leaves it. No
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#how-to-deploy-on-site).
 
 
 - At least one tracker is reporting GNSS positions
@@ -731,7 +731,7 @@ Draw a fence on the outdoor map and alarm when a tracker enters or leaves it. No
 
 ### Wiring
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/#how-to-deploy-on-site).
 
 
 1. Create the geofence: a GeoJSON polygon, or a centre point plus `radius_m`

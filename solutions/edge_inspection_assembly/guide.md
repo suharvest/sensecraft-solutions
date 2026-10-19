@@ -12,7 +12,7 @@ Downloads the model, builds the TensorRT engine on the device (about five minute
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-assembly-inspection/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-assembly-inspection/#how-to-deploy-on-site).
 
 
 - Ports 1883, 502 and 8080 free on the device.
@@ -47,7 +47,7 @@ Optional, only needed for the dimension check. When skipped, the dimension secti
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-assembly-inspection/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-assembly-inspection/#how-to-deploy-on-site).
 
 
 - A calibration reference in the **same plane** as the measured surface: an ArUco marker (the example uses `DICT_4X4_50`, id 7, 25 mm wide) or an object of known width. Measure a printed marker with a caliper.
@@ -126,7 +126,7 @@ Optional. Runs the upstream semi-automatic annotation tool (`tools/annotation/`)
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-assembly-inspection/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-assembly-inspection/#how-to-deploy-on-site).
 
 
 - A GPU workstation with the upstream `edge-inspection-assembly` repository (`--backend otsu` needs no GPU but gives weaker results).
@@ -154,7 +154,7 @@ Checks the Hailo runtime, downloads the model, then starts the runtime and its M
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-assembly-inspection/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-assembly-inspection/#how-to-deploy-on-site).
 
 
 - Ports 1883, 502 and 8080 free on the device.
@@ -186,7 +186,7 @@ Optional, only needed for the dimension check. When skipped, the dimension secti
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-assembly-inspection/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-assembly-inspection/#how-to-deploy-on-site).
 
 
 - A calibration reference in the **same plane** as the measured surface: an ArUco marker (the example uses `DICT_4X4_50`, id 7, 25 mm wide) or an object of known width. Measure a printed marker with a caliper.
@@ -264,7 +264,7 @@ Optional. Runs the upstream semi-automatic annotation tool (`tools/annotation/`)
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-assembly-inspection/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-assembly-inspection/#how-to-deploy-on-site).
 
 
 - A GPU workstation with the upstream `edge-inspection-assembly` repository (`--backend otsu` needs no GPU but gives weaker results).

@@ -47,7 +47,7 @@ Place the DINOv2-base embedding model in the console's model directory and enabl
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-product-recognition/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-product-recognition/#how-to-deploy-on-site).
 
 
 - The console from Step 1 deployed.
@@ -69,7 +69,7 @@ In the console's gallery, register each SKU with 3 to 8 photos. Each registratio
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-product-recognition/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-product-recognition/#how-to-deploy-on-site).
 
 
 - The admin token from Step 1.
@@ -91,7 +91,7 @@ Convert the detector ONNX to `.rknn` on an x86_64 host and copy it to the board.
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-product-recognition/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-product-recognition/#how-to-deploy-on-site).
 
 
 - An x86_64 machine with rknn-toolkit2 2.3.2, onnx 1.16.1 and setuptools below 81.
@@ -115,7 +115,7 @@ Verify console registration and download, and check the converted model against 
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-product-recognition/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-product-recognition/#how-to-deploy-on-site).
 
 
 - Steps 1 to 4 complete.
@@ -164,7 +164,7 @@ Starts the registration service, management UI and MQTT broker on a server the d
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-product-recognition/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-product-recognition/#how-to-deploy-on-site).
 
 
 - A Linux server with Docker and the compose plugin.
@@ -195,7 +195,7 @@ Place the INT8-quantised DINOv2-small embedding model in the console's model dir
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-product-recognition/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-product-recognition/#how-to-deploy-on-site).
 
 
 - The console from Step 1 deployed.
@@ -217,7 +217,7 @@ Register each SKU with 3 to 8 photos. Each registration creates a new gallery ve
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-product-recognition/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-product-recognition/#how-to-deploy-on-site).
 
 
 - The admin token from Step 1.
@@ -239,7 +239,7 @@ Compile the detector HEF on an x86_64 host and prepare the HailoRT environment o
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-product-recognition/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-product-recognition/#how-to-deploy-on-site).
 
 
 - HailoRT and the PCIe driver on the device at the same version (4.21.0), both held, with matching firmware.
@@ -263,7 +263,7 @@ Verify console registration and check the HEF against the CPU results.
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-product-recognition/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-product-recognition/#how-to-deploy-on-site).
 
 
 - Steps 1 to 4 complete.
@@ -308,7 +308,7 @@ Starts the registration service, management UI and MQTT broker on the server, an
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-product-recognition/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-product-recognition/#how-to-deploy-on-site).
 
 
 - A Linux server with Docker and the compose plugin.
@@ -339,7 +339,7 @@ Place the fp32 DINOv2-small embedding model in the console's model directory and
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-product-recognition/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-product-recognition/#how-to-deploy-on-site).
 
 
 - The console from Step 1 deployed.
@@ -361,7 +361,7 @@ Register each SKU with 3 to 8 photos. Each registration creates a new gallery ve
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-product-recognition/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-product-recognition/#how-to-deploy-on-site).
 
 
 - The admin token from Step 1.
@@ -382,7 +382,7 @@ Build the detection and embedding fp16 engines on the board and verify their SHA
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-product-recognition/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-product-recognition/#how-to-deploy-on-site).
 
 
 - A reComputer J40 (Orin NX 16GB) with JetPack 6.2 and TensorRT 10.3. Build the engines on the board that runs them; they cannot be copied between boards.
@@ -406,7 +406,7 @@ Verify console registration and download, the engine checks, and device-side det
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-product-recognition/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-product-recognition/#how-to-deploy-on-site).
 
 
 - Steps 1 to 4 complete.

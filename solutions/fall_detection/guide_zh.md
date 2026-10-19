@@ -6,11 +6,11 @@
 
 ## 步骤 1: 更新 reCamera 控制台 {#update_console type=recamera_cpp required=false config=devices/recamera_console.yaml}
 
-安装 0.5.5 控制台，它负责管理相机应用。已经是该版本会自动跳过。
+安装 0.5.6 控制台，它负责管理相机应用。已经是该版本会自动跳过。
 
 ### 前置条件
 
-> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/elderly-fall-detection/#现场怎么部署)。
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-fall-detection/#现场怎么部署)。
 
 
 1. 用 USB 连接 reCamera，或让它和这台电脑处于同一网络。
@@ -34,7 +34,7 @@
 
 ### 接线
 
-> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/elderly-fall-detection/#现场怎么部署)。
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-fall-detection/#现场怎么部署)。
 
 
 ![机位示意：2–3 m 的侧向或斜角机位可用；垂直俯拍、远景和被遮挡的机位不可用。](https://files.seeedstudio.com/Solution/landpage_asset/fall-detection/camera-placement-be3fb598.svg)
@@ -96,7 +96,7 @@
 
 ### 前置条件
 
-> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/elderly-fall-detection/#现场怎么部署)。
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-fall-detection/#现场怎么部署)。
 
 
 面板装在与摄像头同网段的另一台机器上，不需要 AI 算力：reComputer R1000 系列，或已有的一台 Linux 机器。
@@ -163,7 +163,7 @@
 
 ### 前置条件
 
-> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/elderly-fall-detection/#现场怎么部署)。
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-fall-detection/#现场怎么部署)。
 
 
 同一局域网内有一个 OpenVoiceStream 实例，USB 麦克风与扬声器接在运行它的那台机器上，不接在摄像头上。
@@ -274,7 +274,7 @@
 
 ### 前置条件
 
-> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/elderly-fall-detection/#现场怎么部署)。
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-fall-detection/#现场怎么部署)。
 
 
 面板装在与摄像头同网段的另一台机器上，不需要 AI 算力：reComputer R1000 系列，或已有的一台 Linux 机器。
@@ -341,7 +341,7 @@
 
 ### 前置条件
 
-> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/elderly-fall-detection/#现场怎么部署)。
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-fall-detection/#现场怎么部署)。
 
 
 同一局域网内有一个 OpenVoiceStream 实例，USB 麦克风与扬声器接在运行它的那台机器上，不接在摄像头上。
@@ -380,7 +380,7 @@ reComputer J30 / J40 拉取现有 IP 摄像头的 RTSP 流，对每一路里的�
 
 ### 前置条件
 
-> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/elderly-fall-detection/#现场怎么部署)。
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-fall-detection/#现场怎么部署)。
 
 
 1. Jetson 运行 JetPack 6.x，且 NVIDIA 容器运行时可用。
@@ -485,7 +485,7 @@ reComputer J30 / J40 拉取现有 IP 摄像头的 RTSP 流，对每一路里的�
 
 ### 前置条件
 
-> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/elderly-fall-detection/#现场怎么部署)。
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-fall-detection/#现场怎么部署)。
 
 
 同一局域网内有一个 OpenVoiceStream 实例，USB 麦克风与扬声器接在运行它的那台机器上，不接在摄像头上。
@@ -524,7 +524,7 @@ reComputer J30 / J40 拉取现有 IP 摄像头的 RTSP 流，对每一路里的�
 
 ### 前置条件
 
-> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/elderly-fall-detection/#现场怎么部署)。
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-fall-detection/#现场怎么部署)。
 
 
 1. 板卡运行厂商系统镜像，NPU 驱动和 `librknnrt.so` 已就位，并且装有 Docker。
@@ -621,7 +621,7 @@ reComputer J30 / J40 拉取现有 IP 摄像头的 RTSP 流，对每一路里的�
 
 ### 前置条件
 
-> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/elderly-fall-detection/#现场怎么部署)。
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-fall-detection/#现场怎么部署)。
 
 
 同一局域网内有一个 OpenVoiceStream 实例，USB 麦克风与扬声器接在运行它的那台机器上，不接在摄像头上。
@@ -660,7 +660,7 @@ reComputer J30 / J40 拉取现有 IP 摄像头的 RTSP 流，对每一路里的�
 
 ### 前置条件
 
-> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/elderly-fall-detection/#现场怎么部署)。
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-fall-detection/#现场怎么部署)。
 
 
 1. 设备上有 Hailo-8 加速器（`/dev/hailo0`），且安装 **HailoRT 4.21**（GStreamer 插件、用户态库和内核驱动同一版本）。
@@ -759,7 +759,7 @@ reComputer J30 / J40 拉取现有 IP 摄像头的 RTSP 流，对每一路里的�
 
 ### 前置条件
 
-> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/elderly-fall-detection/#现场怎么部署)。
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-fall-detection/#现场怎么部署)。
 
 
 同一局域网内有一个 OpenVoiceStream 实例，USB 麦克风与扬声器接在运行它的那台机器上，不接在摄像头上。
@@ -785,4 +785,4 @@ reComputer J30 / J40 拉取现有 IP 摄像头的 RTSP 流，对每一路里的�
 | 服务起来了但从不出声 | 确认告警主机的音频设备已接入容器，在 `docker compose logs eldercare-alarm` 里查看 TTS 或播放报错。 |
 
 ### 后续步骤
-- [查看完整工程 Wiki 与二次开发指南](https://wiki.seeedstudio.com/cn/solutions/elderly-fall-detection/)
+- [查看完整工程 Wiki 与二次开发指南](https://wiki.seeedstudio.com/cn/solutions/edge-fall-detection/)

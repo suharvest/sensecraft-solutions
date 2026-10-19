@@ -11,7 +11,7 @@ Starts the face library, MQTT broker and management console on one server.
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#how-to-deploy-on-site).
 
 
 - A Linux server with Docker and the compose plugin, reachable from the door devices. No GPU needed.
@@ -48,7 +48,7 @@ Enrol each person with 3 to 8 photos in the console's Person Library.
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#how-to-deploy-on-site).
 
 
 - The admin token from Step 1.
@@ -91,7 +91,7 @@ Starts F1 Door Access on the camera and writes the door settings; any other app 
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#how-to-deploy-on-site).
 
 
 Install F1 Door Access (0.1.5 or later) on the camera first:
@@ -117,7 +117,7 @@ Check on the console's Devices page that the door device uses the version you ju
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#how-to-deploy-on-site).
 
 
 - The door device is powered on and online.
@@ -140,7 +140,7 @@ Test the door: an enrolled person opens it, a photo does not, remote unlock work
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#how-to-deploy-on-site).
 
 
 - The door controller connected and at least one person enrolled.
@@ -181,7 +181,7 @@ Starts the face library, MQTT broker and management console on one server.
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#how-to-deploy-on-site).
 
 
 - A Linux server with Docker and the compose plugin, reachable from the door devices. No GPU needed.
@@ -215,7 +215,7 @@ Enrol each person with 3 to 8 photos in the console's Person Library.
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#how-to-deploy-on-site).
 
 
 - The admin token from Step 1.
@@ -237,7 +237,7 @@ Installs the door access app on the reCamera PoE and writes its face library set
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#how-to-deploy-on-site).
 
 
 - The camera on USB-C (IP `192.168.42.1`) or on your network, and the `recamera` SSH password.
@@ -247,7 +247,7 @@ Installs the door access app on the reCamera PoE and writes its face library set
 
 ### Wiring
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#how-to-deploy-on-site).
 
 
 ![reCamera 2002 HQ PoE relay wiring](gallery/wiring-recamera-2002-poe.svg)
@@ -285,7 +285,7 @@ Check on the console's Devices page that the door device uses the version you ju
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#how-to-deploy-on-site).
 
 
 - The camera is powered on and online.
@@ -309,7 +309,7 @@ Test the door: an enrolled person opens it, a photo does not, remote unlock work
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#how-to-deploy-on-site).
 
 
 - The door controller connected and at least one person enrolled.
@@ -350,7 +350,7 @@ Starts the face library, MQTT broker and management console on one server.
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#how-to-deploy-on-site).
 
 
 - A Linux server with Docker and the compose plugin, reachable from the door devices. No GPU needed.
@@ -384,7 +384,7 @@ Enrol each person with 3 to 8 photos in the console's Person Library.
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#how-to-deploy-on-site).
 
 
 - The admin token from Step 1.
@@ -406,7 +406,7 @@ Installs the door access app on the reCamera and writes its face library setting
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#how-to-deploy-on-site).
 
 
 - The camera on USB-C (IP `192.168.42.1`) or on your network, and the `recamera` SSH password.
@@ -416,7 +416,7 @@ Installs the door access app on the reCamera and writes its face library setting
 
 ### Wiring
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#how-to-deploy-on-site).
 
 
 ![XIAO ESP32-S3 relay wiring](gallery/wiring-xiao-relay.svg)
@@ -441,7 +441,7 @@ Check on the console's Devices page that the door device uses the version you ju
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#how-to-deploy-on-site).
 
 
 - The camera is powered on and online.
@@ -465,7 +465,7 @@ Test the door: an enrolled person opens it, a photo does not, remote unlock work
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#how-to-deploy-on-site).
 
 
 - The door controller connected and at least one person enrolled.
@@ -505,7 +505,7 @@ Starts the face library, MQTT broker and management console on one server.
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#how-to-deploy-on-site).
 
 
 - A Linux server with Docker and the compose plugin, reachable from the door devices. No GPU needed.
@@ -539,7 +539,7 @@ Enrol each person with 3 to 8 photos in the console's Person Library.
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#how-to-deploy-on-site).
 
 
 - The admin token from Step 1.
@@ -561,7 +561,7 @@ Starts recognition and the access node on the host. Pick the target that matches
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#how-to-deploy-on-site).
 
 
 - Docker and the compose plugin on the host.
@@ -587,7 +587,7 @@ The relay connects to the J20's DO output. Set **GPIO Interface = sysfs** and en
 
 ### Wiring
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#how-to-deploy-on-site).
 
 
 ![AI host relay wiring](gallery/wiring-host-relay.svg)
@@ -631,7 +631,7 @@ Pins 1/17 are 3V3, 2/4 are 5V, and 6/9/14/20/25/30/34/39 are GND.
 
 ### Wiring
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#how-to-deploy-on-site).
 
 
 ![AI host relay wiring](gallery/wiring-host-relay.svg)
@@ -653,7 +653,7 @@ Choose this when the host is not at the door or serves several doors. Unlocks go
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#how-to-deploy-on-site).
 
 
 - The MQTT broker (Step 1 server, port 1883) reachable from the host.
@@ -661,7 +661,7 @@ Choose this when the host is not at the door or serves several doors. Unlocks go
 
 ### Wiring
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#how-to-deploy-on-site).
 
 
 ![XIAO ESP32-S3 relay wiring](gallery/wiring-xiao-relay.svg)
@@ -687,7 +687,7 @@ Check on the console's Devices page that the door device uses the version you ju
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#how-to-deploy-on-site).
 
 
 - The door device is powered on and online.
@@ -710,7 +710,7 @@ Test the door: an enrolled person opens it, a photo does not, remote unlock work
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#how-to-deploy-on-site).
 
 
 - The door controller connected and at least one person enrolled.

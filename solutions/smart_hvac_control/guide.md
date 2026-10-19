@@ -13,7 +13,7 @@ Deploy the prediction and control service and enter the meter, control-mode, saf
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/hvac-setpoint-control/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/hvac-setpoint-control/#how-to-deploy-on-site).
 
 
 - The meter's transport and unit id; the OPC UA endpoint of the HVAC controller (the default address reaches the built-in simulator).
@@ -50,7 +50,7 @@ Deploy over SSH to a reComputer R1100 or another Linux device on the plant netwo
 
 ### Wiring
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/hvac-setpoint-control/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/hvac-setpoint-control/#how-to-deploy-on-site).
 
 
 1. Connect the device's Ethernet port to the controller network and note its IP address.
@@ -73,7 +73,7 @@ Open the console, create the first administrator, and check that the sources fro
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/hvac-setpoint-control/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/hvac-setpoint-control/#how-to-deploy-on-site).
 
 
 The service from Step 1 is healthy.
@@ -92,7 +92,7 @@ Register the meter, run predictions in observe mode, trigger each failure path t
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/hvac-setpoint-control/#现场怎么部署).
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/hvac-setpoint-control/#how-to-deploy-on-site).
 
 
 - The administrator account from Step 2; a view of the meter's own display; someone who operates this plant to review the recommendations.
