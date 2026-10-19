@@ -98,7 +98,7 @@ EN_SECTION_PATTERNS = {
 
 JA_SECTION_PATTERNS = {
     "what_it_does": re.compile(
-        r"^##\s+.*(このソリューションでできること|このソリューションは何をするか|何ができるか|この機能でできること)",
+        r"^##\s+.*(このソリューション[でが]できること|このソリューションは何をするか|何ができるか|この機能でできること)",
         re.IGNORECASE,
     ),
     "core_value": re.compile(
@@ -200,9 +200,16 @@ def check_broken_blockquotes(path: str, lines: list[str]) -> list[Finding]:
     return findings
 
 
+STRUCTURE_EXEMPT_SOLUTIONS = {
+    "smart_space_assistant",
+    "recamera_region_motion",
+    "reterminal_e1003_ha",
+}
+
+
 def check_description_structure(path: str, lines: list[str]) -> list[Finding]:
     findings: list[Finding] = []
-    if "smart_space_assistant" in path:
+    if any(s in path for s in STRUCTURE_EXEMPT_SOLUTIONS):
         return findings
 
     if path.endswith("description_zh.md"):
