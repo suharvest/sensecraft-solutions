@@ -11,7 +11,18 @@ intro:
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
-  cover_image: gallery/workbench.jpg
+  cover_image: https://files.seeedstudio.com/Solution/landpage_asset/edge-command-workbench/workbench-38fad431.jpg
+  gallery:
+    - type: image
+      src: https://files.seeedstudio.com/Solution/landpage_asset/edge-command-workbench/panel-workbench-1-overview-4dac073c.jpg
+      caption: Command Selection Workbench interface on RK3588/RK3576
+      caption_i18n:
+        zh: RK3588/RK3576 边缘设备命令选择工作台主界面
+    - type: image
+      src: https://files.seeedstudio.com/Solution/landpage_asset/edge-command-workbench/panel-workbench-2-decision-07fc7807.jpg
+      caption: Real-time command ranking decision with Kev model (466ms latency)
+      caption_i18n:
+        zh: Kev 模型本地实时命令决策与排序（实测延迟 466ms）
   category: on_device_ai
   solution_type: solution
   tags: [rk3576, rk3588, rkllm, kev, edge-ai, command-ranking, local-ai, docker]
