@@ -43,8 +43,7 @@ Add "eyes" to voice conversation: camera-based proactive visual wake-up greets y
 
 ### Prerequisites
 
-- SenseCAP Watcher already flashed with Xiaozhi firmware and connected to 2.4 GHz Wi-Fi (completed in preset 1 or pre-flashed out of the box).
-- SenseCraft AI account or Xiaozhi account.
+- SenseCAP Watcher already flashed with Xiaozhi firmware, connected to 2.4 GHz Wi-Fi, and paired with SenseCraft AI / Xiaozhi platform (completed via Preset 1: Voice Dialog & Agent). Active voice interaction is required for spoken parameter tuning and proactive greetings.
 
 ## Step 1: Enable Face Detection and Experience Proactive Greeting {#vision_wake_intro type=manual required=true verify=true}
 
@@ -75,8 +74,8 @@ Go from detecting "a person" to recognising "who they are": activate the Himax W
 
 ### Prerequisites
 
-- SenseCAP Watcher connected via USB-C data cable.
-- 2.4 GHz Wi-Fi network connection already established on Watcher.
+- SenseCAP Watcher connected to computer via USB-C data cable.
+- Watcher already flashed with Xiaozhi firmware, connected to 2.4 GHz Wi-Fi, and paired with SenseCraft AI / Xiaozhi platform (completed via Preset 1: Voice Dialog & Agent). Active voice dialog is required for named greeting responses and recognition queries.
 
 ## Step 1: Flash Himax WE2 AI Models {#face_himax type=himax_usb required=true config=devices/watcher_himax.yaml}
 

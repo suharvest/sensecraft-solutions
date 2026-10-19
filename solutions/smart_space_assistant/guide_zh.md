@@ -53,8 +53,7 @@
 
 ### 前提条件
 
-- SenseCAP Watcher 已刷入小智固件并连接 2.4 GHz WiFi（在套餐 1 中完成或出厂已预刷）。
-- SenseCraft AI 平台或小智账号。
+- SenseCAP Watcher 已刷入小智固件、连入 2.4 GHz WiFi 并完成 SenseCraft AI / 小智平台 6 位码绑定（可先完成「套餐: 语音对话与智能体接入」）。语音主动唤醒与参数配置需要设备具备活跃的语音对话能力。
 
 ## 步骤 1: 开启人脸检测并体验主动打招呼 {#vision_wake_intro type=manual required=true verify=true}
 
@@ -86,7 +85,7 @@
 ### 前提条件
 
 - SenseCAP Watcher 与电脑通过 USB-C 数据线连接。
-- Watcher 已完成 Wi-Fi 配网。
+- Watcher 已刷入小智固件、连入 2.4 GHz WiFi 并完成 SenseCraft AI / 小智平台绑定（可先完成「套餐: 语音对话与智能体接入」）。直呼其名迎宾需要设备具备活跃的语音对话能力。
 
 ## 步骤 1: 烧录 Himax WE2 人脸模型 {#face_himax type=himax_usb required=true config=devices/watcher_himax.yaml}
 
