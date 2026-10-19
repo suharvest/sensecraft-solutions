@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import json
 from contextlib import contextmanager
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -235,11 +236,21 @@ def test_import_reports_conflicts_and_fails(capsys):
         "conflicts": ["reg/b:1: a different file is already cached at b.tar"],
         "incomplete": [],
     }
-    with _engine({("POST", "/api/staging/import"): result}):
+    with _engine({("POST", "/api/staging/import"): result}) as calls:
         assert stage.import_(_args(file="kit.tar")) == 1
+        assert calls[0][2]["path"] == str(Path("kit.tar").resolve())
     captured = capsys.readouterr()
     assert "imported 1" in captured.out
     assert "already cached" in captured.err
+
+
+def test_export_resolves_relative_path(capsys):
+    result = {"path": str(Path("out.tar").resolve()), "entries": 1, "files": 2, "bytes": 1024}
+    with _engine({("POST", "/api/staging/export"): result}) as calls:
+        assert stage.export(_args(file="out.tar", entry=["s/p/step"])) == 0
+        assert calls[0][2]["path"] == str(Path("out.tar").resolve())
+    captured = capsys.readouterr()
+    assert "wrote " in captured.out
 
 
 def test_delete_while_a_deployment_runs_is_reported(capsys):

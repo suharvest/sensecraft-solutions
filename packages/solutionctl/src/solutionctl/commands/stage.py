@@ -18,6 +18,7 @@ import json
 import sys
 import time
 import urllib.error
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from .._engine_http import EngineConflictError, EngineConn, EngineHttpError, engine_session
@@ -256,7 +257,8 @@ def delete(args) -> int:
 
 
 def export(args) -> int:
-    payload = {"path": args.file, "entries": _refs(args)}  # before the engine starts
+    path = str(Path(args.file).resolve())
+    payload = {"path": path, "entries": _refs(args)}  # before the engine starts
     with engine_session(args.solutions_dir) as conn:
         data = post(conn, "/api/staging/export", payload, timeout=3600.0)
     if args.json:
@@ -270,9 +272,9 @@ def export(args) -> int:
 
 
 def import_(args) -> int:
+    path = str(Path(args.file).resolve())
     with engine_session(args.solutions_dir) as conn:
-        data = post(conn, "/api/staging/import", {"path": args.file}, timeout=3600.0
-        )
+        data = post(conn, "/api/staging/import", {"path": path}, timeout=3600.0)
     if args.json:
         print(_redacted_json(data))
         return 1 if (data.get("conflicts") or data.get("incomplete")) else 0
