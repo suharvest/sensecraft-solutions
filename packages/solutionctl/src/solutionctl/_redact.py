@@ -12,13 +12,11 @@ import re
 from typing import Any, Optional
 
 _SECRET_KEYS = r"password|passwd|secret|token|api[_-]?key|private[_-]?key"
-# `tokens`, `api_keys`, `passwords`: a plural field holds the same thing.
-_SECRET_KEY_RE = re.compile(rf"^(?:{_SECRET_KEYS})s?$", re.I)
+# Matches keys like `token`, `api_token`, `llm_api_key`, `passwords`, `ssh_password`.
+_SECRET_KEY_RE = re.compile(rf".*(?:{_SECRET_KEYS}).*", re.I)
 # key, then : or =, then a quoted value (escapes included) or a bare one.
-# A bare value stops at the usual separators so the rest of a URL or command
-# line stays readable.
 _SECRET_RE = re.compile(
-    rf"""(?P<key>["\']?\b(?:{_SECRET_KEYS})\b["\']?\s*[:=]\s*)
+    rf"""(?P<key>["\']?\b[a-zA-Z0-9_\-]*(?:{_SECRET_KEYS})[a-zA-Z0-9_\-]*\b["\']?\s*[:=]\s*)
          (?P<value>"(?:[^"\\]|\\.)*"|\'(?:[^\'\\]|\\.)*\'|[^\s&;,"\']+)""",
     re.I | re.X,
 )
