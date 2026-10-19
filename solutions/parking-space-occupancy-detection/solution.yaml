@@ -55,14 +55,20 @@ intro:
     zh: 用停车场现有的 IP 摄像头看哪些车位有车。边缘主机在现场分析每路画面，逐个车位报告「占用 / 空闲」，通过 MQTT 发给你的系统，视频不出场地。
   description_file: description.md
   description_file_i18n: {zh: description_zh.md}
-  cover_image: gallery/cover-20261008.jpg
+  cover_image: https://files.seeedstudio.com/Solution/landpage_asset/parking-space-occupancy-detection/cover-20261008-611927d2.jpg
   gallery:
     - type: image
-      src: gallery/panel-occupancy-1-mixed-20261009.jpg
+      src: https://files.seeedstudio.com/Solution/landpage_asset/parking-space-occupancy-detection/panel-occupancy-1-mixed-20261009-5635c9d1.jpg
       caption: "Bay occupancy on Jetson Orin Nano Super: six bays drawn on the camera frame, four occupied (red) and two free (green), totals in the side panel"
       caption_i18n:
         zh: "Jetson Orin Nano Super 车位占用：画面上的 6 个车位，4 个占用（红）、2 个空闲（绿），右侧显示合计"
         ja: "Jetson Orin Nano Super の駐車枠占有：映像上の 6 枠のうち 4 枠が使用中（赤）、2 枠が空き（緑）。右側に合計"
+    - type: image
+      src: https://files.seeedstudio.com/Solution/landpage_asset/parking-space-occupancy-detection/panel-slot-editor-20261008-4007f215.jpg
+      caption: "Interactive web slot editor for drawing, naming, and configuring parking bays"
+      caption_i18n:
+        zh: "车位划线与配置网页编辑器：在摄像头画面交互式绘制多边形车位并配置名称"
+        ja: "カメラ映像上で駐車枠ポリゴンを描画・設定する Web エディタ"
   category: vision_video_ai
   solution_type: solution
   tags: [parking, occupancy, rtsp, multi-camera, mqtt, jetson, rk3588, rk3576]
