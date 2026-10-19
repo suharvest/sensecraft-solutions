@@ -196,11 +196,23 @@ Start the MQTT broker, database, Grafana dashboard and video gateway. Skip if al
 
 ## Step 2: Deploy the Detector {#rk_detector type=docker_deploy required=true config=devices/rk_deploy.yaml}
 
-Deploy the detector to the board over SSH. Pick the right board model; the wrong one will not load the model. If the dashboard runs on this board, leave the MQTT address at `127.0.0.1`.
+Deploy the detector to the board. Pick the right board model; the wrong one will not load the model. If the dashboard runs on this board, leave the MQTT address at `127.0.0.1`.
 
 ### Target {#rk_remote type=remote config=devices/rk_deploy.yaml default=true}
 
 The board needs Docker and the NPU driver (`/usr/lib/librknnrt.so` present).
+
+### Troubleshooting
+
+| Symptom | Fix |
+|---------|-----|
+| Container fails with a librknnrt error | The NPU driver is missing; check `/usr/lib/librknnrt.so` exists |
+| No data on the dashboard | Verify the camera URL with `ffprobe rtsp://...`, and check the MQTT address |
+| Low frame rate with a pinned CPU | Hardware decode is not active; check the MPP libraries on the board |
+
+### Target {#rk_local type=local config=devices/rk_deploy.yaml}
+
+Deploy directly on the board you are using. The board needs Docker and the NPU driver (`/usr/lib/librknnrt.so` present).
 
 ### Troubleshooting
 
@@ -254,11 +266,24 @@ Start the MQTT broker, database, Grafana dashboard and video gateway. Skip if al
 
 ## Step 2: Deploy the Detector {#hailo_detector type=docker_deploy required=true config=devices/hailo_deploy.yaml}
 
-Deploy the detector over SSH. The Hailo runtime version is checked first; a mismatch stops the deployment and shows the installed version.
+Deploy the detector. The Hailo runtime version is checked first; a mismatch stops the deployment and shows the installed version.
 
 ### Target {#hailo_remote type=remote config=devices/hailo_deploy.yaml default=true}
 
 The board needs Docker and HailoRT **4.21** (driver, user library and GStreamer plugin on the same version).
+
+### Troubleshooting
+
+| Symptom | Fix |
+|---------|-----|
+| `HAILO_OUT_OF_PHYSICAL_DEVICES` | Another application holds the accelerator; stop it first |
+| Deploy reports a libhailort version mismatch | Move the board to HailoRT 4.21, changing driver and user library together |
+| `/dev/hailo0` missing | The accelerator is not seated, or the `hailo_pci` driver is not loaded |
+| No data on the dashboard | Verify the camera URL with `ffprobe rtsp://...`, and check the MQTT address |
+
+### Target {#hailo_local type=local config=devices/hailo_deploy.yaml}
+
+Deploy directly on the board you are using. The board needs Docker and HailoRT **4.21** (driver, user library and GStreamer plugin on the same version).
 
 ### Troubleshooting
 
@@ -310,7 +335,7 @@ Start the MQTT broker, database, Grafana dashboard and video gateway. Skip if al
 
 ## Step 2: Deploy the Detector {#jetson_deploy type=docker_deploy required=true config=devices/jetson_deploy.yaml}
 
-Deploy the detector to the Jetson over SSH. The first deployment builds a TensorRT engine, which takes 2-5 minutes; later deployments reuse it.
+Deploy the detector to the Jetson. The first deployment builds a TensorRT engine, which takes 2-5 minutes; later deployments reuse it.
 
 ### Target {#jetson_remote type=remote config=devices/jetson_deploy.yaml default=true}
 
@@ -321,6 +346,18 @@ The Jetson needs JetPack 6.x, Docker and the NVIDIA runtime.
 | Symptom | Fix |
 |---------|-----|
 | Connection timeout | Check the network, verify the Jetson IP with `ping` |
+| NVIDIA runtime error | Run `nvidia-smi` on the Jetson to confirm the GPU is available |
+| No data | Verify the RTSP URL with `ffprobe rtsp://...`, and check the MQTT address |
+| Slow first start | TensorRT engine build, first time only, 2-5 minutes |
+
+### Target {#jetson_local type=local config=devices/jetson_deploy.yaml}
+
+Deploy directly on the Jetson you are using. The Jetson needs JetPack 6.x, Docker and the NVIDIA runtime.
+
+### Troubleshooting
+
+| Symptom | Fix |
+|---------|-----|
 | NVIDIA runtime error | Run `nvidia-smi` on the Jetson to confirm the GPU is available |
 | No data | Verify the RTSP URL with `ffprobe rtsp://...`, and check the MQTT address |
 | Slow first start | TensorRT engine build, first time only, 2-5 minutes |
