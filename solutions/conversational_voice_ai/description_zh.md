@@ -87,6 +87,8 @@ RK3576 各行为同款 RK3576 平台实测参考值，reComputer 整机复测后
 400 毫秒静音，所以一句中间带停顿的长句只会得到前半句的答复。
 说完整短句，或者直接打断续说。
 
+> 📖 **工程与技术参考：** 完整架构、实测基准与退化边界，详见 [工程 Wiki · 可打断对话式语音 AI](https://wiki.seeedstudio.com/cn/solutions/conversational-voice-ai/)。
+
 ## 方案对比
 
 | 套餐 | 对话模型 | 支持设备 | 适合谁 |

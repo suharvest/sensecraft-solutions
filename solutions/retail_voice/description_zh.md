@@ -65,6 +65,8 @@
 
 英文 WER：J3011 **7.62%**、J4012 **7.62%**、RK3588 **7.50%**、RK3576 **8.51%**、R2000 **8.39%**；中文五台统一 CER **4.82%**。明细见 `docs/asr-concurrency.md`。
 
+> 📖 **工程与技术参考：** 完整架构、实测基准与退化边界，详见 [工程 Wiki · 零售离线语音采集与分析](https://wiki.seeedstudio.com/cn/solutions/retail-voice/)。
+
 ## 输出接口
 
 | 接口 | 内容 |

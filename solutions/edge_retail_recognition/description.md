@@ -29,6 +29,8 @@ Not for legal metrology, legally binding prices or loss prevention.
 
 Dropped frames and latency were measured on recorded video replay.
 
+> 📖 **Engineering Reference:** Full architecture internals, measured benchmarks, and failure modes are documented in the [Engineering Wiki · Edge Product Recognition](https://wiki.seeedstudio.com/solutions/edge-product-recognition/).
+
 ## Output Interfaces
 
 | Interface | Content |

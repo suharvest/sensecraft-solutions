@@ -13,6 +13,9 @@
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/hvac-setpoint-control/#现场怎么部署)。
+
+
 - 电表的通讯方式与站号；暖通控制器的 OPC UA 地址（保留默认地址则连接内置模拟器）。
 - **控制模式**保持 *observe*。工程师批准限值前，**安全基线批准人**留空。
 
@@ -22,11 +25,16 @@
 
 ### 接线
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/hvac-setpoint-control/#现场怎么部署)。
+
 1. 把本机接入暖通控制器和电表（或其 Modbus TCP 网关）所在网络。
 2. 电表走 Modbus TCP；需要 RS-485 时改用远程部署。
 3. 确认 8280 与 4841 端口空闲。
 
 ### 故障排查
+
+> 💡 **参数与深度排障：** Modbus 点位映射、控制周期与回风温差调控实测，详见 [工程 Wiki · 参数实测与已知退化](https://wiki.seeedstudio.com/cn/solutions/hvac-setpoint-control/#性能与实测数据)。
+
 
 | 现象 | 处理 |
 |------|------|
@@ -41,6 +49,9 @@
 通过 SSH 部署到机组网络中的 reComputer R1100 或其他 Linux 设备。电表接 RS-485，或工作机访问不到控制器网络时使用。
 
 ### 接线
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/hvac-setpoint-control/#现场怎么部署)。
+
 
 1. 把设备网口接入控制器网络，记录 IP 地址。
 2. 走 Modbus RTU 时接上 USB 转 RS-485 适配器（通常为 `/dev/ttyUSB0`），并使用串口设备部署配置。
@@ -62,6 +73,9 @@
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/hvac-setpoint-control/#现场怎么部署)。
+
+
 步骤 1 的服务处于健康状态。
 
 ### 故障排查
@@ -77,6 +91,9 @@
 注册电表，在观察模式下运行预测，逐项触发故障验证回滚和告警，全部通过后再开启写入。
 
 ### 前置条件
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/hvac-setpoint-control/#现场怎么部署)。
+
 
 - 步骤 2 的管理员账号；能看到电表本机显示；一位熟悉本机组的操作人员审阅推荐值。
 - 执行 `docker inspect -f '{{.Config.Image}}' missionpack_knn` 查看镜像版本。`v1.6.5` 不含 SDM630 模板、回滚和告警功能，只能完成观察模式部分。
@@ -107,6 +124,9 @@
 | 同一故障每次都开出新告警 | 对比两条告警的数据源与点位 id |
 
 ### 部署完成
+
+### 后续步骤
+- [查看完整工程 Wiki 与二次开发指南](https://wiki.seeedstudio.com/cn/solutions/hvac-setpoint-control/)
 
 #### 快速验证
 

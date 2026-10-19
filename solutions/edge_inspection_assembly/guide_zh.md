@@ -12,10 +12,16 @@
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-assembly-inspection/#现场怎么部署)。
+
+
 - 设备端口 1883、502、8080 空闲。
 - RTSP 地址已用 VLC 测试过。
 
 ### 故障排查
+
+> 💡 **参数与深度排障：** 尺寸测量容差、产线光源工勘与 Modbus/MQTT 输出，详见 [工程 Wiki · 参数实测与已知退化](https://wiki.seeedstudio.com/cn/solutions/edge-assembly-inspection/#性能与实测数据)。
+
 
 | 现象 | 处理 |
 |-------|----------|
@@ -41,6 +47,9 @@
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-assembly-inspection/#现场怎么部署)。
+
+
 - 一个与被测面**同平面**的标定物：ArUco 标记（示例为 `DICT_4X4_50`、id 7、宽 25 mm）或已知宽度的参考物。打印的标记用卡尺量一遍。
 - 一件合格品，用来核对结果。
 - 步骤 1 已完成。
@@ -60,6 +69,7 @@
 打开 8080 端口面板，查看实时计数、最近事件和带检测框与缺件 ROI 的预览。
 
 ### 部署完成
+
 
 工位每帧发一条 MQTT 事件，并持续更新 Modbus 寄存器与线圈。
 
@@ -116,6 +126,9 @@ Modbus TCP，unit 1，端口 502：
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-assembly-inspection/#现场怎么部署)。
+
+
 - 一台装有上游 `edge-inspection-assembly` 仓库的 GPU 工作站（`--backend otsu` 不需要 GPU，效果较弱）。
 - 自己的工位图像与一份 COCO 风格的类别表。
 
@@ -140,6 +153,9 @@ Modbus TCP，unit 1，端口 502：
 检查 Hailo 运行环境，下载模型，然后启动运行时与 MQTT broker。
 
 ### 前置条件
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-assembly-inspection/#现场怎么部署)。
+
 
 - 设备端口 1883、502、8080 空闲。
 - RTSP 地址已用 VLC 测试过。
@@ -169,6 +185,9 @@ Modbus TCP，unit 1，端口 502：
 可选，只在需要尺寸判定时做。跳过时尺寸段报 `uncalibrated`、Modbus HR 11 = 4，不影响缺件比对。
 
 ### 前置条件
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-assembly-inspection/#现场怎么部署)。
+
 
 - 一个与被测面**同平面**的标定物：ArUco 标记（示例为 `DICT_4X4_50`、id 7、宽 25 mm）或已知宽度的参考物。打印的标记用卡尺量一遍。
 - 一件合格品，用来核对结果。
@@ -245,6 +264,9 @@ Modbus TCP，unit 1，端口 502：
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-assembly-inspection/#现场怎么部署)。
+
+
 - 一台装有上游 `edge-inspection-assembly` 仓库的 GPU 工作站（`--backend otsu` 不需要 GPU，效果较弱）。
 - 自己的工位图像与一份 COCO 风格的类别表。
 
@@ -271,6 +293,8 @@ Modbus TCP，unit 1，端口 502：
 填写设备名称；需要把判定发到 broker 时再填 broker 地址，留空时判定仍通过 Modbus TCP 输出。
 
 ### 接线
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-assembly-inspection/#现场怎么部署)。
 
 填了 broker 时，每处理一帧向 `inspection/<设备名称>/results` 发一条 JSON 记录（QoS 0），内含判定、缺陷数、检测框与推理耗时。
 
@@ -304,3 +328,6 @@ Modbus TCP 端口 502、从站 1：线圈 0 是 NG、线圈 1 是 OK，保持寄
 | 502 连接被拒 | 确认本应用是活动应用，且没有别的进程占用该端口 |
 | 心跳不递增 | 应用从相机自带 `rkipc` 的 RTSP 子码流取图，确认 `rkipc` 在运行 |
 | 两个线圈都读到 0 | 第一帧尚未处理完，再读一次 |
+
+### 后续步骤
+- [查看完整工程 Wiki 与二次开发指南](https://wiki.seeedstudio.com/cn/solutions/edge-assembly-inspection/)

@@ -74,6 +74,8 @@ Known gaps, carried from the implementation notes:
 - The offline basemap has not been exercised end to end: the build environment
   could not reach the tile service, so no archive was produced.
 
+> 📖 **Engineering Reference:** Full architecture internals, measured benchmarks, and failure modes are documented in the [Engineering Wiki · BLE + LoRaWAN Indoor/Outdoor Positioning](https://wiki.seeedstudio.com/solutions/indoor-outdoor-positioning-ble-lorawan/).
+
 ## Output Interfaces
 
 | Interface | Endpoint | Payload |

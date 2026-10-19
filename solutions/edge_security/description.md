@@ -1,94 +1,32 @@
-## It Absorbed the Jetson-Only Package
+## What the Solution Does
 
-There used to be a second, Jetson-only industrial security package. It was
-merged into this one on 2026-09-07: same topic, different deployment routes, so
-one design with several presets rather than two pages. Its capability lives in
-the **Jetson Single Box** preset here.
+Draw a line or a zone, and anyone crossing it raises an alert. Restricted-zone, line-crossing, and loitering alerts are judged entirely on the edge box itself. Operators draw rules, watch the video wall, and disposition alerts in a browser—video never leaves the site.
 
-The detection layer and the rule layer were rewritten to talk over a published
-MQTT payload contract instead of living in one process. That is what lets an
-RK3588 board or a Hailo board run the whole thing, and lets other detector
-hardware join later without touching the hub.
+- **Restricted Zone Intrusion**: Triggers when a tracked person enters a polygon drawn on the camera view.
+- **Line Crossing**: Triggers when a person crosses a tripwire line. The rule can enforce directional counting, so entering and exiting produce distinct alerts, and reverse movements remain silent.
+- **Loitering / Dwell**: Triggers when a person remains inside a zone past a configurable threshold, escalating as an additional alert on top of intrusion.
 
-**What the older package did, and where it is now**
+The detection layer and the rule engine run as decoupled processes communicating over MQTT. One hub can aggregate multiple detectors across rooms and heterogeneous hardware into a single alert list.
 
-| Capability it had | Where it lives here |
-|---|---|
-| TensorRT FP16 person detection on Jetson Orin | Jetson Single Box preset — YOLOv8n on TensorRT 10.3.0, measured 4.13 ms per inference on an Orin NX 16GB |
-| GPU video decode (NVDEC) | Same preset, verified in-kernel — `require_hw_decode` is on, so a host without it fails the pre-checks rather than running slowly |
-| Restricted zone, line crossing, dwell / loitering | All three, with direction on the line rule and loitering raised on top of the entry alert |
-| Browser dashboard, rules drawn on the live frame | The workbench and the rules editor, drawn on a frame proxied from the detector |
-| Event persistence across restarts | The hub's alert store, with a snapshot per alert and CSV export |
-| Multiple cameras on one box | One detector container per camera, several detectors into one hub — and the detectors no longer have to be the same hardware |
-| Orin NX 16GB and Orin Nano 8GB | Both, as `recomputer_j40` and `recomputer_j30` |
+## Core Value
 
-**What is gained**: alerts also leave over MQTT, so an NVR or PLC can subscribe
-instead of polling, and the rule layer can sit on a different machine from the
-detectors.
+- **Reuse Existing Cameras**: Accepts standard RTSP H.264 streams directly—no need to replace existing security cameras.
+- **No Extra Server Required**: Detection, tracking, rule evaluation, event storage, and web console run on the same edge host.
+- **Zero Video Upload**: Video processing is strictly local; only structured alert JSON and JPEG snapshots leave the box.
+- **Full Operator Console**: Adaptive 1–9 tile video wall, fullscreen duty mode, live alert disposition, and CSV export.
+- **Direct On-Frame Rule Authoring**: Draw polygons and tripwires directly over the live stream with immediate effect without restarting containers.
 
-**Four browser features from the older single-process dashboard are available
-here too:**
+## Suitable Scenarios
 
-| What the older dashboard did | Here |
-|---|---|
-| Adaptive grid showing every camera's annotated video on one page | **Restored.** The workbench has a video wall: 1/2/4/6/9 tiles, each with the detector's boxes and that stream's zone and line drawn over the picture |
-| HDMI fullscreen mode, toggled with the F key | **Restored.** `F` enters and leaves, `Esc` leaves |
-| Tune the detection confidence from the dashboard | **Restored, per stream.** A slider on each tile, pushed to the running detector — no restart — and written back to `config/detector.yaml` so it survives one |
-| Add a camera from the dashboard's camera-management panel, while running | **Restored.** RTSP address and a name in a dialog; the detector attaches the stream and the tile appears. One detector process now carries several cameras |
-| Continuous annotated video on the main panel | **Restored as tiles, not as a proxy.** Each tile embeds the stream's own live address and the browser fetches it directly; the hub carries only the overlay JSON |
+Places where the boundary can be clearly framed, the camera is fixed, and crossings must be alerted immediately:
 
-One difference from the old dashboard is deliberate and worth knowing before
-sizing a deployment: **the video does not pass through the hub.** The old
-package served the annotated MJPEG itself, which costs it a stream per viewer.
-Here the browser talks to the camera side directly, so the hub's cost is a few
-JSON requests a second no matter how many people are watching — but the browser
-must be able to reach the detector's own address, which on a segmented network
-means a route the old single-box design never needed.
+- **Perimeters and Restricted Areas**: Switchrooms, chemical stores, server-room doors. Draw a zone for immediate entry alerts.
+- **Corridors and Gateways**: Lay a line across an aisle or doorway to monitor one-way passage without false alarms on return trips.
+- **Dwell Anomaly Points**: Beside sensitive machinery or high-value shelving. Staying past the timeout raises a loitering alert.
 
-The other difference is what the console says when a change fails. Pushing a
-setting to a detector over MQTT can time out, and a timeout is not a failure and
-not a success: the dialog stays open and says the result is unknown rather than
-redrawing as if the site had changed.
-
-**One number did not carry over.** The older package advertised YOLO26n at
-"~268 QPS, ~3.7 ms" and "30+ FPS on Orin NX" without naming a bench or a clip.
-Those figures were never reproduced here, so they are not in the table below.
-Every row there names the board it was measured on.
-
-### The old id and the gap it leaves
-
-There is no migration path between the two packages: they never shared a data
-store, so an existing install keeps working until it is redeployed.
-
-The old id is **not** an alias for this one. `replaces:` in `solution.yaml` is
-not a field the spec defines — it is absent from `spec/solution.schema.json` and
-from every model in `packages/`, so it is silently dropped on load and resolves
-nothing. It is kept only as a written record of where the package went. The id
-is listed in `solutions/.deprecated.json`, which the manifest generator copies
-into the manifest's `deprecated` array; that marks it retired, it does not
-redirect it.
-
-So anything still holding `industrial_security_jetson` — a bookmark, a link, a
-pinned deployment reference — gets a 404 from the moment the directory is
-deleted until whoever consumes the manifest is pointed at `edge_security`. That
-window is real and nothing in this package closes it.
-
-## What This Solution Does
-
-Cameras watch an area. Edge boxes find the people in the picture. One hub turns
-that into three kinds of alert and puts them in a list someone can work
-through:
-
-- **Restricted zone** — a person enters a polygon you drew on the camera view.
-- **Line crossing** — a person crosses a line. The rule can require a
-  direction, so "entered the yard" and "left the yard" are separate alerts.
-- **Loitering** — a person stays inside a zone longer than the dwell time you
-  set, raised on top of the entry alert rather than instead of it.
-
-The detection layer and the judging layer are separate processes talking over
-MQTT. That is what makes this a site solution rather than a single-camera demo:
-one hub carries several detectors, of different kinds, in different rooms, and
-the operator sees one alert list.
+**Usage Notes and Limitations**:
+- Built for person detection; not suitable for vehicles, packages, or equipment tracking without model retuning.
+- Cameras must be mounted rigidly; moving a camera invalidates geometric boundaries and requires redrawing rules.
 
 ## What the Operator Actually Sees
 
@@ -105,7 +43,7 @@ A browser workbench served by the hub, in English or Chinese:
 Alerts also go back out on MQTT, so an NVR, a PLC gateway or an existing
 alerting system can subscribe rather than poll.
 
-## Measured, and Where
+## Measured Performance
 
 Every number below came off a bench, not a datasheet. The timing errors come
 from a 130 s 1280x720 H.264 clip whose crossing and entry instants are known
@@ -252,3 +190,5 @@ Neither preset is close to that limit on one camera — the Jetson detector spen
 7.24 ms on a 200 ms frame, the RK3588 one 44.3 ms — but it is what you will see
 first if you point too many cameras at one box, or run something else heavy
 beside it. Check the detection rate on the Devices page before blaming a rule.
+
+> 📖 **Engineering Reference:** Full architecture internals, measured benchmarks, and failure modes are documented in the [Engineering Wiki · Edge Security Alerting](https://wiki.seeedstudio.com/solutions/edge-security/).

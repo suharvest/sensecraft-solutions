@@ -16,6 +16,8 @@ Deploy on the machine running SenseCraft Solution. BACnet/IP broadcast discovery
 
 ### Wiring
 
+> 📖 **Engineering Reference:** Siting constraints and on-site wiring guidelines are documented in the [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/industrial-protocol-gateway/#how-to-deploy-on-site).
+
 ![Connection architecture](gallery/architecture.svg)
 
 1. Connect this machine to the controller network.
@@ -23,6 +25,9 @@ Deploy on the machine running SenseCraft Solution. BACnet/IP broadcast discovery
 3. The local target does not attach a serial device. For Modbus RTU use the serial-device deployment profile, and keep production writes disabled until hardware validation is complete.
 
 ### Troubleshooting
+
+> 💡 **Technical Parameters & Tuning:** For Max tag capacity, driver poll intervals, and northbound MQTT schema, see [Engineering Wiki · Measured Benchmarks](https://wiki.seeedstudio.com/solutions/industrial-protocol-gateway/#performance-and-measured-data).
+
 
 | Symptom | Fix |
 |---------|-----|
@@ -36,6 +41,9 @@ Deploy on the machine running SenseCraft Solution. BACnet/IP broadcast discovery
 Deploy over SSH to a reComputer R1000 / R1100 or reTerminal DM on the controller network. reTerminal DM can be operated from its own touch display.
 
 ### Wiring
+
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/industrial-protocol-gateway/#现场怎么部署).
+
 
 ![Connection architecture](gallery/architecture.svg)
 
@@ -63,6 +71,9 @@ Open the web console, create an administrator, and connect the first controller.
 
 ### Prerequisites
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/industrial-protocol-gateway/#现场怎么部署).
+
+
 The service from Step 1 is healthy.
 
 ### Troubleshooting
@@ -76,6 +87,9 @@ The service from Step 1 is healthy.
 
 ### Deployment Complete
 
+### Next Steps
+- [View Full Engineering Wiki and Integration Guide](https://wiki.seeedstudio.com/solutions/industrial-protocol-gateway/)
+
 #### Next steps
 
 - Open **Data Service** to configure the embedded MQTT broker and review point, presence, command, and receipt topics.
@@ -86,6 +100,9 @@ The service from Step 1 is healthy.
 Send gateway data to an external or cloud MQTT broker. During a broker outage data is buffered locally and replayed in order after reconnect. Skip this step if the embedded broker from Step 2 is the only consumer.
 
 ### Prerequisites
+
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/industrial-protocol-gateway/#现场怎么部署).
+
 
 > **The deployed image `v1.6.7` does not include this feature, so this step cannot be completed yet.** Every call below returns HTTP 404.
 

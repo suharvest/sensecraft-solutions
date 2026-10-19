@@ -29,6 +29,8 @@
 
 丢帧与延迟为录制视频回放测得。
 
+> 📖 **工程与技术参考：** 完整架构、实测基准与退化边界，详见 [工程 Wiki · 边缘商品识别与货架盘点](https://wiki.seeedstudio.com/cn/solutions/edge-product-recognition/)。
+
 ## 输出接口
 
 | 接口 | 内容 |

@@ -13,12 +13,17 @@ Starts the registration service, management UI and MQTT broker on the server, an
 
 ### Prerequisites
 
+> 📖 **Engineering Reference:** Siting constraints and on-site wiring guidelines are documented in the [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-product-recognition/#how-to-deploy-on-site).
+
 - A Linux server with Docker and the compose plugin, reachable from the recognition device.
 - At least an admin token. The service allows no anonymous access.
 - A TLS reverse proxy in front of the UI before it is reachable from outside the local network.
 - The published images are used by default; to use your own build, override `RETAIL_SERVER_IMAGE` and `RETAIL_WEB_IMAGE`.
 
 ### Troubleshooting
+
+> 💡 **Technical Parameters & Tuning:** For Shelf camera siting, multi-SKU recall, and event JSON payloads, see [Engineering Wiki · Measured Benchmarks](https://wiki.seeedstudio.com/solutions/edge-product-recognition/#performance-and-measured-data).
+
 
 | Symptom | Action |
 |---|---|
@@ -42,6 +47,9 @@ Place the DINOv2-base embedding model in the console's model directory and enabl
 
 ### Prerequisites
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-product-recognition/#现场怎么部署).
+
+
 - The console from Step 1 deployed.
 - `dinov2b_arcface_products10k_224_b1.onnx` (348 MB, sha256 `01ae07d10f638a2ebeb85100325ad79765a325d1026b728b60f1ee106e76eaae`), obtained yourself; non-commercial use only.
 - 350 MB of free space on the server.
@@ -61,6 +69,9 @@ In the console's gallery, register each SKU with 3 to 8 photos. Each registratio
 
 ### Prerequisites
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-product-recognition/#现场怎么部署).
+
+
 - The admin token from Step 1.
 - 3 to 8 photos per SKU: at least front, back and side, in two lighting conditions.
 - Settle the embedding model first; changing it later means rebuilding every gallery version.
@@ -79,6 +90,9 @@ In the console's gallery, register each SKU with 3 to 8 photos. Each registratio
 Convert the detector ONNX to `.rknn` on an x86_64 host and copy it to the board.
 
 ### Prerequisites
+
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-product-recognition/#现场怎么部署).
+
 
 - An x86_64 machine with rknn-toolkit2 2.3.2, onnx 1.16.1 and setuptools below 81.
 - The toolkit version matches the board's `librknnrt.so`; a mismatch can load and still produce wrong results.
@@ -101,11 +115,17 @@ Verify console registration and download, and check the converted model against 
 
 ### Prerequisites
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-product-recognition/#现场怎么部署).
+
+
 - Steps 1 to 4 complete.
 - A clone of the upstream repository with `uv sync` done.
 - Photos of your own SKUs from angles you did not register.
 
 ### Deployment Complete
+
+### Next Steps
+- [View Full Engineering Wiki and Integration Guide](https://wiki.seeedstudio.com/solutions/edge-product-recognition/)
 
 #### Quick verification
 
@@ -144,6 +164,9 @@ Starts the registration service, management UI and MQTT broker on a server the d
 
 ### Prerequisites
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-product-recognition/#现场怎么部署).
+
+
 - A Linux server with Docker and the compose plugin.
 - At least an admin token. The service allows no anonymous access.
 - A TLS reverse proxy in front of the UI before it is reachable from outside the local network.
@@ -172,6 +195,9 @@ Place the INT8-quantised DINOv2-small embedding model in the console's model dir
 
 ### Prerequisites
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-product-recognition/#现场怎么部署).
+
+
 - The console from Step 1 deployed.
 - `dinov2s_arcface_products10k_224_b1_dynint8.onnx` (sha256 `50e886aeab7b61a7eebe6ea3492b2d3ba0e74a859acedcbb9e9917b2b60454f6`), obtained yourself; non-commercial use only.
 - 30 MB of free space on the server.
@@ -191,6 +217,9 @@ Register each SKU with 3 to 8 photos. Each registration creates a new gallery ve
 
 ### Prerequisites
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-product-recognition/#现场怎么部署).
+
+
 - The admin token from Step 1.
 - 3 to 8 photos per SKU covering front, back and side in two lighting conditions.
 - The console running the DINOv2-small model from Step 2.
@@ -209,6 +238,9 @@ Register each SKU with 3 to 8 photos. Each registration creates a new gallery ve
 Compile the detector HEF on an x86_64 host and prepare the HailoRT environment on the device.
 
 ### Prerequisites
+
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-product-recognition/#现场怎么部署).
+
 
 - HailoRT and the PCIe driver on the device at the same version (4.21.0), both held, with matching firmware.
 - `/etc/modprobe.d/hailo.conf` carrying `force_desc_page_size=4096`.
@@ -230,6 +262,9 @@ Compile the detector HEF on an x86_64 host and prepare the HailoRT environment o
 Verify console registration and check the HEF against the CPU results.
 
 ### Prerequisites
+
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-product-recognition/#现场怎么部署).
+
 
 - Steps 1 to 4 complete.
 - A clone of the upstream repository with `uv sync` done.
@@ -273,6 +308,9 @@ Starts the registration service, management UI and MQTT broker on the server, an
 
 ### Prerequisites
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-product-recognition/#现场怎么部署).
+
+
 - A Linux server with Docker and the compose plugin.
 - At least an admin token. The service allows no anonymous access.
 - A TLS reverse proxy in front of the UI before it is reachable from outside the local network.
@@ -301,6 +339,9 @@ Place the fp32 DINOv2-small embedding model in the console's model directory and
 
 ### Prerequisites
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-product-recognition/#现场怎么部署).
+
+
 - The console from Step 1 deployed.
 - `dinov2s_arcface_products10k_224_b1.onnx` (sha256 `7f0136ef6459fdd5461e39e95070c7e964fbe2df4b53309f15f452c60da615be`), obtained yourself; non-commercial use only.
 - A few tens of MB of free space on the server.
@@ -320,6 +361,9 @@ Register each SKU with 3 to 8 photos. Each registration creates a new gallery ve
 
 ### Prerequisites
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-product-recognition/#现场怎么部署).
+
+
 - The admin token from Step 1.
 - 3 to 8 photos per SKU: front, back and side, in two lighting conditions.
 - The console running the DINOv2-small model from Step 2; otherwise retrieval on the device is invalid.
@@ -337,6 +381,9 @@ Register each SKU with 3 to 8 photos. Each registration creates a new gallery ve
 Build the detection and embedding fp16 engines on the board and verify their SHA.
 
 ### Prerequisites
+
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-product-recognition/#现场怎么部署).
+
 
 - A reComputer J40 (Orin NX 16GB) with JetPack 6.2 and TensorRT 10.3. Build the engines on the board that runs them; they cannot be copied between boards.
 - The detector ONNX, obtained yourself; academic and non-commercial use only.
@@ -358,6 +405,9 @@ Build the detection and embedding fp16 engines on the board and verify their SHA
 Verify console registration and download, the engine checks, and device-side detection and retrieval.
 
 ### Prerequisites
+
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-product-recognition/#现场怎么部署).
+
 
 - Steps 1 to 4 complete.
 - A clone of the upstream repository with `uv sync` done.

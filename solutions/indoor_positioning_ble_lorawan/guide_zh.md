@@ -14,11 +14,16 @@
 
 ### 接线
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署)。
+
 1. 每个区域至少放 3 个信标（三边定位），或放 1 个（只到房间级）
 2. 安装高度 2.5-3 m，间距 5-10 m
 3. 记录每个信标的 MAC 地址与位置
 
 ### 故障排查
+
+> 💡 **参数与深度排障：** 信标部署密度、定位漂移调优与地图坐标映射，详见 [工程 Wiki · 参数实测与已知退化](https://wiki.seeedstudio.com/cn/solutions/indoor-outdoor-positioning-ble-lorawan/#性能与实测数据)。
+
 
 | 现象 | 处理 |
 |------|------|
@@ -34,6 +39,9 @@
 接入网关，打通追踪器与定位应用之间的无线链路。
 
 ### 接线
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署)。
+
 
 1. 网关上电，接入网络（有线或 WiFi）
 2. 用 SenseCraft App 扫码绑定网关
@@ -60,11 +68,15 @@
 
 ### 接线
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署)。
+
+
 1. 确认已安装并启动 Docker Desktop
 2. 确认 5173 端口空闲
 3. 要用离线底图的话，部署前把 `.pmtiles` 地图文件放到 compose 文件旁边的 `data/pmtiles` 目录
 
 ### 部署完成
+
 
 1. 访问 `http://localhost:5173`，用 `admin` / `12345678` 登录（登录后在「配置 → 认证」修改默认密码）
 2. 上传平面图，填写它覆盖的实际尺寸（米）
@@ -85,6 +97,9 @@
 通过 SSH 把定位应用部署到远程服务器。
 
 ### 接线
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署)。
+
 
 1. 目标设备接入网络
 2. 拿到设备 IP 地址
@@ -116,6 +131,9 @@
 
 ### 接线
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署)。
+
+
 1. 长按电源键 3 s 开机，绿灯闪烁表示正在入网
 2. 用 SenseCraft App 连接追踪器
 3. 选对 LoRaWAN 频段，并同时打开 BLE 扫描与 GNSS 定位
@@ -140,11 +158,17 @@
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署)。
+
+
 - 平面图已上传，并已填写实际尺寸（米）
 - 已用 `admin` 登录
 - 室外地图上能看到站点（在线 OSM 地图，或离线 `.pmtiles` 地图）
 
 ### 接线
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署)。
+
 
 1. 在地图下拉里选 **室外**，把视野移到站点
 2. 进入配准模式并选中平面图
@@ -176,10 +200,16 @@
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署)。
+
+
 - 至少有一个追踪器在上报 GNSS 位置
 - 明确要告警的方向：进入、离开，还是两者
 
 ### 接线
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署)。
+
 
 1. 新建围栏：GeoJSON 多边形，或者中心点加 `radius_m`
 2. 新建告警规则，`location_mode` 设为 `geo`，指向该围栏，选择方向
@@ -247,6 +277,9 @@
 
 ### 接线
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署)。
+
+
 1. 每个区域至少放 3 个信标（三边定位），或放 1 个（只到房间级）
 2. 安装高度 2.5-3 m，间距 5-10 m
 3. 记录每个信标的 MAC 地址与位置
@@ -267,6 +300,9 @@
 接入网关，打通追踪器与定位应用之间的无线链路。
 
 ### 接线
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署)。
+
 
 1. 网关上电，接入网络（有线或 WiFi）
 2. 用 SenseCraft App 扫码绑定网关
@@ -293,6 +329,9 @@
 
 ### 接线
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署)。
+
+
 1. 确认已安装并启动 Docker Desktop
 2. 确认 5173 端口空闲
 3. 要用离线底图的话，部署前把 `.pmtiles` 地图文件放到 compose 文件旁边的 `data/pmtiles` 目录
@@ -318,6 +357,9 @@
 通过 SSH 把定位应用部署到远程服务器。
 
 ### 接线
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署)。
+
 
 1. 目标设备接入网络
 2. 拿到设备 IP 地址
@@ -349,6 +391,9 @@
 
 ### 接线
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署)。
+
+
 1. 长按电源键 3 s 开机，绿灯闪烁表示正在入网
 2. 用 SenseCraft App 连接追踪器
 3. 选对 LoRaWAN 频段，并同时打开 BLE 扫描与 GNSS 定位
@@ -373,11 +418,17 @@
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署)。
+
+
 - 平面图已上传，并已填写实际尺寸（米）
 - 已用 `admin` 登录
 - 室外地图上能看到站点（在线 OSM 地图，或离线 `.pmtiles` 地图）
 
 ### 接线
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署)。
+
 
 1. 在地图下拉里选 **室外**，把视野移到站点
 2. 进入配准模式并选中平面图
@@ -409,10 +460,16 @@
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署)。
+
+
 - 至少有一个追踪器在上报 GNSS 位置
 - 明确要告警的方向：进入、离开，还是两者
 
 ### 接线
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署)。
+
 
 1. 新建围栏：GeoJSON 多边形，或者中心点加 `radius_m`
 2. 新建告警规则，`location_mode` 设为 `geo`，指向该围栏，选择方向
@@ -480,6 +537,9 @@
 
 ### 接线
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署)。
+
+
 1. 每个区域至少放 3 个信标（三边定位），或放 1 个（只到房间级）
 2. 安装高度 2.5-3 m，间距 5-10 m
 3. 记录每个信标的 MAC 地址与位置
@@ -500,6 +560,9 @@
 接入网关，打通追踪器与定位应用之间的无线链路。
 
 ### 接线
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署)。
+
 
 1. 网关上电，接入网络（有线或 WiFi）
 2. 用 SenseCraft App 扫码绑定网关
@@ -526,6 +589,9 @@
 
 ### 接线
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署)。
+
+
 1. 确认已安装并启动 Docker Desktop
 2. 确认 5173 端口空闲
 3. 要用离线底图的话，部署前把 `.pmtiles` 地图文件放到 compose 文件旁边的 `data/pmtiles` 目录
@@ -551,6 +617,9 @@
 通过 SSH 把定位应用部署到远程服务器。
 
 ### 接线
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署)。
+
 
 1. 目标设备接入网络
 2. 拿到设备 IP 地址
@@ -582,6 +651,9 @@
 
 ### 接线
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署)。
+
+
 1. 长按电源键 3 s 开机，绿灯闪烁表示正在入网
 2. 用 SenseCraft App 连接追踪器
 3. 选对 LoRaWAN 频段，并同时打开 BLE 扫描与 GNSS 定位
@@ -606,11 +678,17 @@
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署)。
+
+
 - 平面图已上传，并已填写实际尺寸（米）
 - 已用 `admin` 登录
 - 室外地图上能看到站点（在线 OSM 地图，或离线 `.pmtiles` 地图）
 
 ### 接线
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署)。
+
 
 1. 在地图下拉里选 **室外**，把视野移到站点
 2. 进入配准模式并选中平面图
@@ -642,10 +720,16 @@
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署)。
+
+
 - 至少有一个追踪器在上报 GNSS 位置
 - 明确要告警的方向：进入、离开，还是两者
 
 ### 接线
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/indoor-outdoor-positioning-ble-lorawan/#现场怎么部署)。
+
 
 1. 新建围栏：GeoJSON 多边形，或者中心点加 `radius_m`
 2. 新建告警规则，`location_mode` 设为 `geo`，指向该围栏，选择方向
@@ -696,3 +780,6 @@
 - [查看 Wiki 文档](https://wiki.seeedstudio.com/cn/solutions/indoor-positioning-bluetooth-lorawan-tracker/)
 - [GitHub 仓库](https://github.com/Seeed-Solution/Solution_IndoorPositioning_H5)
 - [体验在线演示](https://indoorpositioning-demo.seeed.cc/)
+
+### 后续步骤
+- [查看完整工程 Wiki 与二次开发指南](https://wiki.seeedstudio.com/cn/solutions/indoor-outdoor-positioning-ble-lorawan/)

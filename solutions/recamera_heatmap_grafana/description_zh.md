@@ -34,6 +34,8 @@
 - 摄像头距离目标物 3-5 米
 - 目标物在画面中尺寸建议 >30×30 像素
 
+> 📖 **工程与技术参考：** 完整架构、实测基准与退化边界，详见 [工程 Wiki · 人流热力图与 Grafana 看板](https://wiki.seeedstudio.com/cn/solutions/retail-heatmap-grafana/)。
+
 ## 方案对比
 
 | 方案 | 核心设备 | 摄像头路数 | 适合谁 |

@@ -12,10 +12,16 @@ Downloads the model, builds the TensorRT engine on the device (about five minute
 
 ### Prerequisites
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-assembly-inspection/#现场怎么部署).
+
+
 - Ports 1883, 502 and 8080 free on the device.
 - The RTSP address tested in VLC.
 
 ### Troubleshooting
+
+> 💡 **Technical Parameters & Tuning:** For Dimension tolerances, lighting constraints, and Modbus/MQTT specs, see [Engineering Wiki · Measured Benchmarks](https://wiki.seeedstudio.com/solutions/edge-assembly-inspection/#performance-and-measured-data).
+
 
 | Symptom | Fix |
 |-------|----------|
@@ -41,6 +47,9 @@ Optional, only needed for the dimension check. When skipped, the dimension secti
 
 ### Prerequisites
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-assembly-inspection/#现场怎么部署).
+
+
 - A calibration reference in the **same plane** as the measured surface: an ArUco marker (the example uses `DICT_4X4_50`, id 7, 25 mm wide) or an object of known width. Measure a printed marker with a caliper.
 - A known-good part to confirm the result against.
 - Step 1 completed.
@@ -60,6 +69,7 @@ Optional, only needed for the dimension check. When skipped, the dimension secti
 Opens the panel on port 8080 with live counters, recent events and a preview with detection boxes and assembly ROIs.
 
 ### Deployment Complete
+
 
 The station publishes one MQTT event per frame and keeps the Modbus registers and coils current.
 
@@ -116,6 +126,9 @@ Optional. Runs the upstream semi-automatic annotation tool (`tools/annotation/`)
 
 ### Prerequisites
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-assembly-inspection/#现场怎么部署).
+
+
 - A GPU workstation with the upstream `edge-inspection-assembly` repository (`--backend otsu` needs no GPU but gives weaker results).
 - Your own station images and a COCO-style category list.
 
@@ -140,6 +153,9 @@ Detection runs on the Hailo-8 accelerator; assembly comparison, dimension measur
 Checks the Hailo runtime, downloads the model, then starts the runtime and its MQTT broker.
 
 ### Prerequisites
+
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-assembly-inspection/#现场怎么部署).
+
 
 - Ports 1883, 502 and 8080 free on the device.
 - The RTSP address tested in VLC.
@@ -169,6 +185,9 @@ Deploy to this machine, which must be the reComputer R2000. Same requirements as
 Optional, only needed for the dimension check. When skipped, the dimension section reports `uncalibrated` and Modbus HR 11 = 4; the assembly comparison is unaffected.
 
 ### Prerequisites
+
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-assembly-inspection/#现场怎么部署).
+
 
 - A calibration reference in the **same plane** as the measured surface: an ArUco marker (the example uses `DICT_4X4_50`, id 7, 25 mm wide) or an object of known width. Measure a printed marker with a caliper.
 - A known-good part to confirm the result against.
@@ -245,6 +264,9 @@ Optional. Runs the upstream semi-automatic annotation tool (`tools/annotation/`)
 
 ### Prerequisites
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-assembly-inspection/#现场怎么部署).
+
+
 - A GPU workstation with the upstream `edge-inspection-assembly` repository (`--backend otsu` needs no GPU but gives weaker results).
 - Your own station images and a COCO-style category list.
 
@@ -271,6 +293,8 @@ Install `inspection-assembly` from the App Center on the camera's web console fi
 Fill in a device name, and a broker address if you want verdicts on a broker. With the broker empty, verdicts still leave the device over Modbus TCP.
 
 ### Wiring
+
+> 📖 **Engineering Reference:** Siting constraints and on-site wiring guidelines are documented in the [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-assembly-inspection/#how-to-deploy-on-site).
 
 With a broker configured, every processed frame publishes one JSON record to `inspection/<device name>/results` (QoS 0) carrying the verdict, defect count, boxes and inference time.
 
@@ -304,3 +328,6 @@ The check passes when the heartbeat in HR 6/7 has advanced between the two reads
 | Connection refused on 502 | Confirm the app is the active one and no other process holds the port |
 | The heartbeat does not advance | The app reads the RTSP substream from the camera's built-in `rkipc`; confirm `rkipc` is running |
 | Both coils read 0 | The first frame has not completed yet; read again |
+
+### Next Steps
+- [View Full Engineering Wiki and Integration Guide](https://wiki.seeedstudio.com/solutions/edge-assembly-inspection/)

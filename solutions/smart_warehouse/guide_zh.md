@@ -22,6 +22,8 @@
 
 ### 故障排除
 
+> 💡 **参数与深度排障：** MCP 数据格式、REST 接口与大模型吞吐基准，详见 [工程 Wiki · 参数实测与已知退化](https://wiki.seeedstudio.com/cn/solutions/voice-warehouse-management/#性能与实测数据)。
+
 | 现象 | 处理 |
 |------|--------|
 | 手机搜不到热点 | 确保手机 WiFi 已开启，靠近 Watcher 重试 |
@@ -98,6 +100,7 @@
 
 ### 部署完成
 
+
 SenseCraft 体验版已就绪！
 
 **访问入口：**
@@ -129,6 +132,8 @@ SenseCraft 体验版已就绪！
 
 ### 接线
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/voice-warehouse-management/#现场怎么部署)。
+
 ![连接设备](gallery/watcher_usb.png)
 
 1. 用 USB-C 线连接 Watcher 到电脑
@@ -136,6 +141,9 @@ SenseCraft 体验版已就绪！
 3. 点击烧录按钮
 
 ### 故障排查
+
+> 💡 **参数与深度排障：** MCP 数据格式、REST 接口与大模型吞吐基准，详见 [工程 Wiki · 参数实测与已知退化](https://wiki.seeedstudio.com/cn/solutions/voice-warehouse-management/#性能与实测数据)。
+
 
 | 现象 | 处理 |
 |------|----------|
@@ -151,6 +159,9 @@ SenseCraft 体验版已就绪！
 将视觉检测程序写入 Watcher 的 AI 芯片。
 
 ### 接线
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/voice-warehouse-management/#现场怎么部署)。
+
 
 ![连接设备](gallery/watcher_usb.png)
 
@@ -177,6 +188,9 @@ SenseCraft 体验版已就绪！
 先通过 WiFi 配对 Watcher，绑定到 SenseCraft 云平台，再创建一个「库存管理员」智能体并复制其 MCP 端点地址（步骤 6 会用到）。
 
 ### 接线
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/voice-warehouse-management/#现场怎么部署)。
+
 
 1. 打开 Watcher 电源，按住右上角滚轮按钮 5 秒后松开开机
 2. 手机搜索名为"Watcher-XXXX"的 WiFi 热点并连接
@@ -212,6 +226,9 @@ SenseCraft 体验版已就绪！
 
 ### 接线
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/voice-warehouse-management/#现场怎么部署)。
+
+
 1. 确保本机 Docker 已安装并运行
 2. 点击部署按钮启动服务
 
@@ -227,6 +244,9 @@ SenseCraft 体验版已就绪！
 部署到 reComputer R1100 系列（4 GB 内存起），需要至少 2 GB 可用磁盘。
 
 ### 接线
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/voice-warehouse-management/#现场怎么部署)。
+
 
 ![接线图](gallery/R1100_connected.webp)
 
@@ -361,6 +381,9 @@ SenseCraft 体验版已就绪！
 
 ### 接线
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/voice-warehouse-management/#现场怎么部署)。
+
+
 1. 用 USB-C 数据线连接 D1001 与电脑
 2. 端口自动选中（ESP32-P4 原生 USB，`usbmodem*` / `ttyACM*`）
 3. 点击烧录，等待六个分段全部写完
@@ -379,6 +402,9 @@ SenseCraft 体验版已就绪！
 D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主要差别。之后的智能体、MCP 接入点、仓库系统配置完全一致。
 
 ### 接线
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/voice-warehouse-management/#现场怎么部署)。
+
 
 1. 开机后点击状态栏的网络图标
 2. 选择 **2.4GHz** 网络，在屏上输入密码，等待 IP 地址出现
@@ -415,6 +441,8 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 
 ### 接线
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/voice-warehouse-management/#现场怎么部署)。
+
 ![连接设备](gallery/watcher_usb.png)
 
 1. 用 USB-C 线连接 Watcher 到电脑
@@ -422,6 +450,9 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 3. 点击烧录按钮
 
 ### 故障排查
+
+> 💡 **参数与深度排障：** MCP 数据格式、REST 接口与大模型吞吐基准，详见 [工程 Wiki · 参数实测与已知退化](https://wiki.seeedstudio.com/cn/solutions/voice-warehouse-management/#性能与实测数据)。
+
 
 | 现象 | 处理 |
 |------|----------|
@@ -437,6 +468,9 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 将视觉检测程序写入 Watcher 的 AI 芯片。
 
 ### 接线
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/voice-warehouse-management/#现场怎么部署)。
+
 
 ![连接设备](gallery/watcher_usb.png)
 
@@ -492,6 +526,9 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 
 ### 接线
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/voice-warehouse-management/#现场怎么部署)。
+
+
 ![接线图](gallery/R1100_connected.webp)
 
 1. 将设备接上电源和网线，确保与电脑在同一网络
@@ -513,6 +550,9 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 
 ### 接线
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/voice-warehouse-management/#现场怎么部署)。
+
+
 1. 将 Jetson 接上电源和网线，确保与电脑在同一网络
 2. 输入设备 IP 地址和 SSH 凭据
 3. 点击部署，等待安装完成
@@ -530,6 +570,9 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 
 ### 接线
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/voice-warehouse-management/#现场怎么部署)。
+
+
 1. 确保本机 Docker 已安装并运行
 2. 点击部署按钮启动服务
 
@@ -538,6 +581,9 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 在本机（Jetson 设备）直接运行，需要至少 4 GB 可用磁盘。
 
 ### 接线
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/voice-warehouse-management/#现场怎么部署)。
+
 
 1. 确保本机 Docker 已安装并运行
 2. 点击部署按钮启动服务
@@ -661,6 +707,9 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 
 ### 接线
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/voice-warehouse-management/#现场怎么部署)。
+
+
 1. 用 USB-C 数据线连接 D1001 与电脑
 2. 端口自动选中（ESP32-P4 原生 USB，`usbmodem*` / `ttyACM*`）
 3. 点击烧录，等待六个分段全部写完
@@ -679,6 +728,9 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主要差别。之后的智能体、MCP 接入点、仓库系统配置完全一致。
 
 ### 接线
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/voice-warehouse-management/#现场怎么部署)。
+
 
 1. 开机后点击状态栏的网络图标
 2. 选择 **2.4GHz** 网络，在屏上输入密码，等待 IP 地址出现
@@ -715,6 +767,9 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 
 ### 接线
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/voice-warehouse-management/#现场怎么部署)。
+
+
 ![连接设备](gallery/watcher_usb.png)
 
 1. 用 USB-C 线连接 Watcher 到电脑
@@ -737,6 +792,9 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 将视觉检测程序写入 Watcher 的 AI 芯片，用于人脸识别和物体检测。
 
 ### 接线
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/voice-warehouse-management/#现场怎么部署)。
+
 
 ![连接设备](gallery/watcher_usb.png)
 
@@ -766,6 +824,9 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 
 ### 接线
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/voice-warehouse-management/#现场怎么部署)。
+
+
 ![接线图](gallery/R1100_connected.webp)
 
 1. 将 J40 系列设备接上电源和网线，确保与电脑在同一网络
@@ -787,6 +848,9 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 直接在本机运行，仅当本机就是 J40 系列设备时适用。需要至少 4 GB 可用磁盘。
 
 ### 接线
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/voice-warehouse-management/#现场怎么部署)。
+
 
 1. 确保本机 Docker 已安装并运行
 2. 点击部署按钮启动服务
@@ -834,6 +898,9 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 
 ### 接线
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/voice-warehouse-management/#现场怎么部署)。
+
+
 1. 将 J40 系列设备接上电源和网线
 2. 输入 J40 系列设备的 IP 地址和 SSH 凭据（与步骤 3 是同一台设备）
 3. 点击部署，等待模型下载与服务启动
@@ -873,6 +940,9 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 
 ### 接线
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/voice-warehouse-management/#现场怎么部署)。
+
+
 1. 确保 Docker 已安装并运行
 2. 点击部署按钮启动服务
 
@@ -881,6 +951,9 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 部署到 J40 系列设备，需要至少 6 GB 可用磁盘。
 
 ### 接线
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/voice-warehouse-management/#现场怎么部署)。
+
 
 1. 输入 J40 系列设备的 IP 地址和 SSH 凭据
 2. 点击部署，等待安装完成
@@ -902,6 +975,9 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 > 语音识别与合成都在本地运行，Watcher **不需要**绑定 SenseCraft 云平台。
 
 ### 接线
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/voice-warehouse-management/#现场怎么部署)。
+
 
 1. 打开 Watcher 电源，按住右上角滚轮按钮 5 秒后松开开机
 2. 手机搜索名为 `Watcher-XXXX` 的 WiFi 热点并连接
@@ -945,6 +1021,9 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 
 
 ### 接线
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/voice-warehouse-management/#现场怎么部署)。
+
 
 **A. 登录智控台**
 
@@ -1061,6 +1140,9 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 
 ### 接线
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/voice-warehouse-management/#现场怎么部署)。
+
+
 ![连接设备](gallery/watcher_usb.png)
 
 1. 用 USB-C 线连接 Watcher 到电脑
@@ -1083,6 +1165,9 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 将视觉检测程序写入 Watcher 的 AI 芯片，用于人脸识别和物体检测。
 
 ### 接线
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/voice-warehouse-management/#现场怎么部署)。
+
 
 ![连接设备](gallery/watcher_usb.png)
 
@@ -1112,6 +1197,9 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 
 ### 接线
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/voice-warehouse-management/#现场怎么部署)。
+
+
 1. 确保本机 Docker 已安装并运行
 2. 点击部署按钮启动服务
 
@@ -1127,6 +1215,9 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 部署到 reComputer Industrial R21 系列（Hailo-8，4 GB 内存起），需要至少 4 GB 可用磁盘。
 
 ### 接线
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/voice-warehouse-management/#现场怎么部署)。
+
 
 ![接线图](gallery/R1100_connected.webp)
 
@@ -1178,6 +1269,9 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 
 ### 接线
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/voice-warehouse-management/#现场怎么部署)。
+
+
 1. 将 Jetson（reComputer J50 系列）接上电源和网线
 2. 输入 Jetson 的 IP 地址和 SSH 凭据
 3. 点击部署，等待模型下载与服务启动
@@ -1213,6 +1307,9 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 
 ### 接线
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/voice-warehouse-management/#现场怎么部署)。
+
+
 1. 确保 Docker 已安装并运行
 2. 点击部署按钮启动服务
 
@@ -1221,6 +1318,9 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 部署到 Industrial R21 系列设备，需要至少 6 GB 可用磁盘。
 
 ### 接线
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/voice-warehouse-management/#现场怎么部署)。
+
 
 1. 输入 Industrial R21 系列设备的 IP 地址和 SSH 凭据
 2. 点击部署，等待安装完成
@@ -1241,6 +1341,9 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 > 本套餐是纯局域网方案，Watcher **不需要**绑定 SenseCraft 云平台。
 
 ### 接线
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/voice-warehouse-management/#现场怎么部署)。
+
 
 1. 打开 Watcher 电源，按住右上角滚轮按钮 5 秒后松开开机
 2. 手机搜索名为 `Watcher-XXXX` 的 WiFi 热点并连接
@@ -1284,6 +1387,9 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 
 
 ### 接线
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/voice-warehouse-management/#现场怎么部署)。
+
 
 **A. 登录智控台**
 
@@ -1385,6 +1491,9 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 
 ### 接线
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/voice-warehouse-management/#现场怎么部署)。
+
+
 1. 用 USB-C 数据线连接 D1001 与电脑
 2. 端口自动选中（ESP32-P4 原生 USB，`usbmodem*` / `ttyACM*`）
 3. 点击烧录，等待六个分段全部写完
@@ -1403,6 +1512,9 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 D1001 出厂指向公共小智服务，需要和 Watcher 一样改 OTA 地址。改地址只能在配网页面上做，D1001 进入配网页面用的是 boot 键，不是滚轮键。
 
 ### 接线
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/voice-warehouse-management/#现场怎么部署)。
+
 
 1. 开机，在启动过程中点按 boot 键，设备进入配网模式并广播配置热点
 2. 手机连接该热点，配置页面会自动弹出（未弹出则访问 `http://192.168.4.1`）
@@ -1433,3 +1545,6 @@ D1001 出厂指向公共小智服务，需要和 Watcher 一样改 OTA 地址。
 | 状态一直是未连接 | 检查地址是否完整复制，不要有多余空格 |
 
 ---
+
+### 后续步骤
+- [查看完整工程 Wiki 与二次开发指南](https://wiki.seeedstudio.com/cn/solutions/voice-warehouse-management/)

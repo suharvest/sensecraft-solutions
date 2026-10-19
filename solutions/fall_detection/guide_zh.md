@@ -6,9 +6,12 @@
 
 ## 步骤 1: 更新 reCamera 控制台 {#update_console type=recamera_cpp required=false config=devices/recamera_console.yaml}
 
-安装 0.5.6 控制台，它负责管理相机应用。已经是该版本会自动跳过。
+安装 0.5.5 控制台，它负责管理相机应用。已经是该版本会自动跳过。
 
 ### 前置条件
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/elderly-fall-detection/#现场怎么部署)。
+
 
 1. 用 USB 连接 reCamera，或让它和这台电脑处于同一网络。
 2. USB 连接的地址是 `192.168.42.1`；走 Wi-Fi 时用路由器上显示的 IP。
@@ -31,6 +34,9 @@
 
 ### 接线
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/elderly-fall-detection/#现场怎么部署)。
+
+
 ![机位示意：2–3 m 的侧向或斜角机位可用；垂直俯拍、远景和被遮挡的机位不可用。](https://files.seeedstudio.com/Solution/landpage_asset/fall-detection/camera-placement-be3fb598.svg)
 
 1. 把摄像头固定安装，让它能完整、开阔地看到要覆盖的区域。
@@ -38,6 +44,7 @@
 3. 优先用侧向或斜角俯视地面区域的机位，不要垂直向下拍。
 4. 对着通行区域，不要主要对着床或健身区域——除非你单独验证过，那里的日常地面动作会被当成跌倒。
 5. 它检测的是倒地这个过程，不是倒地后的结果：如果启动时人已经躺着，它会报告姿态但不会产生事件。
+6. 机位盲区与安装约束：详细视场角、地面遮挡容限与受限场景说明，请参阅 [现场机位安装工程指南](https://wiki.seeedstudio.com/cn/solutions/edge-fall-detection/?utm_source=solution_app&utm_medium=in_app_guide&utm_campaign=fall_detection&utm_content=siting_constraints#现场怎么部署)。
 
 ### 故障排查
 
@@ -46,7 +53,7 @@
 | 服务启动后立刻退出 | 还有别的相机应用在占用摄像头；同一时间只能有一个程序占用，重启设备后重试 |
 | 装完后 Node-RED 不工作了 | 属于预期——安装会把摄像头从 Node-RED 和其他视觉应用手里接管过来 |
 | 跌倒漏报 | 拉大视野、改善照明，保证倒地前后肩部和髋部都可见 |
-| 做俯卧撑触发告警 | 这是已知的类跌倒动作，换个机位或在下游加人工确认 |
+| 做俯卧撑触发告警 | 这是已知的类跌倒动作，换个机位或在下游加人工确认（调优参考：[时序状态机判定与调参指南](https://wiki.seeedstudio.com/cn/solutions/edge-fall-detection/?utm_source=solution_app&utm_medium=in_app_guide&utm_campaign=fall_detection&utm_content=troubleshoot_tuning#判定为什么快速坐下不会误报)） |
 | 收不到 MQTT 消息 | 确认电脑能访问 1883 端口，主题为 `recamera/fall-detection/results` |
 
 ---
@@ -69,6 +76,7 @@
 
 - 把摄像头接入 Home Assistant——只要 broker 是共享的，实体会自动出现。
 - 在启用任何通知流程之前，用有代表性的跌倒动作和日常动作做一次现场验收测试。
+- 如需将告警接入自建业务系统、NVR 或护理呼叫中心，请参阅 [完整通信协议与 MQTT Payload 规范](https://wiki.seeedstudio.com/cn/solutions/edge-fall-detection/?utm_source=solution_app&utm_medium=in_app_guide&utm_campaign=fall_detection&utm_content=mqtt_payload_spec#完整的主题与-payload)。
 
 ### 故障排查
 
@@ -87,6 +95,9 @@
 做这一步，则在另一台主机上安装告警面板：站点总览、在实时画面上画识别区域、每个区域的无人超时与静止超时、值班人确认或驳回告警、审计记录，以及不含视频的 webhook。
 
 ### 前置条件
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/elderly-fall-detection/#现场怎么部署)。
+
 
 面板装在与摄像头同网段的另一台机器上，不需要 AI 算力：reComputer R1000 系列，或已有的一台 Linux 机器。
 
@@ -108,10 +119,6 @@
 ### 部署目标 {#panel_host_recamera_remote type=remote device_name="告警面板主机" config=devices/panel_host.yaml default=true}
 
 通过 SSH 部署到面板主机。
-
-### 部署目标 {#panel_host_recamera_local type=local device_name="告警面板主机" config=devices/panel_host.yaml}
-
-把告警面板安装在运行本应用的这台电脑上。
 
 ## 步骤 5: 打开告警面板 {#panel_open_recamera type=web_dashboard required=false config=devices/panel_console.yaml}
 
@@ -155,6 +162,9 @@
 | "我没事" | 默认 `on_ok: needs_review`——告警保持原有时序，只打上待复核标记。要直接结案就设 `on_ok: dismiss` |
 
 ### 前置条件
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/elderly-fall-detection/#现场怎么部署)。
+
 
 同一局域网内有一个 OpenVoiceStream 实例，USB 麦克风与扬声器接在运行它的那台机器上，不接在摄像头上。
 
@@ -264,6 +274,9 @@
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/elderly-fall-detection/#现场怎么部署)。
+
+
 面板装在与摄像头同网段的另一台机器上，不需要 AI 算力：reComputer R1000 系列，或已有的一台 Linux 机器。
 
 - 摄像头同网段的一台 x86_64 或 arm64 Linux 主机，装好 Docker 与 compose 插件
@@ -284,10 +297,6 @@
 ### 部署目标 {#panel_host_recamera_pro_remote type=remote device_name="告警面板主机" config=devices/panel_host.yaml default=true}
 
 通过 SSH 部署到面板主机。
-
-### 部署目标 {#panel_host_recamera_pro_local type=local device_name="告警面板主机" config=devices/panel_host.yaml}
-
-把告警面板安装在运行本应用的这台电脑上。
 
 ## 步骤 5: 打开告警面板 {#panel_open_recamera_pro type=web_dashboard required=false config=devices/panel_console.yaml}
 
@@ -332,6 +341,9 @@
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/elderly-fall-detection/#现场怎么部署)。
+
+
 同一局域网内有一个 OpenVoiceStream 实例，USB 麦克风与扬声器接在运行它的那台机器上，不接在摄像头上。
 
 ### 部署完成
@@ -368,25 +380,28 @@ reComputer J30 / J40 拉取现有 IP 摄像头的 RTSP 流，对每一路里的�
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/elderly-fall-detection/#现场怎么部署)。
+
+
 1. Jetson 运行 JetPack 6.x，且 NVIDIA 容器运行时可用。
 2. 至少 10 GB 空闲磁盘。
 3. 准备好 IP 摄像头的 RTSP 地址，需要认证的话要带上用户名密码，例如
    `rtsp://admin:password@192.168.1.64:554/Streaming/Channels/101`。
-4. 首次部署大部分时间用于在设备上构建推理引擎，之后的部署会复用。
+4. 首次部署大部分时间用于在设备上构建推理引擎，之后的部署会复用（各平台构建耗时与运行时依赖详见 [四套硬件运行时对照表](https://wiki.seeedstudio.com/cn/solutions/edge-fall-detection/?utm_source=solution_app&utm_medium=in_app_guide&utm_campaign=fall_detection&utm_content=runtime_matrix#识别同一个模型四套运行时)）。
 5. 按板子选姿态模型：Orin Nano 用 **YOLO11s**，Orin NX 用 **YOLO11m**。
 
 ### 故障排查
 
 | 现象 | 处理 |
 |-------|----------|
-| 引擎构建失败 | 确认 `/usr/src/tensorrt/bin/trtexec` 存在，且磁盘有 10 GB 空闲 |
+| 引擎构建失败 | 确认 `/usr/src/tensorrt/bin/trtexec` 存在，且磁盘有 10 GB 空闲（各平台构建耗时与依赖详见 [四套硬件运行时对照表](https://wiki.seeedstudio.com/cn/solutions/edge-fall-detection/?utm_source=solution_app&utm_medium=in_app_guide&utm_campaign=fall_detection&utm_content=runtime_matrix#识别同一个模型四套运行时)） |
 | 收不到摄像头画面 | 先用 VLC 测试 RTSP 地址，绝大多数问题是路径或用户名密码写错 |
 | 容器反复重启 | 查看日志里的引擎路径；上次中断留下的半成品引擎必须删掉 |
 | 部署时连不上 | 确认 SSH 可达且用户名正确——Seeed 镜像通常是 `recomputer` 或 `nvidia` |
 
 ### 部署目标 {#jetson_remote type=remote device=jetson device_name="Jetson" config=devices/jetson_fall.yaml default=true}
 
-从这台电脑通过 SSH 部署到 Jetson。
+从这台电脑通过 SSH 部署到 Jetson。首次在设备上构建推理引擎需 10–20 分钟（各平台构建机制与运行时依赖详见 [四套硬件运行时对照表](https://wiki.seeedstudio.com/cn/solutions/edge-fall-detection/?utm_source=solution_app&utm_medium=in_app_guide&utm_campaign=fall_detection&utm_content=runtime_matrix#识别同一个模型四套运行时)）。
 
 ### 部署目标 {#jetson_local type=local device=jetson device_name="Jetson" config=devices/jetson_fall.yaml}
 
@@ -410,12 +425,11 @@ reComputer J30 / J40 拉取现有 IP 摄像头的 RTSP 流，对每一路里的�
 
 #### 增加更多摄像头
 
-检测器可以同时处理多路视频。在设备上的配置文件里往 `streams` 列表中添加，然后重启
-容器即可；每一路各自维护跟踪状态，并有自己的 MQTT 主题。
+检测器可以同时处理多路视频。在设备上的配置文件里往 `streams` 列表中添加，然后重启容器即可；每一路各自维护跟踪状态，并有自己的 MQTT 主题。各硬件平台最大接入路数与实测单帧延迟详见 [性能实测详表与路数折算](https://wiki.seeedstudio.com/cn/solutions/edge-fall-detection/?utm_source=solution_app&utm_medium=in_app_guide&utm_campaign=fall_detection&utm_content=stream_capacity#附录实测数据)。
 
 #### 下一步
 
-- 把告警系统指向 MQTT 主题，或把 broker 接入 Home Assistant 以获取自动发现实体。
+- 把告警系统指向 MQTT 主题，或把 broker 接入 Home Assistant 以获取自动发现实体；自建系统集成请参阅 [完整通信协议与 MQTT Payload 规范](https://wiki.seeedstudio.com/cn/solutions/edge-fall-detection/?utm_source=solution_app&utm_medium=in_app_guide&utm_campaign=fall_detection&utm_content=mqtt_payload_spec#完整的主题与-payload)。
 - 增加路数前先在现场测一次实际帧率。
 
 ### 故障排查
@@ -471,6 +485,9 @@ reComputer J30 / J40 拉取现有 IP 摄像头的 RTSP 流，对每一路里的�
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/elderly-fall-detection/#现场怎么部署)。
+
+
 同一局域网内有一个 OpenVoiceStream 实例，USB 麦克风与扬声器接在运行它的那台机器上，不接在摄像头上。
 
 ### 部署完成
@@ -506,6 +523,9 @@ reComputer J30 / J40 拉取现有 IP 摄像头的 RTSP 流，对每一路里的�
 把检测器部署到你的瑞芯微板卡，预计需要 5 分钟左右。
 
 ### 前置条件
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/elderly-fall-detection/#现场怎么部署)。
+
 
 1. 板卡运行厂商系统镜像，NPU 驱动和 `librknnrt.so` 已就位，并且装有 Docker。
 2. 至少 6 GB 空闲磁盘，用于运行时镜像和姿态模型。
@@ -601,6 +621,9 @@ reComputer J30 / J40 拉取现有 IP 摄像头的 RTSP 流，对每一路里的�
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/elderly-fall-detection/#现场怎么部署)。
+
+
 同一局域网内有一个 OpenVoiceStream 实例，USB 麦克风与扬声器接在运行它的那台机器上，不接在摄像头上。
 
 ### 部署完成
@@ -636,6 +659,9 @@ reComputer J30 / J40 拉取现有 IP 摄像头的 RTSP 流，对每一路里的�
 把检测器部署到带 Hailo 的设备，预计需要 5 分钟左右。
 
 ### 前置条件
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/elderly-fall-detection/#现场怎么部署)。
+
 
 1. 设备上有 Hailo-8 加速器（`/dev/hailo0`），且安装 **HailoRT 4.21**（GStreamer 插件、用户态库和内核驱动同一版本）。
 2. 装有 Docker，至少 4 GB 空闲磁盘。
@@ -733,6 +759,9 @@ reComputer J30 / J40 拉取现有 IP 摄像头的 RTSP 流，对每一路里的�
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/elderly-fall-detection/#现场怎么部署)。
+
+
 同一局域网内有一个 OpenVoiceStream 实例，USB 麦克风与扬声器接在运行它的那台机器上，不接在摄像头上。
 
 ### 部署完成
@@ -755,3 +784,5 @@ reComputer J30 / J40 拉取现有 IP 摄像头的 RTSP 流，对每一路里的�
 | 告警自己结案了 | `on_ok` 被设成了 `dismiss`。除非确实有人在复核这些驳回，否则改回 `needs_review`。 |
 | 服务起来了但从不出声 | 确认告警主机的音频设备已接入容器，在 `docker compose logs eldercare-alarm` 里查看 TTS 或播放报错。 |
 
+### 后续步骤
+- [查看完整工程 Wiki 与二次开发指南](https://wiki.seeedstudio.com/cn/solutions/elderly-fall-detection/)

@@ -14,11 +14,16 @@ reCamera 在本地识别人并通过 MQTT 发出结果，一台电脑或 reCompu
 
 ### 接线
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/retail-heatmap-grafana/#现场怎么部署)。
+
 ![接线图](gallery/architecture.svg)
 
 确认 Docker Desktop 已启动。
 
 ### 故障排查
+
+> 💡 **参数与深度排障：** reCamera 安装俯角、人员检测门限与数据契约，详见 [工程 Wiki · 参数实测与已知退化](https://wiki.seeedstudio.com/cn/solutions/retail-heatmap-grafana/#性能与实测数据)。
+
 
 | 现象 | 处理 |
 |------|------|
@@ -29,6 +34,9 @@ reCamera 在本地识别人并通过 MQTT 发出结果，一台电脑或 reCompu
 ### 部署目标 {#backend_remote type=remote config=devices/backend_deploy.yaml}
 
 ### 接线
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/retail-heatmap-grafana/#现场怎么部署)。
+
 
 ![接线图](gallery/architecture.svg)
 
@@ -52,6 +60,9 @@ reCamera 在本地识别人并通过 MQTT 发出结果，一台电脑或 reCompu
 在 reCamera 上安装零售分析应用，设置数据发往哪个 broker。应用输出驻足状态（浏览 / 驻足 / 需要帮助）和进出店计数。
 
 ### 接线
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/retail-heatmap-grafana/#现场怎么部署)。
+
 
 1. USB 连接时 IP 为 `192.168.42.1`；网线或 WiFi 连接时在路由器管理页面查 IP
 2. 输入 reCamera IP、MQTT 服务器 IP（步骤 1 那台机器），以及安装点名称和摄像头编号
@@ -107,6 +118,7 @@ reCamera 在本地识别人并通过 MQTT 发出结果，一台电脑或 reCompu
 | 看不到数据 | 确认步骤 2 已完成，MQTT 服务器 IP 填的是步骤 1 那台机器 |
 
 ### 部署完成
+
 
 - **数据看板**：http://\<服务器IP\>:3000，用 `admin` / `admin` 登录，查看人流趋势
 - **实时热力图**：http://\<服务器IP\>:8080（点齿轮图标校准平面图）
@@ -378,3 +390,6 @@ Jetson 须为 JetPack 6.x，已安装 Docker 和 NVIDIA runtime。
 | 主机/端口错误 | 部署到远程设备时，把地址换成设备 IP |
 
 ---
+
+### 后续步骤
+- [查看完整工程 Wiki 与二次开发指南](https://wiki.seeedstudio.com/cn/solutions/retail-heatmap-grafana/)

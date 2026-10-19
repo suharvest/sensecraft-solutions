@@ -34,6 +34,8 @@
 - 支持模糊指令识别，自动匹配最接近的命令
 - 指令库可扩展
 
+> 📖 **工程与技术参考：** 完整架构、实测基准与退化边界，详见 [工程 Wiki · 语音智能仓储管理](https://wiki.seeedstudio.com/cn/solutions/voice-warehouse-management/)。
+
 ## 方案对比
 
 ### 五套套餐对比

@@ -18,28 +18,35 @@
 
 ### 接线
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/conversational-voice-ai/#现场怎么部署)。
+
 1. 接入 reSpeaker XVF3800 和音箱
 2. 填写 SSH 信息和模型接口设置
 
 ### 部署完成
 
+
 提一个问题；回答开始播放后 1 秒内再次开口，当前回答应立即停止。
 
 ### 故障排查
+
+> 💡 **参数与深度排障：** 查看 ASR/TTS 延迟基准与各平台运行时对照，详见 [工程 Wiki · 参数实测与已知退化](https://wiki.seeedstudio.com/cn/solutions/conversational-voice-ai/#性能与实测数据)。
+
 
 | 现象 | 处理 |
 |------|------|
 | 返回 401 | 确认 API Key 属于接口所在地域 |
 | 能识别但不说话 | 查看 agent 日志中的大模型请求错误，确认模型支持流式输出 |
 | 拔插麦克风后没有声音 | 确认运行的是新版 Agent 镜像 |
-| assistant 声音太小或忽大忽小 | 音量由主机混音器控制，部署时已固定为 85%；桌面音量滑块不起作用，因为 agent 独占了 ALSA 设备。如需调整：`RESPEAKER_VOLUME=90% /usr/local/sbin/respeaker-volume.sh` |
-| 麦克风阵列有时不在线 / 开机后设备缺失 | 部署已安装开机自恢复与每 60 秒的看门狗，会自动复位开发板集线器；如需手动恢复：`sudo python3 /usr/local/sbin/hub-reset.py`；仍未恢复时请更换 USB 线缆或接口 |
 
 ### 部署目标 {#cloud_local type=local device=jetson config=devices/cloud_jetson.yaml}
 
 部署到本机。本机须为已安装 JetPack 6.2、Docker 和 NVIDIA Container Toolkit 的 Jetson Orin，需要至少 15 GB 可用磁盘。
 
 ### 接线
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/conversational-voice-ai/#现场怎么部署)。
+
 
 1. 将 reSpeaker XVF3800 和音箱接到本机
 2. 填写模型接口设置和助手人设
@@ -62,6 +69,9 @@
 
 ### 接线
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/conversational-voice-ai/#现场怎么部署)。
+
+
 1. 接入 reSpeaker XVF3800 和音箱
 2. 填写 SSH 信息和模型接口设置
 3. 开始部署并等待语音模型就绪
@@ -83,6 +93,9 @@
 
 ### 接线
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/conversational-voice-ai/#现场怎么部署)。
+
+
 1. 接入 reSpeaker XVF3800 和音箱
 2. 选择 Orin Nano 或 Orin NX 语音配置
 3. 填写 SSH 信息和模型接口设置
@@ -103,6 +116,9 @@
 在 reComputer Industrial R20 系列上用 CPU 运行语音，连接云端或局域网模型。需要至少 10 GB 可用磁盘，**仅支持英文**，选择其他语言会在服务启动前终止部署。
 
 ### 接线
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/conversational-voice-ai/#现场怎么部署)。
+
 
 1. 接入 reSpeaker XVF3800 和音箱
 2. 填写 SSH 信息和模型接口设置
@@ -174,6 +190,9 @@
 
 ### 接线
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/conversational-voice-ai/#现场怎么部署)。
+
+
 1. 接入 reSpeaker XVF3800 和音箱
 2. 确认设备是 Orin NX 16GB
 3. 填写 SSH 凭据并开始部署
@@ -195,6 +214,9 @@
 
 ### 接线
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/conversational-voice-ai/#现场怎么部署)。
+
+
 1. 接入 reSpeaker XVF3800 和音箱
 2. 停止其他 GPU 任务
 3. 开始部署，等待本地大模型和语音服务就绪
@@ -215,6 +237,9 @@
 在 RK3588 上运行语音，由 RK1828 / RM182X 加速卡运行 Qwen3-4B。需要至少 18 GB 可用磁盘，RK1828 驱动和固件已在宿主机初始化。
 
 ### 接线
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/conversational-voice-ai/#现场怎么部署)。
+
 
 1. 确认 RK1828 已接独立 12V 供电、驱动服务正常且设备节点存在
 2. 接入 reSpeaker XVF3800 和音箱
@@ -267,3 +292,6 @@
 | 回复语言不对 | 检查助手人设提示词 |
 | 部署没有启动 | 所选语言该板不支持，改选支持的语言 |
 | 转写语言正确但语音不对 | 上报语言与板卡型号，不要自行修改语音配置 |
+
+### 后续步骤
+- [查看完整工程 Wiki 与二次开发指南](https://wiki.seeedstudio.com/cn/solutions/conversational-voice-ai/)

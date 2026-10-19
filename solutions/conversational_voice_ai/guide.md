@@ -18,28 +18,35 @@ Run speech on RK3576 and connect to a cloud or LAN model. Requires at least 12 G
 
 ### Wiring
 
+> 📖 **Engineering Reference:** Siting constraints and on-site wiring guidelines are documented in the [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/conversational-voice-ai/#how-to-deploy-on-site).
+
 1. Connect the reSpeaker XVF3800 and speaker
 2. Fill in the SSH details and the model endpoint settings
 
 ### Deployment Complete
 
+
 Ask a question. Within one second of playback starting, speak again; the current answer should stop immediately.
 
 ### Troubleshooting
+
+> 💡 **Technical Parameters & Tuning:** For ASR/TTS latency benchmarks and runtime matrix, see [Engineering Wiki · Measured Benchmarks](https://wiki.seeedstudio.com/solutions/conversational-voice-ai/#performance-and-measured-data).
+
 
 | Symptom | Action |
 |-------|----------|
 | API returns 401 | Confirm the API key belongs to the endpoint's region |
 | Speech is recognized but no reply plays | Check the agent log for LLM request errors and confirm the model supports streaming |
 | No audio after replugging the microphone | Confirm the new Agent image is running |
-| Assistant volume too low or inconsistent | The host mixer is the knob; the deploy pins it to 85%. The desktop volume slider has no effect because the agent owns the ALSA device. To change it: `RESPEAKER_VOLUME=90% /usr/local/sbin/respeaker-volume.sh` |
-| Mic array sometimes offline / missing after boot | The deploy installs a boot self-heal plus a 60 s watchdog that pulses the devkit hub reset. Manual recovery: `sudo python3 /usr/local/sbin/hub-reset.py`; if it still fails, suspect the USB cable/port |
 
 ### Target {#cloud_local type=local device=jetson config=devices/cloud_jetson.yaml}
 
 Deploy to this machine. It must be a Jetson Orin with JetPack 6.2, Docker, and NVIDIA Container Toolkit, and at least 15 GB free disk.
 
 ### Wiring
+
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/conversational-voice-ai/#现场怎么部署).
+
 
 1. Connect the reSpeaker XVF3800 and speaker to this machine
 2. Fill in the model endpoint settings and the assistant personality
@@ -62,6 +69,9 @@ Run speech on RK3588 and connect to a cloud or LAN model. Requires at least 12 G
 
 ### Wiring
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/conversational-voice-ai/#现场怎么部署).
+
+
 1. Connect the reSpeaker XVF3800 and speaker
 2. Fill in the SSH details and the model endpoint settings
 3. Deploy and wait for the speech models to become ready
@@ -83,6 +93,9 @@ Run speech on Orin Nano or Orin NX and connect to a cloud or LAN model. Requires
 
 ### Wiring
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/conversational-voice-ai/#现场怎么部署).
+
+
 1. Connect the reSpeaker XVF3800 and speaker
 2. Choose the Orin Nano or Orin NX voice profile
 3. Fill in the SSH details and the model endpoint settings
@@ -103,6 +116,9 @@ After warmup, complete two turns and speak during playback to verify interruptio
 Run speech on the CPU of a reComputer Industrial R20 series and connect to a cloud or LAN model. Requires at least 10 GB free disk. **English only**; any other language stops the deployment before services start.
 
 ### Wiring
+
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/conversational-voice-ai/#现场怎么部署).
+
 
 1. Connect the reSpeaker XVF3800 and speaker
 2. Fill in the SSH details and the model endpoint settings
@@ -174,6 +190,9 @@ Run Qwen3-ASR, Matcha-TTS, and Qwen3.5-4B on Orin NX 16GB. Requires JetPack 6.2 
 
 ### Wiring
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/conversational-voice-ai/#现场怎么部署).
+
+
 1. Connect the reSpeaker XVF3800 and speaker
 2. Confirm the device is Orin NX 16GB
 3. Enter SSH credentials and deploy
@@ -195,6 +214,9 @@ Deploy to this machine. It must be an Orin NX 16GB running JetPack 6.2, with at 
 
 ### Wiring
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/conversational-voice-ai/#现场怎么部署).
+
+
 1. Connect the reSpeaker XVF3800 and speaker
 2. Stop other GPU workloads
 3. Deploy and wait for the local LLM and speech service to become healthy
@@ -215,6 +237,9 @@ After warmup, disconnect external networking and confirm conversation still work
 Run speech on RK3588 and Qwen3-4B on the RK1828 / RM182X card. Requires at least 18 GB free disk and an initialized RK1828 host driver and firmware.
 
 ### Wiring
+
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/conversational-voice-ai/#现场怎么部署).
+
 
 1. Confirm the RK1828 has independent 12V power, a running driver service, and its device node
 2. Connect the reSpeaker XVF3800 and speaker
@@ -267,3 +292,6 @@ Confirm that recognition and spoken replies use the language chosen at deploy ti
 | Replies come back in the wrong language | Check the assistant personality prompt |
 | Deployment never started | The selected language is not supported on this board; pick a supported one |
 | Transcript language is right but audio is wrong | Report the language and the board; do not edit the speech profile yourself |
+
+### Next Steps
+- [View Full Engineering Wiki and Integration Guide](https://wiki.seeedstudio.com/solutions/conversational-voice-ai/)

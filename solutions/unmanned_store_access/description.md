@@ -34,6 +34,8 @@ excludes the mechanical action of the relay and lock. The person-adding row was 
 reCamera 2002 HQ PoE (reCamera OS 0.2.4, 2026-09-16); timing did not grow with library size
 over the tested range.
 
+> 📖 **Engineering Reference:** Full architecture internals, measured benchmarks, and failure modes are documented in the [Engineering Wiki · Unmanned Store Face Access](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/).
+
 ## Output Interfaces
 
 | Interface | Content |

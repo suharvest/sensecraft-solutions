@@ -22,6 +22,9 @@ Connect your Watcher to SenseCraft cloud platform:
 
 ### Troubleshooting
 
+> 💡 **Technical Parameters & Tuning:** For MCP payload schemas, REST APIs and LLM throughput, see [Engineering Wiki · Measured Benchmarks](https://wiki.seeedstudio.com/solutions/voice-warehouse-management/#performance-and-measured-data).
+
+
 | Symptom | Action |
 |-------|----------|
 | Can't find hotspot | Make sure phone WiFi is enabled, move closer to Watcher |
@@ -98,6 +101,7 @@ Try these voice commands. To see the resulting inventory records, visit the Sens
 
 ### Deployment Complete
 
+
 Your SenseCraft trial is ready!
 
 **Access points:**
@@ -129,6 +133,8 @@ Write the voice assistant program to the Watcher to enable voice interaction.
 
 ### Wiring
 
+> 📖 **Engineering Reference:** Siting constraints and on-site wiring guidelines are documented in the [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/voice-warehouse-management/#how-to-deploy-on-site).
+
 ![Connect Device](gallery/watcher_usb.png)
 
 1. Connect Watcher to computer via USB-C cable
@@ -151,6 +157,9 @@ Write the voice assistant program to the Watcher to enable voice interaction.
 Write the vision detection program to the Watcher's AI chip.
 
 ### Wiring
+
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/voice-warehouse-management/#现场怎么部署).
+
 
 ![Connect Device](gallery/watcher_usb.png)
 
@@ -177,6 +186,9 @@ Write the vision detection program to the Watcher's AI chip.
 Pair the Watcher over WiFi, bind it to SenseCraft cloud, then create an "Inventory Manager" agent and copy its MCP endpoint URL (you'll need it in Step 6).
 
 ### Wiring
+
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/voice-warehouse-management/#现场怎么部署).
+
 
 1. Power on Watcher: press and hold the top-right scroll button for 5 seconds, then release
 2. On your phone, search for the WiFi hotspot named "Watcher-XXXX" and connect
@@ -212,6 +224,9 @@ Run the warehouse system on this computer. Needs at least 2 GB of free disk.
 
 ### Wiring
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/voice-warehouse-management/#现场怎么部署).
+
+
 1. Ensure Docker is installed and running
 2. Click Deploy button to start services
 
@@ -227,6 +242,9 @@ Run the warehouse system on this computer. Needs at least 2 GB of free disk.
 Deploy to a reComputer R1100 series device (4 GB memory and up). Needs at least 2 GB of free disk.
 
 ### Wiring
+
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/voice-warehouse-management/#现场怎么部署).
+
 
 ![Wiring](gallery/R1100_connected.webp)
 
@@ -361,6 +379,9 @@ Only for the reTerminal D1001 voice terminal. Skip this step and the next one if
 
 ### Wiring
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/voice-warehouse-management/#现场怎么部署).
+
+
 1. Connect the D1001 to your computer with a USB-C data cable
 2. The port is picked automatically (ESP32-P4 native USB, `usbmodem*` / `ttyACM*`)
 3. Click Flash and wait for all six segments to finish
@@ -379,6 +400,9 @@ Only for the reTerminal D1001 voice terminal. Skip this step and the next one if
 Wi-Fi is set on the D1001's touch screen, not through a phone hotspot — that is the main difference from the Watcher. Everything after that (agent, MCP endpoint, warehouse system) is the same.
 
 ### Wiring
+
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/voice-warehouse-management/#现场怎么部署).
+
 
 1. Power on the D1001 and tap the network icon in the status bar
 2. Pick a **2.4GHz** network, enter the password on screen, and wait for the IP address to appear
@@ -415,6 +439,9 @@ Write the voice assistant program to the Watcher to enable voice interaction.
 
 ### Wiring
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/voice-warehouse-management/#现场怎么部署).
+
+
 ![Connect Device](gallery/watcher_usb.png)
 
 1. Connect Watcher to computer via USB-C cable
@@ -437,6 +464,9 @@ Write the voice assistant program to the Watcher to enable voice interaction.
 Write the vision detection program to the Watcher's AI chip.
 
 ### Wiring
+
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/voice-warehouse-management/#现场怎么部署).
+
 
 ![Connect Device](gallery/watcher_usb.png)
 
@@ -492,6 +522,9 @@ Deploy to a device with a Hailo-8 accelerator (reComputer Industrial R21 series,
 
 ### Wiring
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/voice-warehouse-management/#现场怎么部署).
+
+
 ![Wiring](gallery/R1100_connected.webp)
 
 1. Connect the device to power and ethernet, ensure it's on the same network as your computer
@@ -513,6 +546,9 @@ Deploy to a Jetson device (Orin series). Needs at least 4 GB of free disk.
 
 ### Wiring
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/voice-warehouse-management/#现场怎么部署).
+
+
 1. Connect the Jetson to power and ethernet, ensure it's on the same network as your computer
 2. Enter the device IP address and SSH credentials
 3. Click Deploy and wait for installation to complete
@@ -530,6 +566,9 @@ Run directly on this machine (a device with Hailo-8). Needs at least 4 GB of fre
 
 ### Wiring
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/voice-warehouse-management/#现场怎么部署).
+
+
 1. Ensure Docker is installed and running
 2. Click Deploy button to start services
 
@@ -538,6 +577,9 @@ Run directly on this machine (a device with Hailo-8). Needs at least 4 GB of fre
 Run directly on this machine (a Jetson device). Needs at least 4 GB of free disk.
 
 ### Wiring
+
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/voice-warehouse-management/#现场怎么部署).
+
 
 1. Ensure Docker is installed and running
 2. Click Deploy button to start services
@@ -661,6 +703,9 @@ Only for the reTerminal D1001 voice terminal. Skip this step and the next one if
 
 ### Wiring
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/voice-warehouse-management/#现场怎么部署).
+
+
 1. Connect the D1001 to your computer with a USB-C data cable
 2. The port is picked automatically (ESP32-P4 native USB, `usbmodem*` / `ttyACM*`)
 3. Click Flash and wait for all six segments to finish
@@ -679,6 +724,9 @@ Only for the reTerminal D1001 voice terminal. Skip this step and the next one if
 Wi-Fi is set on the D1001's touch screen, not through a phone hotspot — that is the main difference from the Watcher. Everything after that (agent, MCP endpoint, warehouse system) is the same.
 
 ### Wiring
+
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/voice-warehouse-management/#现场怎么部署).
+
 
 1. Power on the D1001 and tap the network icon in the status bar
 2. Pick a **2.4GHz** network, enter the password on screen, and wait for the IP address to appear
@@ -715,6 +763,9 @@ Write the voice assistant program to the Watcher to enable voice interaction. In
 
 ### Wiring
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/voice-warehouse-management/#现场怎么部署).
+
+
 ![Connect Device](gallery/watcher_usb.png)
 
 1. Connect Watcher to computer via USB-C cable
@@ -737,6 +788,9 @@ Write the voice assistant program to the Watcher to enable voice interaction. In
 Write the vision detection program to the Watcher's AI chip, used for face recognition and object detection.
 
 ### Wiring
+
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/voice-warehouse-management/#现场怎么部署).
+
 
 ![Connect Device](gallery/watcher_usb.png)
 
@@ -766,6 +820,9 @@ Deploy to the reComputer J40 series. Needs at least 4 GB of free disk.
 
 ### Wiring
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/voice-warehouse-management/#现场怎么部署).
+
+
 ![Wiring](gallery/R1100_connected.webp)
 
 1. Connect the J40 series device to power and ethernet, ensure it's on the same network as your computer
@@ -787,6 +844,9 @@ Deploy to the reComputer J40 series. Needs at least 4 GB of free disk.
 Run directly on this machine — only applicable when it is the J40 series device itself. Needs at least 4 GB of free disk.
 
 ### Wiring
+
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/voice-warehouse-management/#现场怎么部署).
+
 
 1. Ensure Docker is installed and running
 2. Click Deploy button to start services
@@ -834,6 +894,9 @@ Deploy to the reComputer J40 series (the same device as Step 3). Needs at least 
 
 ### Wiring
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/voice-warehouse-management/#现场怎么部署).
+
+
 1. Connect the J40 series device to power and ethernet
 2. Enter the J40 series device's IP address and SSH credentials (the same device as Step 3)
 3. Click Deploy and wait for the models to download and the service to start
@@ -873,6 +936,9 @@ Deploy on this machine. Needs at least 6 GB of free disk.
 
 ### Wiring
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/voice-warehouse-management/#现场怎么部署).
+
+
 1. Ensure Docker is installed and running
 2. Click Deploy button to start services
 
@@ -881,6 +947,9 @@ Deploy on this machine. Needs at least 6 GB of free disk.
 Deploy to the J40 series device. Needs at least 6 GB of free disk.
 
 ### Wiring
+
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/voice-warehouse-management/#现场怎么部署).
+
 
 1. Enter the J40 series device's IP address and SSH credentials
 2. Click Deploy and wait for installation to complete
@@ -902,6 +971,9 @@ Put the Watcher on WiFi and point it at the local voice server you just deployed
 > Speech recognition and synthesis both run locally, so the Watcher does **not** need to be bound to the SenseCraft cloud platform.
 
 ### Wiring
+
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/voice-warehouse-management/#现场怎么部署).
+
 
 1. Power on Watcher: press and hold the top-right scroll button for 5 seconds, then release
 2. On your phone, search for the WiFi hotspot named `Watcher-XXXX` and connect
@@ -945,6 +1017,9 @@ Create an agent in the management console, then paste its MCP endpoint into the 
 
 
 ### Wiring
+
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/voice-warehouse-management/#现场怎么部署).
+
 
 **A. Log in to the console**
 
@@ -1061,6 +1136,9 @@ Write the voice assistant program to the Watcher to enable voice interaction. In
 
 ### Wiring
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/voice-warehouse-management/#现场怎么部署).
+
+
 ![Connect Device](gallery/watcher_usb.png)
 
 1. Connect Watcher to computer via USB-C cable
@@ -1083,6 +1161,9 @@ Write the voice assistant program to the Watcher to enable voice interaction. In
 Write the vision detection program to the Watcher's AI chip, used for face recognition and object detection.
 
 ### Wiring
+
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/voice-warehouse-management/#现场怎么部署).
+
 
 ![Connect Device](gallery/watcher_usb.png)
 
@@ -1112,6 +1193,9 @@ Run the warehouse system on this computer. Needs at least 4 GB of free disk.
 
 ### Wiring
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/voice-warehouse-management/#现场怎么部署).
+
+
 1. Ensure Docker is installed and running
 2. Click Deploy button to start services
 
@@ -1127,6 +1211,9 @@ Run the warehouse system on this computer. Needs at least 4 GB of free disk.
 Deploy to a reComputer Industrial R21 series device (Hailo-8, 4 GB memory and up). Needs at least 4 GB of free disk.
 
 ### Wiring
+
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/voice-warehouse-management/#现场怎么部署).
+
 
 ![Wiring](gallery/R1100_connected.webp)
 
@@ -1178,6 +1265,9 @@ Deploy to the reComputer J50 series. Needs at least 25 GB of free disk.
 
 ### Wiring
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/voice-warehouse-management/#现场怎么部署).
+
+
 1. Connect Jetson (reComputer J50 series) to power and ethernet
 2. Enter Jetson IP address and SSH credentials
 3. Click Deploy and wait for the models to download and services to start
@@ -1213,6 +1303,9 @@ Deploy on this machine. Needs at least 6 GB of free disk.
 
 ### Wiring
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/voice-warehouse-management/#现场怎么部署).
+
+
 1. Ensure Docker is installed and running
 2. Click Deploy button to start services
 
@@ -1221,6 +1314,9 @@ Deploy on this machine. Needs at least 6 GB of free disk.
 Deploy to the Industrial R21 series device. Needs at least 6 GB of free disk.
 
 ### Wiring
+
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/voice-warehouse-management/#现场怎么部署).
+
 
 1. Enter the Industrial R21 series device's IP address and SSH credentials
 2. Click Deploy and wait for installation to complete
@@ -1241,6 +1337,9 @@ Put the Watcher on WiFi and point it at the local voice server you just deployed
 > This tier runs entirely on your LAN, so the Watcher does **not** need to be bound to the SenseCraft cloud platform.
 
 ### Wiring
+
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/voice-warehouse-management/#现场怎么部署).
+
 
 1. Power on Watcher: press and hold the top-right scroll button for 5 seconds, then release
 2. On your phone, search for the WiFi hotspot named `Watcher-XXXX` and connect
@@ -1284,6 +1383,9 @@ Create an agent in the management console, then paste its MCP endpoint into the 
 
 
 ### Wiring
+
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/voice-warehouse-management/#现场怎么部署).
+
 
 **A. Log in to the console**
 
@@ -1385,6 +1487,9 @@ Only for the reTerminal D1001 voice terminal. Skip this step and the next one if
 
 ### Wiring
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/voice-warehouse-management/#现场怎么部署).
+
+
 1. Connect the D1001 to your computer with a USB-C data cable
 2. The port is picked automatically (ESP32-P4 native USB, `usbmodem*` / `ttyACM*`)
 3. Click Flash and wait for all six segments to finish
@@ -1403,6 +1508,9 @@ Only for the reTerminal D1001 voice terminal. Skip this step and the next one if
 The D1001 ships pointing at the public Xiaozhi service, so it needs the same OTA-address override the Watcher gets — entered on the provisioning page, which the D1001 reaches through the boot button instead of a scroll button.
 
 ### Wiring
+
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/voice-warehouse-management/#现场怎么部署).
+
 
 1. Power the device on and click the boot button while it is still starting up — it enters Wi-Fi provisioning mode and broadcasts a setup hotspot
 2. Connect your phone to that hotspot; the setup page opens automatically (otherwise visit `http://192.168.4.1`)
@@ -1433,3 +1541,6 @@ Say "Xiaozhi Xiaozhi" to wake the device, then "Stock in 10 boxes of apples". Th
 | Status stays Disconnected | Check the endpoint URL was copied in full, with no stray spaces |
 
 ---
+
+### Next Steps
+- [View Full Engineering Wiki and Integration Guide](https://wiki.seeedstudio.com/solutions/voice-warehouse-management/)

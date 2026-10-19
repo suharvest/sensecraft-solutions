@@ -35,6 +35,8 @@
 
 测试设备为 reComputer J30 系列（J3011，Orin Nano 8GB），数据集 DeepPCB6 验证集 205 张。
 
+> 📖 **工程与技术参考：** 完整架构、实测基准与退化边界，详见 [工程 Wiki · 装配缺陷与缺件检测](https://wiki.seeedstudio.com/cn/solutions/edge-assembly-inspection/)。
+
 ## 输出接口
 
 | 接口 | 内容 |

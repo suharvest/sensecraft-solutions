@@ -33,6 +33,8 @@
 锁的机械动作。添加人员这一行测试设备为 reCamera 2002 HQ PoE（reCamera OS 0.2.4，2026-09-16），在测试
 范围内耗时不随库人数增长。
 
+> 📖 **工程与技术参考：** 完整架构、实测基准与退化边界，详见 [工程 Wiki · 无人零售人脸门禁](https://wiki.seeedstudio.com/cn/solutions/unmanned-store-face-access/)。
+
 ## 输出接口
 
 | 接口 | 内容 |

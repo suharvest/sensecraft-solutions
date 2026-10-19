@@ -14,11 +14,16 @@ Start the MQTT broker, database, Grafana dashboard and video gateway. Every came
 
 ### Wiring
 
+> 📖 **Engineering Reference:** Siting constraints and on-site wiring guidelines are documented in the [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/retail-heatmap-grafana/#how-to-deploy-on-site).
+
 ![Wiring](gallery/architecture.svg)
 
 Make sure Docker Desktop is running.
 
 ### Troubleshooting
+
+> 💡 **Technical Parameters & Tuning:** For reCamera tilt angle, detection thresholds, and data contract, see [Engineering Wiki · Measured Benchmarks](https://wiki.seeedstudio.com/solutions/retail-heatmap-grafana/#performance-and-measured-data).
+
 
 | Symptom | Fix |
 |---------|-----|
@@ -29,6 +34,9 @@ Make sure Docker Desktop is running.
 ### Target {#backend_remote type=remote config=devices/backend_deploy.yaml}
 
 ### Wiring
+
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/retail-heatmap-grafana/#现场怎么部署).
+
 
 ![Wiring](gallery/architecture.svg)
 
@@ -52,6 +60,9 @@ Make sure Docker Desktop is running.
 Install the retail analytics app on the reCamera and set the broker it publishes to. The app reports dwell state (browsing / engaged / needs assistance) and entry/exit counts.
 
 ### Wiring
+
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/retail-heatmap-grafana/#现场怎么部署).
+
 
 1. Over USB the IP is `192.168.42.1`; over Ethernet or WiFi, find the IP in your router admin page
 2. Enter the reCamera IP, the MQTT server IP (the machine from Step 1), an installation name and a camera ID
@@ -107,6 +118,7 @@ Click below to open the Grafana dashboard.
 | No data | Make sure Step 2 completed and the MQTT server IP is the machine from Step 1 |
 
 ### Deployment Complete
+
 
 - **Data Dashboard**: http://\<server-ip\>:3000, login `admin` / `admin`, traffic trends
 - **Live Heatmap**: http://\<server-ip\>:8080 (calibrate via the gear icon)
@@ -378,3 +390,6 @@ Deploy directly on the Jetson you are using. The Jetson needs JetPack 6.x, Docke
 | Wrong host/port | If you deployed to a remote device, use its IP in the URL |
 
 ---
+
+### Next Steps
+- [View Full Engineering Wiki and Integration Guide](https://wiki.seeedstudio.com/solutions/retail-heatmap-grafana/)

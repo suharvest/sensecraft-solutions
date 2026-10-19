@@ -13,6 +13,9 @@ Deploy the prediction and control service and enter the meter, control-mode, saf
 
 ### Prerequisites
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/hvac-setpoint-control/#现场怎么部署).
+
+
 - The meter's transport and unit id; the OPC UA endpoint of the HVAC controller (the default address reaches the built-in simulator).
 - Leave **Control Mode** at *observe*. Leave **Safety Baseline Approved By** blank until an engineer has approved the limits.
 
@@ -22,11 +25,16 @@ Deploy on the machine running SenseCraft Solution, for a dry run against the bui
 
 ### Wiring
 
+> 📖 **Engineering Reference:** Siting constraints and on-site wiring guidelines are documented in the [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/hvac-setpoint-control/#how-to-deploy-on-site).
+
 1. Put this machine on the same network as the HVAC controller and the meter or its Modbus TCP gateway.
 2. Connect the meter over Modbus TCP; for RS-485 use the remote target.
 3. Make sure ports 8280 and 4841 are free.
 
 ### Troubleshooting
+
+> 💡 **Technical Parameters & Tuning:** For Modbus register maps, control cycle, and temperature response, see [Engineering Wiki · Measured Benchmarks](https://wiki.seeedstudio.com/solutions/hvac-setpoint-control/#performance-and-measured-data).
+
 
 | Symptom | Fix |
 |---------|-----|
@@ -41,6 +49,9 @@ Deploy on the machine running SenseCraft Solution, for a dry run against the bui
 Deploy over SSH to a reComputer R1100 or another Linux device on the plant network. Use this when the meter is on RS-485 or your workstation cannot reach the controller network.
 
 ### Wiring
+
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/hvac-setpoint-control/#现场怎么部署).
+
 
 1. Connect the device's Ethernet port to the controller network and note its IP address.
 2. For Modbus RTU, attach the USB-to-RS-485 adapter (typically `/dev/ttyUSB0`) and use the serial-device deployment profile.
@@ -62,6 +73,9 @@ Open the console, create the first administrator, and check that the sources fro
 
 ### Prerequisites
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/hvac-setpoint-control/#现场怎么部署).
+
+
 The service from Step 1 is healthy.
 
 ### Troubleshooting
@@ -77,6 +91,9 @@ The service from Step 1 is healthy.
 Register the meter, run predictions in observe mode, trigger each failure path to verify rollback and alarms, and enable writes only after all of them pass.
 
 ### Prerequisites
+
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/hvac-setpoint-control/#现场怎么部署).
+
 
 - The administrator account from Step 2; a view of the meter's own display; someone who operates this plant to review the recommendations.
 - Run `docker inspect -f '{{.Config.Image}}' missionpack_knn` to check the image version. `v1.6.5` does not include the SDM630 template, rollback or alarms; only the observe-mode part can be completed on it.
@@ -107,6 +124,9 @@ Write-back verification is off by default. Add a `rollback` section when you cre
 | The same fault opens a new alarm each time | Compare the source and point ids of the two alarms |
 
 ### Deployment Complete
+
+### Next Steps
+- [View Full Engineering Wiki and Integration Guide](https://wiki.seeedstudio.com/solutions/hvac-setpoint-control/)
 
 #### Quick verification
 

@@ -11,6 +11,8 @@
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-security/#现场怎么部署)。
+
 - JetPack 6.x 的 Jetson Orin，自带 TensorRT；其他机器上部署会直接停止。
 - Docker 已注册 nvidia 容器运行时。若缺失：`sudo apt-get install -y nvidia-container-toolkit && sudo nvidia-ctk runtime configure --runtime=docker && sudo systemctl restart docker`。
 - 8090（工作台）、1883（broker）、8099（摄像头预览）端口空闲。
@@ -23,6 +25,9 @@
 - 首次启动时会打印管理员登录信息。
 
 ### 故障排查
+
+> 💡 **参数与深度排障：** 多路接入容量、置信度阈值调优与判定时序，详见 [工程 Wiki · 参数实测与已知退化](https://wiki.seeedstudio.com/cn/solutions/edge-security/#性能与实测数据)。
+
 
 | 现象 | 处理 |
 |------|------|
@@ -43,6 +48,7 @@
 登录、画一条边界，走过去看第一条告警。
 
 ### 部署完成
+
 
 broker、hub 和检测器已在这台机器上运行。
 
@@ -109,6 +115,9 @@ broker、hub 和检测器已在这台机器上运行。
 填入板卡地址和摄像头地址，在板卡上启动三个容器。
 
 ### 前置条件
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-security/#现场怎么部署)。
+
 
 - 板卡已安装 `rknpu2` 运行时（存在 `/usr/lib/librknnrt.so`），板卡的 `python3` 能 import `rknn_toolkit_lite2`。
 - 存在硬解节点 `/dev/mpp_service`；检测器不支持 CPU 解码。
@@ -177,6 +186,9 @@ broker、hub 和检测器已在这台机器上运行。
 填入板卡地址和摄像头地址，在板卡上启动三个容器。
 
 ### 前置条件
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-security/#现场怎么部署)。
+
 
 - Hailo PCIe 驱动已加载（存在 `/dev/hailo0`），并安装同版本的 `hailort`（存在 `/usr/lib/libhailort.so`）。
 - 加速器没有被其他程序占用，被占用时部署会停止。
@@ -260,6 +272,9 @@ broker、hub 和检测器已在这台机器上运行。
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-security/#现场怎么部署)。
+
+
 - 一台常开的 arm64 或 x86_64 机器，装有 Docker。
 - 8090 与 1883 端口空闲。
 - 约 3 GB 可用磁盘，告警数据会随告警量增长。
@@ -315,3 +330,6 @@ hub 已运行，在 1883 端口等待检测器接入。
 | 检测器在线离线来回跳 | 每台检测器使用不同的名字。 |
 | 告警没有缩略图 | 检测器没有响应快照请求，告警仍会记录。查看检测器日志。 |
 | 各站点设备时间不一致 | 无需处理，规则判定和排序使用 hub 的时钟。 |
+
+### 后续步骤
+- [查看完整工程 Wiki 与二次开发指南](https://wiki.seeedstudio.com/cn/solutions/edge-security/)

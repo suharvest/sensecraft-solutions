@@ -65,6 +65,8 @@ Recommended channels is the highest tested concurrency whose final-text p95 stay
 
 English WER: J3011 **7.62%**, J4012 **7.62%**, RK3588 **7.50%**, RK3576 **8.51%**, R2000 **8.39%**; unified Chinese CER across five devices **4.82%**. Details in `docs/asr-concurrency.md`.
 
+> 📖 **Engineering Reference:** Full architecture internals, measured benchmarks, and failure modes are documented in the [Engineering Wiki · Retail Voice AI](https://wiki.seeedstudio.com/solutions/retail-voice/).
+
 ## Output Interfaces
 
 | Interface | Content |

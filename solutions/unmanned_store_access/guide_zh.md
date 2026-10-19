@@ -11,6 +11,9 @@ reCamera Pro 识别人脸并判定是否开门，GPIO 直接驱动继电器。
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/unmanned-store-face-access/#现场怎么部署)。
+
+
 - 一台装有 Docker 和 compose 插件的 Linux 服务器，门口设备能访问到它，不需要 GPU。
 - 服务器时钟已开启 NTP 同步，门口设备以它为准。
 - 服务器上 8080（人脸库）、8088（管理界面）、1883（MQTT）端口空闲。
@@ -18,6 +21,9 @@ reCamera Pro 识别人脸并判定是否开门，GPIO 直接驱动继电器。
 - 签名密钥和 admin token 自动生成，部署后在本步骤底部「自动生成的密钥」里查看，登录管理界面用 admin token。
 
 ### 故障排查
+
+> 💡 **参数与深度排障：** 人脸库同步时延、开门响应时间与已知退化形态，详见 [工程 Wiki · 参数实测与已知退化](https://wiki.seeedstudio.com/cn/solutions/unmanned-store-face-access/#性能与实测数据)。
+
 
 | 现象 | 处理 |
 |---|---|
@@ -42,6 +48,9 @@ reCamera Pro 识别人脸并判定是否开门，GPIO 直接驱动继电器。
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/unmanned-store-face-access/#现场怎么部署)。
+
+
 - 步骤 1 的 admin token。
 - 每人 3 到 8 张清晰的正脸照片。
 - 步骤 1 已填写识别服务地址，否则注册的人不会被识别。
@@ -62,6 +71,8 @@ reCamera Pro 识别人脸并判定是否开门，GPIO 直接驱动继电器。
 
 ### 接线
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/unmanned-store-face-access/#现场怎么部署)。
+
 ![reCamera Pro 继电器接线](gallery/wiring-recamera-pro.svg)
 
 1. 用万用表确认 GPIO 130 是排针上哪个脚、输出为 3.3 V。
@@ -79,6 +90,9 @@ reCamera Pro 识别人脸并判定是否开门，GPIO 直接驱动继电器。
 在摄像头上启动 F1 门禁并写入门禁设置，摄像头上正在运行的其他应用会被停止。
 
 ### 前置条件
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/unmanned-store-face-access/#现场怎么部署)。
+
 
 先在摄像头上装好 F1 门禁（0.1.5 或以上）：
 
@@ -103,6 +117,9 @@ reCamera Pro 识别人脸并判定是否开门，GPIO 直接驱动继电器。
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/unmanned-store-face-access/#现场怎么部署)。
+
+
 - 门口设备已上电并联网。
 - 至少注册了一个人。
 
@@ -123,11 +140,15 @@ reCamera Pro 识别人脸并判定是否开门，GPIO 直接驱动继电器。
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/unmanned-store-face-access/#现场怎么部署)。
+
+
 - 门禁控制器已接好，至少注册了一个人。
 - 此人的一张打印照片。
 - 步骤 1 的 admin token。
 
 ### 部署完成
+
 
 1. 已注册的人站到摄像头前：继电器响一次，管理界面出现放行事件。
 2. 马上退开再上前：管理界面出现 `debounced`，继电器不再响。
@@ -160,6 +181,9 @@ reCamera 2002 HQ PoE 识别人脸、判定是否开门，并用底板排针直�
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/unmanned-store-face-access/#现场怎么部署)。
+
+
 - 一台装有 Docker 和 compose 插件的 Linux 服务器，门口设备能访问到它，不需要 GPU。
 - 服务器时钟已开启 NTP 同步，门口设备以它为准。
 - 服务器上 8080（人脸库）、8088（管理界面）、1883（MQTT）端口空闲。
@@ -191,6 +215,9 @@ reCamera 2002 HQ PoE 识别人脸、判定是否开门，并用底板排针直�
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/unmanned-store-face-access/#现场怎么部署)。
+
+
 - 步骤 1 的 admin token。
 - 每人 3 到 8 张清晰的正脸照片。
 - 步骤 1 已填写识别服务地址，否则注册的人不会被识别。
@@ -210,12 +237,18 @@ reCamera 2002 HQ PoE 识别人脸、判定是否开门，并用底板排针直�
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/unmanned-store-face-access/#现场怎么部署)。
+
+
 - 摄像头通过 USB-C 连接（IP `192.168.42.1`）或在同一网络，并知道 `recamera` 用户的 SSH 密码。
 - 摄像头能访问 `http://<服务器 IP>:8080`。
 - `/userdata` 至少 20 MB 空闲。
 - 器材：Grove Relay（SKU 103020005）、它自带的 4 芯 Grove 线、杜邦线（排针不是 Grove 座，Grove 线另一端要转成单根）、一路 3.3–5 V 电源、万用表。
 
 ### 接线
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/unmanned-store-face-access/#现场怎么部署)。
+
 
 ![reCamera 2002 HQ PoE 继电器接线](gallery/wiring-recamera-2002-poe.svg)
 
@@ -252,6 +285,9 @@ reCamera 2002 HQ PoE 识别人脸、判定是否开门，并用底板排针直�
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/unmanned-store-face-access/#现场怎么部署)。
+
+
 - 摄像头已上电并联网。
 - 至少注册了一个人。
 - 步骤 1 的设备控制端点里已填入这台摄像头。
@@ -272,6 +308,9 @@ reCamera 2002 HQ PoE 识别人脸、判定是否开门，并用底板排针直�
 测试这道门：注册的人能开，照片不能开，远程开门可用。
 
 ### 前置条件
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/unmanned-store-face-access/#现场怎么部署)。
+
 
 - 门禁控制器已接好，至少注册了一个人。
 - 此人的一张打印照片。
@@ -311,6 +350,9 @@ reCamera 2002 或 2002w 识别人脸并判定是否开门。摄像头没有可�
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/unmanned-store-face-access/#现场怎么部署)。
+
+
 - 一台装有 Docker 和 compose 插件的 Linux 服务器，门口设备能访问到它，不需要 GPU。
 - 服务器时钟已开启 NTP 同步，门口设备以它为准。
 - 服务器上 8080（人脸库）、8088（管理界面）、1883（MQTT）端口空闲。
@@ -342,6 +384,9 @@ reCamera 2002 或 2002w 识别人脸并判定是否开门。摄像头没有可�
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/unmanned-store-face-access/#现场怎么部署)。
+
+
 - 步骤 1 的 admin token。
 - 每人 3 到 8 张清晰的正脸照片。
 - 步骤 1 已填写识别服务地址，否则注册的人不会被识别。
@@ -361,12 +406,18 @@ reCamera 2002 或 2002w 识别人脸并判定是否开门。摄像头没有可�
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/unmanned-store-face-access/#现场怎么部署)。
+
+
 - 摄像头通过 USB-C 连接（IP `192.168.42.1`）或在同一网络，并知道 `recamera` 用户的 SSH 密码。
 - 摄像头能访问 `http://<服务器 IP>:8080`。
 - `/userdata` 至少 20 MB 空闲。
 - 一台连到同一 MQTT broker 的 R1000 或 XIAO ESP32-S3 继电器节点，并已设置好它的 Relay ID。
 
 ### 接线
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/unmanned-store-face-access/#现场怎么部署)。
+
 
 ![XIAO ESP32-S3 继电器接线](gallery/wiring-xiao-relay.svg)
 
@@ -390,6 +441,9 @@ reCamera 2002 或 2002w 识别人脸并判定是否开门。摄像头没有可�
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/unmanned-store-face-access/#现场怎么部署)。
+
+
 - 摄像头已上电并联网。
 - 至少注册了一个人。
 - 步骤 1 的设备控制端点里已填入这台摄像头。
@@ -410,6 +464,9 @@ reCamera 2002 或 2002w 识别人脸并判定是否开门。摄像头没有可�
 测试这道门：注册的人能开，照片不能开，远程开门可用。
 
 ### 前置条件
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/unmanned-store-face-access/#现场怎么部署)。
+
 
 - 门禁控制器已接好，至少注册了一个人。
 - 此人的一张打印照片。
@@ -448,6 +505,9 @@ AI 主机拉取门口现有摄像头的 RTSP 流，识别人脸并判定是否�
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/unmanned-store-face-access/#现场怎么部署)。
+
+
 - 一台装有 Docker 和 compose 插件的 Linux 服务器，门口设备能访问到它，不需要 GPU。
 - 服务器时钟已开启 NTP 同步，门口设备以它为准。
 - 服务器上 8080（人脸库）、8088（管理界面）、1883（MQTT）端口空闲。
@@ -479,6 +539,9 @@ AI 主机拉取门口现有摄像头的 RTSP 流，识别人脸并判定是否�
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/unmanned-store-face-access/#现场怎么部署)。
+
+
 - 步骤 1 的 admin token。
 - 每人 3 到 8 张清晰的正脸照片。
 - 步骤 1 已填写识别服务地址，否则注册的人不会被识别。
@@ -497,6 +560,9 @@ AI 主机拉取门口现有摄像头的 RTSP 流，识别人脸并判定是否�
 在主机上拉起识别服务与门禁节点。按主机型号与继电器接法选择部署目标。
 
 ### 前置条件
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/unmanned-store-face-access/#现场怎么部署)。
+
 
 - 主机上装好 Docker 与 compose 插件。
 - 摄像头的 RTSP 地址已在主机上测通。
@@ -520,6 +586,9 @@ AI 主机拉取门口现有摄像头的 RTSP 流，识别人脸并判定是否�
 继电器接 J20 的 DO 输出。**GPIO 接口选 sysfs**，填写 DO 的 sysfs 编号。
 
 ### 接线
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/unmanned-store-face-access/#现场怎么部署)。
+
 
 ![AI 主机继电器接线](gallery/wiring-host-relay.svg)
 
@@ -562,6 +631,9 @@ pin 1/17 是 3V3，2/4 是 5V，6/9/14/20/25/30/34/39 是 GND。
 
 ### 接线
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/unmanned-store-face-access/#现场怎么部署)。
+
+
 ![AI 主机继电器接线](gallery/wiring-host-relay.svg)
 
 1. 在主机上执行 `gpioinfo`，从表中选一条未标 `[used]` 的线。
@@ -581,10 +653,16 @@ pin 1/17 是 3V3，2/4 是 5V，6/9/14/20/25/30/34/39 是 GND。
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/unmanned-store-face-access/#现场怎么部署)。
+
+
 - 主机能访问 MQTT broker（步骤 1 的服务器，1883 端口）。
 - 继电器节点已运行并连上 broker，继电器 ID 在整个站点内唯一。
 
 ### 接线
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/unmanned-store-face-access/#现场怎么部署)。
+
 
 ![XIAO ESP32-S3 继电器接线](gallery/wiring-xiao-relay.svg)
 
@@ -609,6 +687,9 @@ pin 1/17 是 3V3，2/4 是 5V，6/9/14/20/25/30/34/39 是 GND。
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/unmanned-store-face-access/#现场怎么部署)。
+
+
 - 门口设备已上电并联网。
 - 至少注册了一个人。
 
@@ -628,6 +709,9 @@ pin 1/17 是 3V3，2/4 是 5V，6/9/14/20/25/30/34/39 是 GND。
 测试这道门：注册的人能开，照片不能开，远程开门可用。
 
 ### 前置条件
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/unmanned-store-face-access/#现场怎么部署)。
+
 
 - 门禁控制器已接好，至少注册了一个人。
 - 此人的一张打印照片。
@@ -651,3 +735,6 @@ pin 1/17 是 3V3，2/4 是 5V，6/9/14/20/25/30/34/39 是 GND。
 | 一次靠近继电器响两次 | 调大设备上的去抖时间后重测。 |
 | 审计校验失败 | 保留日志文件，检查是否有两个进程在写它。 |
 | 容器反复重启 | 执行 `docker logs usa-access-node` 查看被拒的设置。 |
+
+### 后续步骤
+- [查看完整工程 Wiki 与二次开发指南](https://wiki.seeedstudio.com/cn/solutions/unmanned-store-face-access/)

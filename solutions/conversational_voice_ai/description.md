@@ -23,6 +23,8 @@ This is a persistent device application, not a push-to-talk browser demo. The on
 | Smart-home terminal | Far-field speech remains usable while hardware AEC suppresses the terminal's own speaker output |
 | Product prototyping | Validate with a cloud model first, then move to RK1828 or Orin NX local inference |
 
+> 📖 **Engineering Reference:** Full architecture internals, measured benchmarks, and failure modes are documented in the [Engineering Wiki · Interruptible Conversational Voice AI](https://wiki.seeedstudio.com/solutions/conversational-voice-ai/).
+
 ## Usage Notes
 
 ### Required Hardware

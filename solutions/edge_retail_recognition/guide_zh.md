@@ -13,12 +13,17 @@ reComputer RK3588 或 RK3576 在 NPU 上运行商品检测和嵌入，一台 Lin
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-product-recognition/#现场怎么部署)。
+
 - 一台装有 Docker 和 compose 插件的 Linux 服务器，识别设备能访问到它。
 - 至少设置一个 admin token，服务不允许匿名访问。
 - 需要从本地网络之外访问管理界面时，在前面加一个 TLS 反向代理。
 - 默认使用已发布的镜像；使用自建镜像时覆盖 `RETAIL_SERVER_IMAGE` 和 `RETAIL_WEB_IMAGE`。
 
 ### 故障排查
+
+> 💡 **参数与深度排障：** 货架机位安装角度、多 SKU 召回率与事件载荷，详见 [工程 Wiki · 参数实测与已知退化](https://wiki.seeedstudio.com/cn/solutions/edge-product-recognition/#性能与实测数据)。
+
 
 | 现象 | 处理 |
 |---|---|
@@ -42,6 +47,9 @@ reComputer RK3588 或 RK3576 在 NPU 上运行商品检测和嵌入，一台 Lin
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-product-recognition/#现场怎么部署)。
+
+
 - 步骤 1 的管理端已部署。
 - `dinov2b_arcface_products10k_224_b1.onnx`（348 MB，sha256 `01ae07d10f638a2ebeb85100325ad79765a325d1026b728b60f1ee106e76eaae`），需自行获取，仅限非商用。
 - 服务器上 350 MB 可用空间。
@@ -61,6 +69,9 @@ reComputer RK3588 或 RK3576 在 NPU 上运行商品检测和嵌入，一台 Lin
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-product-recognition/#现场怎么部署)。
+
+
 - 步骤 1 的 admin token。
 - 每个 SKU 3 到 8 张图，至少包括正面、背面、侧面，覆盖两种光照。
 - 先确定嵌入模型，之后更换需要重建所有商品库版本。
@@ -79,6 +90,9 @@ reComputer RK3588 或 RK3576 在 NPU 上运行商品检测和嵌入，一台 Lin
 在 x86_64 主机上把检测器 ONNX 转成 `.rknn`，拷到板卡上。
 
 ### 前置条件
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-product-recognition/#现场怎么部署)。
+
 
 - x86_64 机器装有 rknn-toolkit2 2.3.2、onnx 1.16.1、setuptools 低于 81。
 - toolkit 版本与板卡上 `librknnrt.so` 版本一致，不一致时可能加载成功但结果错误。
@@ -101,6 +115,9 @@ reComputer RK3588 或 RK3576 在 NPU 上运行商品检测和嵌入，一台 Lin
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-product-recognition/#现场怎么部署)。
+
+
 - 步骤 1 到 4 已完成。
 - 上游仓库克隆，已执行 `uv sync`。
 - 自己 SKU 的照片，使用未注册过的角度拍摄。
@@ -115,6 +132,7 @@ reComputer RK3588 或 RK3576 在 NPU 上运行商品检测和嵌入，一台 Lin
 - `.rknn` 与 CPU 结果的检测框一致率（IoU ≥ 0.5）：fp16 接近 99.85%，INT8 接近 98.35%。
 
 #### 后续步骤
+- [查看完整工程 Wiki 与二次开发指南](https://wiki.seeedstudio.com/cn/solutions/edge-product-recognition/)
 
 - 用自己货架或收银台的数据微调两个模型。
 - 设备端进程 `platforms/rk3588/runtime.py`（配置 `platforms/rk3588/runtime.yaml`）串联检测、嵌入、检索与上报，本套餐不负责部署和托管它。
@@ -144,6 +162,9 @@ reComputer R2000（Hailo-8）在 NPU 上运行商品检测、在 CPU 上运行�
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-product-recognition/#现场怎么部署)。
+
+
 - 一台装有 Docker 和 compose 插件的 Linux 服务器。
 - 至少设置一个 admin token，服务不允许匿名访问。
 - 需要从本地网络之外访问管理界面时，在前面加一个 TLS 反向代理。
@@ -172,6 +193,9 @@ reComputer R2000（Hailo-8）在 NPU 上运行商品检测、在 CPU 上运行�
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-product-recognition/#现场怎么部署)。
+
+
 - 步骤 1 的管理端已部署。
 - `dinov2s_arcface_products10k_224_b1_dynint8.onnx`（sha256 `50e886aeab7b61a7eebe6ea3492b2d3ba0e74a859acedcbb9e9917b2b60454f6`），需自行获取，仅限非商用。
 - 服务器上 30 MB 可用空间。
@@ -191,6 +215,9 @@ reComputer R2000（Hailo-8）在 NPU 上运行商品检测、在 CPU 上运行�
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-product-recognition/#现场怎么部署)。
+
+
 - 步骤 1 的 admin token。
 - 每个 SKU 3 到 8 张图，包括正面、背面、侧面，覆盖两种光照。
 - 管理端使用步骤 2 的 DINOv2-small 模型。
@@ -209,6 +236,9 @@ reComputer R2000（Hailo-8）在 NPU 上运行商品检测、在 CPU 上运行�
 在 x86_64 主机上编译检测器 HEF，并在设备上准备 HailoRT 环境。
 
 ### 前置条件
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-product-recognition/#现场怎么部署)。
+
 
 - 设备上 HailoRT 与 PCIe 驱动版本一致（4.21.0）并已 hold，固件版本匹配。
 - `/etc/modprobe.d/hailo.conf` 里有 `force_desc_page_size=4096`。
@@ -230,6 +260,9 @@ reComputer R2000（Hailo-8）在 NPU 上运行商品检测、在 CPU 上运行�
 验证管理端注册，并核对 HEF 与 CPU 结果一致。
 
 ### 前置条件
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-product-recognition/#现场怎么部署)。
+
 
 - 步骤 1 到 4 已完成。
 - 上游仓库克隆，已执行 `uv sync`。
@@ -273,6 +306,9 @@ reComputer J40（Orin NX 16GB）或 J30（Orin Nano 8GB）用 TensorRT fp16 在 
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-product-recognition/#现场怎么部署)。
+
+
 - 一台装有 Docker 和 compose 插件的 Linux 服务器。
 - 至少设置一个 admin token，服务不允许匿名访问。
 - 需要从本地网络之外访问管理界面时，在前面加一个 TLS 反向代理。
@@ -301,6 +337,9 @@ reComputer J40（Orin NX 16GB）或 J30（Orin Nano 8GB）用 TensorRT fp16 在 
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-product-recognition/#现场怎么部署)。
+
+
 - 步骤 1 的管理端已部署。
 - `dinov2s_arcface_products10k_224_b1.onnx`（sha256 `7f0136ef6459fdd5461e39e95070c7e964fbe2df4b53309f15f452c60da615be`），需自行获取，仅限非商用。
 - 服务器上几十 MB 可用空间。
@@ -320,6 +359,9 @@ reComputer J40（Orin NX 16GB）或 J30（Orin Nano 8GB）用 TensorRT fp16 在 
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-product-recognition/#现场怎么部署)。
+
+
 - 步骤 1 的 admin token。
 - 每个 SKU 3 到 8 张图，包括正面、背面、侧面，覆盖两种光照。
 - 管理端使用步骤 2 的 DINOv2-small 模型，否则设备上的检索结果无效。
@@ -337,6 +379,9 @@ reComputer J40（Orin NX 16GB）或 J30（Orin Nano 8GB）用 TensorRT fp16 在 
 在板卡上构建检测和嵌入两个 fp16 engine，并校验 SHA。
 
 ### 前置条件
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-product-recognition/#现场怎么部署)。
+
 
 - reComputer J40（Orin NX 16GB），JetPack 6.2、TensorRT 10.3。engine 必须在运行它的板卡上构建，不能在板卡之间拷贝。
 - 检测器 ONNX，需自行获取，仅限学术与非商用。
@@ -358,6 +403,9 @@ reComputer J40（Orin NX 16GB）或 J30（Orin Nano 8GB）用 TensorRT fp16 在 
 验证管理端注册与下载、engine 校验，以及设备端检测和检索结果。
 
 ### 前置条件
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-product-recognition/#现场怎么部署)。
+
 
 - 步骤 1 到 4 已完成。
 - 上游仓库克隆，已执行 `uv sync`。

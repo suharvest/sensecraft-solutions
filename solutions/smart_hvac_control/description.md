@@ -70,6 +70,8 @@ At least one week of historical operation as CSV or Excel, with timestamp, setpo
 
 Docker Engine 20.10 or newer, about 1 GB free disk, and host ports 8280 (console) and 4841 (OPC UA simulator) free.
 
+> 📖 **Engineering Reference:** Full architecture internals, measured benchmarks, and failure modes are documented in the [Engineering Wiki · HVAC Setpoint Control](https://wiki.seeedstudio.com/solutions/hvac-setpoint-control/).
+
 ## Usage Notes
 
 - **Observe before control.** Run predictions without writes through at least one full occupancy cycle. Enabling writes before the recommendations have been compared against what the plant actually does is how a supervisory layer causes a comfort complaint.

@@ -75,6 +75,8 @@
 
 开源，可对接第三方 LoRaWAN 网络服务器（ChirpStack、TTN 等）以及 SenseCAP 平台。
 
+> 📖 **工程与技术参考：** 完整架构、实测基准与退化边界，详见 [工程 Wiki · BLE 与 LoRaWAN 室内外人员定位](https://wiki.seeedstudio.com/cn/solutions/indoor-outdoor-positioning-ble-lorawan/)。
+
 ## 方案对比
 
 | 方案 | 覆盖范围 | 默认配置 | 适合谁 |

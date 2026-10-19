@@ -35,6 +35,8 @@ A camera watches one inspection station and checks every frame for defects, miss
 
 Test device: reComputer J30 series (J3011, Orin Nano 8GB); dataset: DeepPCB6 validation set, 205 images.
 
+> 📖 **Engineering Reference:** Full architecture internals, measured benchmarks, and failure modes are documented in the [Engineering Wiki · Edge Assembly Inspection](https://wiki.seeedstudio.com/solutions/edge-assembly-inspection/).
+
 ## Output Interfaces
 
 | Interface | Content |

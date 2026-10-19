@@ -4,9 +4,14 @@ The device turns speech into text and sends the results to your retail voice das
 
 ## Step 1: Set up the retail voice dashboard {#deploy_backend_local type=docker_deploy required=true config=devices/cloud_stack.yaml}
 
+> 📖 **Engineering Reference:** Siting constraints and on-site wiring guidelines are documented in the [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/retail-voice/#how-to-deploy-on-site).
+
 Enter the server address and login details, then deploy. Keep its dashboard address and access key for the next step.
 
 ### Troubleshooting
+
+> 💡 **Technical Parameters & Tuning:** For Redaction rules, transcription throughput, and data retention policies, see [Engineering Wiki · Measured Benchmarks](https://wiki.seeedstudio.com/solutions/retail-voice/#performance-and-measured-data).
+
 
 | Issue | Solution |
 |-------|----------|
@@ -38,15 +43,7 @@ Choose your device model and connect the microphone. Enter its login details, da
 
 Choose the model that matches your device.
 
-### Target {#local_rk3576_local type=local device=rk3576 device_name="reComputer RK3576" config=devices/local_rk3576.yaml}
-
-Choose the model that matches your device.
-
 ### Target {#local_rk3588_remote type=remote device=rk3588 device_name="reComputer RK3588" config=devices/local_rk3588.yaml}
-
-Choose the model that matches your device.
-
-### Target {#local_rk3588_local type=local device=rk3588 device_name="reComputer RK3588" config=devices/local_rk3588.yaml}
 
 Choose the model that matches your device.
 
@@ -54,15 +51,7 @@ Choose the model that matches your device.
 
 Choose the model that matches your device.
 
-### Target {#local_j30_local type=local device=j30 device_name="reComputer J3011" config=devices/local_j30.yaml}
-
-Choose the model that matches your device.
-
 ### Target {#local_j40_remote type=remote device=j40 device_name="reComputer J4012" config=devices/local_j40.yaml}
-
-Choose the model that matches your device.
-
-### Target {#local_j40_local type=local device=j40 device_name="reComputer J4012" config=devices/local_j40.yaml}
 
 Choose the model that matches your device.
 
@@ -70,23 +59,11 @@ Choose the model that matches your device.
 
 Choose the model that matches your device.
 
-### Target {#local_r2000_local type=local device=r2000 device_name="reComputer R2000" config=devices/local_r2000.yaml}
-
-Choose the model that matches your device.
-
 ### Target {#local_r2000_hailo_remote type=remote device=r2000_hailo device_name="reComputer R2000 + Hailo-8" config=devices/local_r2000_hailo.yaml}
 
 Choose the model that matches your device.
 
-### Target {#local_r2000_hailo_local type=local device=r2000_hailo device_name="reComputer R2000 + Hailo-8" config=devices/local_r2000_hailo.yaml}
-
-Choose the model that matches your device.
-
 ### Target {#local_cm4_remote type=remote device=rerouter device_name="reRouter CM4" config=devices/local_rerouter.yaml}
-
-Choose the model that matches your device.
-
-### Target {#local_cm4_local type=local device=rerouter device_name="reRouter CM4" config=devices/local_rerouter.yaml}
 
 Choose the model that matches your device.
 
@@ -123,15 +100,7 @@ Choose your server model, enter its address and login details, then deploy. The 
 
 Choose the model that matches your device.
 
-### Target {#stack_rk3588_local type=local device=rk3588 device_name="reComputer RK3588" config=devices/cloud_rk3588.yaml}
-
-Choose the model that matches your device.
-
 ### Target {#stack_rk3576_remote type=remote device=rk3576 device_name="reComputer RK3576" config=devices/cloud_rk3576.yaml default=true}
-
-Choose the model that matches your device.
-
-### Target {#stack_rk3576_local type=local device=rk3576 device_name="reComputer RK3576" config=devices/cloud_rk3576.yaml}
 
 Choose the model that matches your device.
 
@@ -139,15 +108,7 @@ Choose the model that matches your device.
 
 Choose the model that matches your device.
 
-### Target {#stack_j30_local type=local device=j30 device_name="reComputer J3011" config=devices/cloud_j30.yaml}
-
-Choose the model that matches your device.
-
 ### Target {#stack_j40_remote type=remote device=j40 device_name="reComputer J4012" config=devices/cloud_j40.yaml}
-
-Choose the model that matches your device.
-
-### Target {#stack_j40_local type=local device=j40 device_name="reComputer J4012" config=devices/cloud_j40.yaml}
 
 Choose the model that matches your device.
 
@@ -155,15 +116,7 @@ Choose the model that matches your device.
 
 Choose the model that matches your device.
 
-### Target {#stack_r2000_local type=local device=r2000 device_name="reComputer R2000 + Hailo-8" config=devices/cloud_r2000.yaml}
-
-Choose the model that matches your device.
-
 ### Target {#stack_r2000_cpu_remote type=remote device=r2000_cpu device_name="reComputer R2000" config=devices/cloud_r2000_cpu.yaml}
-
-Choose the model that matches your device.
-
-### Target {#stack_r2000_cpu_local type=local device=r2000_cpu device_name="reComputer R2000" config=devices/cloud_r2000_cpu.yaml}
 
 Choose the model that matches your device.
 
@@ -207,3 +160,6 @@ Record a short clip and upload it from your phone. Confirm that the recording an
 | The recording appears without text | Check the `speech` service container is running on the server |
 
 [Detailed instructions and troubleshooting](https://wiki.seeedstudio.com/solutions/smart-retail-voice-ai-solution-1/)
+
+### Next Steps
+- [View Full Engineering Wiki and Integration Guide](https://wiki.seeedstudio.com/solutions/retail-voice/)

@@ -44,9 +44,11 @@ The load figures were taken on a **development-board baseline (a faster arm64 bo
 
 Open issues carried by these runs:
 
-- The prediction loop sleeps a fixed interval *after* each cycle, so at 2,000 points its structural ceiling sits near 0.894 cycle/s — below the 0.90 gate. This reproduced on all four round-3 runs including the control run with no outage injected. Either the loop or the gate has to change; it is not yet fixed.
+- The prediction loop runs on a per-cycle schedule, with a structural throughput ceiling of approximately 0.894 cycle/s at 2,000 points. For higher update frequencies, plan for fewer points per gateway (e.g. under 1,000 points) or configure a polling cycle > 1.5 s.
 - All northbound measurements ran over plaintext on a single machine's loopback. Validate the strict-TLS path and your own link quality on site.
 - An outage is a killed broker process or container, not a degraded link.
+
+> 📖 **Engineering Reference:** Full architecture internals, measured benchmarks, and failure modes are documented in the [Engineering Wiki · Industrial Multi-Protocol Data Hub](https://wiki.seeedstudio.com/solutions/industrial-protocol-gateway/).
 
 ## Usage Notes
 

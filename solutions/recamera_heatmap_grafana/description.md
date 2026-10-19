@@ -72,3 +72,5 @@ Three fields carry their weight for a specific reason. `slot` is the person's in
 - Light compute load: each box processes locally, server only aggregates data
 - IP camera + AI box throughput depends on box inference performance (scales with compute)
 - Fully local, no cloud fees
+
+> 📖 **Engineering Reference:** Full architecture internals, measured benchmarks, and failure modes are documented in the [Engineering Wiki · Retail People-Flow Heatmap](https://wiki.seeedstudio.com/solutions/retail-heatmap-grafana/).

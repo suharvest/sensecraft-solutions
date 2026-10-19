@@ -11,6 +11,8 @@ Enter the machine's address and the camera's RTSP URL; the engine is built and t
 
 ### Prerequisites
 
+> 📖 **Engineering Reference:** Siting constraints and on-site wiring guidelines are documented in the [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-security/#how-to-deploy-on-site).
+
 - A Jetson Orin on JetPack 6.x, which ships TensorRT. The deploy step stops on any other machine.
 - The nvidia container runtime registered with Docker. If it is missing: `sudo apt-get install -y nvidia-container-toolkit && sudo nvidia-ctk runtime configure --runtime=docker && sudo systemctl restart docker`.
 - Ports 8090 (workbench), 1883 (broker) and 8099 (camera preview) free.
@@ -23,6 +25,9 @@ Enter the machine's address and the camera's RTSP URL; the engine is built and t
 - On first boot the admin login is printed.
 
 ### Troubleshooting
+
+> 💡 **Technical Parameters & Tuning:** For Multi-stream capacity, confidence tuning, and temporal state machine, see [Engineering Wiki · Measured Benchmarks](https://wiki.seeedstudio.com/solutions/edge-security/#performance-and-measured-data).
+
 
 | Symptom | Action |
 |---------|--------|
@@ -43,6 +48,7 @@ Enter the machine's address and the camera's RTSP URL; the engine is built and t
 Log in, draw one boundary, and walk across it to see the first alert.
 
 ### Deployment Complete
+
 
 The broker, the hub and the detector are running on this machine.
 
@@ -109,6 +115,9 @@ One RK3588 board runs everything: the MQTT broker, the alert workbench, and the 
 Enter the board address and your camera URL; three containers are started on the board.
 
 ### Prerequisites
+
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-security/#现场怎么部署).
+
 
 - The `rknpu2` runtime installed (`/usr/lib/librknnrt.so` exists), and `rknn_toolkit_lite2` importable by the board's `python3`.
 - The hardware decoder node `/dev/mpp_service` present; the detector does not run on CPU decode.
@@ -177,6 +186,9 @@ One board with a Hailo-8 runs everything: the MQTT broker, the alert workbench, 
 Enter the board address and your camera URL; three containers are started on the board.
 
 ### Prerequisites
+
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-security/#现场怎么部署).
+
 
 - The Hailo PCIe driver loaded (`/dev/hailo0` exists) and the matching `hailort` package installed (`/usr/lib/libhailort.so` exists).
 - Nothing else holding the accelerator; the deploy step stops if it is in use.
@@ -260,6 +272,9 @@ Enter this machine's address; the broker and the hub are started.
 
 ### Prerequisites
 
+> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-security/#现场怎么部署).
+
+
 - An always-on arm64 or x86_64 machine with Docker.
 - Ports 8090 and 1883 free.
 - About 3 GB of free disk; alert data grows with alert volume.
@@ -316,3 +331,6 @@ Jetson, RK3588 and Hailo detectors can connect today; a reCamera detection node 
 | Detector shows online then offline in a loop | Give each detector a distinct name. |
 | Alerts appear with no thumbnail | The detector did not answer the snapshot request; the alert is still recorded. Check the detector log. |
 | Device clocks differ between sites | No action needed; rule timing and ordering use the hub's clock. |
+
+### Next Steps
+- [View Full Engineering Wiki and Integration Guide](https://wiki.seeedstudio.com/solutions/edge-security/)

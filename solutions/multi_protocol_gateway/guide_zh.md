@@ -16,6 +16,8 @@
 
 ### 接线
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/industrial-protocol-gateway/#现场怎么部署)。
+
 ![连接架构](gallery/architecture.svg)
 
 1. 将当前设备接入控制器所在网络。
@@ -23,6 +25,9 @@
 3. 本机部署不挂载串口；需要 Modbus RTU 时使用串口设备部署配置，硬件验证完成前不要开启生产写控制。
 
 ### 故障排查
+
+> 💡 **参数与深度排障：** 采集点位上限、南向驱动轮询间隔与北向 MQTT 格式，详见 [工程 Wiki · 参数实测与已知退化](https://wiki.seeedstudio.com/cn/solutions/industrial-protocol-gateway/#性能与实测数据)。
+
 
 | 现象 | 处理 |
 |------|------|
@@ -36,6 +41,9 @@
 通过 SSH 部署到控制器网络中的 reComputer R1000 / R1100 或 reTerminal DM。reTerminal DM 可以直接在本机触控屏上操作。
 
 ### 接线
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/industrial-protocol-gateway/#现场怎么部署)。
+
 
 ![连接架构](gallery/architecture.svg)
 
@@ -63,6 +71,9 @@
 
 ### 前置条件
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/industrial-protocol-gateway/#现场怎么部署)。
+
+
 步骤 1 的服务处于健康状态。
 
 ### 故障排查
@@ -77,6 +88,7 @@
 ### 部署完成
 
 #### 后续步骤
+- [查看完整工程 Wiki 与二次开发指南](https://wiki.seeedstudio.com/cn/solutions/industrial-protocol-gateway/)
 
 - 打开 **数据服务**，配置内置 MQTT Broker，查看点位、在线状态、命令与回执主题。
 - 需要预测时，打开预测插件导入 CSV 数据并配置输入/输出点位。
@@ -86,6 +98,9 @@
 把网关数据发到外部或云端 MQTT Broker，Broker 断网时数据缓存在本地，重连后按序补传。只用步骤 2 的内置 Broker 时跳过本步骤。
 
 ### 前置条件
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/industrial-protocol-gateway/#现场怎么部署)。
+
 
 > **当前部署的镜像 `v1.6.7` 不包含此功能，本步骤暂时无法完成**，下面的接口都会返回 HTTP 404。
 

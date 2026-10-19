@@ -4,9 +4,13 @@
 
 ## 步骤 1: 部署零售语音后台 {#deploy_backend_local type=docker_deploy required=true config=devices/cloud_stack.yaml}
 
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/retail-voice/#现场怎么部署)。
+
 填写后台设备的地址和登录信息，点击部署。完成后，记下后台地址和接入密钥，下一步会用到。
 
 ### 故障排查
+
+> 💡 **参数与深度排障：** 音频敏感词过滤、转写吞吐与本地数据销毁机制，详见 [工程 Wiki · 参数实测与已知退化](https://wiki.seeedstudio.com/cn/solutions/retail-voice/#性能与实测数据)。
 
 | 问题 | 解决 |
 |------|------|
@@ -38,15 +42,7 @@
 
 选择与你的设备一致的型号。
 
-### 部署目标 {#local_rk3576_local type=local device=rk3576 device_name="reComputer RK3576" config=devices/local_rk3576.yaml}
-
-选择与你的设备一致的型号。
-
 ### 部署目标 {#local_rk3588_remote type=remote device=rk3588 device_name="reComputer RK3588" config=devices/local_rk3588.yaml}
-
-选择与你的设备一致的型号。
-
-### 部署目标 {#local_rk3588_local type=local device=rk3588 device_name="reComputer RK3588" config=devices/local_rk3588.yaml}
 
 选择与你的设备一致的型号。
 
@@ -54,15 +50,7 @@
 
 选择与你的设备一致的型号。
 
-### 部署目标 {#local_j30_local type=local device=j30 device_name="reComputer J3011" config=devices/local_j30.yaml}
-
-选择与你的设备一致的型号。
-
 ### 部署目标 {#local_j40_remote type=remote device=j40 device_name="reComputer J4012" config=devices/local_j40.yaml}
-
-选择与你的设备一致的型号。
-
-### 部署目标 {#local_j40_local type=local device=j40 device_name="reComputer J4012" config=devices/local_j40.yaml}
 
 选择与你的设备一致的型号。
 
@@ -70,23 +58,11 @@
 
 选择与你的设备一致的型号。
 
-### 部署目标 {#local_r2000_local type=local device=r2000 device_name="reComputer R2000" config=devices/local_r2000.yaml}
-
-选择与你的设备一致的型号。
-
 ### 部署目标 {#local_r2000_hailo_remote type=remote device=r2000_hailo device_name="reComputer R2000 + Hailo-8" config=devices/local_r2000_hailo.yaml}
 
 选择与你的设备一致的型号。
 
-### 部署目标 {#local_r2000_hailo_local type=local device=r2000_hailo device_name="reComputer R2000 + Hailo-8" config=devices/local_r2000_hailo.yaml}
-
-选择与你的设备一致的型号。
-
 ### 部署目标 {#local_cm4_remote type=remote device=rerouter device_name="reRouter CM4" config=devices/local_rerouter.yaml}
-
-选择与你的设备一致的型号。
-
-### 部署目标 {#local_cm4_local type=local device=rerouter device_name="reRouter CM4" config=devices/local_rerouter.yaml}
 
 选择与你的设备一致的型号。
 
@@ -123,15 +99,7 @@ Clip 负责录音，手机上传音频，零售语音后台自动转成文字。
 
 选择与你的设备一致的型号。
 
-### 部署目标 {#stack_rk3588_local type=local device=rk3588 device_name="reComputer RK3588" config=devices/cloud_rk3588.yaml}
-
-选择与你的设备一致的型号。
-
 ### 部署目标 {#stack_rk3576_remote type=remote device=rk3576 device_name="reComputer RK3576" config=devices/cloud_rk3576.yaml default=true}
-
-选择与你的设备一致的型号。
-
-### 部署目标 {#stack_rk3576_local type=local device=rk3576 device_name="reComputer RK3576" config=devices/cloud_rk3576.yaml}
 
 选择与你的设备一致的型号。
 
@@ -139,15 +107,7 @@ Clip 负责录音，手机上传音频，零售语音后台自动转成文字。
 
 选择与你的设备一致的型号。
 
-### 部署目标 {#stack_j30_local type=local device=j30 device_name="reComputer J3011" config=devices/cloud_j30.yaml}
-
-选择与你的设备一致的型号。
-
 ### 部署目标 {#stack_j40_remote type=remote device=j40 device_name="reComputer J4012" config=devices/cloud_j40.yaml}
-
-选择与你的设备一致的型号。
-
-### 部署目标 {#stack_j40_local type=local device=j40 device_name="reComputer J4012" config=devices/cloud_j40.yaml}
 
 选择与你的设备一致的型号。
 
@@ -155,15 +115,7 @@ Clip 负责录音，手机上传音频，零售语音后台自动转成文字。
 
 选择与你的设备一致的型号。
 
-### 部署目标 {#stack_r2000_local type=local device=r2000 device_name="reComputer R2000 + Hailo-8" config=devices/cloud_r2000.yaml}
-
-选择与你的设备一致的型号。
-
 ### 部署目标 {#stack_r2000_cpu_remote type=remote device=r2000_cpu device_name="reComputer R2000" config=devices/cloud_r2000_cpu.yaml}
-
-选择与你的设备一致的型号。
-
-### 部署目标 {#stack_r2000_cpu_local type=local device=r2000_cpu device_name="reComputer R2000" config=devices/cloud_r2000_cpu.yaml}
 
 选择与你的设备一致的型号。
 
@@ -207,3 +159,6 @@ Clip 负责录音，手机上传音频，零售语音后台自动转成文字。
 | 录音出现了但没有文字 | 检查服务器上的 `speech` 服务容器是否在运行 |
 
 [详细说明与问题排查](https://wiki.seeedstudio.com/solutions/smart-retail-voice-ai-solution-1/)
+
+### 后续步骤
+- [查看完整工程 Wiki 与二次开发指南](https://wiki.seeedstudio.com/cn/solutions/retail-voice/)
