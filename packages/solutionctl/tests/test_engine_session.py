@@ -343,3 +343,14 @@ def test_real_rust_engine_stage_through_instance(tmp_path):
         assert json.loads(st.stdout)["leases"] == 0, "lease released on exit"
     finally:
         subprocess.run([bin_, "daemon", "stop"], capture_output=True, env=env, timeout=30)
+
+
+def test_ensure_timeout_handled_gracefully(capsys):
+    from unittest.mock import patch
+    with patch.object(_engine_http, "locate_engine", return_value=Path("/fake/engine")), \
+         patch.object(_engine_http, "engine_meta", return_value={"cli": {"commands": ["daemon"]}}), \
+         patch.object(_engine_http.subprocess, "run", side_effect=subprocess.TimeoutExpired(["engine", "daemon", "ensure"], 60)):
+        assert manage.list_apps() == 1
+        assert "timed out after" in capsys.readouterr().err
+        assert stage.run(_stage_args()) == 2
+        assert "timed out after" in capsys.readouterr().err

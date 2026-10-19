@@ -315,13 +315,18 @@ def _heartbeat(conn: EngineConn, interval: float, stop: threading.Event) -> None
 def instance_engine(engine, env: Dict[str, str]) -> Iterator[EngineConn]:
     """``daemon ensure`` + lease (heartbeated) for the duration of the block."""
     client_id = _client_id()
-    out = subprocess.run(
-        ensure_args(engine, env, client_id),
-        capture_output=True,
-        text=True,
-        timeout=ENSURE_TIMEOUT,
-        env=env,
-    )
+    try:
+        out = subprocess.run(
+            ensure_args(engine, env, client_id),
+            capture_output=True,
+            text=True,
+            timeout=ENSURE_TIMEOUT,
+            env=env,
+        )
+    except subprocess.TimeoutExpired as exc:
+        if exc.stderr:
+            sys.stderr.write(redact(exc.stderr))
+        raise RuntimeError(f"`daemon ensure` timed out after {ENSURE_TIMEOUT}s") from None
     if out.stderr:
         sys.stderr.write(redact(out.stderr))
     if out.returncode == EXIT_CONFLICT:
