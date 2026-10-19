@@ -225,31 +225,6 @@ remote_overrides:
         name_i18n:
           zh: 等待看板就绪
 
-  user_inputs:
-    - id: host
-      name: Dashboard Host Address
-      type: text
-      required: true
-      placeholder: "192.168.1.50"
-      description: Where the dashboard container runs — usually the reComputer or any Linux host with Docker
-      name_i18n:
-        zh: 看板主机地址
-      description_i18n:
-        zh: 运行看板容器的机器——通常是 reComputer 或任意装了 Docker 的 Linux 主机
-    - id: username
-      name: SSH Username
-      type: text
-      default: recomputer
-      required: true
-      name_i18n:
-        zh: SSH 用户名
-    - id: password
-      name: SSH Password
-      type: password
-      required: true
-      name_i18n:
-        zh: SSH 密码
-
 user_inputs:
   - id: timezone
     name: Time Zone

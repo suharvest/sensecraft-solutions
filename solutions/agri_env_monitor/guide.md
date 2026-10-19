@@ -307,7 +307,7 @@ If choosing The Things Stack, starts The Things Stack (with Postgres and Redis),
 2. The host's LAN IP (not `127.0.0.1`, or other machines cannot sign in to the Console).
 3. Ports 1885 (Console) and 1700/udp (packet forwarder) free.
 4. The broker address, port, username and password from step 1.
-5. The application ID and API key are created in step 8: deploy this step, create them in the Console and fill them in, then run `docker compose restart bridge`.
+5. The application ID and API key are created in step 8: deploy this step, create them in the Console and fill them in, update `TTN_MQTT_PASSWORD` in `.env`, and run `docker compose up -d bridge` to recreate the bridge container.
 
 ### Troubleshooting
 
@@ -315,7 +315,7 @@ If choosing The Things Stack, starts The Things Stack (with Postgres and Redis),
 |-------|----------|
 | `is-db migrate` fails | Postgres was not ready; re-run the initialisation |
 | Console loads but sign-in loops | Redeploy with the host's LAN IP |
-| Bridge log shows no `TTS MQTT connected` | Create the application and API key in step 8, then restart the bridge |
+| Bridge log shows no `TTS MQTT connected` | Create the application and API key in step 8, then update .env and recreate the bridge |
 | Stack container is killed on start | Check the host's available memory |
 
 ### Target {#tts_stack_remote type=remote device_name="Gateway Host" config=devices/tts_stack.yaml default=true}
@@ -351,7 +351,12 @@ Register the nodes in ChirpStack, configure the payload decoder, and join the no
 
 ## Step 8: Join the Sensors to The Things Stack {#join_tts type=manual required=false config=devices/join_tts_device.yaml}
 
-Create the application, install the payload formatter, and join the nodes.
+Create the application, install the payload formatter, and join the nodes. After generating an API key in the Console, backfill it in the deployment directory and recreate the bridge container:
+
+```bash
+sed -i 's/^TTN_MQTT_PASSWORD=.*/TTN_MQTT_PASSWORD="<generated_api_key>"/' .env
+docker compose up -d bridge
+```
 
 ### Prerequisites
 

@@ -383,7 +383,7 @@ actions:
           sleep 10
         done
         echo "The bridge has not connected to the Application Server MQTT." >&2
-        echo "The usual cause is that the application and its API key do not exist yet — create them in the Console, then restart: docker compose restart bridge" >&2
+        echo "The usual cause is that the application and its API key do not exist yet — create them in the Console, then update .env and run: docker compose up -d bridge" >&2
         docker logs --tail 40 agri-env-bridge-tts 2>&1 || true
       name_i18n:
         zh: 确认桥已连上两个 broker
@@ -477,7 +477,7 @@ remote_overrides:
             sleep 10
           done
           echo "The bridge has not connected to the Application Server MQTT." >&2
-          echo "The usual cause is that the application and its API key do not exist yet — create them in the Console, then restart: docker compose restart bridge" >&2
+          echo "The usual cause is that the application and its API key do not exist yet — create them in the Console, then update .env and run: docker compose up -d bridge" >&2
           docker logs --tail 40 agri-env-bridge-tts 2>&1 || true
         name_i18n:
           zh: 确认桥已连上两个 broker
@@ -591,12 +591,13 @@ user_inputs:
   - id: ttn_mqtt_password
     name: Application API Key
     type: password
-    required: true
-    description: An API key with rights to read application traffic. Created in the Console under Integrations → MQTT, and shown only once.
+    default: "setup-pending"
+    required: false
+    description: An API key with rights to read application traffic. Created in the Console under Integrations → MQTT, and shown only once. Keep the default placeholder on first deployment, then create and backfill it once Console is running.
     name_i18n:
       zh: Application API Key
     description_i18n:
-      zh: 有读取 application 流量权限的 API key。在 Console 的「Integrations → MQTT」里创建，只显示一次。
+      zh: 有读取 application 流量权限的 API key。在 Console 的「Integrations → MQTT」里创建，只显示一次。首次部署保留默认占位值，待 Console 启动后创建并回填。
   - id: unavailable_after
     name: Offline Threshold (seconds)
     type: text

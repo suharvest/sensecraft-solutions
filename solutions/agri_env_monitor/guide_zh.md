@@ -307,7 +307,7 @@ SenseCAP S21xx 节点已通过 SenseCAP M2 网关上报到 SenseCAP 云，射频
 2. 主机的局域网 IP（不要填 `127.0.0.1`，否则其他机器无法登录 Console）。
 3. 1885（Console）与 1700/udp（packet forwarder）端口空闲。
 4. 步骤 1 的 broker 地址、端口、用户名与密码。
-5. application ID 与 API key 在步骤 8 创建：先部署本步骤，在 Console 创建后填入，再执行 `docker compose restart bridge`。
+5. application ID 与 API key 在步骤 8 创建：先部署本步骤，在 Console 创建后填入，更新 .env 中的 TTN_MQTT_PASSWORD 后执行 docker compose up -d bridge 重建桥接容器。
 
 ### 故障排查
 
@@ -315,7 +315,7 @@ SenseCAP S21xx 节点已通过 SenseCAP M2 网关上报到 SenseCAP 云，射频
 |-------|----------|
 | `is-db migrate` 失败 | Postgres 未就绪，重跑初始化 |
 | Console 打得开但登录反复跳转 | 用主机局域网 IP 重新部署 |
-| 桥的日志里没有 `TTS MQTT connected` | 在步骤 8 创建 application 和 API key 后重启桥 |
+| 桥的日志里没有 `TTS MQTT connected` | 在步骤 8 创建 application 和 API key 后更新 .env 并重建桥容器 |
 | stack 容器一起来就被杀 | 检查主机可用内存 |
 
 ### 部署目标 {#tts_stack_remote type=remote device_name="Gateway Host" config=devices/tts_stack.yaml default=true}
@@ -351,7 +351,12 @@ SenseCAP S21xx 节点已通过 SenseCAP M2 网关上报到 SenseCAP 云，射频
 
 ## 步骤 8: 让传感器接入 The Things Stack {#join_tts type=manual required=false config=devices/join_tts_device.yaml}
 
-创建 application、安装 payload formatter、让节点入网。
+创建 application、安装 payload formatter、让节点入网。在 Console 生成 API Key 后，在部署目录下回填并重建桥接容器：
+
+```bash
+sed -i 's/^TTN_MQTT_PASSWORD=.*/TTN_MQTT_PASSWORD="<生成的API_Key>"/' .env
+docker compose up -d bridge
+```
 
 ### 前置条件
 
