@@ -747,6 +747,58 @@ Deploy the data storage and chart display services on your computer.
 - **标题必须精确匹配**：中文使用 `### 故障排查` 或 `### 故障排除`，英文使用 `### Troubleshooting`
 - 标题后不要添加额外文字（如 ~~`### 故障排查指南`~~），否则解析器无法识别
 
+#### 工程参考与 Wiki 链接规范（面向 PGC / 方案贡献者）
+
+在方案介绍页与部署步骤中，对于需要深入技术细节、现场工勘参数、网络协议定义或参数调优的内容，推荐链接到对应的工程 Wiki（`wiki.seeedstudio.com`）。
+
+> 💡 **重要说明**：
+> 1. **非强制性（Non-blocking）**：外部方案贡献者（PGC）未提供 Wiki 链接不会阻断 CI 检查或方案发布。
+> 2. **免维护 UTM 机制（自动注入）**：贡献者直接书写干净的裸 Wiki 链接即可（例如 `https://wiki.seeedstudio.com/solutions/fall_detection/#hardware-runtime-matrix`）。App 端在解析渲染及外跳打开时，会自动识别 Seeed 域名并注入 `utm_source=solution_app&utm_medium=in_app_guide&utm_campaign=<solution_id>`。若贡献者已提供自定义 UTM 参数，平台将严格予以保留。
+
+**推荐写法与固定样式**：
+
+1. **步骤前置/提示 Callout 样式**（适用于工勘约束、硬件矩阵、架构说明）：
+   ```markdown
+   > 📖 **工程与技术参考：** 涉及镜头盲区与工勘约束，可参考 [跌倒检测工程 Wiki · 安装与盲区约束](https://wiki.seeedstudio.com/solutions/fall_detection/#siting-constraints)。
+   ```
+   英文对应：
+   ```markdown
+   > 📖 **Engineering Reference:** For camera siting constraints and coverage blindspots, see [Engineering Wiki · Siting & Blindspots](https://wiki.seeedstudio.com/solutions/fall_detection/#siting-constraints).
+   ```
+
+2. **故障排查表格与深度参数提示块**：
+   - **保持表头干净纯粹**：表头必须为简明的 `| 现象 | 处理 |`（英文 `| Issue | Action |`），**严禁将说明文字或链接塞进表头单元格（`<th>`）**。
+   - **表格上方提示块（适用于统一数据协议、吞吐指标、已知退化）**：
+     ```markdown
+     ### 故障排查
+
+     > 💡 **参数与深度排障：** 完整数据格式、芯片吞吐基准与已知退化边界，详见 [工程 Wiki · 参数实测与已知退化](https://wiki.seeedstudio.com/cn/solutions/<slug>/#性能与实测数据)。
+
+     | 现象 | 处理 |
+     |------|------|
+     | 找不到推理后端 | 检查目标设备驱动与运行时。版本对照参见 [工程 Wiki · 硬件运行时矩阵](https://wiki.seeedstudio.com/solutions/<slug>/#runtime-matrix)。 |
+     ```
+   - 英文对应：
+     ```markdown
+     ### Troubleshooting
+
+     > 💡 **Technical Parameters & Tuning:** For throughput benchmarks and runtime matrix, see [Engineering Wiki · Measured Benchmarks](https://wiki.seeedstudio.com/solutions/<slug>/#performance-and-measured-data).
+
+     | Issue | Action |
+     |-------|--------|
+     ```
+
+3. **App 部署页顶部常驻入口（框架自动提供）**：
+   - App 会自动在部署页面右上角操作栏（与“导出操作手册”并列）常驻显示 **「📖 工程 Wiki」** 按钮（自动读取 `solution.yaml` 的 `links.wiki` 并匹配当前语言）。
+   - 无论用户切到哪套套餐（Preset）、哪台设备、进行到第几个步骤，都能一键直达工程 Wiki。
+
+4. **部署完成 / 下一步动作样式（放置于文档最末尾）**：
+   ```markdown
+   ## 后续步骤
+   - [查看完整工程 Wiki 与二次开发指南](https://wiki.seeedstudio.com/solutions/<slug>/)
+   - [下载数据字典与 MQTT Payload 定义](https://wiki.seeedstudio.com/solutions/<slug>/#mqtt-payload-spec)
+   ```
+
 #### 成功页格式
 
 使用 `# Deployment Complete` / `# 部署完成` 标记成功页开始：
