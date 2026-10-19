@@ -49,6 +49,87 @@ post_deployment:
 name_i18n:
   zh: 自定义运维看板
 
+actions:
+  before:
+    - name: Check the broker is reachable
+      ignore_error: true
+      env:
+        INPUT_MQTT_HOST: "{{mqtt_host}}"
+        INPUT_MQTT_PORT: "{{mqtt_port}}"
+      run: |
+        set -e
+        BROKER_HOST="${INPUT_MQTT_HOST:-127.0.0.1}"
+        BROKER_PORT="${INPUT_MQTT_PORT:-1883}"
+        if command -v nc >/dev/null 2>&1; then
+          if nc -z -w 5 "$BROKER_HOST" "$BROKER_PORT"; then
+            echo "broker $BROKER_HOST:$BROKER_PORT is reachable"
+          else
+            echo "WARNING: cannot open $BROKER_HOST:$BROKER_PORT — check the broker address and that it is reachable from this host" >&2
+          fi
+        else
+          echo "nc not available, skipping the reachability check"
+        fi
+      name_i18n:
+        zh: 检查 broker 可达
+    - name: Write the dashboard configuration
+      env:
+        INPUT_TIMEZONE: "{{timezone}}"
+        INPUT_HTTP_PORT: "{{http_port}}"
+        INPUT_WS_PORT: "{{ws_port}}"
+        INPUT_MQTT_HOST: "{{mqtt_host}}"
+        INPUT_MQTT_PORT: "{{mqtt_port}}"
+        INPUT_MQTT_TLS: "{{mqtt_tls}}"
+        INPUT_MQTT_USERNAME: "{{mqtt_username}}"
+        INPUT_MQTT_PASSWORD: "{{mqtt_password}}"
+        INPUT_MQTT_PREFIX: "{{mqtt_prefix}}"
+        INPUT_MQTT_TOPIC: "{{mqtt_topic}}"
+      run: |
+        set -e
+        if [ -d "assets/custom_dashboard" ]; then WORKDIR="assets/custom_dashboard"; else WORKDIR="."; fi
+        umask 077
+        dotenv_quote() { printf '%s' "$1" | sed -e 's/[\\"$]/\\&/g'; }
+        cat > "$WORKDIR/.env" <<EOF
+        COMPOSE_PROJECT_NAME=agri-env-ops-dashboard
+        TZ="$(dotenv_quote "$INPUT_TIMEZONE")"
+        FARM_BIND=0.0.0.0
+        FARM_HTTP_PORT="$(dotenv_quote "$INPUT_HTTP_PORT")"
+        FARM_WS_PORT="$(dotenv_quote "$INPUT_WS_PORT")"
+        MQTT_HOST="$(dotenv_quote "$INPUT_MQTT_HOST")"
+        MQTT_PORT="$(dotenv_quote "$INPUT_MQTT_PORT")"
+        MQTT_TLS="$(dotenv_quote "$INPUT_MQTT_TLS")"
+        MQTT_USER="$(dotenv_quote "$INPUT_MQTT_USERNAME")"
+        MQTT_PASSWORD="$(dotenv_quote "$INPUT_MQTT_PASSWORD")"
+        MQTT_PREFIX="$(dotenv_quote "$INPUT_MQTT_PREFIX")"
+        MQTT_SOURCE=bridge
+        MQTT_TOPIC="$(dotenv_quote "$INPUT_MQTT_TOPIC")"
+        EOF
+        echo "wrote $WORKDIR/.env"
+      name_i18n:
+        zh: 写入看板配置
+  after:
+    - name: Wait for the dashboard to come up
+      ignore_error: true
+      timeout: 300
+      run: |
+        echo "Watching the dashboard log for the MQTT connection ..."
+        for i in $(seq 1 30); do
+          if docker logs agri-env-ops-dashboard 2>&1 | grep -q "mqtt connected rc=Success"; then
+            echo "Connected to the MQTT broker."
+            docker logs --tail 15 agri-env-ops-dashboard 2>&1
+            exit 0
+          fi
+          if docker logs agri-env-ops-dashboard 2>&1 | grep -q "http listening on"; then
+            echo "Dashboard is serving (MQTT still connecting)."
+            docker logs --tail 15 agri-env-ops-dashboard 2>&1
+            exit 0
+          fi
+          sleep 10
+        done
+        echo "Dashboard did not report ready yet." >&2
+        docker logs --tail 40 agri-env-ops-dashboard 2>&1 || true
+      name_i18n:
+        zh: 等待看板就绪
+
 remote_overrides:
   remote_path: /home/{{username}}/agri-env-ops-dashboard
   compose_dir: assets/custom_dashboard
@@ -62,12 +143,18 @@ remote_overrides:
         # A dashboard that cannot reach its broker looks identical to one with
         # bad credentials from the outside, so this is checked first.
         ignore_error: true
+        env:
+          INPUT_MQTT_HOST: "{{mqtt_host}}"
+          INPUT_MQTT_PORT: "{{mqtt_port}}"
         run: |
+          set -e
+          BROKER_HOST="${INPUT_MQTT_HOST:-127.0.0.1}"
+          BROKER_PORT="${INPUT_MQTT_PORT:-1883}"
           if command -v nc >/dev/null 2>&1; then
-            if nc -z -w 5 "{{mqtt_host}}" "{{mqtt_port}}"; then
-              echo "broker {{mqtt_host}}:{{mqtt_port}} is reachable"
+            if nc -z -w 5 "$BROKER_HOST" "$BROKER_PORT"; then
+              echo "broker $BROKER_HOST:$BROKER_PORT is reachable"
             else
-              echo "WARNING: cannot open {{mqtt_host}}:{{mqtt_port}} — check the broker address and that it is reachable from this host" >&2
+              echo "WARNING: cannot open $BROKER_HOST:$BROKER_PORT — check the broker address and that it is reachable from this host" >&2
             fi
           else
             echo "nc not available, skipping the reachability check"
@@ -79,24 +166,36 @@ remote_overrides:
       - name: Write the dashboard configuration
         # Credentials only ever exist in this file, mode 600, on the target
         # host. They are not written into the image and not committed anywhere.
+        env:
+          INPUT_TIMEZONE: "{{timezone}}"
+          INPUT_HTTP_PORT: "{{http_port}}"
+          INPUT_WS_PORT: "{{ws_port}}"
+          INPUT_MQTT_HOST: "{{mqtt_host}}"
+          INPUT_MQTT_PORT: "{{mqtt_port}}"
+          INPUT_MQTT_TLS: "{{mqtt_tls}}"
+          INPUT_MQTT_USERNAME: "{{mqtt_username}}"
+          INPUT_MQTT_PASSWORD: "{{mqtt_password}}"
+          INPUT_MQTT_PREFIX: "{{mqtt_prefix}}"
+          INPUT_MQTT_TOPIC: "{{mqtt_topic}}"
         run: |
           set -e
           WORKDIR="/home/{{username}}/agri-env-ops-dashboard/custom_dashboard"
           umask 077
-          cat > "$WORKDIR/.env" <<'EOF'
+          dotenv_quote() { printf '%s' "$1" | sed -e 's/[\\"$]/\\&/g'; }
+          cat > "$WORKDIR/.env" <<EOF
           COMPOSE_PROJECT_NAME=agri-env-ops-dashboard
-          TZ={{timezone}}
+          TZ="$(dotenv_quote "$INPUT_TIMEZONE")"
           FARM_BIND=0.0.0.0
-          FARM_HTTP_PORT={{http_port}}
-          FARM_WS_PORT={{ws_port}}
-          MQTT_HOST={{mqtt_host}}
-          MQTT_PORT={{mqtt_port}}
-          MQTT_TLS={{mqtt_tls}}
-          MQTT_USER={{mqtt_username}}
-          MQTT_PASSWORD={{mqtt_password}}
-          MQTT_PREFIX={{mqtt_prefix}}
+          FARM_HTTP_PORT="$(dotenv_quote "$INPUT_HTTP_PORT")"
+          FARM_WS_PORT="$(dotenv_quote "$INPUT_WS_PORT")"
+          MQTT_HOST="$(dotenv_quote "$INPUT_MQTT_HOST")"
+          MQTT_PORT="$(dotenv_quote "$INPUT_MQTT_PORT")"
+          MQTT_TLS="$(dotenv_quote "$INPUT_MQTT_TLS")"
+          MQTT_USER="$(dotenv_quote "$INPUT_MQTT_USERNAME")"
+          MQTT_PASSWORD="$(dotenv_quote "$INPUT_MQTT_PASSWORD")"
+          MQTT_PREFIX="$(dotenv_quote "$INPUT_MQTT_PREFIX")"
           MQTT_SOURCE=bridge
-          MQTT_TOPIC={{mqtt_topic}}
+          MQTT_TOPIC="$(dotenv_quote "$INPUT_MQTT_TOPIC")"
           EOF
           echo "wrote $WORKDIR/.env"
         name_i18n:
@@ -127,29 +226,6 @@ remote_overrides:
           zh: 等待看板就绪
 
 user_inputs:
-  - id: host
-    name: Dashboard Host Address
-    type: text
-    required: true
-    placeholder: "192.168.1.50"
-    description: Where the dashboard container runs — usually the reComputer or any Linux host with Docker
-    name_i18n:
-      zh: 看板主机地址
-    description_i18n:
-      zh: 运行看板容器的机器——通常是 reComputer 或任意装了 Docker 的 Linux 主机
-  - id: username
-    name: SSH Username
-    type: text
-    default: recomputer
-    required: true
-    name_i18n:
-      zh: SSH 用户名
-  - id: password
-    name: SSH Password
-    type: password
-    required: true
-    name_i18n:
-      zh: SSH 密码
   - id: timezone
     name: Time Zone
     type: text

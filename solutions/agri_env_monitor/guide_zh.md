@@ -97,323 +97,11 @@ SenseCAP S21xx 节点已通过 SenseCAP M2 网关上报到 SenseCAP 云，射频
 
 ---
 
-## 套餐: 自建 The Things Stack {#tts_local}
-
-reComputer R12 系列网关接收 SenseCAP S21xx 节点数据，交给自建的 The Things Stack 开源版，桥订阅它的 MQTT 并发布为 Home Assistant 实体，不需要云账号。
-
-- **主机：** 一台装 Docker 的 Linux 主机，运行 Home Assistant、MQTT broker 和桥。
-- **节点：** 每个节点的 DevEUI、JoinEUI 与 AppKey，节点频段与网关一致。
-- **已知限制：** 启动 stack 前先确认网关主机可用内存。
-
-## 步骤 1: 部署 Home Assistant 与 broker {#deploy_ha_tts type=docker_deploy required=true config=devices/homeassistant_deploy.yaml}
-
-在一台主机上启动 Home Assistant 和 Mosquitto broker。
-
-### 前置条件
-
-1. 主机至少 8 GB 可用磁盘。
-2. 8123 与 1883 端口空闲，或在本步骤的输入里改端口。
-3. 设定一个 broker 密码并记下，stack 那一步要填同一个值。
-
-### 故障排查
-
-| 现象 | 处理 |
-|-------|----------|
-| 8123 或 1883 已被占用 | 停掉占用端口的进程，或在本步骤的输入里改端口 |
-| Mosquitto 反复重启并报 `Unable to open pwfile` | 把密码文件属主改为 `mosquitto` 用户 |
-| Home Assistant 一直不响应 8123 | 首次启动需要几分钟，执行 `docker logs agri-env-homeassistant` 查看 |
-| 部署连不上 | 检查 SSH 与所用系统镜像的用户名 |
-
-### 部署目标 {#deploy_ha_tts_remote type=remote device_name="Linux Host" config=devices/homeassistant_deploy.yaml default=true}
-
-通过 SSH 部署到一台装 Docker 的 Linux 主机。
-
-### 部署目标 {#deploy_ha_tts_local type=local device_name="Linux Host" config=devices/homeassistant_deploy.yaml}
-
-部署到本机，本机须为装 Docker 的 Linux 主机。
-
----
-
-## 步骤 2: 启用网关射频 {#r12_gateway_tts type=manual required=true config=devices/r12_gateway_tts.yaml}
-
-在 R12 上接好天线、确认 SPI 设备，并运行指向 The Things Stack 的 packet forwarder。
-
-### 接线
-
-1. 上电前先把 LoRa 天线接到 SMA 座上，未接天线发射可能损坏射频。
-2. 确认 `/dev/spidev0.0` 存在，没有就打开 SPI 后重启。
-3. 从 R12 产品 wiki 查到 reset、power-enable 与 SX1261 的引脚编号并记下，packet forwarder 配置要用。
-4. 核对网关下单时的地区频段与节点频段一致，频段无法在软件里修改。
-
-### 故障排查
-
-| 现象 | 处理 |
-|-------|----------|
-| forwarder 退出且没打印 EUI | 确认 `/dev/spidev0.0` 存在，再核对 reset 引脚 |
-| Console 里网关一直未连接 | 检查防火墙是否放行到 stack 主机的 UDP 1700 |
-| 集中器起来了但没有上行 | 核对网关频段、频率计划与节点频段是否一致 |
-
----
-
-## 步骤 3: 部署 The Things Stack 与桥 {#deploy_tts type=docker_deploy required=true config=devices/tts_stack.yaml}
-
-启动 The Things Stack（含 Postgres 与 Redis）并初始化，同时启动桥。首次运行预留 15–30 分钟。
-
-### 前置条件
-
-1. 至少 10 GB 可用磁盘。
-2. 主机的局域网 IP（不要填 `127.0.0.1`，否则其他机器无法登录 Console）。
-3. 1885（Console）与 1700/udp（packet forwarder）端口空闲。
-4. 步骤 1 的 broker 地址、端口、用户名与密码。
-5. application ID 与 API key 在步骤 4 创建：先部署本步骤，在 Console 创建后填入，再执行 `docker compose restart bridge`。
-
-### 故障排查
-
-| 现象 | 处理 |
-|-------|----------|
-| `is-db migrate` 失败 | Postgres 未就绪，重跑初始化 |
-| Console 打得开但登录反复跳转 | 用主机局域网 IP 重新部署 |
-| 桥的日志里没有 `TTS MQTT connected` | 在步骤 4 创建 application 和 API key 后重启桥 |
-| stack 容器一起来就被杀 | 检查主机可用内存 |
-
-### 部署目标 {#tts_stack_remote type=remote device_name="Gateway Host" config=devices/tts_stack.yaml default=true}
-
-通过 SSH 部署到网关主机。
-
-### 部署目标 {#tts_stack_local type=local device_name="Gateway Host" config=devices/tts_stack.yaml}
-
-部署到本机，本机须为网关主机。
-
----
-
-## 步骤 4: 让传感器接入 The Things Stack {#join_tts type=manual required=true config=devices/join_tts_device.yaml}
-
-创建 application、安装 payload formatter、让节点入网。
-
-### 前置条件
-
-1. 网关在 Console 里显示为 `Connected`。
-2. 每个节点的 DevEUI、JoinEUI 与 AppKey，印在节点上，也可用 SenseCAP Mate app 通过 NFC 读出。
-3. 节点系列对应的 SenseCAP decoder（上游仓库），没有它实体不会出现。该仓库没有 LICENSE 文件，许可状态未确认。
-
-### 故障排查
-
-| 现象 | 处理 |
-|-------|----------|
-| 有 join request 但没有 join accept | 核对密钥和区域参数 |
-| 连 join request 都没有 | 先看网关状态，确认网关收到节点信号 |
-| 上行到了但没有 `decoded_payload` | 在该 application 上安装 payload formatter |
-| 有 `decoded_payload` 但没有 `messages` 数组 | 换成与节点系列对应的 decoder |
-
----
-
-## 步骤 5: 在 Home Assistant 里核对数据 {#verify_tts type=web_dashboard required=false config=devices/ha_dashboard.yaml}
-
-打开 Home Assistant，确认节点已经出现。
-
-### 部署完成
-
-每个入网节点在 Home Assistant 里是一台设备，实体 ID 与其他套餐一致。
-
-#### 快速验证
-
-1. 登录 Home Assistant，全新安装时先完成引导向导。
-2. 「设置 → 设备与服务 → 添加集成 → **MQTT**」，指向步骤 1 的 broker。
-3. 打开 MQTT 集成，每个节点是一台名为 `SenseCAP <DevEUI>` 的设备，打开一台确认实体带单位。
-4. 把 `assets/homeassistant/agri_env_dashboard.yaml` 粘进 Lovelace 原始配置编辑器，把示例 DevEUI 换成自己的。
-5. 把 `assets/homeassistant/automations.yaml` 并入 Home Assistant 的 `automations.yaml`，重载自动化，按现场设置阈值与 `for:` 持续时间。
-
-#### 下一步
-
-- 把离线判定时长调成与节点上报间隔匹配。
-- 第一天保持 Console 的网关页面打开，网关掉线重连会先在那里显示。
-
-### 故障排查
-
-| 现象 | 处理 |
-|-------|----------|
-| 设备出现了但实体是 `unavailable` | 核对上报间隔与离线判定时长 |
-| 只有一个节点缺失 | 看该节点在 Console 里的 Live data，有上行时检查 decoder |
-| 某个实体没有单位 | 把它的 `measurementId` 加进 `assets/config/measurements.yaml` |
-| 旧的实体 ID 总是回来 | 同时清掉 broker 的 retained 消息和实体注册表 |
-
----
-
-## 套餐: 本地 ChirpStack {#chirpstack_local}
-
-ChirpStack 作网络服务器，用 SenseCAP M2 网关内置的 ChirpStack，或在 reComputer R12 系列网关上用 Docker 运行，SenseCAP S21xx 节点数据全程不经外网。
-
-- **主机：** 一台装 Docker 的 Linux 主机，运行 Home Assistant、MQTT broker 和桥。
-- **节点：** 每个节点的 DevEUI、JoinEUI 与 AppKey，节点频段与网关一致。
-- **已知限制：** M2 切到本地模式后脱离 SenseCAP 云，固件能否同时上报云端和本地须在实机上确认。
-
-## 步骤 1: 部署 Home Assistant 与 broker {#deploy_ha_cs type=docker_deploy required=true config=devices/homeassistant_deploy.yaml}
-
-在一台主机上启动 Home Assistant 和 Mosquitto broker。
-
-### 前置条件
-
-1. 主机至少 8 GB 可用磁盘。
-2. 8123 与 1883 端口空闲，或在本步骤的输入里改端口。
-3. 设定一个 broker 密码并记下，ChirpStack 那一步要填同一个值。
-
-### 故障排查
-
-| 现象 | 处理 |
-|-------|----------|
-| 8123 或 1883 已被占用 | 停掉占用端口的进程，或在本步骤的输入里改端口 |
-| Mosquitto 反复重启并报 `Unable to open pwfile` | 把密码文件属主改为 `mosquitto` 用户 |
-| Home Assistant 一直不响应 8123 | 首次启动需要几分钟，执行 `docker logs agri-env-homeassistant` 查看 |
-| 部署连不上 | 检查 SSH 与所用系统镜像的用户名 |
-
-### 部署目标 {#deploy_ha_cs_remote type=remote device_name="Linux Host" config=devices/homeassistant_deploy.yaml default=true}
-
-通过 SSH 部署到一台装 Docker 的 Linux 主机。
-
-### 部署目标 {#deploy_ha_cs_local type=local device_name="Linux Host" config=devices/homeassistant_deploy.yaml}
-
-部署到本机，本机须为装 Docker 的 Linux 主机。
-
----
-
-## 步骤 2: 把 M2 切到本地网络服务器 {#m2_local_lns type=manual required=false config=devices/m2_local_lns.yaml}
-
-让 M2 脱离云端并打开内置的 ChirpStack。本步骤与步骤 3 **二选一**。
-
-### 前置条件
-
-1. M2 的局域网 IP 与 Web 界面凭据。
-2. 在状态页记下型号、频段与固件版本；菜单路径为 `LoRa → LoRa Network`，与此不同时先核对固件版本。
-3. 内置网络服务器要发布到的 MQTT 地址、端口、用户名与密码，桥会订阅这个 broker。
-
-### 故障排查
-
-| 现象 | 处理 |
-|-------|----------|
-| Portal 里不再出现上行 | 本地模式下属正常 |
-| 内置 ChirpStack 里没有 application | 在步骤 5 入网前先建好 tenant、application 与 device profile |
-| 上行到了但没有 `object` | 把节点系列对应的 SenseCAP decoder 粘进 device profile 的 codec |
-
----
-
-## 步骤 3: 启用网关射频 {#r12_gateway_chirpstack type=manual required=false config=devices/r12_gateway_chirpstack.yaml}
-
-与步骤 2 二选一：用 reComputer R12 系列网关代替 M2，网关与 ChirpStack 都运行在 R12 上。
-
-### 接线
-
-1. 上电前先把 LoRa 天线接到 SMA 座上。
-2. 确认 `/dev/spidev0.0` 存在，没有就打开 SPI 后重启。
-3. 从 R12 产品 wiki 查到 reset、power-enable 与 SX1261 的引脚编号并记下。
-4. 网关下单时的地区频段须与步骤 4 选的频率计划、节点频段一致。
-
-### 故障排查
-
-| 现象 | 处理 |
-|-------|----------|
-| forwarder 退出且没打印 EUI | 确认 SPI 已打开，再核对 reset 引脚 |
-| 网关的 `Last seen` 一直不更新 | 检查防火墙是否放行 UDP 1700 |
-| concentratord 起来了但 gateway bridge 收不到数据 | 先改用 UDP packet forwarder 跑通上行，再排查容器内能否访问 concentratord 的 ZMQ 端点 |
-
----
-
-## 步骤 4: 部署 ChirpStack 与桥 {#deploy_chirpstack type=docker_deploy required=true config=devices/chirpstack_stack.yaml}
-
-选 `m2` 只启动桥；选 `local` 则在本机同时启动 ChirpStack。
-
-### 前置条件
-
-1. `m2` 路线：步骤 2 里 M2 的 broker 地址、端口、用户名与密码。
-2. `local` 路线：至少 8 GB 可用磁盘，频率计划与网关和节点一致。
-3. 步骤 1 的 broker 地址、端口、用户名与密码。
-4. application ID，填 `+` 订阅该 broker 上的所有 application。
-
-### 故障排查
-
-| 现象 | 处理 |
-|-------|----------|
-| 桥的日志里没有 `ChirpStack MQTT connected` | `m2` 路线核对网关 LoRa Network 页面上的地址与凭据；`local` 路线执行 `docker compose --profile local-lns ps` |
-| `local` 路线上 ChirpStack 服务没起来 | 确认 `lns_mode` 选的是 `local` 后重跑本步骤 |
-| 8080 上的 Web 界面访问不到 | 只有 `local` 路线有该界面，`m2` 路线在网关的 Web 界面操作 |
-| 部署时报 `no such image` | 自建了 `BRIDGE_IMAGE` 时，先在本地构建再重跑 |
-
-### 部署目标 {#chirpstack_remote type=remote device_name="Bridge Host" config=devices/chirpstack_stack.yaml default=true}
-
-通过 SSH 部署到运行桥的主机。
-
-### 部署目标 {#chirpstack_local_target type=local device_name="Bridge Host" config=devices/chirpstack_stack.yaml}
-
-部署到本机，本机即运行桥的主机。
-
----
-
-## 步骤 5: 让传感器接入 ChirpStack {#join_chirpstack type=manual required=true config=devices/join_chirpstack_device.yaml}
-
-注册节点并确认上行能解码。
-
-### 前置条件
-
-1. 一个 LoRaWAN 版本与区域参数都匹配节点的 device profile，codec 里填该系列的 SenseCAP decoder（上游仓库没有 LICENSE 文件，许可状态未确认）。
-2. 每个节点的 DevEUI、JoinEUI 与 AppKey。
-3. 网关在 ChirpStack 里可见，`Last seen` 为近期。
-
-### 故障排查
-
-| 现象 | 处理 |
-|-------|----------|
-| ChirpStack 拒绝这个 DevEUI | 该 DevEUI 已存在于另一个 tenant，从其他网络迁移节点时常见 |
-| 有 join request 但没有 accept | 核对密钥和区域参数 |
-| 上行里没有 `object.messages` | 给 device profile 配上与节点系列对应的 codec |
-
----
-
-## 步骤 6: 在 Home Assistant 里核对数据 {#verify_chirpstack type=web_dashboard required=false config=devices/ha_dashboard.yaml}
-
-打开 Home Assistant 确认节点已出现；无公网部署还要确认断网后照常工作。
-
-### 部署完成
-
-从节点到看板的数据都在本地网络内，不依赖云账号。
-
-#### 快速验证
-
-1. 登录 Home Assistant，全新安装时先完成引导向导。
-2. 「设置 → 设备与服务 → 添加集成 → **MQTT**」，指向步骤 1 的 broker。
-3. 打开 MQTT 集成，每个节点是一台名为 `SenseCAP <DevEUI>` 的设备，打开一台确认实体带单位。
-4. 把 `assets/homeassistant/agri_env_dashboard.yaml` 粘进 Lovelace 原始配置编辑器，把示例 DevEUI 换成自己的。
-5. 把 `assets/homeassistant/automations.yaml` 并入 Home Assistant 的 `automations.yaml`，重载自动化，按现场设置阈值与 `for:` 持续时间。
-
-#### 无公网验收
-
-看板跑通后做一次：
-
-1. 记下每个节点一个实体的当前值与最后更新时间。
-2. 断开场地 WAN（拔掉上行链路或在防火墙拦截出站流量），局域网保持连通。
-3. 等至少两个上报周期，每个实体都应继续更新；有停更的，查看桥的日志和网关页面。
-4. 重启网关，记录从上电到第一条上行出现在 Home Assistant 的时间，作为该场地的恢复时间。
-5. 恢复 WAN，数据不受影响。
-
-#### 下一步
-
-- 把离线判定时长调成与节点上报间隔匹配。
-- 物理隔离的场地，趁主机还能联网先拉取容器镜像，或从归档 load，断网后无法拉取。
-
-### 故障排查
-
-| 现象 | 处理 |
-|-------|----------|
-| 设备出现了但实体是 `unavailable` | 核对上报间隔与离线判定时长 |
-| 一断 WAN 实体就停更 | 查看桥的日志和网关的网络页面，找出仍访问外网的环节 |
-| 某个实体没有单位 | 把它的 `measurementId` 加进 `assets/config/measurements.yaml` |
-| 旧的实体 ID 总是回来 | 同时清掉 broker 的 retained 消息和实体注册表 |
-
----
-
 ## 套餐: 自定义运维看板 {#custom_dashboard}
 
 一个专门的运维控制台，把 agri-env 桥发布的规范化数据渲染成专门的看板——与 Home Assistant 并行的专注视图。只需一个容器，无需云账号：它订阅桥的 MQTT 输出，显示桥解码出的数据。
 
-- **并行运行：** 与上面三个接入套餐之一（或单独的桥）一起——本看板读取桥的规范化状态主题，本身不解码上行。
+- **并行运行：** 与接入套餐之一（SenseCAP 云、本地网络服务器，或单独的桥）一起——本看板读取桥的规范化状态主题，本身不解码上行。
 - **主机：** 一台装了 Docker 的 Linux 主机，用来运行看板容器。reComputer R1000 系列可当作信息亭使用。
 - **broker：** agri-env 桥发布到的那个 MQTT broker，主机能访问到它，以及它的用户名和密码（如果有的话）。
 - **已知限制：** 看板仅接收数据，读取桥的规范化状态主题；不使用其他套餐里 Home Assistant 的实体命名。
@@ -425,7 +113,7 @@ ChirpStack 作网络服务器，用 SenseCAP M2 网关内置的 ChirpStack，或
 
 ### 前置条件
 
-1. 三个接入套餐之一（或单独的 agri-env 桥）已在运行并在向你的 broker 发布——本看板读取它的输出。
+1. 接入套餐之一（SenseCAP 云、本地网络服务器，或单独的 agri-env 桥）已在运行并在向你的 broker 发布——本看板读取它的输出。
 2. 主机上至少有 2 GB 可用磁盘。
 3. HTTP 与 WebSocket 端口空闲（默认 8000 和 8765；在 reComputer R1000 上 8000 被占用，请改用 8001）。
 4. MQTT broker 的地址、端口，以及凭据（如果有），如果 relay 使用主题前缀也一并准备好。
@@ -477,3 +165,252 @@ ChirpStack 作网络服务器，用 SenseCAP M2 网关内置的 ChirpStack，或
 | 页面打不开 | 确认容器在运行（`docker ps`），且 HTTP 端口是你设置的那个 |
 | MQTT 显示未连接 | 重新核对第 1 步的 broker 地址、端口和凭据 |
 | 来源一直显示“无数据” | 确认传感器在上报，且主题 / 前缀与你的 relay 发布的一致 |
+
+---
+
+## 套餐: 本地网络服务器 {#local_lns}
+
+自建 LoRaWAN 网络服务器（ChirpStack 或 The Things Stack），适用于完全离网私有化部署。可使用 SenseCAP M2 网关内置的 ChirpStack，或在 reComputer R12 系列网关上通过 Docker 运行 ChirpStack 或 The Things Stack，SenseCAP S21xx 节点数据全程不经外网。
+
+- **主机：** 一台装 Docker 的 Linux 主机，运行 Home Assistant、MQTT broker 和桥。
+- **节点：** 每个节点的 DevEUI、JoinEUI 与 AppKey，节点频段与网关一致。
+- **已知限制：** M2 切到本地模式后脱离 SenseCAP 云，固件能否同时上报云端和本地须在实机上确认；启动 The Things Stack 前先确认网关主机可用内存。
+
+## 步骤 1: 部署 Home Assistant 与 broker {#deploy_ha_lns type=docker_deploy required=true config=devices/homeassistant_deploy.yaml}
+
+在一台主机上启动 Home Assistant 和 Mosquitto broker。已有这两样且桥能连上现有 broker 时可跳过。
+
+### 前置条件
+
+1. 主机至少 8 GB 可用磁盘。
+2. 8123 与 1883 端口空闲，或在本步骤的输入里改端口。
+3. 设定一个 broker 密码并记下，后续步骤要填同一个值。
+
+### 故障排查
+
+| 现象 | 处理 |
+|-------|----------|
+| 8123 或 1883 已被占用 | 停掉占用端口的进程，或在本步骤的输入里改端口 |
+| Mosquitto 反复重启并报 `Unable to open pwfile` | 把密码文件属主改为 `mosquitto` 用户 |
+| Home Assistant 一直不响应 8123 | 首次启动需要几分钟，执行 `docker logs agri-env-homeassistant` 查看 |
+| 部署连不上 | 检查 SSH 与所用系统镜像的用户名 |
+
+### 部署目标 {#deploy_ha_lns_remote type=remote device_name="Linux Host" config=devices/homeassistant_deploy.yaml default=true}
+
+通过 SSH 部署到一台装 Docker 的 Linux 主机。
+
+### 部署目标 {#deploy_ha_lns_local type=local device_name="Linux Host" config=devices/homeassistant_deploy.yaml}
+
+部署到本机，本机须为装 Docker 的 Linux 主机。
+
+---
+
+## 步骤 2: 将 M2 切换为本地网络服务器 {#m2_local_lns type=manual required=false config=devices/m2_local_lns.yaml}
+
+让 M2 脱离云端并打开内置的 ChirpStack。如果使用 R12 网关，可跳过本步骤。
+
+### 前置条件
+
+1. M2 的局域网 IP 与 Web 界面凭据。
+2. 在状态页记下型号、频段与固件版本；菜单路径为 `LoRa → LoRa Network`，与此不同时先核对固件版本。
+3. 内置网络服务器要发布到的 MQTT 地址、端口、用户名与密码，桥会订阅这个 broker。
+
+### 故障排查
+
+| 现象 | 处理 |
+|-------|----------|
+| Portal 里不再出现上行 | 本地模式下属正常 |
+| 内置 ChirpStack 里没有 application | 在步骤 7 入网前先建好 tenant、application 与 device profile |
+| 上行到了但没有 `object` | 把节点系列对应的 SenseCAP decoder 粘进 device profile 的 codec |
+
+---
+
+## 步骤 3: 启用 reComputer R12 网关射频（ChirpStack） {#r12_gateway_cs type=manual required=false config=devices/r12_gateway_chirpstack.yaml}
+
+使用 reComputer R12 系列网关搭配 ChirpStack 时进行本步骤：接好天线、确认 SPI 设备并将 packet forwarder 指向本地 ChirpStack 桥。如果使用 M2 网关或搭配 The Things Stack 的 R12，可跳过此步。
+
+### 接线
+
+1. 上电前先把 LoRa 天线接到 SMA 座上，未接天线发射可能损坏射频。
+2. 确认 `/dev/spidev0.0` 存在，没有就打开 SPI 后重启。
+3. 从 R12 产品 wiki 查到 reset、power-enable 与 SX1261 的引脚编号并记下。
+4. 网关下单时的地区频段须与所选的频率计划、节点频段一致。
+
+### 故障排查
+
+| 现象 | 处理 |
+|-------|----------|
+| forwarder 退出且没打印 EUI | 确认 SPI 已打开，再核对 reset 引脚 |
+| 网关的 `Last seen` 一直不更新 | 检查防火墙是否放行 UDP 1700 |
+| concentratord 起来了但 gateway bridge 收不到数据 | 先改用 UDP packet forwarder 跑通上行，再排查容器内能否访问 concentratord 的 ZMQ 端点 |
+
+---
+
+## 步骤 4: 启用 reComputer R12 网关射频（The Things Stack） {#r12_gateway_tts type=manual required=false config=devices/r12_gateway_tts.yaml}
+
+使用 reComputer R12 系列网关搭配 The Things Stack 时进行本步骤：在 R12 上接好天线、确认 SPI 设备，并运行指向 The Things Stack 的 packet forwarder。如果使用 M2 网关或搭配 ChirpStack 的 R12，可跳过此步。
+
+### 接线
+
+1. 上电前先把 LoRa 天线接到 SMA 座上，未接天线发射可能损坏射频。
+2. 确认 `/dev/spidev0.0` 存在，没有就打开 SPI 后重启。
+3. 从 R12 产品 wiki 查到 reset、power-enable 与 SX1261 的引脚编号并记下，packet forwarder 配置要用。
+4. 核对网关下单时的地区频段与节点频段一致，频段无法在软件里修改。
+
+### 故障排查
+
+| 现象 | 处理 |
+|-------|----------|
+| forwarder 退出且没打印 EUI | 确认 `/dev/spidev0.0` 存在，再核对 reset 引脚 |
+| Console 里网关一直未连接 | 检查防火墙是否放行到 stack 主机的 UDP 1700 |
+| 集中器起来了但没有上行 | 核对网关频段、频率计划与节点频段是否一致 |
+
+---
+
+## 步骤 5: 部署 ChirpStack 网络服务器与桥 {#deploy_chirpstack type=docker_deploy required=false config=devices/chirpstack_stack.yaml}
+
+选 `m2` 只启动桥；选 `local` 则在本机同时启动 ChirpStack。如果选择使用 The Things Stack（步骤 6），可跳过本步骤。
+
+### 前置条件
+
+1. `m2` 路线：步骤 2 里 M2 的 broker 地址、端口、用户名与密码。
+2. `local` 路线：至少 8 GB 可用磁盘，频率计划与网关和节点一致。
+3. 步骤 1 的 broker 地址、端口、用户名与密码。
+4. application ID，填 `+` 订阅该 broker 上的所有 application。
+
+### 故障排查
+
+| 现象 | 处理 |
+|-------|----------|
+| 桥的日志里没有 `ChirpStack MQTT connected` | `m2` 路线核对网关 LoRa Network 页面上的地址与凭据；`local` 路线执行 `docker compose --profile local-lns ps` |
+| `local` 路线上 ChirpStack 服务没起来 | 确认 `lns_mode` 选的是 `local` 后重跑本步骤 |
+| 8080 上的 Web 界面访问不到 | 只有 `local` 路线有该界面，`m2` 路线在网关的 Web 界面操作 |
+| 部署时报 `no such image` | 自建了 `BRIDGE_IMAGE` 时，先在本地构建再重跑 |
+
+### 部署目标 {#chirpstack_remote type=remote device_name="Bridge Host" config=devices/chirpstack_stack.yaml default=true}
+
+通过 SSH 部署到运行桥的主机。
+
+### 部署目标 {#chirpstack_local_target type=local device_name="Bridge Host" config=devices/chirpstack_stack.yaml}
+
+部署到本机，本机即运行桥的主机。
+
+---
+
+## 步骤 6: 部署 The Things Stack 与桥 {#deploy_tts type=docker_deploy required=false config=devices/tts_stack.yaml}
+
+如果选择使用 The Things Stack，启动 The Things Stack（含 Postgres 与 Redis）并初始化，同时启动桥。首次运行预留 15–30 分钟。如果已在步骤 5 部署 ChirpStack，可跳过本步骤。
+
+### 前置条件
+
+1. 至少 10 GB 可用磁盘。
+2. 主机的局域网 IP（不要填 `127.0.0.1`，否则其他机器无法登录 Console）。
+3. 1885（Console）与 1700/udp（packet forwarder）端口空闲。
+4. 步骤 1 的 broker 地址、端口、用户名与密码。
+5. application ID 与 API key 在步骤 8 创建：先部署本步骤，在 Console 创建后填入，更新 .env 中的 TTN_MQTT_PASSWORD 后执行 docker compose up -d bridge 重建桥接容器。
+
+### 故障排查
+
+| 现象 | 处理 |
+|-------|----------|
+| `is-db migrate` 失败 | Postgres 未就绪，重跑初始化 |
+| Console 打得开但登录反复跳转 | 用主机局域网 IP 重新部署 |
+| 桥的日志里没有 `TTS MQTT connected` | 在步骤 8 创建 application 和 API key 后更新 .env 并重建桥容器 |
+| stack 容器一起来就被杀 | 检查主机可用内存 |
+
+### 部署目标 {#tts_stack_remote type=remote device_name="Gateway Host" config=devices/tts_stack.yaml default=true}
+
+通过 SSH 部署到网关主机。
+
+### 部署目标 {#tts_stack_local type=local device_name="Gateway Host" config=devices/tts_stack.yaml}
+
+部署到本机，本机须为网关主机。
+
+---
+
+## 步骤 7: 让传感器接入 ChirpStack {#join_chirpstack type=manual required=false config=devices/join_chirpstack_device.yaml}
+
+在 ChirpStack 里注册节点、配置 payload decoder，并让节点入网。
+
+### 前置条件
+
+1. 在 ChirpStack 里创建好与节点匹配的 device profile，配置好对应系列的 SenseCAP decoder（上游仓库没有 LICENSE 文件，许可状态未确认）。
+2. 每个节点的 DevEUI、JoinEUI 与 AppKey，印在节点上，也可用 SenseCAP Mate app 通过 NFC 读出。
+3. 网关在 ChirpStack 里可见并显示为在线/已连接。
+
+### 故障排查
+
+| 现象 | 处理 |
+|-------|----------|
+| ChirpStack 提示 DevEUI 已存在 | DevEUI 在另一个租户下已存在，从其他网络迁入节点时很常见 |
+| 有 join request 但没有 accept | 核对密钥和区域参数 |
+| 连 join request 都没有 | 先看网关状态，确认网关能收到节点信号 |
+| 上行到了但没有 `object.messages` | 在 device profile 里配好对应节点系列的编解码器 |
+
+---
+
+## 步骤 8: 让传感器接入 The Things Stack {#join_tts type=manual required=false config=devices/join_tts_device.yaml}
+
+创建 application、安装 payload formatter、让节点入网。在 Console 生成 API Key 后，在部署目录下回填并重建桥接容器：
+
+```bash
+sed -i 's/^TTN_MQTT_PASSWORD=.*/TTN_MQTT_PASSWORD="<生成的API_Key>"/' .env
+docker compose up -d bridge
+```
+
+### 前置条件
+
+1. 网关在 Console 里显示为 `Connected`。
+2. 每个节点的 DevEUI、JoinEUI 与 AppKey，印在节点上，也可用 SenseCAP Mate app 通过 NFC 读出。
+3. 节点系列对应的 SenseCAP decoder（上游仓库），没有它实体不会出现。该仓库没有 LICENSE 文件，许可状态未确认。
+
+### 故障排查
+
+| 现象 | 处理 |
+|-------|----------|
+| 有 join request 但没有 join accept | 核对密钥和区域参数 |
+| 连 join request 都没有 | 先看网关状态，确认网关收到节点信号 |
+| 上行到了但没有 `decoded_payload` | 在该 application 上安装 payload formatter |
+| 有 `decoded_payload` 但没有 `messages` 数组 | 换成与节点系列对应的 decoder |
+
+---
+
+## 步骤 9: 在 Home Assistant 里核对数据 {#verify_lns type=web_dashboard required=false config=devices/ha_dashboard.yaml}
+
+打开 Home Assistant 确认节点已出现；无公网部署还要确认断网后照常工作。
+
+### 部署完成
+
+从节点到看板的数据都在本地网络内，不依赖云账号。每个入网节点在 Home Assistant 里是一台名为 `SenseCAP <DevEUI>` 的设备，每个测量项一个实体。
+
+#### 快速验证
+
+1. 登录 Home Assistant，全新安装时先完成引导向导。
+2. 「设置 → 设备与服务 → 添加集成 → **MQTT**」，指向步骤 1 的 broker。
+3. 打开 MQTT 集成，每个节点是一台名为 `SenseCAP <DevEUI>` 的设备，打开一台确认实体带单位（`°C`、`%`、`dS/m`）。
+4. 把 `assets/homeassistant/agri_env_dashboard.yaml` 粘进 Lovelace 原始配置编辑器，把示例 DevEUI 换成自己的。
+5. 把 `assets/homeassistant/automations.yaml` 并入 Home Assistant 的 `automations.yaml`，重载自动化，按现场设置阈值与 `for:` 持续时间。
+
+#### 无公网验收
+
+看板跑通后做一次：
+
+1. 记下每个节点一个实体的当前值与最后更新时间。
+2. 断开场地 WAN（拔掉上行链路或在防火墙拦截出站流量），局域网保持连通。
+3. 等至少两个上报周期，每个实体都应继续更新；有停更的，查看桥的日志和网关页面。
+4. 重启网关，记录从上电到第一条上行出现在 Home Assistant 的时间，作为该场地的恢复时间。
+5. 恢复 WAN，数据不受影响。
+
+#### 下一步
+
+- 把离线判定时长调成与节点上报间隔匹配。
+- 物理隔离的场地，趁主机还能联网先拉取容器镜像，或从归档 load，断网后无法拉取。
+
+### 故障排查
+
+| 现象 | 处理 |
+|-------|----------|
+| 设备出现了但实体是 `unavailable` | 核对上报间隔与离线判定时长 |
+| 一断 WAN 实体就停更 | 查看桥的日志和网关的网络页面，找出仍访问外网的环节 |
+| 某个实体没有单位 | 把它的 `measurementId` 加进 `assets/config/measurements.yaml` |
+| 旧的实体 ID 总是回来 | 同时清掉 broker 的 retained 消息和实体注册表 |

@@ -5,7 +5,7 @@
 # WebSocket. Configuration comes from the .env written by the deploy step.
 #
 # IMAGE STATUS: referenced as a pre-built image at
-#   sensecraft-missionpack.seeed.cn/solution/agri-env-ops-dashboard:0.2.0
+#   ghcr.io/biancayoung/agri-env-ops-dashboard:0.2.0
 # (linux/amd64 + linux/arm64). OPS_DASHBOARD_IMAGE defaults to that tag below;
 # build locally from the agri-env-ops-dashboard repository
 # (`docker build -t agri-env-ops-dashboard:0.2.0 .`) or override
@@ -15,7 +15,7 @@ name: ${COMPOSE_PROJECT_NAME:-agri-env-ops-dashboard}
 
 services:
   bridge:
-    image: ${OPS_DASHBOARD_IMAGE:-sensecraft-missionpack.seeed.cn/solution/agri-env-ops-dashboard:0.2.0}
+    image: ${OPS_DASHBOARD_IMAGE:-ghcr.io/biancayoung/agri-env-ops-dashboard:0.2.0}
     container_name: agri-env-ops-dashboard
     environment:
       - TZ=${TZ:-Asia/Shanghai}

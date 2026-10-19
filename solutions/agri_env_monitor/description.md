@@ -10,14 +10,14 @@ SenseCAP LoRaWAN nodes measure air temperature and humidity, soil temperature, m
 - **Threshold alerts**: a notification is raised when a value crosses a threshold and dismissed when it recovers.
 - **Offline indication**: a node silent past the configured time shows as offline, with its last value kept.
 - **Cloud history backfill**: the SenseCAP cloud preset fills in history from before installation on first start.
-- **Switch paths without changing dashboards**: entity names are the same across all three presets.
-- **Fully local option**: the ChirpStack preset needs no cloud account and no outbound connection.
+- **Switch paths without changing dashboards**: entity naming is identical across the two Home Assistant ingest presets (SenseCAP Cloud and Local Network Server), while the Custom Ops Dashboard provides an independent, focused ops view.
+- **Fully local option**: the local network server preset needs no cloud account and no outbound connection.
 
 ## Where it fits
 
 - Greenhouses: irrigation and feeding decided by soil moisture and EC.
 - Open field plots: one gateway covering several sensor points.
-- Sites with no internet, or where data may not leave (local ChirpStack preset).
+- Sites with no internet, or where data may not leave (local network server preset).
 - Existing SenseCAP cloud deployments that want a local dashboard and automations.
 
 ## Measured results
@@ -40,22 +40,22 @@ Tested by replaying uplinks from 3 devices on a local host, 13 uplinks across th
 
 ## Deployment Comparison
 
-| | SenseCAP Cloud | Self-hosted The Things Stack | Local ChirpStack | Custom Ops Dashboard |
-|---|---|---|---|---|
-| Fits | Nodes already report to the cloud | You want to own the network server | M2 built-in network server, or R12 Series gateway | You want a focused ops console on top of the bridge |
-| Internet needed | Yes | No | No | No |
-| History from before install | Yes | No | No | No |
-| Setup effort | Lightest; needs a SenseCAP API key | Heaviest | Shortest on M2 | Light; runs beside one of the other presets |
+| | SenseCAP Cloud | Custom Ops Dashboard | Local Network Server (ChirpStack / The Things Stack) |
+|---|---|---|---|
+| Fits | Nodes already report to the cloud | You want a focused ops console on top of the bridge | Off-grid private deployment, M2 built-in or R12 self-hosted (ChirpStack / The Things Stack) |
+| Internet needed | Yes | No | No |
+| History from before install | Yes | No | No |
+| Setup effort | Lightest; needs a SenseCAP API key | Light; runs beside one of the other presets | Shortest on M2, moderate on R12 |
 
-The **Custom Ops Dashboard** preset adds a focused, receive-only console on top of the agri-env bridge: a single container subscribes to the bridge's normalized MQTT output and serves a purpose-built dashboard (live readings, trends, wind rose, map, mesh messages, EN/中文) over HTTP. It runs beside any of the three ingest presets (or the bridge alone) and reads the bridge's state topics, so it works with any SenseCAP node the bridge decodes — a companion display, not a separate ingest path.
+The **Custom Ops Dashboard** preset adds a focused, receive-only console on top of the agri-env bridge: a single container subscribes to the bridge's normalized MQTT output and serves a purpose-built dashboard (live readings, trends, wind rose, map, mesh messages, EN/中文) over HTTP. It runs beside an ingest preset (or the bridge alone) and reads the bridge's state topics, so it works with any SenseCAP node the bridge decodes — a companion display, not a separate ingest path.
 
 ## Usage Notes
 
-- Presets 2 and 3 need the SenseCAP decoder installed on the network server, or no entity appears.
+- The local network server preset needs the SenseCAP decoder installed on the network server, or no entity appears.
 - Two SenseCAP cloud MQTT hostnames exist; if the bridge log shows a DNS or authentication failure, redeploy with the other.
-- If the broker is down, no preset receives updates.
+- If the broker is down, presets do not receive updates.
 - Before changing the entity naming rule, clear the broker's retained messages and Home Assistant's entity registry together.
-- Do not expose the broker to the internet; on the ChirpStack preset the LNS-side broker has no authentication.
+- Do not expose the broker to the internet; on the local network server preset the LNS-side broker has no authentication.
 
 ## Licensing note
 
