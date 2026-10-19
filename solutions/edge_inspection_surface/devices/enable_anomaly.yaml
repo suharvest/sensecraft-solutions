@@ -25,14 +25,15 @@ user_inputs:
     required: true
     description: >-
       Path inside the container where the EfficientAD-S ONNX will live. The
-      pre-trained model is available via CDN or can be replaced with your own
-      fine-tuned model placed under config/../models/.
+      model is not on the CDN yet (same licence-clearance gate as the
+      detector); copy the file onto the device at this path under
+      config/../models/ before enabling.
     name_i18n:
       zh: 异常模型在容器内的路径
     description_i18n:
       zh: >-
-        EfficientAD-S ONNX 在容器内的路径。预训练模型已上传 CDN 供演示评估，
-        亦支持将自有重训模型放入设备对应的 models 目录下。
+        EfficientAD-S ONNX 在容器内的路径。模型尚未上传 CDN（与检测器同一个
+        许可确认关卡），启用前先手工把文件拷到设备对应的 models 目录下。
   - id: anomaly_threshold
     name: Anomaly Score Threshold
     type: text

@@ -3,7 +3,7 @@
 Jetson Orin 拉取摄像头的 RTSP 流做缺陷检测，判定输出到 Modbus TCP 与 MQTT，PLC 可选接入。
 
 - **摄像头：** 任意对着钢带或工件取景的 RTSP 摄像头，准备好带用户名密码的 RTSP 地址并先用 VLC 测过。
-- **使用说明：** 参考设计随包模型基于公开学术基准训练，用于硬件性能评估与 Pipeline 功能跑通；实际工业产线部署建议采集自有缺陷数据训练替换。crazing 类精度在六类中相对较低；实际生产误报需结合现场产线图像标定。
+- **使用限制：** 仅限内部验证。模型训练自 NEU-DET 的转载版，用于对外 demo、客户现场或商业物料前须先与数据集方确认许可，或用自己的图像重训。crazing 类精度在六类中最低，调阈值无法改善；帧级误报须用自己的产线图像测。
 - **网络：** PLC 或 MES 能访问设备的 502（Modbus）和 1883（MQTT）端口。
 
 ## 步骤 1: 部署表面质检 {#deploy_jetson_inspection type=docker_deploy required=true config=devices/jetson_inspection.yaml}
@@ -12,16 +12,11 @@ Jetson Orin 拉取摄像头的 RTSP 流做缺陷检测，判定输出到 Modbus 
 
 ### 前置条件
 
-> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-surface-defect-inspection/#现场怎么部署)。
-
-1. 参考设计预置模型已支持自动下载校验，用于功能演示与基准评估（首次启动时在板端自动构建 TensorRT engine，预留约 5-10 分钟）。
+1. 模型文件未上 CDN（许可未确认）：部署前手工把 `yolox_tiny_neu6.onnx` 放到设备的 `~/edge-inspection-surface/jetson_inspection/models/yolox_tiny_neu6.onnx`，部署时会校验 sha256。
 2. 判定阈值默认 0.35。
 3. **检测器 Track**：默认 `yolox`；`dfine`、`rtdetrv2` 可选，构建耗时以实际为准，0.35 阈值是按 `yolox` 标定的，换 track 后按自己的产线图像调整。
 
 ### 故障排查
-
-> 💡 **参数与深度排障：** 六类缺陷置信度调优、单帧耗时与误检抑制，详见 [工程 Wiki · 参数实测与已知退化](https://wiki.seeedstudio.com/cn/solutions/edge-surface-defect-inspection/#性能与实测数据)。
-
 
 | 现象 | 处理 |
 |-------|----------|
@@ -48,7 +43,6 @@ Jetson Orin 拉取摄像头的 RTSP 流做缺陷检测，判定输出到 Modbus 
 打开设备自带页面，查看实时画面上的检测框和健康计数。
 
 ### 部署完成
-
 
 结果发到 MQTT 1883 端口的 `<设备名>/inspection/<流编号>/results`，判定同时写到 Modbus TCP 502 端口、unit 1 的线圈 0 与 1。
 
@@ -85,9 +79,6 @@ Jetson Orin 拉取摄像头的 RTSP 流做缺陷检测，判定输出到 Modbus 
 确认 Modbus 主站读到的判定正确。只用 MQTT 的现场可以跳过。
 
 ### 前置条件
-
-> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-surface-defect-inspection/#现场怎么部署)。
-
 
 1. 一台同网段、能做 Modbus TCP 主站的机器。
 2. 设备 IP 和部署时填的从站号（下表按 unit 1）。
@@ -139,11 +130,8 @@ Jetson Orin 拉取摄像头的 RTSP 流做缺陷检测，判定输出到 Modbus 
 
 ### 前置条件
 
-> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-surface-defect-inspection/#现场怎么部署)。
-
-
 - 步骤 1 已完成，改配置并重启容器即可。
-- EfficientAD-S 的 ONNX 模型文件已就绪，按需启用并配合产线标定。
+- EfficientAD-S 的 ONNX 已手工拷到设备上（未上 CDN）。
 - 需要用 `anomaly_score` 做判断时，先用实际检测相机采集自己的 OK 样本标定 `anomaly.threshold`。
 
 ### 故障排查
@@ -159,7 +147,7 @@ Jetson Orin 拉取摄像头的 RTSP 流做缺陷检测，判定输出到 Modbus 
 reComputer R2000 拉取摄像头的 RTSP 流，在 Hailo-8 上做缺陷检测，判定输出到 Modbus TCP 与 MQTT，PLC 可选接入。模型已预编译，设备上不需要构建。
 
 - **摄像头：** 任意对着钢带或工件取景的 RTSP 摄像头，准备好带用户名密码的 RTSP 地址并先用 VLC 测过。
-- **使用说明：** 参考设计随包模型基于公开学术基准训练，用于硬件性能评估与功能跑通；实际工业产线部署建议采集自有缺陷数据训练替换。只支持 `yolox` 检测器。
+- **使用限制：** 仅限内部验证。模型训练自 NEU-DET 的转载版，对外或商业使用前须确认许可或用自己的图像重训。crazing 类精度最低；帧级误报须用自己的产线图像测。只支持 `yolox` 检测器。
 - **网络：** PLC 或 MES 能访问设备的 502（Modbus）和 1883（MQTT）端口。
 
 ## 步骤 1: 在 Hailo 上部署表面质检 {#deploy_hailo_inspection type=docker_deploy required=true config=devices/hailo_inspection.yaml}
@@ -168,10 +156,7 @@ reComputer R2000 拉取摄像头的 RTSP 流，在 Hailo-8 上做缺陷检测，
 
 ### 前置条件
 
-> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-surface-defect-inspection/#现场怎么部署)。
-
-
-1. 参考设计预置 Hailo HEF 模型已支持自动下载校验，用于功能演示与基准评估。
+1. 模型文件未上 CDN（许可未确认）：部署前手工把 HEF 放到设备的 `~/edge-inspection-surface/hailo_inspection/models/yolox_tiny_neu6_o1.hef`，部署时会校验 sha256。
 2. 驱动加载参数：`echo 'options hailo_pci force_desc_page_size=4096' | sudo tee /etc/modprobe.d/hailo.conf`，然后重启。
 
 ### 故障排查
@@ -238,9 +223,6 @@ reComputer R2000 拉取摄像头的 RTSP 流，在 Hailo-8 上做缺陷检测，
 
 ### 前置条件
 
-> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-surface-defect-inspection/#现场怎么部署)。
-
-
 1. 一台同网段、能做 Modbus TCP 主站的机器。
 2. 设备 IP 和部署时填的从站号（下表按 unit 1）。
 
@@ -291,11 +273,8 @@ reComputer R2000 拉取摄像头的 RTSP 流，在 Hailo-8 上做缺陷检测，
 
 ### 前置条件
 
-> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-surface-defect-inspection/#现场怎么部署)。
-
-
 - 步骤 1 已完成，改配置并重启容器即可。
-- EfficientAD-S 的 ONNX 模型文件已就绪，按需启用并配合产线标定。
+- EfficientAD-S 的 ONNX 已手工拷到设备上（未上 CDN）。
 - 需要用 `anomaly_score` 做判断时，先用实际检测相机采集自己的 OK 样本标定 `anomaly.threshold`。
 
 ### 故障排查
@@ -306,5 +285,6 @@ reComputer R2000 拉取摄像头的 RTSP 流，在 Hailo-8 上做缺陷检测，
 | `anomaly_score` 对任何样品都接近同一个值 | 用自己相机的 OK 集重新标定 `anomaly.threshold` |
 | 按单帧 `anomaly_score` 判异常结果不稳定 | 单帧分数接近随机，改用像素/区域级信号（`heatmap_ref` 加分数） |
 
+
 ### 后续步骤
-- [查看完整工程 Wiki 与二次开发指南](https://wiki.seeedstudio.com/cn/solutions/edge-surface-defect-inspection/)
+- [查看完整工程 Wiki 与二次开发指南](https://wiki.seeedstudio.com/cn/solutions/edge-inspection-surface/)

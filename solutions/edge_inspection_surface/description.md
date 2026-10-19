@@ -1,4 +1,4 @@
-> **Notice:** The bundled reference design weights are intended for evaluation and hardware benchmarking; retrain on your own line images for commercial production.
+> **Dataset Attribution & Licence Notice**: The bundled weights are trained on the public academic NEU-DET (Northeastern University Surface Defect Database) for algorithm capability and edge throughput evaluation. Derived frames and model weights follow attribution guidelines (see gallery/ATTRIBUTION.md). For commercial deployment, retrain with your own production line imagery.
 
 ## What it does
 
@@ -45,8 +45,6 @@ Switch via "model.track" in "config/config.json".
 
 EfficientAD-S trains on defect-free reference images only and highlights regions that look unlike them. The result is a separate "anomaly_score" field and does not change the OK/NG verdict. Use it as a region heatmap, not a whole-frame switch; before enabling, collect OK samples with the real camera and recalibrate "anomaly.threshold".
 
-> 📖 **Engineering Reference:** Full architecture internals, measured benchmarks, and failure modes are documented in the [Engineering Wiki · Surface Defect Inspection](https://wiki.seeedstudio.com/solutions/edge-surface-defect-inspection/).
-
 ## Output Interfaces
 
 | Interface | Content |
@@ -74,6 +72,6 @@ EfficientAD-S trains on defect-free reference images only and highlights regions
 - The measured input was synthetic video; stress-test with your own video source before fixing a stream count.
 - The bundled MQTT broker is anonymous and for debugging; use a broker with credentials in production.
 
-## Licensing and production note
+## Licensing note
 
-The runtime code and model architectures are Apache-2.0, with no Ultralytics code or weights. The bundled weights are provided for reference design evaluation and hardware benchmarking; retrain on your own line images for commercial production.
+The runtime code and every model (YOLOX, D-FINE, RT-DETRv2, EfficientAD-S) are Apache-2.0, with no Ultralytics code or weights. **The license of the NEU-DET repost used for training is not confirmed**, so the bundled weights must not be used for external demos or commercial use; for commercial use, retrain on your own images and replace the weights.

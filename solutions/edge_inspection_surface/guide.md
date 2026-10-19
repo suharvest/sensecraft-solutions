@@ -3,7 +3,7 @@
 A Jetson Orin pulls the camera's RTSP stream, detects defects, and outputs the verdict on Modbus TCP and MQTT; a PLC is optional.
 
 - **Camera:** Any RTSP camera framed on the strip or part. Have the RTSP URL with credentials ready and test it in VLC first.
-- **Usage notice:** The bundled reference design weights are pre-trained on open academic benchmarks for evaluation and hardware pipeline benchmarking; retrain on your own line images for commercial production. Crazing has lower relative accuracy; measure false alarms on your actual line images.
+- **Usage limits:** Internal validation only. The model is trained on a re-hosted copy of NEU-DET; clear its licence with the dataset owner, or retrain on your own images, before a public demo, a customer-site demo or commercial material. Crazing has the lowest accuracy of the six classes and changing the threshold does not improve it; frame-level false alarms have to be measured on your own line images.
 - **Network:** The PLC or MES can reach ports 502 (Modbus) and 1883 (MQTT) on the device.
 
 ## Step 1: Deploy Surface Inspection {#deploy_jetson_inspection type=docker_deploy required=true config=devices/jetson_inspection.yaml}
@@ -12,16 +12,11 @@ Deploys the inspector and builds its TensorRT engine on the device. Allow about 
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** Siting constraints and on-site wiring guidelines are documented in the [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-surface-defect-inspection/#how-to-deploy-on-site).
-
-1. Pre-packaged reference models are downloaded and verified automatically for evaluation (allow 5-10 minutes on first start for on-device TensorRT engine generation).
+1. The model file is not on the CDN (licence not cleared): before deploying, place `yolox_tiny_neu6.onnx` at `~/edge-inspection-surface/jetson_inspection/models/yolox_tiny_neu6.onnx` on the device. The deploy verifies its sha256.
 2. The verdict threshold defaults to 0.35.
 3. **Detector Track**: `yolox` is the default; `dfine` and `rtdetrv2` are available, their engine build time on Orin varies, and the 0.35 threshold is calibrated for `yolox`, so tune it on your own line images after switching tracks.
 
 ### Troubleshooting
-
-> 💡 **Technical Parameters & Tuning:** For Defect classification thresholds, per-frame latency, and false positive suppression, see [Engineering Wiki · Measured Benchmarks](https://wiki.seeedstudio.com/solutions/edge-surface-defect-inspection/#performance-and-measured-data).
-
 
 | Symptom | Fix |
 |-------|----------|
@@ -48,7 +43,6 @@ Deploy to this machine, which must be a Jetson on JetPack 6.x with the NVIDIA co
 Open the device's own page to see detection boxes on the live frames and the health counters.
 
 ### Deployment Complete
-
 
 Results go to `<device-name>/inspection/<stream-id>/results` on MQTT port 1883, and the verdict is written to Modbus TCP port 502, unit 1, coils 0 and 1.
 
@@ -85,9 +79,6 @@ One message per frame: `verdict` is OK / NG, `defect_count` is the number of def
 Confirm a Modbus master reads the correct verdict. Skip this on an installation that consumes MQTT only.
 
 ### Prerequisites
-
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-surface-defect-inspection/#现场怎么部署).
-
 
 1. A machine on the same network segment that can act as a Modbus TCP master.
 2. The device IP and the unit id set during deployment (the table below assumes unit 1).
@@ -139,11 +130,8 @@ Optional. Runs EfficientAD-S (trained only on defect-free images) alongside the 
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-surface-defect-inspection/#现场怎么部署).
-
-
 - Step 1 completed; a config edit and container restart are enough.
-- The EfficientAD-S ONNX model is available for optional anomaly detection.
+- The EfficientAD-S ONNX copied onto the device by hand (not on the CDN).
 - Before relying on `anomaly_score`, calibrate `anomaly.threshold` with your own OK samples from the actual inspection camera.
 
 ### Troubleshooting
@@ -159,7 +147,7 @@ Optional. Runs EfficientAD-S (trained only on defect-free images) alongside the 
 A reComputer R2000 pulls the camera's RTSP stream, detects defects on the Hailo-8, and outputs the verdict on Modbus TCP and MQTT; a PLC is optional. The model is precompiled, so nothing is built on the device.
 
 - **Camera:** Any RTSP camera framed on the strip or part. Have the RTSP URL with credentials ready and test it in VLC first.
-- **Usage notice:** The bundled reference design weights are pre-trained on open academic benchmarks for evaluation and hardware pipeline benchmarking; retrain on your own line images for commercial production. Only the `yolox` detector is supported.
+- **Usage limits:** Internal validation only. The model is trained on a re-hosted copy of NEU-DET; clear its licence or retrain on your own images before public or commercial use. Crazing has the lowest accuracy; frame-level false alarms have to be measured on your own line images. Only the `yolox` detector is supported.
 - **Network:** The PLC or MES can reach ports 502 (Modbus) and 1883 (MQTT) on the device.
 
 ## Step 1: Deploy Surface Inspection on Hailo {#deploy_hailo_inspection type=docker_deploy required=true config=devices/hailo_inspection.yaml}
@@ -168,10 +156,7 @@ Deploys the inspector and its precompiled HEF model. The deploy first checks the
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-surface-defect-inspection/#现场怎么部署).
-
-
-1. Pre-packaged Hailo HEF models are downloaded and verified automatically for functional evaluation.
+1. The model file is not on the CDN (licence not cleared): before deploying, place the HEF at `~/edge-inspection-surface/hailo_inspection/models/yolox_tiny_neu6_o1.hef` on the device. The deploy verifies its sha256.
 2. Driver load option: `echo 'options hailo_pci force_desc_page_size=4096' | sudo tee /etc/modprobe.d/hailo.conf`, then reboot.
 
 ### Troubleshooting
@@ -238,9 +223,6 @@ Confirm a Modbus master reads the correct verdict. Skip this on an installation 
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-surface-defect-inspection/#现场怎么部署).
-
-
 1. A machine on the same network segment that can act as a Modbus TCP master.
 2. The device IP and the unit id set during deployment (the table below assumes unit 1).
 
@@ -291,11 +273,8 @@ Optional. Runs EfficientAD-S on the CPU (`accelerator: "cpu"`; this model has no
 
 ### Prerequisites
 
-> 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-surface-defect-inspection/#现场怎么部署).
-
-
 - Step 1 completed; a config edit and container restart are enough.
-- The EfficientAD-S ONNX model is available for optional anomaly detection.
+- The EfficientAD-S ONNX copied onto the device by hand (not on the CDN).
 - Before relying on `anomaly_score`, calibrate `anomaly.threshold` with your own OK samples from the actual inspection camera.
 
 ### Troubleshooting
@@ -306,5 +285,6 @@ Optional. Runs EfficientAD-S on the CPU (`accelerator: "cpu"`; this model has no
 | `anomaly_score` stays near one value for every sample | Recalibrate `anomaly.threshold` on your own camera's OK set |
 | Judging a frame abnormal from a single `anomaly_score` gives inconsistent results | The single-frame score is near random; use the pixel/region signal (`heatmap_ref` plus the score) |
 
+
 ### Next Steps
-- [View Full Engineering Wiki and Integration Guide](https://wiki.seeedstudio.com/solutions/edge-surface-defect-inspection/)
+- [Engineering Wiki](https://wiki.seeedstudio.com/solutions/edge-inspection-surface/)
