@@ -29,7 +29,9 @@
     "ha_integration": {
       "category": "deploy",
       "required": [
-        "ha_integration"
+        "ha_integration",
+        "ha_integration.domain",
+        "ha_integration.components_dir"
       ]
     },
     "himax_usb": {
@@ -37,6 +39,13 @@
       "required": [
         "firmware",
         "firmware.flash_config",
+        "firmware.source"
+      ]
+    },
+    "nrf52_usb": {
+      "category": "deploy",
+      "required": [
+        "firmware",
         "firmware.source"
       ]
     },
