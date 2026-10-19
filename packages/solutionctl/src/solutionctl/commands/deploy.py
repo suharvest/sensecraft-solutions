@@ -99,6 +99,8 @@ def _render_event(event: dict) -> str:
 def run(
     solution_id: str,
     connection: Optional[str] = None,
+    inputs: Optional[List[str]] = None,
+    inputs_file: Optional[str] = None,
     preset: Optional[str] = None,
     device: Optional[str] = None,
     skip_verify: bool = False,
@@ -121,6 +123,11 @@ def run(
     cmd = [str(engine), "deploy", solution_id, "--json", "--yes"]
     if connection:
         cmd += ["--connection", connection]
+    if inputs:
+        for item in inputs:
+            cmd += ["--input", item]
+    if inputs_file:
+        cmd += ["--inputs-file", str(inputs_file)]
     if preset:
         cmd += ["--preset", preset]
     if device:
