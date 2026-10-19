@@ -1,0 +1,101 @@
+version: "1.0"
+id: industrial_vibration_detection
+name: Industrial Vibration Anomaly Detection with T1000-E
+name_i18n:
+  zh: 基于 T1000-E 的工业设备振动异常监测系统
+
+intro:
+  summary: Out-of-the-box Meshtastic off-grid mesh communication on T1000-E, combined with edge vibration anomaly detection for industrial inspection alerts.
+  summary_i18n:
+    zh: T1000-E 开箱即用的 Meshtastic 离网自组网通信，结合端侧轻量振动异常检测与工况标定，实现无公网工业现场的自主巡检告警。
+  description_file: description.md
+  description_file_i18n:
+    zh: description_zh.md
+  cover_image: https://files.seeedstudio.com/wiki/SenseCAP/T1000/T1000_1.png
+  gallery:
+    - type: image
+      src: https://files.seeedstudio.com/wiki/SenseCAP/T1000/T1000_1.png
+      caption: SenseCAP Card Tracker T1000-E
+      caption_i18n:
+        zh: SenseCAP 卡片追踪器 T1000-E
+  category: industrial_control_automation
+  solution_type: technical
+
+  tags:
+    - t1000-e
+    - meshtastic
+    - off-grid
+    - vibration
+    - anomaly-detection
+    - predictive-maintenance
+    - sensecraft-ai
+
+  device_catalog:
+    sensecap_t1000e:
+      description: Ultra-thin card tracker with 3-axis accelerometer and LoRa/BLE
+      description_i18n:
+        zh: 超薄卡片追踪器，内置三轴加速度传感器与 LoRa/BLE 射频
+    sensecap_m2_gateway:
+      description: Industrial outdoor LoRaWAN gateway
+      description_i18n:
+        zh: 工业级室外 LoRaWAN 网关
+
+  presets:
+    - id: offgrid_mesh_communication
+      name: Off-Grid Mesh Communication
+      name_i18n:
+        zh: 离网自组网通讯
+      badge: Start Here
+      badge_i18n:
+        zh: 快速上手
+      description: Out-of-the-box Meshtastic experience with T1000-E. Device comes pre-flashed; simply power on, pair via mobile Bluetooth, and test off-grid messaging and topology.
+      description_i18n:
+        zh: T1000-E 开箱即用的 Meshtastic 体验。设备出厂已预置固件，无需插电脑烧录；长按开机后直接通过手机 App 蓝牙绑定，体验无网广播、节点拓扑与定位。
+      device_groups:
+        - id: tracker
+          name: Meshtastic Tracker Node
+          name_i18n:
+            zh: Meshtastic 追踪器节点
+          type: single
+          required: true
+          options:
+            - device_ref: sensecap_t1000e
+          default: sensecap_t1000e
+
+    - id: industrial_vibration_monitor
+      name: Vibration Anomaly & Device Alert
+      name_i18n:
+        zh: 机械振动监测与告警联动
+      badge: Industrial Case
+      badge_i18n:
+        zh: 工业实战案例
+      description: Add edge intelligence to mesh communication. Mount T1000-E firmly onto rotating machinery, calibrate baseline on SenseCraft AI, and broadcast edge vibration alerts over Meshtastic to nearby nodes.
+      description_i18n:
+        zh: 在离网自组网之上加载设备智能：将 T1000-E 刚性贴合于旋转机械表面，通过 SenseCraft AI 在线训练健康运转基线；机械异常震动时，端侧自动打包设备报警消息通过 Mesh 网络广播至现场人员手机。
+      device_groups:
+        - id: tracker
+          name: Vibration Tracker Node
+          name_i18n:
+            zh: 振动监测节点
+          type: single
+          required: true
+          options:
+            - device_ref: sensecap_t1000e
+          default: sensecap_t1000e
+
+  stats:
+    difficulty: beginner
+    estimated_time: 15min
+
+has_description: true
+has_description_i18n:
+  zh: true
+has_guide: true
+has_guide_i18n:
+  zh: true
+
+deployment:
+  guide_file: guide.md
+  guide_file_i18n:
+    zh: guide_zh.md
+  selection_mode: sequential

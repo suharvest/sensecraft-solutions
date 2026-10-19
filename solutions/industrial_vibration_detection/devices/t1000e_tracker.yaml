@@ -1,0 +1,49 @@
+version: "1.0"
+id: t1000e_tracker
+name: SenseCAP Card Tracker T1000-E
+name_i18n:
+  zh: SenseCAP 卡片追踪器 T1000-E
+
+type: nrf52_usb
+
+detection:
+  method: usb_serial
+  usb_vendor_id: "0x2886"
+  usb_product_id: "0x0057"
+
+user_inputs:
+  - id: firmware_variant
+    name: Firmware Variant
+    type: select
+    default: "meshtastic"
+    description: "Choose reporting protocol variant for T1000-E"
+    name_i18n:
+      zh: 固件协议变体
+    description_i18n:
+      zh: "选择 T1000-E 的上报通信协议"
+    options:
+      - value: "meshtastic"
+        label: "Meshtastic Off-Grid Broadcast"
+        label_i18n:
+          zh: "Meshtastic 离网自组网应急固件"
+      - value: "lorawan"
+        label: "LoRaWAN Industrial Monitoring"
+        label_i18n:
+          zh: "LoRaWAN 工业低功耗巡检固件"
+
+firmware:
+  source:
+    path: assets/firmware/t1000e_mesh_vad.zip
+  variants:
+    lorawan:
+      name: LoRaWAN Industrial Monitoring
+      name_i18n:
+        zh: LoRaWAN 工业低功耗巡检固件
+      source:
+        path: assets/firmware/t1000e_lorawan_vad.zip
+    meshtastic:
+      name: Meshtastic Off-Grid Broadcast
+      name_i18n:
+        zh: Meshtastic 离网自组网应急固件
+      source:
+        path: assets/firmware/t1000e_mesh_vad.zip

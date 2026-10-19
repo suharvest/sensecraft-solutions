@@ -40,6 +40,13 @@
         "firmware.source"
       ]
     },
+    "nrf52_usb": {
+      "category": "deploy",
+      "required": [
+        "firmware",
+        "firmware.source"
+      ]
+    },
     "http_debug": {
       "category": "verify",
       "required": []
