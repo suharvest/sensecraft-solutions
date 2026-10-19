@@ -36,7 +36,7 @@
 
 ---
 
-## 步骤 3: 绑定 SenseCraft AI 并开启语音对话 {#voice_agent_setup type=manual required=true}
+## 步骤 3: 绑定 SenseCraft AI 并开启语音对话 {#voice_agent_setup type=manual required=true verify=true}
 
 1. 浏览器登录 [SenseCraft AI 平台](https://sensecraft.seeed.cc/ai/device/local/37/)
 2. 在模型列表中找到「SenseCAP Watcher」，选择「Watcher Agent」并点击「Bind Device」
@@ -51,10 +51,12 @@
 
 在语音对话的基础上，让 Watcher 拥有“眼睛”：开启视觉主动唤醒，摄像头看到人出现在面前时主动开口打招呼并进入对话；通过语音随时讲解与调节视觉感知核心参数。
 
-- **设备：** SenseCAP Watcher，USB-C 数据线。
-- **网络：** 2.4 GHz WiFi。
+### 前提条件
 
-## 步骤 1: 开启人脸检测并体验主动打招呼 {#vision_wake_intro type=manual required=true}
+- SenseCAP Watcher 已刷入小智固件并连接 2.4 GHz WiFi（在套餐 1 中完成或出厂已预刷）。
+- SenseCraft AI 平台或小智账号。
+
+## 步骤 1: 开启人脸检测并体验主动打招呼 {#vision_wake_intro type=manual required=true verify=true}
 
 1. 确认视觉检测模式：对 Watcher 说出“开启人脸检测”或“把视觉模式设为 1”（`self.vision.mode: 1`），Watcher 确认进入端侧人脸检测模式。
 2. 将已配网的 Watcher 放置在桌面或工位正对人脸的高度（距离约 0.5 ~ 1.5 米）。
@@ -81,9 +83,10 @@
 
 在能感知“有人”的基础上，进一步识别“具体是谁”：启用 Himax WE2 独立视觉 NPU 运行 SCRFD + MobileFaceNet 双模型，端侧离线识别人脸、直呼其名，并在本地 NVS 存储最多 20 人的人脸特征库。
 
-- **设备：** SenseCAP Watcher，USB-C 数据线。
-- **网络：** 2.4 GHz WiFi。
-- **隐私：** 人脸检测、对齐与特征提取全部在端侧芯片完成，不上传人脸照片到云端。
+### 前提条件
+
+- SenseCAP Watcher 与电脑通过 USB-C 数据线连接。
+- Watcher 已完成 Wi-Fi 配网。
 
 ## 步骤 1: 烧录 Himax WE2 人脸模型 {#face_himax type=himax_usb required=true config=devices/watcher_himax.yaml}
 
@@ -93,7 +96,7 @@ Watcher 内部由 ESP32-S3（主控兼语音）和 Himax WE2（视觉 AI NPU）�
 
 ---
 
-## 步骤 2: 连接 ESP32 主控串口 {#face_esp32 type=esp32_usb required=false config=devices/watcher_esp32.yaml}
+## 步骤 2: 连接 ESP32 主控串口 {#face_esp32 type=esp32_usb required=true config=devices/watcher_esp32.yaml}
 
 人脸特征数据库存储在 ESP32-S3 的本地 NVS 分区中：
 1. 切换到 SERIAL-B 串口（即 ESP32-S3 对应的串口）。

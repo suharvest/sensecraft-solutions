@@ -27,7 +27,7 @@ Flash the Xiaozhi voice controller firmware onto Watcher.
 
 ---
 
-## Step 3: Bind to SenseCraft AI & Start Voice Dialog {#voice_agent_setup type=manual required=true}
+## Step 3: Bind to SenseCraft AI & Start Voice Dialog {#voice_agent_setup type=manual required=true verify=true}
 
 1. Log in to [SenseCraft AI Platform](https://sensecraft.seeed.cc/ai/device/local/37/).
 2. In Models, find SenseCAP Watcher, select "Watcher Agent" -> "Bind Device", and enter the 6-digit code.
@@ -41,10 +41,12 @@ Flash the Xiaozhi voice controller firmware onto Watcher.
 
 Add "eyes" to voice conversation: camera-based proactive visual wake-up greets you upon seeing you and initiates voice conversation, while explaining and tuning key vision detection parameters (threshold, duration, cooldown interval, and mode) over voice.
 
-- **Hardware:** SenseCAP Watcher, USB-C data cable.
-- **Network:** 2.4 GHz Wi-Fi.
+### Prerequisites
 
-## Step 1: Enable Face Detection and Experience Proactive Greeting {#vision_wake_intro type=manual required=true}
+- SenseCAP Watcher already flashed with Xiaozhi firmware and connected to 2.4 GHz Wi-Fi (completed in preset 1 or pre-flashed out of the box).
+- SenseCraft AI account or Xiaozhi account.
+
+## Step 1: Enable Face Detection and Experience Proactive Greeting {#vision_wake_intro type=manual required=true verify=true}
 
 1. Confirm vision detection mode: say to Watcher "Enable face detection" or "Set vision mode to 1" (`self.vision.mode: 1`). Watcher confirms entering on-device person/face detection mode.
 2. Place the configured Watcher on your desk at face height (distance ~0.5 to 1.5 m).
@@ -71,9 +73,10 @@ During the conversation, ask Watcher about its vision settings:
 
 Go from detecting "a person" to recognising "who they are": activate the Himax WE2 NPU to run SCRFD and MobileFaceNet on-device, recognise registered faces by name, and maintain a local database of up to 20 people in NVS.
 
-- **Hardware:** SenseCAP Watcher, USB-C data cable.
-- **Network:** 2.4 GHz Wi-Fi.
-- **Privacy:** Detection, alignment, and 128D embedding extraction happen entirely on-device; no facial photos uploaded to cloud.
+### Prerequisites
+
+- SenseCAP Watcher connected via USB-C data cable.
+- 2.4 GHz Wi-Fi network connection already established on Watcher.
 
 ## Step 1: Flash Himax WE2 AI Models {#face_himax type=himax_usb required=true config=devices/watcher_himax.yaml}
 
@@ -82,7 +85,7 @@ Go from detecting "a person" to recognising "who they are": activate the Himax W
 
 ---
 
-## Step 2: Connect ESP32 Main Controller {#face_esp32 type=esp32_usb required=false config=devices/watcher_esp32.yaml}
+## Step 2: Connect ESP32 Main Controller {#face_esp32 type=esp32_usb required=true config=devices/watcher_esp32.yaml}
 
 Face database embeddings are stored in ESP32-S3 local NVS flash:
 1. Select the SERIAL-B port (the ESP32-S3 serial port).
