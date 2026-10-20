@@ -181,7 +181,8 @@ This is the **AI-friendly endpoint**. It returns:
   - `device_id`, `name`, `type` (`docker_local` / `docker_remote` / `esp32_usb` / `himax_xmodem` / `script` / `manual` / …)
   - `connection_type` (`local` / `ssh` / `serial` / `none`)
   - `parameters[]`: each has `key`, `label`, `type`, `required`, `default`, `options` (for select), `description`
-  - `targets[]` + `parameters` keyed by target (when the step supports variants, e.g. local-vs-remote)
+  - `targets[]` + `parameters` keyed by target (when the step supports deployment location variants, e.g. local-vs-remote)
+  - `modes[]` + `parameters` keyed by mode (when the step supports hardware model / variant modes, e.g. standard vs pro)
 - `request_template`: **a pre-filled JSON body** for `POST /api/deployments/start` with every known default. Your job is to fill in the blanks the user still needs to provide.
 
 ### Step 3 — Resolve user inputs
@@ -356,7 +357,7 @@ solutionctl deploy-info <solution_id> [--preset <p>] [--lang en|zh]
 
 `deploy-info` returns JSON with everything you need to deploy:
 - `presets`: every deployment preset (id + name). Pick one by user intent; **don't guess** — re-run with `--preset <id>` to narrow the steps.
-- `steps`: each step's `device_id`, `type`, and required parameters. Steps with `has_targets: true` (e.g. a `docker_deploy` step) offer **`local` vs `remote` targets** — `local` deploys to this computer's Docker (no SSH), `remote` deploys over SSH to an edge device.
+- `steps`: each step's `device_id`, `type`, and required parameters. Steps with `has_targets: true` (e.g. a `docker_deploy` step) offer **`local` vs `remote` targets** — `local` deploys to this computer's Docker (no SSH), `remote` deploys over SSH to an edge device. Steps with `has_modes: true` offer **hardware model/variant modes** (`mode: <mode_id>`).
 - `request_template.device_connections`: a **pre-filled connection skeleton** per device, with `<REQUIRED: ...>` placeholders for the blanks the user must provide.
 
 UI-only steps (`web_dashboard` / `image_predict` / `voice_chat`, etc.) are lazy-skipped when run headless; the user won't get the UI — tell them those steps need the desktop app.
