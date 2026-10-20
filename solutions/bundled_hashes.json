@@ -36,7 +36,7 @@
   "sensecraft_data_mcp": "sha256:f069e3289911006f9e6ce749bd96a4fea207c060f0c21d5143700539b2d4dada",
   "smart-badge-voice-transcription": "sha256:c9c7ccdd764bc75cc05f3f4b79907de481c2bfce519ac7c34bc5b2c667280287",
   "smart_hvac_control": "sha256:6fcabbd889eeb7eebe175c68db37552f3c8fe900162246394ad52c1191e2fe95",
-  "smart_space_assistant": "sha256:2371feea84fc0fb3b852eb0ef161d5ce3679da9c07894cd18b5082ee5fff73be",
+  "smart_space_assistant": "sha256:fe0e10c11c93bf60807f70e483ae37aa76c2c6093e449c42f3de47515e9e90e2",
   "smart_warehouse": "sha256:3f0146108c4c925f91e1e44290b0b53d6f57952a9b60df141d0155c7aafee31e",
   "unmanned_store_access": "sha256:f9ddcadf57761f55561b8788727c04a2faa15cce6c1181b08c2a5c82ac21b4fb",
   "voice_rebot_arm": "sha256:1326d677e812df2c440eb028161f662f53dedc6a561cb271389432ad551498a2",
