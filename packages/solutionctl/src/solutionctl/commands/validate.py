@@ -315,6 +315,31 @@ def _check_device_aware_target_grouping(result, fname: str, lang: str) -> list[s
     return errors
 
 
+def _check_target_and_mode_exclusivity(result, fname: str) -> list[str]:
+    """Enforce architectural separation between Targets and Modes:
+    - docker_deploy natively uses targets (e.g. local/remote); it must NOT define modes.
+    - A step cannot define both targets and modes.
+    """
+    errors: list[str] = []
+    for preset in result.presets:
+        for step in preset.steps:
+            has_targets = bool(step.targets)
+            has_modes = bool(step.modes)
+            if step.type == "docker_deploy" and has_modes:
+                errors.append(
+                    f"{fname}: step '#{step.id}' (type 'docker_deploy', preset '{preset.id}') "
+                    "defines modes, but docker_deploy must use targets instead."
+                )
+            if has_targets and has_modes:
+                errors.append(
+                    f"{fname}: step '#{step.id}' (preset '{preset.id}') defines both targets "
+                    "and modes. Targets and modes are mutually exclusive: use targets for "
+                    "deployment target/host variants (e.g. docker_deploy), and modes for "
+                    "device/model variants on other steps."
+                )
+    return errors
+
+
 def _scan_plugin_types(guide_texts: list[str]) -> set[str]:
     """Return the set of namespaced ``<plugin-id>/<type>`` step types used.
 
@@ -1257,6 +1282,7 @@ def run(
                 )
             )
             errors.extend(_check_device_aware_target_grouping(result, fname, lang))
+            errors.extend(_check_target_and_mode_exclusivity(result, fname))
         if not any_guide:
             errors.append("no guide.md (or guide_zh.md) found — cannot validate steps")
 
