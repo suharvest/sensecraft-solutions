@@ -34,6 +34,9 @@ The `schema` command returns:
 - `inputs`: Standard Draft-07 JSON Schema defining all accepted and required parameters per step, including target and mode conditional requirements (`allOf` with `if`/`then`) and parameter type definitions.
 - `output_interfaces`: Data ingestion specifications (MQTT topics, REST endpoints, TCP streams, and payload schemas) provided by the solution.
 
+> [!NOTE]
+> **Engine Capability & Versioning**: `sensecraft-engine schema`, direct inputs (`--input` / `-i`), and `--inputs-file` are supported on `sensecraft-engine >= 0.0.6`. If running an earlier version (e.g. 0.0.3), upgrade via `curl -fsSL https://sensecraft-statics.seeed.cc/solution-app/engine/install.sh | sh -s -- --with-content` or fall back to `sensecraft-engine deploy-info <id>` with Method B (`--params ./.sensecraft-work/body.json`).
+
 Read `presets[]`, `steps[]`, `device_connections`, `selected_devices`, and `request_template` from `deploy-info` or `schema`. A preset with more than one variant requires the user's choice. Fill every `<REQUIRED: ...>` value from the user or a read-only device check; never invent device IDs, connection keys, SSH credentials, serial ports, Docker targets, or mode IDs.
 
 ### Understanding Targets vs Modes (`has_targets` vs `has_modes`)
@@ -87,9 +90,9 @@ Each step in `steps[]` can deploy to different infrastructure locations (`has_ta
 >   输入密码的交互在用户独立本地终端完成，密码绝不流经大模型上下文，亦不留在会话与历史中。
 > - **部署参数统一使用 `key_file`**：SenseCraft Engine 的部署请求格式要求远程目标通过 `key_file` 进行连接。严禁在聊天框索取明文密码。
 
-### Method A: Direct Input Flags / Inputs File (Recommended for Agents)
+### Method A: Direct Input Flags / Inputs File (Recommended for Agents with Engine >= 0.0.6)
 
-Use `--input` (`-i`) to specify parameters directly without writing temporary files:
+Use `--input` (`-i`) to specify parameters directly without writing temporary files (requires `sensecraft-engine >= 0.0.6`; on earlier engine versions, use **Method B: Full Request Document (`--params`)** below):
 
 ```bash
 # Direct step-scoped parameters (infrastructure target example):
