@@ -1,0 +1,15 @@
+reset_background:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: recamera
+
+test_push:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: recamera

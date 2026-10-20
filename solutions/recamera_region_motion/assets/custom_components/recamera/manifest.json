@@ -1,0 +1,19 @@
+{
+  "domain": "recamera",
+  "name": "reCamera",
+  "version": "1.2.2",
+  "documentation": "https://github.com/yyling0101-a11y/recamera-ha",
+  "issue_tracker": "https://github.com/yyling0101-a11y/recamera-ha/issues",
+  "codeowners": [
+    "@yyling0101-a11y"
+  ],
+  "config_flow": true,
+  "dependencies": [
+    "frontend",
+    "http",
+    "panel_custom",
+    "webhook"
+  ],
+  "integration_type": "device",
+  "iot_class": "local_push"
+}
