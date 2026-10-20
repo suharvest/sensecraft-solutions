@@ -215,8 +215,6 @@ def upload_to_oss(local_path: Path, oss_path: str) -> None:
             "--body",
             f"file://{local_path.resolve()}",
             "--forbid-overwrite",
-            "--content-type",
-            "application/zip",
         ]
         print(f"  uploading immutable {local_path.name} -> {oss_path}")
         try:
