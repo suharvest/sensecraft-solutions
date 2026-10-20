@@ -275,6 +275,12 @@ body and associated with the enclosing Step:
   when a Target header is reached (`:996-997`), so Modes belong to the Step body
   preceding any Targets.
 
+#### Target vs Mode architectural boundary
+
+- **Target** is strictly for deployment execution target/host variants (e.g. `local` vs `remote` Docker hosts, or hardware compute targets like Jetson vs RK3588 under `docker_deploy`). `docker_deploy` natively carries `targets` and must **not** use `modes`.
+- **Mode** is for hardware model selection (e.g. reCamera SG2002 vs reCamera Pro) or configuration variants on step types that do **not** carry targets (such as `recamera_console_app`, `recamera_pro_app`, `web_dashboard`, `verify`, `manual`). In the frontend UI, Modes render as a clean dropdown selector.
+- A single step must never mix both `targets` and `modes`.
+
 Other recognized `###` sub-sections within a Step — `Prerequisites` (`前置条件`),
 `Wiring` (`接线`), `Troubleshooting` (`故障排查`/`故障排除`), `Deployment Complete`
 (`部署完成`) — are matched by `SUBSECTION_PATTERNS` and each lands in its own

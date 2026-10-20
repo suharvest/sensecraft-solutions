@@ -1,132 +1,120 @@
 ## Preset: Object Detection & Environment {#object_detection}
 
-Experience foundational edge vision capabilities — YOLO general object detection and weather classification. Observe bounding boxes and confidence score changes over a low-latency WebRTC stream.
+Explore foundational edge vision capabilities with general object detection (YOLO) and weather classification. Watch bounding boxes and confidence scores update in real time over WebRTC to experience INT8 model efficiency.
 
-- **Devices:** reCamera (SG2002) or reCamera Pro (RV1126B); a PC or reComputer R1100 when forwarding to Home Assistant.
-- **Recommended Apps:** `yolo-detector` (80 common object classes) or `weather-classifier` (weather condition detection).
-- **Hands-on Quests:**
-  1. Hold a phone, bottle, or hand into the frame; observe bounding boxes and class labels rendered in ~50ms;
-  2. Slowly move the object or partially occlude it to see how confidence scores react.
+- **Hardware:** reCamera (SG2002) or reCamera Pro (RV1126B); Home Assistant integration optionally requires a PC or reComputer R1100.
+- **Recommended Apps:** `yolo-detector` (80 common COCO classes) or `weather-classifier` (weather recognition).
+- **Quest:**
+  1. Hold a phone, mug, or hand in front of the lens and observe detection boxes and labels rendered within 50ms;
+  2. Slowly move the object or partially occlude it, watching the confidence score shift to observe occlusion robustness.
 
-## Step 1: Upgrade reCamera Console (SG2002) {#deploy_console type=recamera_cpp required=false config=devices/recamera_console.yaml}
+## Step 1: Install Object Detection App {#obj_install_app type=recamera_console_app required=false config=devices/recamera_console_app.yaml}
 
-Install console version 0.5.5. Existing 0.5.5 installations will be skipped automatically. If using reCamera Pro, skip directly to Step 4.
+Select the desired application from the dropdown and deploy it to the camera.
 
-### Prerequisites
-
-1. Connect the camera over USB (address `192.168.42.1`) or place it on the same network.
-2. Username `recamera`, default password `recamera` (older firmware uses `recamera.2`).
-3. For brand new units, enable SSH under `http://192.168.42.1/#/security` first.
-
-### Troubleshooting
-
-| Symptom | Fix |
-|---------|-----|
-| Connection failed | Use `192.168.42.1` over USB; check router DHCP list over network |
-| Wrong password | Default is `recamera` (older firmware uses `recamera.2`) |
-| Installation failed | Reboot camera and rerun this step |
-| Node-RED unavailable | Console takes over the camera; switch back under Console System Settings |
-| Factory reset | Hold **User** button while powering up until red LED turns solid |
-
----
-
-## Step 2: Install Object Detection App (SG2002) {#obj_install_app type=recamera_console_app required=false config=devices/recamera_console_app.yaml}
+### Mode: reCamera (SG2002) {#recamera_sg2002 config=devices/recamera_console_app.yaml default=true}
 
 Select **Object Detection (yolo-detector)** or **Weather Classification (weather-classifier)** from the dropdown and click **Deploy**.
 
 ### Prerequisites
 
-1. Your PC needs internet access to fetch packages; the camera itself does not need internet.
-2. IP address and password match Step 1.
-3. Packages and models range from tens to hundreds of megabytes; progress is shown on screen.
+1. Your computer has internet access; the camera does not need internet access (the host computer downloads packages and models).
+2. Connect the camera via USB (`192.168.42.1`) or via local network IP.
+3. Default credentials are `recamera` / `recamera` (or `recamera.2` on earlier firmware).
+4. Console version must be 0.5.5 or higher.
 
 ### Deployment Complete
 
-The camera is running the selected object detection app. ONVIF and RTSP streams are active for NVR or VMS discovery.
+The camera is running the object detection application. The app supports ONVIF and RTSP for NVR and video management systems.
 
 ### Troubleshooting
 
-| Symptom | Fix |
-|---------|-----|
-| Dropdown empty | PC cannot reach `sensecraft-statics.seeed.cc`; fix connection and refresh |
-| Login rejected | Use camera credentials `recamera` / `recamera` (or `recamera.2`) |
-| Console busy | Camera is handling another operation; retry in a minute |
-| Failed to start | Check status in console Applications tab; redeploy if files are missing |
+| Issue | Solution |
+|-------|----------|
+| Dropdown empty or incomplete | Host cannot reach `sensecraft-statics.seeed.cc`; verify network and refresh |
+| Login rejected | Use camera credentials (default `recamera` / `recamera` or `recamera.2`) |
+| Console unresponsive | Camera may still be rebooting; wait one minute and retry |
+| Busy prompt | Console is processing another operation; retry when finished |
+| App failed to start | Check status in console App page; redeploy if files are missing |
 
----
+### Mode: reCamera Pro (RV1126B) {#recamera_pro config=devices/recamera_pro_yolo.yaml}
 
-## Step 3: Open Console & Debug View (SG2002) {#open_console type=web_dashboard required=false config=devices/console_dashboard.yaml}
-
-Open the camera console to inspect the real-time inference video feed and detection metrics.
+Configure and activate the object detection app (`yolo-detector`) on reCamera Pro.
 
 ### Prerequisites
 
-1. Log in with camera credentials from Step 1.
-2. In the **Applications** tab, click **Debug** on the running app to see the live feed and bounding boxes.
+1. Camera is connected via USB (`192.168.42.1`) or on the local network.
+2. Enter the camera web dashboard admin username and password (default `admin`).
+3. Ensure the app is installed in the device's App Center. If not, install it from App Center first.
 
 ### Deployment Complete
 
-Console URL is `http://<camera-ip>/` for streaming, threshold tuning, and networking setup.
+The object detection app is activated and running on reCamera Pro.
 
 ### Troubleshooting
 
-| Symptom | Fix |
-|---------|-----|
-| Page does not open | Wait 60s for camera reboot to finish, then refresh |
-| Black video stream | No app is active; return to Step 2 to deploy an app |
+| Issue | Solution |
+|-------|----------|
+| Login failed | Ensure you use Web console credentials (not SSH), default user is `admin` |
+| App not installed | Install the app from the device App Center catalog first |
+| Connection timeout | Verify camera IP and HTTPS (port 443) reachability |
 
 ---
 
-## Step 4: Check & Update Firmware (reCamera Pro) {#firmware_pro type=manual required=false config=devices/recamera_pro_firmware.yaml}
+## Step 2: Open the Console {#open_console type=web_dashboard required=false config=devices/console_dashboard.yaml}
 
-For reCamera Pro users only. Skip if your camera already displays the App Center.
+Open the camera web console to inspect real-time inference and detections.
+
+### Mode: reCamera (SG2002) {#recamera_sg2002 config=devices/console_dashboard.yaml default=true}
+
+Open the camera console to inspect real-time video stream and detection results.
 
 ### Prerequisites
 
-1. Open camera web page; if App Center is present, skip this step.
-2. Fill in device IP and ADB port 5555, then click **Check & Update Device**.
-3. Firmware update runs over network ADB port 5555; USB alone is not sufficient.
-4. The camera reboots during update; do not power off. Use **Factory Reset** on the same page to roll back.
+1. Sign in with the camera credentials from Step 1.
+2. In the **Apps** page, click **Debug** on the active app to view bounding boxes.
+
+### Deployment Complete
+
+Console is available at `http://<camera-ip>/` to inspect video, tune thresholds, and adjust network settings.
 
 ### Troubleshooting
 
-| Symptom | Fix |
-|---------|-----|
-| Test connection fails | Check address and verify port 5555 is reachable from this PC |
-| Nothing happens on check | Camera may already be on latest firmware; look for App Center on its page |
-| App Center missing after reboot | Reload the page after camera finishes rebooting |
+| Issue | Solution |
+|-------|----------|
+| Page does not open | Wait a minute for the camera to finish booting, then refresh |
+| Live video is black | No app is active; return to Step 1 to deploy an app |
 
----
+### Mode: reCamera Pro (RV1126B) {#recamera_pro config=devices/recamera_pro_apps.yaml}
 
-## Step 5: Open App Center (reCamera Pro) {#open_appcenter_pro type=web_dashboard required=false config=devices/recamera_pro_apps.yaml}
-
-For reCamera Pro users only. Open App Center, install and start the corresponding application.
+Open the reCamera Pro control panel to view inference results in Live Preview.
 
 ### Prerequisites
 
-1. Log in with camera panel credentials (not SSH credentials).
-2. Open **App Center** from sidebar, select the target application to install, and click **Start**.
-3. View live video and detection results in **Live Preview**.
+1. Sign in with the web control panel credentials (default `admin`).
+2. Open **Live Preview** in the left sidebar to view the video stream and AI detections.
+
+### Deployment Complete
+
+Control panel is open. You can view detection boxes and confidence scores in Live Preview.
 
 ### Troubleshooting
 
-| Symptom | Fix |
-|---------|-----|
-| Page does not open | Prefix URL with `http://` to allow proper redirection |
-| Certificate warning | Camera uses a self-signed certificate over HTTPS; accept and proceed |
-| App Center empty or asks to sign in | Log in to the management dashboard first, then refresh |
-| Failed to load catalog | PC cannot reach `sensecraft-statics.seeed.cc`; update catalog URL if self-hosting |
-| App fails to start | Model files missing; reinstall the application |
+| Issue | Solution |
+|-------|----------|
+| Page does not open | Prefix the URL with `http://` to allow redirects |
+| Certificate warning | Self-signed certificate is expected when HTTPS is enabled; proceed safely |
+| Video not loading | Confirm the application was successfully activated in the previous step |
 
 ---
 
-## Step 6: Deploy Home Assistant (Optional) {#deploy_ha type=docker_deploy required=false config=devices/homeassistant_deploy.yaml}
+## Step 3: Deploy Home Assistant (Optional) {#deploy_ha type=docker_deploy required=false config=devices/homeassistant_deploy.yaml}
 
-Launch Home Assistant and an MQTT broker container. Skip if already running.
+Start Home Assistant and an MQTT broker. Skip if both are already running.
 
 ### Target {#ha_local type=local config=devices/homeassistant_deploy.yaml default=true}
 
-Deploy Home Assistant locally on Docker Desktop with ports 8123 and 1883 available.
+Deploy Home Assistant on the local machine. Requires Docker Desktop running with ports 8123 and 1883 available.
 
 ### Prerequisites
 
@@ -136,263 +124,212 @@ Deploy Home Assistant locally on Docker Desktop with ports 8123 and 1883 availab
 
 ### Deployment Complete
 
-1. Open **http://localhost:8123** and complete the onboarding wizard.
-2. MQTT broker listens on port 1883; use this address in Steps 7 & 8.
+1. Open **http://localhost:8123** and follow the onboarding wizard.
+2. MQTT broker runs on port 1883 on this machine; supply this address in Step 4.
 
 ### Troubleshooting
 
-| Symptom | Fix |
-|---------|-----|
-| Port 8123 or 1883 busy | Stop existing Home Assistant / Mosquitto containers, or reuse them |
-| Docker not running | Launch Docker Desktop application |
-| Container restarting | Ensure at least 2 GB of RAM is free |
+| Issue | Solution |
+|-------|----------|
+| Port 8123 or 1883 in use | Stop existing Home Assistant or Mosquitto instance |
+| Docker fails to start | Launch Docker Desktop |
+| Container crash loop | Ensure at least 2 GB of memory is available |
 
 ### Target {#ha_remote type=remote config=devices/homeassistant_deploy.yaml}
 
-Deploy to a remote edge host (e.g. reComputer) on the local network.
+Deploy to a remote host (e.g. reComputer) on the local network.
 
 ### Prerequisites
 
-1. Target host is reachable over SSH with Docker running.
-2. Enter IP address, username, and password below.
+1. Target host reachable via SSH with Docker installed.
+2. Provide host IP, username, and password below.
 
 ### Deployment Complete
 
-1. Open **http://<device-ip>:8123** and complete the onboarding wizard.
-2. MQTT broker listens on port 1883 of the remote device; use this address in Steps 7 & 8.
+1. Open **http://<host-ip>:8123** and complete the onboarding wizard.
+2. MQTT broker runs on port 1883 of the remote host; supply this address in Step 4.
 
 ### Troubleshooting
 
-| Symptom | Fix |
-|---------|-----|
-| Connection timeout | Check local network and ping device |
-| SSH auth failed | Verify username and password |
-| Port 1883 busy | An MQTT broker is already running; retain it and enter its port in Steps 7 & 8 |
+| Issue | Solution |
+|-------|----------|
+| Connection timeout | Check network connectivity with ping |
+| SSH authentication failed | Verify username and password |
+| Port 1883 in use | Existing broker detected; keep it and use it in Step 4 |
 
 ---
 
-## Step 7: Connect reCamera to Home Assistant (Optional) {#connect_ha type=manual required=false config=devices/connect_ha_recamera.yaml}
+## Step 4: View Results in Home Assistant (Optional) {#ha_dashboard type=web_dashboard required=false config=devices/ha_dashboard.yaml}
 
-Connect reCamera (SG2002) and Home Assistant to the same MQTT broker for automatic entity discovery.
+Inspect camera live stream and detection entities on the Home Assistant dashboard.
+
+### Mode: reCamera (SG2002) {#recamera_sg2002 config=devices/ha_dashboard.yaml default=true}
+
+Connect Home Assistant and the camera to the same MQTT broker to auto-discover detection entities, then add a video glance card.
 
 ### Prerequisites
 
-1. Home Assistant is running and accessible.
-2. An MQTT broker reachable by the camera (from Step 6 or external).
-3. In camera console: under **Integrations → Home Assistant**, enter broker IP and port 1883.
+1. **Add MQTT Integration**: In Home Assistant **Settings → Devices & Services → Add Integration**, add the **MQTT** integration pointing to the Step 3 broker IP, port 1883 (leave username/password empty). Skip if already configured.
+2. **Point Camera to Broker**: In camera console **Integrations → Home Assistant**, enter the Step 3 broker IP and port 1883, test connection, then save.
+3. **Inspect Entities**: In Home Assistant **Settings → Devices & Services → MQTT**, locate the camera device and entities.
+4. **Add Card**: On the dashboard, add a Picture glance card to overlay detection entities onto the video stream.
 
 ### Deployment Complete
 
-Detections publish as Home Assistant entities. If entities show unavailable, verify the app is running in the camera console.
+The dashboard displays camera video and detection entities. Switching apps updates entities automatically.
 
 ### Troubleshooting
 
-| Symptom | Fix |
-|---------|-----|
-| No data on broker | Verify broker IP is correct and reachable from camera subnet |
-| Entity stays unavailable | Confirm application is active and running in console |
+| Issue | Solution |
+|-------|----------|
+| No data on broker | Confirm broker IP is reachable from camera |
+| Entities unavailable | Confirm the app is actively running on the camera |
+| Card has video but no entities | Verify MQTT integration status and entities list |
 
----
+### Mode: reCamera Pro (RV1126B) {#recamera_pro config=devices/ha_dashboard_pro.yaml}
 
-## Step 8: Connect reCamera Pro to Home Assistant (Optional) {#connect_ha_pro type=manual required=false config=devices/connect_ha_recamera_pro.yaml}
-
-Configure MQTT output in reCamera Pro app settings; entities will appear automatically in Home Assistant.
+Add reCamera Pro's RTSP video stream and MQTT detection entities to a Home Assistant dashboard card.
 
 ### Prerequisites
 
-1. Home Assistant is running and accessible.
-2. An MQTT broker reachable by reCamera Pro (from Step 6 or external).
-3. The AI app is active and running on the camera.
+1. **Add MQTT Integration**: In Home Assistant **Settings → Devices & Services → Add Integration**, add the **MQTT** integration pointing to the Step 3 broker IP, port 1883 (leave username/password empty). Skip if already configured.
+2. **Configure Camera MQTT**: If MQTT Broker Address was filled during Step 1 deployment, it connects automatically. Otherwise, in the camera web console App Center, click Configure on the app, enable MQTT under Result Output, set Output Mode to Home Assistant, and enter the broker IP and port 1883.
+3. **Inspect Entities**: In **Settings → Devices & Services → MQTT**, verify camera detection entities exist.
+4. **Enable RTSP**: In the camera web console **Video Settings → Stream Settings**, enable RTSP and copy the stream URL.
+5. **Add Video**: In Home Assistant **Settings → Devices & Services → Add Integration**, select **Generic Camera** and paste the RTSP URL (use TCP transport).
+6. **Add Card**: Add a Picture glance card, select Generic Camera as Camera Entity, and add detection entities.
 
 ### Deployment Complete
 
-Detections appear in Home Assistant. This configuration applies to the active app; repeat in Configure when switching to another app.
+The dashboard shows the camera stream and detection entities.
 
 ### Troubleshooting
 
-| Symptom | Fix |
-|---------|-----|
-| No Result Output in config | App does not support MQTT output; detections remain local |
-| No broker messages | Verify broker address is non-empty and reachable from camera |
-| Save rejected | Broker host cannot be empty; base topic cannot contain `+`, `#` or spaces |
-| Saved but nothing in HA | Set Output Mode to **Home Assistant** and confirm identical broker settings |
-| Entity unavailable | Verify application is currently running in App Center |
-
----
-
-## Step 9: See reCamera Results in Home Assistant (Optional) {#ha_dashboard type=web_dashboard required=false config=devices/ha_dashboard.yaml}
-
-View reCamera (SG2002) video stream and detection entities on your Home Assistant dashboard.
-
-### Prerequisites
-
-1. **Find Entities:** Under **Settings → Devices & Services → MQTT**, locate the camera device and note entities.
-2. **Add Card:** Add a **Picture glance** card on your dashboard, combining the video stream with detection entities.
-
-### Troubleshooting
-
-| Symptom | Fix |
-|---------|-----|
-| Card shows video but no icons | Verify Home Assistant integration status in camera console |
-| Entity shows unknown | Values update upon changes detected in the camera view |
-
----
-
-## Step 10: See reCamera Pro Results in Home Assistant (Optional) {#ha_dashboard_pro type=web_dashboard required=false config=devices/ha_dashboard_pro.yaml}
-
-Combine reCamera Pro video stream and detection entities on a single dashboard card.
-
-### Prerequisites
-
-1. **Find Entities:** Under **Settings → Devices & Services → MQTT**, locate camera entities.
-2. **Enable RTSP:** In camera panel: **Live View → Stream Settings**, select RTSP, enable stream, and copy the RTSP URL.
-3. **Add Camera:** In Home Assistant: **Settings → Devices & Services → Add Integration → Generic Camera**, paste RTSP URL, set transport to **TCP**.
-4. **Build Card:** On dashboard, add a **Picture glance** card pointing to Generic Camera with detection entities listed.
-
-### Deployment Complete
-
-Dashboard displays real-time camera video with overlaid detection entities.
-
-### Troubleshooting
-
-| Symptom | Fix |
-|---------|-----|
-| No RTSP stream URL | RTSP not enabled or another protocol selected |
-| Generic Camera cannot connect | Test URL with VLC; ensure TCP transport is selected |
-| Black or freezing video | Close camera web preview and any open VLC players |
-| No detection icons on card | Confirm MQTT output is configured on active app (Step 8) |
-| Entity shows unknown | Values update upon new detections in camera frame |
+| Issue | Solution |
+|-------|----------|
+| No stream URL displayed | Enable RTSP protocol in streaming settings |
+| Generic Camera cannot connect | Test URL in VLC; set RTSP transport to TCP |
+| Entities show unknown | A wait for visual changes in front of the lens is normal before first report |
 
 ---
 
 ## Preset: Human Behavior & Pose {#human_behavior}
 
-Explore advanced keypoint topology and temporal action recognition. Learn facial landmark detection (FaceMesh), skeletal pose estimation, on-device privacy masking, and state-machine-driven action tracking.
+Explore landmark tracking and temporal human action recognition. Learn facial mesh landmarks (468 points), skeletal poses, on-device privacy blurring, and state-machine action recognition.
 
-- **Devices:** reCamera (SG2002) or reCamera Pro (RV1126B); a PC or reComputer R1100 when forwarding to Home Assistant.
-- **Recommended Apps:** `face-analysis` (demographics & privacy blur), `facemesh-reader` (drowsiness detection), `fall-detection` (fall alarm), `fitness-trainer` (rep counter).
-- **Hands-on Quests:**
-  1. Close eyes for 3 seconds or simulate yawning to trigger the drowsiness alert via 468 facial landmarks;
-  2. Enable Privacy Blur mode in the console and verify faces are Gaussian-blurred on-device before streaming.
+- **Hardware:** reCamera (SG2002) or reCamera Pro (RV1126B); Home Assistant integration optionally requires a PC or reComputer R1100.
+- **Recommended Apps:** `face-analysis` (facial attributes & blur), `facemesh-reader` (drowsiness detection), `fall-detection` (fall alert), `fitness-trainer` (rep counting).
+- **Quest:**
+  1. Close eyes for 3 seconds in front of the lens to observe the 468-point facial mesh trigger a drowsiness alert;
+  2. Enable on-device privacy blur to watch faces masked with Gaussian blur without raw images leaving the edge.
 
-## Step 1: Upgrade reCamera Console (SG2002) {#deploy_console type=recamera_cpp required=false config=devices/recamera_console.yaml}
+## Step 1: Install Human Behavior App {#human_install_app type=recamera_console_app required=false config=devices/recamera_console_app.yaml}
 
-Install console version 0.5.5. Existing 0.5.5 installations will be skipped automatically. If using reCamera Pro, skip directly to Step 4.
+Select the desired human behavior application from the dropdown and deploy it to the camera.
 
-### Prerequisites
+### Mode: reCamera (SG2002) {#recamera_sg2002 config=devices/recamera_console_app.yaml default=true}
 
-1. Connect the camera over USB (address `192.168.42.1`) or place it on the same network.
-2. Username `recamera`, default password `recamera` (older firmware uses `recamera.2`).
-3. For brand new units, enable SSH under `http://192.168.42.1/#/security` first.
-
-### Troubleshooting
-
-| Symptom | Fix |
-|---------|-----|
-| Connection failed | Use `192.168.42.1` over USB; check router DHCP list over network |
-| Wrong password | Default is `recamera` (older firmware uses `recamera.2`) |
-| Installation failed | Reboot camera and rerun this step |
-| Node-RED unavailable | Console takes over the camera; switch back under Console System Settings |
-| Factory reset | Hold **User** button while powering up until red LED turns solid |
-
----
-
-## Step 2: Install Human Behavior App (SG2002) {#human_install_app type=recamera_console_app required=false config=devices/recamera_console_app.yaml}
-
-Select **Face Analysis (face-analysis)**, **Drowsiness Detection (facemesh-reader)**, **Fall Detection (fall-detection)**, or **Fitness Trainer (fitness-trainer)** and click **Deploy**.
+Select **Face Analysis (face-analysis)**, **Fall Detection (fall-detection)**, **Drowsiness Detection (facemesh-reader)**, or **Fitness Trainer (fitness-trainer)** from the dropdown and click **Deploy**.
 
 ### Prerequisites
 
-1. PC needs internet access to fetch packages; the camera does not need internet.
-2. For privacy blur experimentation, enable Privacy Blur in console system settings after deployment.
+1. Your computer has internet access; camera does not require internet.
+2. Connect the camera via USB (`192.168.42.1`) or local network IP.
+3. Default credentials are `recamera` / `recamera` (or `recamera.2` on earlier firmware).
+4. Console version must be 0.5.5 or higher.
 
 ### Deployment Complete
 
-The camera is running the human behavior analysis app.
+The camera is running the human behavior analysis application.
 
 ### Troubleshooting
 
-| Symptom | Fix |
-|---------|-----|
-| Dropdown empty | PC cannot reach `sensecraft-statics.seeed.cc`; fix connection and refresh |
-| Login rejected | Use camera credentials `recamera` / `recamera` (or `recamera.2`) |
-| Console busy | Camera is handling another operation; retry in a minute |
-| Failed to start | Check status in console Applications tab; redeploy if files are missing |
+| Issue | Solution |
+|-------|----------|
+| Dropdown empty or incomplete | Host cannot reach `sensecraft-statics.seeed.cc`; verify network and refresh |
+| Login rejected | Use camera credentials (default `recamera` / `recamera` or `recamera.2`) |
+| Console unresponsive | Camera may still be rebooting; wait one minute and retry |
+| Busy prompt | Console is processing another operation; retry when finished |
+| App failed to start | Check status in console App page; redeploy if files are missing |
 
----
+### Mode: reCamera Pro (RV1126B) {#recamera_pro config=devices/recamera_pro_fall.yaml}
 
-## Step 3: Open Console & Debug View (SG2002) {#open_console type=web_dashboard required=false config=devices/console_dashboard.yaml}
-
-Open the camera console to inspect the real-time inference video feed and detection metrics.
+Configure and activate the fall detection app (`fall-detection`) on reCamera Pro.
 
 ### Prerequisites
 
-1. Log in with camera credentials from Step 1.
-2. In the **Applications** tab, click **Debug** on the running app to see the live feed and bounding boxes.
+1. Camera is connected via USB (`192.168.42.1`) or on the local network.
+2. Enter the camera web dashboard admin username and password (default `admin`).
+3. Ensure the app is installed in the device's App Center. If not, install it from App Center first.
 
 ### Deployment Complete
 
-Console URL is `http://<camera-ip>/` for streaming, threshold tuning, and networking setup.
+The fall detection application is activated and running on reCamera Pro.
 
 ### Troubleshooting
 
-| Symptom | Fix |
-|---------|-----|
-| Page does not open | Wait 60s for camera reboot to finish, then refresh |
-| Black video stream | No app is active; return to Step 2 to deploy an app |
+| Issue | Solution |
+|-------|----------|
+| Login failed | Ensure you use Web console credentials (not SSH), default user is `admin` |
+| App not installed | Install the app from the device App Center catalog first |
+| Connection timeout | Verify camera IP and HTTPS (port 443) reachability |
 
 ---
 
-## Step 4: Check & Update Firmware (reCamera Pro) {#firmware_pro type=manual required=false config=devices/recamera_pro_firmware.yaml}
+## Step 2: Open the Console {#open_console type=web_dashboard required=false config=devices/console_dashboard.yaml}
 
-For reCamera Pro users only. Skip if your camera already displays the App Center.
+Open the camera web console to inspect real-time inference and detections.
+
+### Mode: reCamera (SG2002) {#recamera_sg2002 config=devices/console_dashboard.yaml default=true}
+
+Open the camera console to inspect real-time video stream and detection results.
 
 ### Prerequisites
 
-1. Open camera web page; if App Center is present, skip this step.
-2. Fill in device IP and ADB port 5555, then click **Check & Update Device**.
-3. Firmware update runs over network ADB port 5555; USB alone is not sufficient.
-4. The camera reboots during update; do not power off. Use **Factory Reset** on the same page to roll back.
+1. Sign in with the camera credentials from Step 1.
+2. In the **Apps** page, click **Debug** on the active app to view bounding boxes.
+
+### Deployment Complete
+
+Console is available at `http://<camera-ip>/` to inspect video, tune thresholds, and adjust network settings.
 
 ### Troubleshooting
 
-| Symptom | Fix |
-|---------|-----|
-| Test connection fails | Check address and verify port 5555 is reachable from this PC |
-| Nothing happens on check | Camera may already be on latest firmware; look for App Center on its page |
-| App Center missing after reboot | Reload the page after camera finishes rebooting |
+| Issue | Solution |
+|-------|----------|
+| Page does not open | Wait a minute for the camera to finish booting, then refresh |
+| Live video is black | No app is active; return to Step 1 to deploy an app |
 
----
+### Mode: reCamera Pro (RV1126B) {#recamera_pro config=devices/recamera_pro_apps.yaml}
 
-## Step 5: Open App Center (reCamera Pro) {#open_appcenter_pro type=web_dashboard required=false config=devices/recamera_pro_apps.yaml}
-
-For reCamera Pro users only. Open App Center, install and start the corresponding application.
+Open the reCamera Pro control panel to view inference results in Live Preview.
 
 ### Prerequisites
 
-1. Log in with camera panel credentials (not SSH credentials).
-2. Open **App Center** from sidebar, select the target application to install, and click **Start**.
-3. View live video and detection results in **Live Preview**.
+1. Sign in with the web control panel credentials (default `admin`).
+2. Open **Live Preview** in the left sidebar to view the video stream and AI detections.
+
+### Deployment Complete
+
+Control panel is open. You can view detection boxes and confidence scores in Live Preview.
 
 ### Troubleshooting
 
-| Symptom | Fix |
-|---------|-----|
-| Page does not open | Prefix URL with `http://` to allow proper redirection |
-| Certificate warning | Camera uses a self-signed certificate over HTTPS; accept and proceed |
-| App Center empty or asks to sign in | Log in to the management dashboard first, then refresh |
-| Failed to load catalog | PC cannot reach `sensecraft-statics.seeed.cc`; update catalog URL if self-hosting |
-| App fails to start | Model files missing; reinstall the application |
+| Issue | Solution |
+|-------|----------|
+| Page does not open | Prefix the URL with `http://` to allow redirects |
+| Certificate warning | Self-signed certificate is expected when HTTPS is enabled; proceed safely |
+| Video not loading | Confirm the application was successfully activated in the previous step |
 
 ---
 
-## Step 6: Deploy Home Assistant (Optional) {#deploy_ha type=docker_deploy required=false config=devices/homeassistant_deploy.yaml}
+## Step 3: Deploy Home Assistant (Optional) {#deploy_ha type=docker_deploy required=false config=devices/homeassistant_deploy.yaml}
 
-Launch Home Assistant and an MQTT broker container. Skip if already running.
+Start Home Assistant and an MQTT broker. Skip if both are already running.
 
 ### Target {#ha_local type=local config=devices/homeassistant_deploy.yaml default=true}
 
-Deploy Home Assistant locally on Docker Desktop with ports 8123 and 1883 available.
+Deploy Home Assistant on the local machine. Requires Docker Desktop running with ports 8123 and 1883 available.
 
 ### Prerequisites
 
@@ -402,263 +339,212 @@ Deploy Home Assistant locally on Docker Desktop with ports 8123 and 1883 availab
 
 ### Deployment Complete
 
-1. Open **http://localhost:8123** and complete the onboarding wizard.
-2. MQTT broker listens on port 1883; use this address in Steps 7 & 8.
+1. Open **http://localhost:8123** and follow the onboarding wizard.
+2. MQTT broker runs on port 1883 on this machine; supply this address in Step 4.
 
 ### Troubleshooting
 
-| Symptom | Fix |
-|---------|-----|
-| Port 8123 or 1883 busy | Stop existing Home Assistant / Mosquitto containers, or reuse them |
-| Docker not running | Launch Docker Desktop application |
-| Container restarting | Ensure at least 2 GB of RAM is free |
+| Issue | Solution |
+|-------|----------|
+| Port 8123 or 1883 in use | Stop existing Home Assistant or Mosquitto instance |
+| Docker fails to start | Launch Docker Desktop |
+| Container crash loop | Ensure at least 2 GB of memory is available |
 
 ### Target {#ha_remote type=remote config=devices/homeassistant_deploy.yaml}
 
-Deploy to a remote edge host (e.g. reComputer) on the local network.
+Deploy to a remote host (e.g. reComputer) on the local network.
 
 ### Prerequisites
 
-1. Target host is reachable over SSH with Docker running.
-2. Enter IP address, username, and password below.
+1. Target host reachable via SSH with Docker installed.
+2. Provide host IP, username, and password below.
 
 ### Deployment Complete
 
-1. Open **http://<device-ip>:8123** and complete the onboarding wizard.
-2. MQTT broker listens on port 1883 of the remote device; use this address in Steps 7 & 8.
+1. Open **http://<host-ip>:8123** and complete the onboarding wizard.
+2. MQTT broker runs on port 1883 of the remote host; supply this address in Step 4.
 
 ### Troubleshooting
 
-| Symptom | Fix |
-|---------|-----|
-| Connection timeout | Check local network and ping device |
-| SSH auth failed | Verify username and password |
-| Port 1883 busy | An MQTT broker is already running; retain it and enter its port in Steps 7 & 8 |
+| Issue | Solution |
+|-------|----------|
+| Connection timeout | Check network connectivity with ping |
+| SSH authentication failed | Verify username and password |
+| Port 1883 in use | Existing broker detected; keep it and use it in Step 4 |
 
 ---
 
-## Step 7: Connect reCamera to Home Assistant (Optional) {#connect_ha type=manual required=false config=devices/connect_ha_recamera.yaml}
+## Step 4: View Results in Home Assistant (Optional) {#ha_dashboard type=web_dashboard required=false config=devices/ha_dashboard.yaml}
 
-Connect reCamera (SG2002) and Home Assistant to the same MQTT broker for automatic entity discovery.
+Inspect camera live stream and detection entities on the Home Assistant dashboard.
+
+### Mode: reCamera (SG2002) {#recamera_sg2002 config=devices/ha_dashboard.yaml default=true}
+
+Connect Home Assistant and the camera to the same MQTT broker to auto-discover detection entities, then add a video glance card.
 
 ### Prerequisites
 
-1. Home Assistant is running and accessible.
-2. An MQTT broker reachable by the camera (from Step 6 or external).
-3. In camera console: under **Integrations → Home Assistant**, enter broker IP and port 1883.
+1. **Add MQTT Integration**: In Home Assistant **Settings → Devices & Services → Add Integration**, add the **MQTT** integration pointing to the Step 3 broker IP, port 1883 (leave username/password empty). Skip if already configured.
+2. **Point Camera to Broker**: In camera console **Integrations → Home Assistant**, enter the Step 3 broker IP and port 1883, test connection, then save.
+3. **Inspect Entities**: In Home Assistant **Settings → Devices & Services → MQTT**, locate the camera device and entities.
+4. **Add Card**: On the dashboard, add a Picture glance card to overlay detection entities onto the video stream.
 
 ### Deployment Complete
 
-Detections publish as Home Assistant entities. If entities show unavailable, verify the app is running in the camera console.
+The dashboard displays camera video and detection entities. Switching apps updates entities automatically.
 
 ### Troubleshooting
 
-| Symptom | Fix |
-|---------|-----|
-| No data on broker | Verify broker IP is correct and reachable from camera subnet |
-| Entity stays unavailable | Confirm application is active and running in console |
+| Issue | Solution |
+|-------|----------|
+| No data on broker | Confirm broker IP is reachable from camera |
+| Entities unavailable | Confirm the app is actively running on the camera |
+| Card has video but no entities | Verify MQTT integration status and entities list |
 
----
+### Mode: reCamera Pro (RV1126B) {#recamera_pro config=devices/ha_dashboard_pro.yaml}
 
-## Step 8: Connect reCamera Pro to Home Assistant (Optional) {#connect_ha_pro type=manual required=false config=devices/connect_ha_recamera_pro.yaml}
-
-Configure MQTT output in reCamera Pro app settings; entities will appear automatically in Home Assistant.
+Add reCamera Pro's RTSP video stream and MQTT detection entities to a Home Assistant dashboard card.
 
 ### Prerequisites
 
-1. Home Assistant is running and accessible.
-2. An MQTT broker reachable by reCamera Pro (from Step 6 or external).
-3. The AI app is active and running on the camera.
+1. **Add MQTT Integration**: In Home Assistant **Settings → Devices & Services → Add Integration**, add the **MQTT** integration pointing to the Step 3 broker IP, port 1883 (leave username/password empty). Skip if already configured.
+2. **Configure Camera MQTT**: If MQTT Broker Address was filled during Step 1 deployment, it connects automatically. Otherwise, in the camera web console App Center, click Configure on the app, enable MQTT under Result Output, set Output Mode to Home Assistant, and enter the broker IP and port 1883.
+3. **Inspect Entities**: In **Settings → Devices & Services → MQTT**, verify camera detection entities exist.
+4. **Enable RTSP**: In the camera web console **Video Settings → Stream Settings**, enable RTSP and copy the stream URL.
+5. **Add Video**: In Home Assistant **Settings → Devices & Services → Add Integration**, select **Generic Camera** and paste the RTSP URL (use TCP transport).
+6. **Add Card**: Add a Picture glance card, select Generic Camera as Camera Entity, and add detection entities.
 
 ### Deployment Complete
 
-Detections appear in Home Assistant. This configuration applies to the active app; repeat in Configure when switching to another app.
+The dashboard shows the camera stream and detection entities.
 
 ### Troubleshooting
 
-| Symptom | Fix |
-|---------|-----|
-| No Result Output in config | App does not support MQTT output; detections remain local |
-| No broker messages | Verify broker address is non-empty and reachable from camera |
-| Save rejected | Broker host cannot be empty; base topic cannot contain `+`, `#` or spaces |
-| Saved but nothing in HA | Set Output Mode to **Home Assistant** and confirm identical broker settings |
-| Entity unavailable | Verify application is currently running in App Center |
-
----
-
-## Step 9: See reCamera Results in Home Assistant (Optional) {#ha_dashboard type=web_dashboard required=false config=devices/ha_dashboard.yaml}
-
-View reCamera (SG2002) video stream and detection entities on your Home Assistant dashboard.
-
-### Prerequisites
-
-1. **Find Entities:** Under **Settings → Devices & Services → MQTT**, locate the camera device and note entities.
-2. **Add Card:** Add a **Picture glance** card on your dashboard, combining the video stream with detection entities.
-
-### Troubleshooting
-
-| Symptom | Fix |
-|---------|-----|
-| Card shows video but no icons | Verify Home Assistant integration status in camera console |
-| Entity shows unknown | Values update upon changes detected in the camera view |
-
----
-
-## Step 10: See reCamera Pro Results in Home Assistant (Optional) {#ha_dashboard_pro type=web_dashboard required=false config=devices/ha_dashboard_pro.yaml}
-
-Combine reCamera Pro video stream and detection entities on a single dashboard card.
-
-### Prerequisites
-
-1. **Find Entities:** Under **Settings → Devices & Services → MQTT**, locate camera entities.
-2. **Enable RTSP:** In camera panel: **Live View → Stream Settings**, select RTSP, enable stream, and copy the RTSP URL.
-3. **Add Camera:** In Home Assistant: **Settings → Devices & Services → Add Integration → Generic Camera**, paste RTSP URL, set transport to **TCP**.
-4. **Build Card:** On dashboard, add a **Picture glance** card pointing to Generic Camera with detection entities listed.
-
-### Deployment Complete
-
-Dashboard displays real-time camera video with overlaid detection entities.
-
-### Troubleshooting
-
-| Symptom | Fix |
-|---------|-----|
-| No RTSP stream URL | RTSP not enabled or another protocol selected |
-| Generic Camera cannot connect | Test URL with VLC; ensure TCP transport is selected |
-| Black or freezing video | Close camera web preview and any open VLC players |
-| No detection icons on card | Confirm MQTT output is configured on active app (Step 8) |
-| Entity shows unknown | Values update upon new detections in camera frame |
+| Issue | Solution |
+|-------|----------|
+| No stream URL displayed | Enable RTSP protocol in streaming settings |
+| Generic Camera cannot connect | Test URL in VLC; set RTSP transport to TCP |
+| Entities show unknown | A wait for visual changes in front of the lens is normal before first report |
 
 ---
 
 ## Preset: Text & Code Reading {#text_reading}
 
-Learn two-stage vision pipelines (text localization + OCR character recognition) and dense QR barcode decoding on resource-constrained edge hardware.
+Two-stage vision pipeline. Extract Chinese & English text from labels, screens, and packages with PP-OCR, or decode multiple QR codes concurrently.
 
-- **Devices:** reCamera (SG2002) or reCamera Pro (RV1126B); a PC or reComputer R1100 when forwarding to Home Assistant.
-- **Recommended Apps:** `ppocr-reader` (bilingual OCR text recognition) or `qrcode-reader` (dense QR decoding).
-- **Hands-on Quests:**
-  1. Hold a business card, ID badge, or parcel label 15~25 cm in front of the lens; observe printed text cropped and output as JSON;
-  2. Present multiple QR codes simultaneously to watch instantaneous parallel decoding.
+- **Hardware:** reCamera (SG2002) or reCamera Pro (RV1126B); Home Assistant integration optionally requires a PC or reComputer R1100.
+- **Recommended Apps:** `ppocr-reader` (OCR text reader) or `qrcode-reader` (QR code reader).
+- **Quest:**
+  1. Hold printed Chinese or English labels in front of the lens to observe text detection and extraction;
+  2. Test detection reliability across varying lighting conditions and angles.
 
-## Step 1: Upgrade reCamera Console (SG2002) {#deploy_console type=recamera_cpp required=false config=devices/recamera_console.yaml}
+## Step 1: Install Text Reading App {#text_install_app type=recamera_console_app required=false config=devices/recamera_console_app.yaml}
 
-Install console version 0.5.5. Existing 0.5.5 installations will be skipped automatically. If using reCamera Pro, skip directly to Step 4.
+Select the desired text or code reading application from the dropdown and deploy it to the camera.
 
-### Prerequisites
+### Mode: reCamera (SG2002) {#recamera_sg2002 config=devices/recamera_console_app.yaml default=true}
 
-1. Connect the camera over USB (address `192.168.42.1`) or place it on the same network.
-2. Username `recamera`, default password `recamera` (older firmware uses `recamera.2`).
-3. For brand new units, enable SSH under `http://192.168.42.1/#/security` first.
-
-### Troubleshooting
-
-| Symptom | Fix |
-|---------|-----|
-| Connection failed | Use `192.168.42.1` over USB; check router DHCP list over network |
-| Wrong password | Default is `recamera` (older firmware uses `recamera.2`) |
-| Installation failed | Reboot camera and rerun this step |
-| Node-RED unavailable | Console takes over the camera; switch back under Console System Settings |
-| Factory reset | Hold **User** button while powering up until red LED turns solid |
-
----
-
-## Step 2: Install Text Reading App (SG2002) {#text_install_app type=recamera_console_app required=false config=devices/recamera_console_app.yaml}
-
-Select **OCR Text Reader (ppocr-reader)** or **QR Code Reader (qrcode-reader)** and click **Deploy**.
+Select **OCR Text Reader (ppocr-reader)** or **QR Code Reader (qrcode-reader)** from the dropdown and click **Deploy**.
 
 ### Prerequisites
 
-1. PC needs internet access to fetch packages; the camera does not need internet.
-2. The PP-OCR model includes common Chinese and English character libraries.
+1. Your computer has internet access; camera does not require internet.
+2. Connect the camera via USB (`192.168.42.1`) or local network IP.
+3. Default credentials are `recamera` / `recamera` (or `recamera.2` on earlier firmware).
+4. Console version must be 0.5.5 or higher.
 
 ### Deployment Complete
 
-The camera is running the text and code recognition app.
+The camera is running the text and code recognition application.
 
 ### Troubleshooting
 
-| Symptom | Fix |
-|---------|-----|
-| Dropdown empty | PC cannot reach `sensecraft-statics.seeed.cc`; fix connection and refresh |
-| Login rejected | Use camera credentials `recamera` / `recamera` (or `recamera.2`) |
-| Console busy | Camera is handling another operation; retry in a minute |
-| Failed to start | Check status in console Applications tab; redeploy if files are missing |
+| Issue | Solution |
+|-------|----------|
+| Dropdown empty or incomplete | Host cannot reach `sensecraft-statics.seeed.cc`; verify network and refresh |
+| Login rejected | Use camera credentials (default `recamera` / `recamera` or `recamera.2`) |
+| Console unresponsive | Camera may still be rebooting; wait one minute and retry |
+| Busy prompt | Console is processing another operation; retry when finished |
+| App failed to start | Check status in console App page; redeploy if files are missing |
 
----
+### Mode: reCamera Pro (RV1126B) {#recamera_pro config=devices/recamera_pro_ocr.yaml}
 
-## Step 3: Open Console & Debug View (SG2002) {#open_console type=web_dashboard required=false config=devices/console_dashboard.yaml}
-
-Open the camera console to inspect the real-time inference video feed and detection metrics.
+Configure and activate the text recognition app (`ocr`) on reCamera Pro.
 
 ### Prerequisites
 
-1. Log in with camera credentials from Step 1.
-2. In the **Applications** tab, click **Debug** on the running app to see the live feed and bounding boxes.
+1. Camera is connected via USB (`192.168.42.1`) or on the local network.
+2. Enter the camera web dashboard admin username and password (default `admin`).
+3. Ensure the app is installed in the device's App Center. If not, install it from App Center first.
 
 ### Deployment Complete
 
-Console URL is `http://<camera-ip>/` for streaming, threshold tuning, and networking setup.
+The text recognition application is activated and running on reCamera Pro.
 
 ### Troubleshooting
 
-| Symptom | Fix |
-|---------|-----|
-| Page does not open | Wait 60s for camera reboot to finish, then refresh |
-| Black video stream | No app is active; return to Step 2 to deploy an app |
+| Issue | Solution |
+|-------|----------|
+| Login failed | Ensure you use Web console credentials (not SSH), default user is `admin` |
+| App not installed | Install the app from the device App Center catalog first |
+| Connection timeout | Verify camera IP and HTTPS (port 443) reachability |
 
 ---
 
-## Step 4: Check & Update Firmware (reCamera Pro) {#firmware_pro type=manual required=false config=devices/recamera_pro_firmware.yaml}
+## Step 2: Open the Console {#open_console type=web_dashboard required=false config=devices/console_dashboard.yaml}
 
-For reCamera Pro users only. Skip if your camera already displays the App Center.
+Open the camera web console to inspect real-time inference and detections.
+
+### Mode: reCamera (SG2002) {#recamera_sg2002 config=devices/console_dashboard.yaml default=true}
+
+Open the camera console to inspect real-time video stream and detection results.
 
 ### Prerequisites
 
-1. Open camera web page; if App Center is present, skip this step.
-2. Fill in device IP and ADB port 5555, then click **Check & Update Device**.
-3. Firmware update runs over network ADB port 5555; USB alone is not sufficient.
-4. The camera reboots during update; do not power off. Use **Factory Reset** on the same page to roll back.
+1. Sign in with the camera credentials from Step 1.
+2. In the **Apps** page, click **Debug** on the active app to view bounding boxes.
+
+### Deployment Complete
+
+Console is available at `http://<camera-ip>/` to inspect video, tune thresholds, and adjust network settings.
 
 ### Troubleshooting
 
-| Symptom | Fix |
-|---------|-----|
-| Test connection fails | Check address and verify port 5555 is reachable from this PC |
-| Nothing happens on check | Camera may already be on latest firmware; look for App Center on its page |
-| App Center missing after reboot | Reload the page after camera finishes rebooting |
+| Issue | Solution |
+|-------|----------|
+| Page does not open | Wait a minute for the camera to finish booting, then refresh |
+| Live video is black | No app is active; return to Step 1 to deploy an app |
 
----
+### Mode: reCamera Pro (RV1126B) {#recamera_pro config=devices/recamera_pro_apps.yaml}
 
-## Step 5: Open App Center (reCamera Pro) {#open_appcenter_pro type=web_dashboard required=false config=devices/recamera_pro_apps.yaml}
-
-For reCamera Pro users only. Open App Center, install and start the corresponding application.
+Open the reCamera Pro control panel to view inference results in Live Preview.
 
 ### Prerequisites
 
-1. Log in with camera panel credentials (not SSH credentials).
-2. Open **App Center** from sidebar, select the target application to install, and click **Start**.
-3. View live video and detection results in **Live Preview**.
+1. Sign in with the web control panel credentials (default `admin`).
+2. Open **Live Preview** in the left sidebar to view the video stream and AI detections.
+
+### Deployment Complete
+
+Control panel is open. You can view detection boxes and confidence scores in Live Preview.
 
 ### Troubleshooting
 
-| Symptom | Fix |
-|---------|-----|
-| Page does not open | Prefix URL with `http://` to allow proper redirection |
-| Certificate warning | Camera uses a self-signed certificate over HTTPS; accept and proceed |
-| App Center empty or asks to sign in | Log in to the management dashboard first, then refresh |
-| Failed to load catalog | PC cannot reach `sensecraft-statics.seeed.cc`; update catalog URL if self-hosting |
-| App fails to start | Model files missing; reinstall the application |
+| Issue | Solution |
+|-------|----------|
+| Page does not open | Prefix the URL with `http://` to allow redirects |
+| Certificate warning | Self-signed certificate is expected when HTTPS is enabled; proceed safely |
+| Video not loading | Confirm the application was successfully activated in the previous step |
 
 ---
 
-## Step 6: Deploy Home Assistant (Optional) {#deploy_ha type=docker_deploy required=false config=devices/homeassistant_deploy.yaml}
+## Step 3: Deploy Home Assistant (Optional) {#deploy_ha type=docker_deploy required=false config=devices/homeassistant_deploy.yaml}
 
-Launch Home Assistant and an MQTT broker container. Skip if already running.
+Start Home Assistant and an MQTT broker. Skip if both are already running.
 
 ### Target {#ha_local type=local config=devices/homeassistant_deploy.yaml default=true}
 
-Deploy Home Assistant locally on Docker Desktop with ports 8123 and 1883 available.
+Deploy Home Assistant on the local machine. Requires Docker Desktop running with ports 8123 and 1883 available.
 
 ### Prerequisites
 
@@ -668,263 +554,212 @@ Deploy Home Assistant locally on Docker Desktop with ports 8123 and 1883 availab
 
 ### Deployment Complete
 
-1. Open **http://localhost:8123** and complete the onboarding wizard.
-2. MQTT broker listens on port 1883; use this address in Steps 7 & 8.
+1. Open **http://localhost:8123** and follow the onboarding wizard.
+2. MQTT broker runs on port 1883 on this machine; supply this address in Step 4.
 
 ### Troubleshooting
 
-| Symptom | Fix |
-|---------|-----|
-| Port 8123 or 1883 busy | Stop existing Home Assistant / Mosquitto containers, or reuse them |
-| Docker not running | Launch Docker Desktop application |
-| Container restarting | Ensure at least 2 GB of RAM is free |
+| Issue | Solution |
+|-------|----------|
+| Port 8123 or 1883 in use | Stop existing Home Assistant or Mosquitto instance |
+| Docker fails to start | Launch Docker Desktop |
+| Container crash loop | Ensure at least 2 GB of memory is available |
 
 ### Target {#ha_remote type=remote config=devices/homeassistant_deploy.yaml}
 
-Deploy to a remote edge host (e.g. reComputer) on the local network.
+Deploy to a remote host (e.g. reComputer) on the local network.
 
 ### Prerequisites
 
-1. Target host is reachable over SSH with Docker running.
-2. Enter IP address, username, and password below.
+1. Target host reachable via SSH with Docker installed.
+2. Provide host IP, username, and password below.
 
 ### Deployment Complete
 
-1. Open **http://<device-ip>:8123** and complete the onboarding wizard.
-2. MQTT broker listens on port 1883 of the remote device; use this address in Steps 7 & 8.
+1. Open **http://<host-ip>:8123** and complete the onboarding wizard.
+2. MQTT broker runs on port 1883 of the remote host; supply this address in Step 4.
 
 ### Troubleshooting
 
-| Symptom | Fix |
-|---------|-----|
-| Connection timeout | Check local network and ping device |
-| SSH auth failed | Verify username and password |
-| Port 1883 busy | An MQTT broker is already running; retain it and enter its port in Steps 7 & 8 |
+| Issue | Solution |
+|-------|----------|
+| Connection timeout | Check network connectivity with ping |
+| SSH authentication failed | Verify username and password |
+| Port 1883 in use | Existing broker detected; keep it and use it in Step 4 |
 
 ---
 
-## Step 7: Connect reCamera to Home Assistant (Optional) {#connect_ha type=manual required=false config=devices/connect_ha_recamera.yaml}
+## Step 4: View Results in Home Assistant (Optional) {#ha_dashboard type=web_dashboard required=false config=devices/ha_dashboard.yaml}
 
-Connect reCamera (SG2002) and Home Assistant to the same MQTT broker for automatic entity discovery.
+Inspect camera live stream and detection entities on the Home Assistant dashboard.
+
+### Mode: reCamera (SG2002) {#recamera_sg2002 config=devices/ha_dashboard.yaml default=true}
+
+Connect Home Assistant and the camera to the same MQTT broker to auto-discover detection entities, then add a video glance card.
 
 ### Prerequisites
 
-1. Home Assistant is running and accessible.
-2. An MQTT broker reachable by the camera (from Step 6 or external).
-3. In camera console: under **Integrations → Home Assistant**, enter broker IP and port 1883.
+1. **Add MQTT Integration**: In Home Assistant **Settings → Devices & Services → Add Integration**, add the **MQTT** integration pointing to the Step 3 broker IP, port 1883 (leave username/password empty). Skip if already configured.
+2. **Point Camera to Broker**: In camera console **Integrations → Home Assistant**, enter the Step 3 broker IP and port 1883, test connection, then save.
+3. **Inspect Entities**: In Home Assistant **Settings → Devices & Services → MQTT**, locate the camera device and entities.
+4. **Add Card**: On the dashboard, add a Picture glance card to overlay detection entities onto the video stream.
 
 ### Deployment Complete
 
-Detections publish as Home Assistant entities. If entities show unavailable, verify the app is running in the camera console.
+The dashboard displays camera video and detection entities. Switching apps updates entities automatically.
 
 ### Troubleshooting
 
-| Symptom | Fix |
-|---------|-----|
-| No data on broker | Verify broker IP is correct and reachable from camera subnet |
-| Entity stays unavailable | Confirm application is active and running in console |
+| Issue | Solution |
+|-------|----------|
+| No data on broker | Confirm broker IP is reachable from camera |
+| Entities unavailable | Confirm the app is actively running on the camera |
+| Card has video but no entities | Verify MQTT integration status and entities list |
 
----
+### Mode: reCamera Pro (RV1126B) {#recamera_pro config=devices/ha_dashboard_pro.yaml}
 
-## Step 8: Connect reCamera Pro to Home Assistant (Optional) {#connect_ha_pro type=manual required=false config=devices/connect_ha_recamera_pro.yaml}
-
-Configure MQTT output in reCamera Pro app settings; entities will appear automatically in Home Assistant.
+Add reCamera Pro's RTSP video stream and MQTT detection entities to a Home Assistant dashboard card.
 
 ### Prerequisites
 
-1. Home Assistant is running and accessible.
-2. An MQTT broker reachable by reCamera Pro (from Step 6 or external).
-3. The AI app is active and running on the camera.
+1. **Add MQTT Integration**: In Home Assistant **Settings → Devices & Services → Add Integration**, add the **MQTT** integration pointing to the Step 3 broker IP, port 1883 (leave username/password empty). Skip if already configured.
+2. **Configure Camera MQTT**: If MQTT Broker Address was filled during Step 1 deployment, it connects automatically. Otherwise, in the camera web console App Center, click Configure on the app, enable MQTT under Result Output, set Output Mode to Home Assistant, and enter the broker IP and port 1883.
+3. **Inspect Entities**: In **Settings → Devices & Services → MQTT**, verify camera detection entities exist.
+4. **Enable RTSP**: In the camera web console **Video Settings → Stream Settings**, enable RTSP and copy the stream URL.
+5. **Add Video**: In Home Assistant **Settings → Devices & Services → Add Integration**, select **Generic Camera** and paste the RTSP URL (use TCP transport).
+6. **Add Card**: Add a Picture glance card, select Generic Camera as Camera Entity, and add detection entities.
 
 ### Deployment Complete
 
-Detections appear in Home Assistant. This configuration applies to the active app; repeat in Configure when switching to another app.
+The dashboard shows the camera stream and detection entities.
 
 ### Troubleshooting
 
-| Symptom | Fix |
-|---------|-----|
-| No Result Output in config | App does not support MQTT output; detections remain local |
-| No broker messages | Verify broker address is non-empty and reachable from camera |
-| Save rejected | Broker host cannot be empty; base topic cannot contain `+`, `#` or spaces |
-| Saved but nothing in HA | Set Output Mode to **Home Assistant** and confirm identical broker settings |
-| Entity unavailable | Verify application is currently running in App Center |
-
----
-
-## Step 9: See reCamera Results in Home Assistant (Optional) {#ha_dashboard type=web_dashboard required=false config=devices/ha_dashboard.yaml}
-
-View reCamera (SG2002) video stream and detection entities on your Home Assistant dashboard.
-
-### Prerequisites
-
-1. **Find Entities:** Under **Settings → Devices & Services → MQTT**, locate the camera device and note entities.
-2. **Add Card:** Add a **Picture glance** card on your dashboard, combining the video stream with detection entities.
-
-### Troubleshooting
-
-| Symptom | Fix |
-|---------|-----|
-| Card shows video but no icons | Verify Home Assistant integration status in camera console |
-| Entity shows unknown | Values update upon changes detected in the camera view |
-
----
-
-## Step 10: See reCamera Pro Results in Home Assistant (Optional) {#ha_dashboard_pro type=web_dashboard required=false config=devices/ha_dashboard_pro.yaml}
-
-Combine reCamera Pro video stream and detection entities on a single dashboard card.
-
-### Prerequisites
-
-1. **Find Entities:** Under **Settings → Devices & Services → MQTT**, locate camera entities.
-2. **Enable RTSP:** In camera panel: **Live View → Stream Settings**, select RTSP, enable stream, and copy the RTSP URL.
-3. **Add Camera:** In Home Assistant: **Settings → Devices & Services → Add Integration → Generic Camera**, paste RTSP URL, set transport to **TCP**.
-4. **Build Card:** On dashboard, add a **Picture glance** card pointing to Generic Camera with detection entities listed.
-
-### Deployment Complete
-
-Dashboard displays real-time camera video with overlaid detection entities.
-
-### Troubleshooting
-
-| Symptom | Fix |
-|---------|-----|
-| No RTSP stream URL | RTSP not enabled or another protocol selected |
-| Generic Camera cannot connect | Test URL with VLC; ensure TCP transport is selected |
-| Black or freezing video | Close camera web preview and any open VLC players |
-| No detection icons on card | Confirm MQTT output is configured on active app (Step 8) |
-| Entity shows unknown | Values update upon new detections in camera frame |
+| Issue | Solution |
+|-------|----------|
+| No stream URL displayed | Enable RTSP protocol in streaming settings |
+| Generic Camera cannot connect | Test URL in VLC; set RTSP transport to TCP |
+| Entities show unknown | A wait for visual changes in front of the lens is normal before first report |
 
 ---
 
 ## Preset: Retail Flow & Passenger Analytics {#spatial_retail}
 
-Experience multi-target tracking (ByteTrack) coupled with virtual tripwires for retail passenger analytics. Learn how edge devices count entries/exits and track dwell time without cloud dependency.
+ByteTrack multi-target tracking with virtual tripwires. Counts passenger entries and exits while tracking dwell time and assistance states.
 
-- **Devices:** reCamera (SG2002) or reCamera Pro (RV1126B); a PC or reComputer R1100 when forwarding to Home Assistant.
-- **Recommended Apps:** `retail-vision` (retail passenger flow).
-- **Hands-on Quests:**
-  1. Define a virtual tripwire on the live feed, walk back and forth in frame, and observe bidirectional entry/exit counts update instantly;
-  2. Dwell on one side of the tripwire to observe how the device classifies browsing vs. assistance-needed states.
+- **Hardware:** reCamera (SG2002) or reCamera Pro (RV1126B); Home Assistant integration optionally requires a PC or reComputer R1100.
+- **Recommended Apps:** `retail-vision` (passenger counting and dwell detection).
+- **Quest:**
+  1. Walk across the virtual tripwire to observe passenger count incrementing in real time;
+  2. Dwell in the zone beyond the threshold duration to observe the assistance alert event.
 
-## Step 1: Upgrade reCamera Console (SG2002) {#deploy_console type=recamera_cpp required=false config=devices/recamera_console.yaml}
+## Step 1: Install Retail Analytics App {#retail_install_app type=recamera_console_app required=false config=devices/recamera_console_app.yaml}
 
-Install console version 0.5.5. Existing 0.5.5 installations will be skipped automatically. If using reCamera Pro, skip directly to Step 4.
+Select the desired passenger analytics application from the dropdown and deploy it to the camera.
 
-### Prerequisites
+### Mode: reCamera (SG2002) {#recamera_sg2002 config=devices/recamera_console_app.yaml default=true}
 
-1. Connect the camera over USB (address `192.168.42.1`) or place it on the same network.
-2. Username `recamera`, default password `recamera` (older firmware uses `recamera.2`).
-3. For brand new units, enable SSH under `http://192.168.42.1/#/security` first.
-
-### Troubleshooting
-
-| Symptom | Fix |
-|---------|-----|
-| Connection failed | Use `192.168.42.1` over USB; check router DHCP list over network |
-| Wrong password | Default is `recamera` (older firmware uses `recamera.2`) |
-| Installation failed | Reboot camera and rerun this step |
-| Node-RED unavailable | Console takes over the camera; switch back under Console System Settings |
-| Factory reset | Hold **User** button while powering up until red LED turns solid |
-
----
-
-## Step 2: Install Retail Analytics App (SG2002) {#retail_install_app type=recamera_console_app required=false config=devices/recamera_console_app.yaml}
-
-Select **Retail People Counting (retail-vision)** and click **Deploy**.
+Select **Retail People Counting (retail-vision)** from the dropdown and click **Deploy**.
 
 ### Prerequisites
 
-1. PC needs internet access to fetch packages; the camera does not need internet.
-2. The retail application includes ByteTrack tracking and tripwire counting algorithms.
+1. Your computer has internet access; camera does not require internet.
+2. Connect the camera via USB (`192.168.42.1`) or local network IP.
+3. Default credentials are `recamera` / `recamera` (or `recamera.2` on earlier firmware).
+4. Console version must be 0.5.5 or higher.
 
 ### Deployment Complete
 
-The camera is running the retail passenger analytics application.
+The camera is running the retail analytics application.
 
 ### Troubleshooting
 
-| Symptom | Fix |
-|---------|-----|
-| Dropdown empty | PC cannot reach `sensecraft-statics.seeed.cc`; fix connection and refresh |
-| Login rejected | Use camera credentials `recamera` / `recamera` (or `recamera.2`) |
-| Console busy | Camera is handling another operation; retry in a minute |
-| Failed to start | Check status in console Applications tab; redeploy if files are missing |
+| Issue | Solution |
+|-------|----------|
+| Dropdown empty or incomplete | Host cannot reach `sensecraft-statics.seeed.cc`; verify network and refresh |
+| Login rejected | Use camera credentials (default `recamera` / `recamera` or `recamera.2`) |
+| Console unresponsive | Camera may still be rebooting; wait one minute and retry |
+| Busy prompt | Console is processing another operation; retry when finished |
+| App failed to start | Check status in console App page; redeploy if files are missing |
 
----
+### Mode: reCamera Pro (RV1126B) {#recamera_pro config=devices/recamera_pro_retail.yaml}
 
-## Step 3: Open Console & Debug View (SG2002) {#open_console type=web_dashboard required=false config=devices/console_dashboard.yaml}
-
-Open the camera console to inspect the real-time inference video feed and detection metrics.
+Configure and activate the retail analytics app (`retail-vision`) on reCamera Pro.
 
 ### Prerequisites
 
-1. Log in with camera credentials from Step 1.
-2. In the **Applications** tab, click **Debug** on the running app to see the live feed and bounding boxes.
+1. Camera is connected via USB (`192.168.42.1`) or on the local network.
+2. Enter the camera web dashboard admin username and password (default `admin`).
+3. Ensure the app is installed in the device's App Center. If not, install it from App Center first.
 
 ### Deployment Complete
 
-Console URL is `http://<camera-ip>/` for streaming, threshold tuning, and networking setup.
+The retail analytics application is activated and running on reCamera Pro.
 
 ### Troubleshooting
 
-| Symptom | Fix |
-|---------|-----|
-| Page does not open | Wait 60s for camera reboot to finish, then refresh |
-| Black video stream | No app is active; return to Step 2 to deploy an app |
+| Issue | Solution |
+|-------|----------|
+| Login failed | Ensure you use Web console credentials (not SSH), default user is `admin` |
+| App not installed | Install the app from the device App Center catalog first |
+| Connection timeout | Verify camera IP and HTTPS (port 443) reachability |
 
 ---
 
-## Step 4: Check & Update Firmware (reCamera Pro) {#firmware_pro type=manual required=false config=devices/recamera_pro_firmware.yaml}
+## Step 2: Open the Console {#open_console type=web_dashboard required=false config=devices/console_dashboard.yaml}
 
-For reCamera Pro users only. Skip if your camera already displays the App Center.
+Open the camera web console to inspect real-time inference and detections.
+
+### Mode: reCamera (SG2002) {#recamera_sg2002 config=devices/console_dashboard.yaml default=true}
+
+Open the camera console to inspect real-time video stream and detection results.
 
 ### Prerequisites
 
-1. Open camera web page; if App Center is present, skip this step.
-2. Fill in device IP and ADB port 5555, then click **Check & Update Device**.
-3. Firmware update runs over network ADB port 5555; USB alone is not sufficient.
-4. The camera reboots during update; do not power off. Use **Factory Reset** on the same page to roll back.
+1. Sign in with the camera credentials from Step 1.
+2. In the **Apps** page, click **Debug** on the active app to view bounding boxes.
+
+### Deployment Complete
+
+Console is available at `http://<camera-ip>/` to inspect video, tune thresholds, and adjust network settings.
 
 ### Troubleshooting
 
-| Symptom | Fix |
-|---------|-----|
-| Test connection fails | Check address and verify port 5555 is reachable from this PC |
-| Nothing happens on check | Camera may already be on latest firmware; look for App Center on its page |
-| App Center missing after reboot | Reload the page after camera finishes rebooting |
+| Issue | Solution |
+|-------|----------|
+| Page does not open | Wait a minute for the camera to finish booting, then refresh |
+| Live video is black | No app is active; return to Step 1 to deploy an app |
 
----
+### Mode: reCamera Pro (RV1126B) {#recamera_pro config=devices/recamera_pro_apps.yaml}
 
-## Step 5: Open App Center (reCamera Pro) {#open_appcenter_pro type=web_dashboard required=false config=devices/recamera_pro_apps.yaml}
-
-For reCamera Pro users only. Open App Center, install and start the corresponding application.
+Open the reCamera Pro control panel to view inference results in Live Preview.
 
 ### Prerequisites
 
-1. Log in with camera panel credentials (not SSH credentials).
-2. Open **App Center** from sidebar, select the target application to install, and click **Start**.
-3. View live video and detection results in **Live Preview**.
+1. Sign in with the web control panel credentials (default `admin`).
+2. Open **Live Preview** in the left sidebar to view the video stream and AI detections.
+
+### Deployment Complete
+
+Control panel is open. You can view detection boxes and confidence scores in Live Preview.
 
 ### Troubleshooting
 
-| Symptom | Fix |
-|---------|-----|
-| Page does not open | Prefix URL with `http://` to allow proper redirection |
-| Certificate warning | Camera uses a self-signed certificate over HTTPS; accept and proceed |
-| App Center empty or asks to sign in | Log in to the management dashboard first, then refresh |
-| Failed to load catalog | PC cannot reach `sensecraft-statics.seeed.cc`; update catalog URL if self-hosting |
-| App fails to start | Model files missing; reinstall the application |
+| Issue | Solution |
+|-------|----------|
+| Page does not open | Prefix the URL with `http://` to allow redirects |
+| Certificate warning | Self-signed certificate is expected when HTTPS is enabled; proceed safely |
+| Video not loading | Confirm the application was successfully activated in the previous step |
 
 ---
 
-## Step 6: Deploy Home Assistant (Optional) {#deploy_ha type=docker_deploy required=false config=devices/homeassistant_deploy.yaml}
+## Step 3: Deploy Home Assistant (Optional) {#deploy_ha type=docker_deploy required=false config=devices/homeassistant_deploy.yaml}
 
-Launch Home Assistant and an MQTT broker container. Skip if already running.
+Start Home Assistant and an MQTT broker. Skip if both are already running.
 
 ### Target {#ha_local type=local config=devices/homeassistant_deploy.yaml default=true}
 
-Deploy Home Assistant locally on Docker Desktop with ports 8123 and 1883 available.
+Deploy Home Assistant on the local machine. Requires Docker Desktop running with ports 8123 and 1883 available.
 
 ### Prerequisites
 
@@ -934,131 +769,89 @@ Deploy Home Assistant locally on Docker Desktop with ports 8123 and 1883 availab
 
 ### Deployment Complete
 
-1. Open **http://localhost:8123** and complete the onboarding wizard.
-2. MQTT broker listens on port 1883; use this address in Steps 7 & 8.
+1. Open **http://localhost:8123** and follow the onboarding wizard.
+2. MQTT broker runs on port 1883 on this machine; supply this address in Step 4.
 
 ### Troubleshooting
 
-| Symptom | Fix |
-|---------|-----|
-| Port 8123 or 1883 busy | Stop existing Home Assistant / Mosquitto containers, or reuse them |
-| Docker not running | Launch Docker Desktop application |
-| Container restarting | Ensure at least 2 GB of RAM is free |
+| Issue | Solution |
+|-------|----------|
+| Port 8123 or 1883 in use | Stop existing Home Assistant or Mosquitto instance |
+| Docker fails to start | Launch Docker Desktop |
+| Container crash loop | Ensure at least 2 GB of memory is available |
 
 ### Target {#ha_remote type=remote config=devices/homeassistant_deploy.yaml}
 
-Deploy to a remote edge host (e.g. reComputer) on the local network.
+Deploy to a remote host (e.g. reComputer) on the local network.
 
 ### Prerequisites
 
-1. Target host is reachable over SSH with Docker running.
-2. Enter IP address, username, and password below.
+1. Target host reachable via SSH with Docker installed.
+2. Provide host IP, username, and password below.
 
 ### Deployment Complete
 
-1. Open **http://<device-ip>:8123** and complete the onboarding wizard.
-2. MQTT broker listens on port 1883 of the remote device; use this address in Steps 7 & 8.
+1. Open **http://<host-ip>:8123** and complete the onboarding wizard.
+2. MQTT broker runs on port 1883 of the remote host; supply this address in Step 4.
 
 ### Troubleshooting
 
-| Symptom | Fix |
-|---------|-----|
-| Connection timeout | Check local network and ping device |
-| SSH auth failed | Verify username and password |
-| Port 1883 busy | An MQTT broker is already running; retain it and enter its port in Steps 7 & 8 |
+| Issue | Solution |
+|-------|----------|
+| Connection timeout | Check network connectivity with ping |
+| SSH authentication failed | Verify username and password |
+| Port 1883 in use | Existing broker detected; keep it and use it in Step 4 |
 
 ---
 
-## Step 7: Connect reCamera to Home Assistant (Optional) {#connect_ha type=manual required=false config=devices/connect_ha_recamera.yaml}
+## Step 4: View Results in Home Assistant (Optional) {#ha_dashboard type=web_dashboard required=false config=devices/ha_dashboard.yaml}
 
-Connect reCamera (SG2002) and Home Assistant to the same MQTT broker for automatic entity discovery.
+Inspect camera live stream and detection entities on the Home Assistant dashboard.
+
+### Mode: reCamera (SG2002) {#recamera_sg2002 config=devices/ha_dashboard.yaml default=true}
+
+Connect Home Assistant and the camera to the same MQTT broker to auto-discover detection entities, then add a video glance card.
 
 ### Prerequisites
 
-1. Home Assistant is running and accessible.
-2. An MQTT broker reachable by the camera (from Step 6 or external).
-3. In camera console: under **Integrations → Home Assistant**, enter broker IP and port 1883.
+1. **Add MQTT Integration**: In Home Assistant **Settings → Devices & Services → Add Integration**, add the **MQTT** integration pointing to the Step 3 broker IP, port 1883 (leave username/password empty). Skip if already configured.
+2. **Point Camera to Broker**: In camera console **Integrations → Home Assistant**, enter the Step 3 broker IP and port 1883, test connection, then save.
+3. **Inspect Entities**: In Home Assistant **Settings → Devices & Services → MQTT**, locate the camera device and entities.
+4. **Add Card**: On the dashboard, add a Picture glance card to overlay detection entities onto the video stream.
 
 ### Deployment Complete
 
-Detections publish as Home Assistant entities. If entities show unavailable, verify the app is running in the camera console.
+The dashboard displays camera video and detection entities. Switching apps updates entities automatically.
 
 ### Troubleshooting
 
-| Symptom | Fix |
-|---------|-----|
-| No data on broker | Verify broker IP is correct and reachable from camera subnet |
-| Entity stays unavailable | Confirm application is active and running in console |
+| Issue | Solution |
+|-------|----------|
+| No data on broker | Confirm broker IP is reachable from camera |
+| Entities unavailable | Confirm the app is actively running on the camera |
+| Card has video but no entities | Verify MQTT integration status and entities list |
 
----
+### Mode: reCamera Pro (RV1126B) {#recamera_pro config=devices/ha_dashboard_pro.yaml}
 
-## Step 8: Connect reCamera Pro to Home Assistant (Optional) {#connect_ha_pro type=manual required=false config=devices/connect_ha_recamera_pro.yaml}
-
-Configure MQTT output in reCamera Pro app settings; entities will appear automatically in Home Assistant.
+Add reCamera Pro's RTSP video stream and MQTT detection entities to a Home Assistant dashboard card.
 
 ### Prerequisites
 
-1. Home Assistant is running and accessible.
-2. An MQTT broker reachable by reCamera Pro (from Step 6 or external).
-3. The AI app is active and running on the camera.
+1. **Add MQTT Integration**: In Home Assistant **Settings → Devices & Services → Add Integration**, add the **MQTT** integration pointing to the Step 3 broker IP, port 1883 (leave username/password empty). Skip if already configured.
+2. **Configure Camera MQTT**: If MQTT Broker Address was filled during Step 1 deployment, it connects automatically. Otherwise, in the camera web console App Center, click Configure on the app, enable MQTT under Result Output, set Output Mode to Home Assistant, and enter the broker IP and port 1883.
+3. **Inspect Entities**: In **Settings → Devices & Services → MQTT**, verify camera detection entities exist.
+4. **Enable RTSP**: In the camera web console **Video Settings → Stream Settings**, enable RTSP and copy the stream URL.
+5. **Add Video**: In Home Assistant **Settings → Devices & Services → Add Integration**, select **Generic Camera** and paste the RTSP URL (use TCP transport).
+6. **Add Card**: Add a Picture glance card, select Generic Camera as Camera Entity, and add detection entities.
 
 ### Deployment Complete
 
-Detections appear in Home Assistant. This configuration applies to the active app; repeat in Configure when switching to another app.
+The dashboard shows the camera stream and detection entities.
 
 ### Troubleshooting
 
-| Symptom | Fix |
-|---------|-----|
-| No Result Output in config | App does not support MQTT output; detections remain local |
-| No broker messages | Verify broker address is non-empty and reachable from camera |
-| Save rejected | Broker host cannot be empty; base topic cannot contain `+`, `#` or spaces |
-| Saved but nothing in HA | Set Output Mode to **Home Assistant** and confirm identical broker settings |
-| Entity unavailable | Verify application is currently running in App Center |
-
----
-
-## Step 9: See reCamera Results in Home Assistant (Optional) {#ha_dashboard type=web_dashboard required=false config=devices/ha_dashboard.yaml}
-
-View reCamera (SG2002) video stream and detection entities on your Home Assistant dashboard.
-
-### Prerequisites
-
-1. **Find Entities:** Under **Settings → Devices & Services → MQTT**, locate the camera device and note entities.
-2. **Add Card:** Add a **Picture glance** card on your dashboard, combining the video stream with detection entities.
-
-### Troubleshooting
-
-| Symptom | Fix |
-|---------|-----|
-| Card shows video but no icons | Verify Home Assistant integration status in camera console |
-| Entity shows unknown | Values update upon changes detected in the camera view |
-
----
-
-## Step 10: See reCamera Pro Results in Home Assistant (Optional) {#ha_dashboard_pro type=web_dashboard required=false config=devices/ha_dashboard_pro.yaml}
-
-Combine reCamera Pro video stream and detection entities on a single dashboard card.
-
-### Prerequisites
-
-1. **Find Entities:** Under **Settings → Devices & Services → MQTT**, locate camera entities.
-2. **Enable RTSP:** In camera panel: **Live View → Stream Settings**, select RTSP, enable stream, and copy the RTSP URL.
-3. **Add Camera:** In Home Assistant: **Settings → Devices & Services → Add Integration → Generic Camera**, paste RTSP URL, set transport to **TCP**.
-4. **Build Card:** On dashboard, add a **Picture glance** card pointing to Generic Camera with detection entities listed.
-
-### Deployment Complete
-
-Dashboard displays real-time camera video with overlaid detection entities.
-
-### Troubleshooting
-
-| Symptom | Fix |
-|---------|-----|
-| No RTSP stream URL | RTSP not enabled or another protocol selected |
-| Generic Camera cannot connect | Test URL with VLC; ensure TCP transport is selected |
-| Black or freezing video | Close camera web preview and any open VLC players |
-| No detection icons on card | Confirm MQTT output is configured on active app (Step 8) |
-| Entity shows unknown | Values update upon new detections in camera frame |
-
----
+| Issue | Solution |
+|-------|----------|
+| No stream URL displayed | Enable RTSP protocol in streaming settings |
+| Generic Camera cannot connect | Test URL in VLC; set RTSP transport to TCP |
+| Entities show unknown | A wait for visual changes in front of the lens is normal before first report |
