@@ -58,7 +58,7 @@ actions:
         }
         echo "host time: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
         if command -v timedatectl >/dev/null 2>&1; then
-          timedatectl show -p NTPSynchronized --value | grep -q yes || \
+          (timedatectl show -p NTPSynchronized --value 2>/dev/null || timedatectl status 2>/dev/null || true) | grep -iE "yes|synchronized:\s*yes|ntp service:\s*active" >/dev/null 2>&1 || \
             echo "WARNING: NTP is not synchronised on this host. Door devices take their time correction from it." >&2
         fi
       name_i18n:
@@ -83,6 +83,9 @@ actions:
         find "$WORKDIR" -name '.DS_Store' -delete 2>/dev/null || true
         umask 077
         # The compose file mounts this at /run/secrets/facedb.key.
+        if [ -d "$WORKDIR/secret/facedb.key" ]; then
+          rm -rf "$WORKDIR/secret/facedb.key"
+        fi
         mkdir -p "$WORKDIR/secret"
         printf '%s' "$INPUT_FACEDB_SIGNING_KEY" > "$WORKDIR/secret/facedb.key"
         chmod 600 "$WORKDIR/secret/facedb.key"
@@ -273,7 +276,7 @@ remote_overrides:
           }
           echo "host time: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
           if command -v timedatectl >/dev/null 2>&1; then
-            timedatectl show -p NTPSynchronized --value | grep -q yes || \
+            (timedatectl show -p NTPSynchronized --value 2>/dev/null || timedatectl status 2>/dev/null || true) | grep -iE "yes|synchronized:\s*yes|ntp service:\s*active" >/dev/null 2>&1 || \
               echo "WARNING: NTP is not synchronised on this host. Door devices take their time correction from it." >&2
           fi
         name_i18n:
@@ -287,20 +290,37 @@ remote_overrides:
           INPUT_FACEDB_SIGNING_KEY: "{{facedb_signing_key}}"
           INPUT_WEB_ADMIN_TOKEN: "{{web_admin_token}}"
           INPUT_FACE_REC_API_URL: "{{face_rec_api_url}}"
+          INPUT_DOOR_DEVICE: "{{door_device}}"
+          INPUT_MATCH_THRESHOLD: "{{match_threshold}}"
+          INPUT_DEVICE_ENDPOINTS: "{{device_endpoints}}"
+          INPUT_FACEDB_PORT: "{{facedb_port}}"
+          INPUT_WEB_PORT: "{{web_port}}"
         run: |
           set -e
           WORKDIR="/home/{{username}}/unmanned-store-access/cloud_facedb"
           find "$WORKDIR" -name '._*' -delete 2>/dev/null || true
           find "$WORKDIR" -name '.DS_Store' -delete 2>/dev/null || true
           umask 077
+          # If docker previously created secret/facedb.key as a directory due to missing bind mount, clean it up
+          if [ -d "$WORKDIR/secret/facedb.key" ]; then
+            rm -rf "$WORKDIR/secret/facedb.key"
+          fi
           # The compose file mounts this at /run/secrets/facedb.key.
-          mkdir -p "$WORKDIR/assets/cloud/secret"
-          printf '%s' "$INPUT_FACEDB_SIGNING_KEY" > "$WORKDIR/assets/cloud/secret/facedb.key"
-          chmod 600 "$WORKDIR/assets/cloud/secret/facedb.key"
+          mkdir -p "$WORKDIR/secret"
+          printf '%s' "$INPUT_FACEDB_SIGNING_KEY" > "$WORKDIR/secret/facedb.key"
+          chmod 600 "$WORKDIR/secret/facedb.key"
+          if [ -d "$WORKDIR/assets/cloud" ]; then
+            if [ -d "$WORKDIR/assets/cloud/secret/facedb.key" ]; then
+              rm -rf "$WORKDIR/assets/cloud/secret/facedb.key"
+            fi
+            mkdir -p "$WORKDIR/assets/cloud/secret"
+            printf '%s' "$INPUT_FACEDB_SIGNING_KEY" > "$WORKDIR/assets/cloud/secret/facedb.key"
+            chmod 600 "$WORKDIR/assets/cloud/secret/facedb.key"
+          fi
           # The model tag and its sha are written into every library version and
           # compared byte for byte on the device: a mismatch shows up as "nobody
           # is recognised". The console refuses to start without them.
-          case "{{door_device}}" in
+          case "$INPUT_DOOR_DEVICE" in
             recamera_pro)
               MODEL_TAG='rv1126b:scrfd500m+mbf512@fp16'
               MODEL_SHA='cb1022b986dd46b33b389e484feceb482690cda0caf7bc8f7143c5e6862b2ea9' ;;
@@ -316,9 +336,9 @@ remote_overrides:
           dotenv_quote() { printf '%s' "$1" | sed -e 's/[\\"$]/\\&/g'; }
           cat > "$WORKDIR/.env" <<EOF
           USA_FACEDB_KEY_ID=facedb-key-1
-          USA_MATCH_THRESHOLD={{match_threshold}}
+          USA_MATCH_THRESHOLD="$(dotenv_quote "$INPUT_MATCH_THRESHOLD")"
           USA_WEB_TOKENS="$(dotenv_quote "$INPUT_WEB_ADMIN_TOKEN:admin")"
-          USA_DEVICE_ENDPOINTS={{device_endpoints}}
+          USA_DEVICE_ENDPOINTS="$(dotenv_quote "$INPUT_DEVICE_ENDPOINTS")"
           USA_FACE_REC_API="$(dotenv_quote "$INPUT_FACE_REC_API_URL")"
           USA_MODEL_TAG=$MODEL_TAG
           USA_MODEL_SHA=$MODEL_SHA
@@ -326,10 +346,13 @@ remote_overrides:
           MQTT_HOST=mosquitto
           MQTT_PORT=1883
           MQTT_TLS=0
-          FACEDB_PORT={{facedb_port}}
-          WEB_PORT={{web_port}}
+          FACEDB_PORT="$(dotenv_quote "$INPUT_FACEDB_PORT")"
+          WEB_PORT="$(dotenv_quote "$INPUT_WEB_PORT")"
           USA_ALLOW_FAKE=$( [ -n "$INPUT_FACE_REC_API_URL" ] && echo 0 || echo 1 )
           EOF
+          if [ -d "$WORKDIR/assets/cloud" ]; then
+            cp "$WORKDIR/.env" "$WORKDIR/assets/cloud/.env" 2>/dev/null || true
+          fi
           echo ".env written with mode $(stat -c '%a' "$WORKDIR/.env" 2>/dev/null || stat -f '%Lp' "$WORKDIR/.env")"
         name_i18n:
           zh: 清理 macOS 附属文件并写入环境文件
