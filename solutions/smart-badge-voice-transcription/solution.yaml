@@ -43,8 +43,10 @@
 # to end.
 version: "1.0"
 id: smart-badge-voice-transcription
-name: Private Clip Transcription
-name_i18n: {zh: Clip 本地私有转写}
+name: Smart Badge Private Voice Transcription
+name_i18n:
+  zh: 智能工牌私有化语音转写
+  ja: 録音バッジ ローカル文字起こし・話者分離
 enabled: true
 intro:
   visibility: production
