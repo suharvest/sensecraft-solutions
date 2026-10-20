@@ -41,7 +41,7 @@ sensecraft-engine logs <deployment_id> --since <N>
 solutionctl validate solutions/<id> --spec-dir spec --check-urls
 
 # 每个 preset 的步骤：guide 标题与它指向的 devices/*.yaml 产物合在一起显示
-#（固件来源与校验和、compose 文件、烧录参数等），发布前核对用
+#（固件来源与校验和、compose 文件、烧录参数、targets 与 modes 配置等），发布前核对用
 solutionctl steps solutions/<id> [--lang en|zh]
 
 # 打包成 App 可导入的 zip（本地预览，见 preview-solution-content skill）

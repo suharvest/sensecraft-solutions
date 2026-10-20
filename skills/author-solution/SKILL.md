@@ -315,6 +315,22 @@ One-line description.
 > - 本地部署 ID 可叫 `local` 或加前缀（`backend_local`）
 > - 远程部署 ID 用具体设备/服务名（如 `rk3576`），不要笼统叫 `remote`
 
+> **Target 与 Mode 架构正交互斥规范（强制）**：
+>
+> 步骤如果提供不同分支选择，分为两类互斥机制，**单个步骤内严禁混用**：
+> - **`### Target`（部署目标）**：专用于 `docker_deploy` 的本地 vs 远程容器部署分流（`type=local` 或 `type=remote`）。`docker_deploy` 步骤**严禁定义 `### Mode`**。
+> - **`### Mode` / `### 模式`（型号/应用变体）**：专用于同一业务逻辑下不同硬件型号或应用配置的单选（例如 reCamera SG2002 单板应用 vs reCamera Pro RK3576 视觉应用，或不同验证端点）。**拥有 Modes 的步骤严禁定义 `### Target`**。
+>
+> 前端会将带 Modes 的步骤渲染为**下拉选择框**（同一折叠卡片内统一选择，避免出现多个分离的独立部署按钮）。
+>
+> **Mode 语法与属性**：
+> - 英文：`### Mode: <Display Name> {#<id> config=devices/<file>.yaml default=true}`
+> - 中文：`### 模式: <显示名称> {#<id> config=devices/<file>.yaml default=true}`
+> - `{#id}`：Mode 的唯一标识符（步骤内唯一，禁止使用 `target` 或 `mode` 等保留词）。
+> - `config=`：该模式对应的独立 device YAML（必须真实存在，定义该模式的 deployer type 与独立 user_inputs）。
+> - `default=true`：标记默认选中的模式（每个步骤最多 1 个 default）。
+> - 双语 Guide 必须一一对应：`guide.md` 与 `guide_zh.md` 中的 Mode 数量、ID、顺序、config 与 default 必须严格一致。
+
 > **多语言 guide 语法与可见文案（必须检查）**：
 >
 > 结构关键字既是语法也是可见标题，必须匹配文件语言：`guide.md` 用
@@ -515,7 +531,9 @@ uv run --package sensecraft-solutionctl solutionctl validate <solution_path> --s
 - **每个 preset 至少 1 个 verify step**（`web_dashboard` / `image_predict` / `text_chat` / `voice_chat` / `http_debug` 等，或 `verify=true` 标记的步骤）；
 - **孤儿 H2**：每个 `##` 必须是 `## Preset:` / `## 套餐:` 或 `## Step N:` / `## 步骤 N:`，其它顶层 H2 报错；
 - **target 命名**：`### Target` 名不得是方向词（Local / Remote / 本地 / 远程 / 本机 / 远端）；
-- **中英文结构一致**：guide.md 与 guide_zh.md 的 preset / step / target ID 必须一一对应。
+- **Target 与 Mode 正交互斥**：`docker_deploy` 禁写 mode，同一 step 禁同时写 target 和 mode；
+- **Mode 规范**：每个 step 内 mode id 唯一、至多 1 个 default=true、禁止保留词，config 文件必须真实存在；
+- **中英文结构一致**：guide.md 与 guide_zh.md 的 preset / step / target / mode ID 必须一一对应。
 
 `validate_product_families.py` 同样完全离线，使用
 `spec/product-family-manifest.json` 检查产品族 key、`device_ref` / default、

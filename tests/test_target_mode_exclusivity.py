@@ -34,7 +34,10 @@ mp.register_step_type_provider(
 
 # Import the exclusivity checker from solutionctl validate
 sys.path.insert(0, str(ROOT / "packages" / "solutionctl" / "src"))
-from solutionctl.commands.validate import _check_target_and_mode_exclusivity
+from solutionctl.commands.validate import (
+    _check_target_and_mode_exclusivity,
+    _check_en_zh_modes_parity,
+)
 
 
 def test_docker_deploy_with_modes_is_rejected():
@@ -119,6 +122,79 @@ Pro install.
     result = parse_single_language_guide(guide_text, lang="en")
     errors = _check_target_and_mode_exclusivity(result, "guide.md")
     assert errors == []
+
+
+def test_duplicate_mode_id_rejected():
+    """Mode IDs within a step must be unique."""
+    guide_text = """## Preset: Demo {#demo}
+
+## Step 1: Install App {#install type=recamera_console_app required=false config=devices/app.yaml}
+
+Select app.
+
+### Mode: Variant A {#mod_1 config=devices/app_a.yaml}
+
+### Mode: Variant B {#mod_1 config=devices/app_b.yaml}
+"""
+    result = parse_single_language_guide(guide_text, lang="en")
+    errors = _check_target_and_mode_exclusivity(result, "guide.md")
+    assert any("defines duplicate mode id 'mod_1'" in err for err in errors)
+
+
+def test_multiple_default_modes_rejected():
+    """At most one mode can be default=true."""
+    guide_text = """## Preset: Demo {#demo}
+
+## Step 1: Install App {#install type=recamera_console_app required=false config=devices/app.yaml}
+
+Select app.
+
+### Mode: Variant A {#mod_1 config=devices/app_a.yaml default=true}
+
+### Mode: Variant B {#mod_2 config=devices/app_b.yaml default=true}
+"""
+    result = parse_single_language_guide(guide_text, lang="en")
+    errors = _check_target_and_mode_exclusivity(result, "guide.md")
+    assert any("defines multiple default modes" in err for err in errors)
+
+
+def test_reserved_mode_id_rejected():
+    """'target' and 'mode' cannot be used as mode IDs."""
+    guide_text = """## Preset: Demo {#demo}
+
+## Step 1: Install App {#install type=recamera_console_app required=false config=devices/app.yaml}
+
+Select app.
+
+### Mode: Target Mode {#target config=devices/app_a.yaml}
+"""
+    result = parse_single_language_guide(guide_text, lang="en")
+    errors = _check_target_and_mode_exclusivity(result, "guide.md")
+    assert any("uses reserved word 'target' as mode id" in err for err in errors)
+
+
+def test_en_zh_modes_parity():
+    """EN and ZH guides must have matching modes."""
+    en_guide = """## Preset: Demo {#demo}
+
+## Step 1: Install App {#install type=recamera_console_app required=false config=devices/app.yaml}
+
+### Mode: Variant A {#m_a config=devices/app_a.yaml default=true}
+
+### Mode: Variant B {#m_b config=devices/app_b.yaml}
+"""
+    zh_guide_mismatch = """## 套餐: Demo {#demo}
+
+## 步骤 1: 安装应用 {#install type=recamera_console_app required=false config=devices/app.yaml}
+
+### 模式: 变体 A {#m_a config=devices/app_a.yaml default=true}
+
+### 模式: 变体 C {#m_c config=devices/app_c.yaml}
+"""
+    en_res = parse_single_language_guide(en_guide, lang="en")
+    zh_res = parse_single_language_guide(zh_guide_mismatch, lang="zh")
+    errors = _check_en_zh_modes_parity(en_res, zh_res)
+    assert any("EN/ZH mode ID mismatch" in err for err in errors)
 
 
 def test_all_repository_solutions_comply():
