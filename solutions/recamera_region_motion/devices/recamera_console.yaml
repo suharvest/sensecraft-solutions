@@ -1,0 +1,133 @@
+version: "1.0"
+id: recamera_console
+name: reCamera Console
+type: recamera_cpp
+device_class: recamera
+
+detection:
+  method: network_scan
+  manual_entry: true
+  requirements: []
+
+# SSH 连接配置（用户是 recamera，非 root）
+ssh:
+  port: 22
+  default_user: recamera
+  default_host: 192.168.42.1
+  connection_timeout: 30
+  command_timeout: 300
+
+# 控制台（supervisor）部署配置
+#
+# 装的不是「又一个相机应用」，而是设备自带控制面板的升级版——同一个包名
+# supervisor、同一个二进制 /usr/local/bin/supervisor、同一个 init 脚本
+# S93sscma-supervisor。装完设备的运行范式会变：控制台成为唯一的 S 前缀
+# 编排者，其余应用降级为 K92 由画廊 appMgr 管理。
+#
+# 已经是 0.5.6 的设备不会被重装：下面的 preconditions 探针退出码为 0 就
+# 表示「这一步没事可做」，引擎把该步骤标成 skipped 直接跳过。
+preconditions:
+  - command: "opkg list-installed 2>/dev/null | grep -q '^supervisor - 0\\.5\\.6' && [ -d /etc/recamera.conf ]"
+    description: Console already at 0.5.6 and config directory ready
+    description_i18n:
+      zh: 控制台已是 0.5.6 且配置目录正常
+    satisfied_message: Console is already at 0.5.6 — nothing to install.
+    satisfied_message_i18n:
+      zh: 控制台已是 0.5.6，无需重复安装。
+
+binary:
+  # .deb 包安装（自带 /etc/init.d/S93sscma-supervisor）
+  # 包内已含 SPA 前端、画廊应用定义和 yolo11n 四件套模型，无需额外下发模型
+  deb_package:
+    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/supervisor_0.5.6_riscv64.deb
+    name: supervisor
+    includes_init_script: true
+    checksum:
+      sha256: 957f253b7b790a3f3f18f5d8b31490cb651adcfae80f46e9b183a2af983ad17d
+
+  service_name: sscma-supervisor
+  service_priority: 93
+  auto_start: true
+
+actions:
+  after:
+    - name: Restore console config directory
+      run: |
+        set -e
+        if [ -f /etc/recamera.conf ]; then
+          mv -f /etc/recamera.conf /etc/recamera.conf.solution.bak
+        fi
+        [ -d /etc/recamera.conf ] || mkdir -p /etc/recamera.conf
+        true
+      sudo: true
+      name_i18n:
+        zh: 恢复控制台配置目录
+
+    - name: Ensure network gateway and hardware acceleration patch
+      run: |
+        set -e
+        # 1. 压制所有 dnsmasq 配置中的 Option 3 网关
+        for f in /etc/dnsmasq/*.conf; do
+          if [ -f "$f" ] && grep -q '^dhcp-option=set:usb0,3,' "$f"; then
+            sed -i 's|^dhcp-option=set:usb0,3,.*|dhcp-option=set:usb0,3 # suppress gateway: USB link is host-local|' "$f"
+          fi
+        done
+        /etc/init.d/S80dnsmasq restart >/dev/null 2>&1 || true
+
+        # 2. 硬件加速打码驱动部署
+        PKG_KO_DIR="/usr/share/supervisor/ko"
+        SYS_KO_DIR="/mnt/system/ko"
+        BAK_KO_DIR="/userdata/ko-backup"
+        if [ -d "$PKG_KO_DIR" ] && [ -d "$SYS_KO_DIR" ] && [ -f "$PKG_KO_DIR/cv181x_vpss.ko" ] && [ -f "$PKG_KO_DIR/cv181x_rgn.ko" ]; then
+          if ! grep -q "mask_force_alpha" "$SYS_KO_DIR/cv181x_vpss.ko" 2>/dev/null; then
+            KREL="$(uname -r 2>/dev/null || true)"
+            if [ -n "$KREL" ] && grep -q "$KREL" "$PKG_KO_DIR/cv181x_vpss.ko" 2>/dev/null && grep -q "$KREL" "$PKG_KO_DIR/cv181x_rgn.ko" 2>/dev/null; then
+              mkdir -p "$BAK_KO_DIR" 2>/dev/null || true
+              [ -f "$BAK_KO_DIR/cv181x_vpss.ko" ] || cp -f "$SYS_KO_DIR/cv181x_vpss.ko" "$BAK_KO_DIR/" 2>/dev/null || true
+              [ -f "$BAK_KO_DIR/cv181x_rgn.ko" ] || cp -f "$SYS_KO_DIR/cv181x_rgn.ko" "$BAK_KO_DIR/" 2>/dev/null || true
+              mount -o remount,rw / 2>/dev/null || true
+              cp -f "$PKG_KO_DIR/cv181x_vpss.ko" "$SYS_KO_DIR/" 2>/dev/null || true
+              cp -f "$PKG_KO_DIR/cv181x_rgn.ko" "$SYS_KO_DIR/" 2>/dev/null || true
+              sync 2>/dev/null || true
+              mount -o remount,ro / 2>/dev/null || true
+              if grep -q "mask_force_alpha" "$SYS_KO_DIR/cv181x_vpss.ko" 2>/dev/null && cmp -s "$PKG_KO_DIR/cv181x_rgn.ko" "$SYS_KO_DIR/cv181x_rgn.ko"; then
+                echo "Hardware masking drivers installed (reboot recommended to activate in kernel)"
+              fi
+            fi
+          fi
+        fi
+        true
+      sudo: true
+      name_i18n:
+        zh: 修复 USB 网络并部署硬件加速
+
+user_inputs:
+  - id: host
+    name: Device IP Address
+    type: text
+    default: "192.168.42.1"
+    placeholder: "192.168.42.1"
+    description: IP address of your reCamera (USB default 192.168.42.1)
+    required: true
+    validation:
+      pattern: "^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$"
+    name_i18n:
+      zh: 设备 IP 地址
+    description_i18n:
+      zh: reCamera 的 IP 地址（USB 默认 192.168.42.1）
+  - id: password
+    name: SSH Password
+    type: password
+    default: "recamera"
+    description: SSH password (try 'recamera' or 'recamera.2')
+    required: true
+    name_i18n:
+      zh: SSH 密码
+    description_i18n:
+      zh: SSH 密码（尝试 'recamera' 或 'recamera.2'）
+
+post_deployment:
+  open_browser: false
+
+name_i18n:
+  zh: reCamera 控制台

@@ -3,8 +3,7 @@ id: reterminal_e1003_ha
 name: E1003 Light Panel Setup Demo
 name_i18n:
   zh: E1003 灯光面板配置演示
-# Technical review only. Requires compatible App/contract, public firmware and acceptance.
-enabled: false
+enabled: true
 intro:
   summary: Connect E1003 and specify a Home Assistant light; the App handles firmware checks and setup.
   summary_i18n:
@@ -40,9 +39,9 @@ intro:
       name: Configure E1003
       name_i18n:
         zh: 配置 E1003
-      description: Select the USB serial port, enter the light entity ID, click Save settings, and keep power connected until verification completes.
+      description: Select the USB serial port to flash the E1003 panel firmware, and integrate with Home Assistant over the local network.
       description_i18n:
-        zh: 选择 USB 串口并填写灯实体 ID，点击保存配置，保持通电直到验证完成。
+        zh: 选择 USB 串口烧录 E1003 面板固件，随后通过局域网接入 Home Assistant 控制灯具。
       device_groups:
         - id: panel
           name: Dashboard panel

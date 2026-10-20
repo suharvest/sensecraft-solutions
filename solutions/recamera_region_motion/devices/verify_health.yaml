@@ -12,6 +12,18 @@ http_debug:
         zh: 服务健康状态
       url_template: "http://{{host}}:8080/api/health"
       expected_status: 200
+    - id: status
+      name: Camera & motion status
+      name_i18n:
+        zh: 摄像头与检测状态
+      url_template: "http://{{host}}:8080/api/status"
+      expected_status: 200
+    - id: snapshot
+      name: Live snapshot
+      name_i18n:
+        zh: 实时画面抓拍
+      url_template: "http://{{host}}:8080/api/snapshot.jpg"
+      expected_status: 200
 user_inputs:
   - id: host
     name: Device IP Address
