@@ -32,6 +32,29 @@ solution-cli hub get <id> --locale <en|zh|ja> --section cases --json
 solution-cli hub get <id> --locale <en|zh|ja> --section deployment [--preset <id>] --json
 ```
 
+## Device discovery, health pre-check, and self-healing
+
+The CLI provides dedicated `device` subcommands to discover connected hardware, probe runtime environments, and remediate known hardware/network gotchas (e.g. USB Option 3 gateway hijacking PC connection, stale clocks, supervisor conflicts):
+
+```bash
+# 1. Discover connected devices (USB serial, ADB, default RNDIS)
+solution-cli device scan [--json]
+
+# 2. Inspect target device runtime profile (OS, arch, kernel, supervisor version)
+solution-cli device inspect [--target recamera] [--host <ip>] [--json]
+
+# 3. Run actionable Gotcha pre-flight checks (produces healthy/affected/error status)
+solution-cli device check [--target recamera] [--host <ip>] [--only <gotcha_id>] [--json]
+
+# 4. Remediate detected issues (supports --dry-run and explicit confirmation --yes for disruptive changes)
+solution-cli device fix [--target recamera] [--host <ip>] [--only <gotcha_id>] [--dry-run] [--yes] [--json]
+```
+
+### Self-healing protocol for Agents:
+1. When a user reports connection loss after plugging in a reCamera, run `solution-cli device fix --target recamera --only recamera_usb_gateway` to suppress DHCP Option 3 gateway broadcast.
+2. Before deploying a solution, run `solution-cli device check --target <chip>` to verify runtime readiness.
+3. For disruptive remedies (restarting Docker or altering firewall/network settings), inspect with `--dry-run` first or pass `--yes` when authorized.
+
 For a catalog-wide request, page through `hub list` until `has_more` is
 false. For a specific request, search first, then use `hub get` on the chosen
 IDs. For links, call `hub get --section links`; do not scan manifests or write

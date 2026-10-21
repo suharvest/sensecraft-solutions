@@ -69,6 +69,19 @@ def _payload_lines(dev_data: dict) -> list[str]:
     return lines
 
 
+def _is_console_infrastructure_step(step) -> bool:
+    """True if the step deploys or upgrades the device supervisor/console
+    rather than an application workload."""
+    sid = (step.id or "").lower()
+    if sid in ("deploy_console", "update_console"):
+        return True
+    cfg = (step.config_file or "").lower()
+    # Matches recamera_console.yaml but NOT recamera_console_app.yaml
+    if "recamera_console" in cfg and "console_app" not in cfg:
+        return True
+    return False
+
+
 def run(solution_path: str, lang: str = "en", spec_dir: str | None = None) -> int:
     """Print the assembled preset → step → payload view. 0 unless the guide
     is missing/unparseable."""
@@ -105,33 +118,48 @@ def run(solution_path: str, lang: str = "en", spec_dir: str | None = None) -> in
     for perr in result.errors:
         print(f"parse: {perr}", file=sys.stderr)
 
+    def _render_step_item(step, num_str: str, sol_path: Path):
+        title = step.section.title.get(lang) or step.title.get(lang) or step.id
+        req = "" if step.required else "  (optional)"
+        print(f"  {num_str} {title}  {{#{step.id}}}  type={step.type}{req}")
+        if not step.config_file:
+            print("       payload: (none — manual/prose-only step)")
+            return
+        cfg_path = sol_path / step.config_file
+        print(f"       config: {step.config_file}")
+        if not cfg_path.is_file():
+            print("       payload: ✗ CONFIG FILE MISSING")
+            return
+        try:
+            dev_data = yaml.safe_load(cfg_path.read_text(encoding="utf-8"))
+        except yaml.YAMLError as exc:
+            print(f"       payload: ✗ YAML parse error: {exc}")
+            return
+        for line in _payload_lines(dev_data if isinstance(dev_data, dict) else {}):
+            print(f"       {line}")
+        for target in step.targets or []:
+            tcfg = f"  config={target.config_file}" if target.config_file else ""
+            print(f"       target: #{target.id} ({target.target_type}){tcfg}")
+        for mode in step.modes or []:
+            mcfg = f"  config={mode.config_file}" if mode.config_file else ""
+            print(f"       mode: #{mode.id}{mcfg}")
+
     for preset in result.presets:
         pname = preset.name.get(lang) or preset.id
         print(f"\n━━ Preset: {pname}  {{#{preset.id}}}")
-        for i, step in enumerate(preset.steps, 1):
-            title = step.section.title.get(lang) or step.title.get(lang) or step.id
-            req = "" if step.required else "  (optional)"
-            print(f"  {i}. {title}  {{#{step.id}}}  type={step.type}{req}")
-            if not step.config_file:
-                print("       payload: (none — manual/prose-only step)")
-                continue
-            cfg_path = sol_path / step.config_file
-            print(f"       config: {step.config_file}")
-            if not cfg_path.is_file():
-                print("       payload: ✗ CONFIG FILE MISSING")
-                continue
-            try:
-                dev_data = yaml.safe_load(cfg_path.read_text(encoding="utf-8"))
-            except yaml.YAMLError as exc:
-                print(f"       payload: ✗ YAML parse error: {exc}")
-                continue
-            for line in _payload_lines(dev_data if isinstance(dev_data, dict) else {}):
-                print(f"       {line}")
-            for target in step.targets or []:
-                tcfg = f"  config={target.config_file}" if target.config_file else ""
-                print(f"       target: #{target.id} ({target.target_type}){tcfg}")
-            for mode in step.modes or []:
-                mcfg = f"  config={mode.config_file}" if mode.config_file else ""
-                print(f"       mode: #{mode.id}{mcfg}")
+
+        infra_steps = [s for s in preset.steps if _is_console_infrastructure_step(s)]
+        app_steps = [s for s in preset.steps if not _is_console_infrastructure_step(s)]
+
+        if infra_steps:
+            print("  ┌─ 🛠 Runtime Infrastructure (Pre-flight / Auto-provisioned):")
+            for step in infra_steps:
+                _render_step_item(step, "│  •", sol_path)
+            print("  └─ 🚀 Application Deployment Steps:")
+            for i, step in enumerate(app_steps, 1):
+                _render_step_item(step, f"{i}.", sol_path)
+        else:
+            for i, step in enumerate(preset.steps, 1):
+                _render_step_item(step, f"{i}.", sol_path)
     print()
     return 0
