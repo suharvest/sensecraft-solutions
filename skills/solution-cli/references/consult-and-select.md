@@ -33,6 +33,7 @@ solution-cli hub get <chosen-id> --locale <en|zh|ja> --section links --json
 ```
 - **咨询顺序**：先用用户原话和同义技术词查询，再对选中的 Scenario、Tech 或 RD 调用 `hub get`；只有需要回答架构、产品或部署问题时，才追加 `--section architecture|products|deployment`。根据返回的 `diagnostic_playbook` 拆解需求；向用户确认点位、协议、供电、通信、控制闭环和预算等关键参数后，给出可提供的方案、硬件方向和缺口说明。
 - **内容核验**：链接或 metadata 只用于定位，不代表已经阅读内容。用户问方案能力、架构或产品时，必须读取选中记录对应的 `description`、`architecture` 或 `products` section；确切生产页或架构图影响答案时，再打开 CLI 返回的确切 URL/图片并说明核验范围。相对资源路径只有在签名本地内容实际存在时才可读取，否则标为 source asset 未就绪。
+- **案例赋能与真实背书**：在向客户介绍或推荐选定的业务场景（Scenario）时，调用 `solution-cli hub get <scenario-id> --section cases --json`，读取并向客户展示官方真实落地案例（包含客户实践、具体采用的硬件、落地地区与成效），增强方案说服力与工程可信度。
 - **交付边界**：咨询阶段只做检索、需求澄清和方案建议，不自动执行 `deploy`；用户确认硬件和部署目标后，再转入硬件校验或部署流程。
 - **输出结果说明**：
   - `Scenario`：业务场景、痛点、所属 Tech/RD 关系、生产落地页链接；
@@ -157,6 +158,24 @@ sensecraft-engine deploy-info <solution-id> --lang <en|zh>
 > ---
 > **为了确定相机快门、打光方案与工控机选型，我先跟您确认三个关键细节：**
 > 1. **生产节拍与速度**：流水线每分钟过检多少件产品？工件经过工位时是短暂静止停顿拍照，还是在传送带上高速连续运动？（*运动中飞拍必须选用工业全局快门相机以避免拖影*）
+
+---
+
+## 5. 成功案例下钻与渐进式披露规范 (Case Deep-Dive & Progressive Disclosure)
+
+1. **场景关联成功案例**：
+   通过 `solution-cli hub get <id> --section cases --json` 获取落地案例列表（包含标题、摘要、使用硬件、区域和真实落地链接）。
+2. **单篇案例正文下钻**：
+   当客户希望深入了解某一具体落地案例的实施背景、挑战、合作伙伴与成效时，执行：
+   `solution-cli case get <id_or_slug> [--locale zh|en|ja] [--json]`
+   直接读取完整 Markdown 正文（`body_md`）与硬件组合。
+3. **硬件选型渐进式裁剪**：
+   在产品搜索与选型时，为避免长 JSON 造成上下文膨胀，根据分析维度执行字段裁剪：
+   `solution-cli product search <model> --section <overview|power|interfaces|specs>`
+   - 核验电源/开箱/必需配件：`--section power`
+   - 核验板载接口/总线/扩展槽：`--section interfaces`
+   - 快速型号一览与开箱判定：`--section overview`
+   - 详细硬件参数与算力规格：`--section specs`
 > 2. **工件材质与反光**：工件表面是什么材质（例如反光金属、高光塑料还是吸光纸盒）？想要检出的最小划痕/缺陷尺寸大概是多少毫米？（*反光工件需要配合特定偏光或同轴光源，否则会产生强烈眩光影响检测*）
 > 3. **下位机联动**：判定出 NG 不良品后，边缘机是只需声光报警/屏幕标记，还是需要直接向现场 PLC 发送数字量 IO 信号联动气缸剔除？
 

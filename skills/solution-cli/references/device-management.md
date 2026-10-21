@@ -323,3 +323,25 @@ curl -s -X PUT "$BASE_URL/api/docker-devices/local/config/<solution_id>" \
    若发现硬件列表多出了未经绑定的设备，Agent **必须主动发起提醒并给出跟进方案**：
    > *“💡 硬件变动提醒：检测到主机新插入了设备 `/dev/ttyUSB1`（USB 串口外设）。当前运行中的方案未绑定该端口。*
    > *如果您希望接入该硬件，请告诉我，我可以帮您在配置文件中追加串口映射并重新加载服务生效！”*
+
+---
+
+## 9. 数据接口自省与系统接入 (Data Ingestion & Interface Discovery)
+
+当用户询问“这个应用有哪些接口”、“怎么把数据接入我们系统/数据库”、“MQTT Topic 是什么”、“怎么读取数据”时，使用 `schema` 命令直接自省方案的输入与输出数据规格：
+
+```bash
+# 1. 查询方案所有外部数据输出接口 (MQTT, HTTP/REST, WebSocket, TCP):
+sensecraft-engine schema <solution_id> --outputs
+
+# 2. 查询完整规范 (包含 Draft-07 Inputs JSON Schema 与 Output Interfaces):
+sensecraft-engine schema <solution_id> --json
+
+# 3. 传入实际部署连接信息，自动解析占位符 (例如 host 与端口):
+sensecraft-engine schema <solution_id> --outputs --connection '{"<step_id>": {"host": "192.168.1.50"}}'
+```
+
+### 接入指引与协议对应
+- **MQTT 数据流**：输出中会给出确切的 `topic` 与 `payload_schema`，引导用户在其业务系统/Node-RED/EMQX 中订阅该 Topic 并按 Schema 解析；
+- **HTTP / REST API**：输出中包含 `endpoint`（如 `/api/v1/events`）、`method` 与请求/响应 Schema，便于用户编写 Webhook 或下游微服务对接；
+- **TCP / 原始套接字 / 音视频流**：输出中包含专用监听端口 `port` 与流格式说明（如 Wyoming 语音协议端口 10200/10300，RTSP 视频流端口 8554）。

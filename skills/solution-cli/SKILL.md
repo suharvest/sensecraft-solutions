@@ -1,6 +1,6 @@
 ---
 name: solution-cli
-description: 用于客户询盘、方案选型、产品硬件规格与SKU查询、包装清单（Box Contents）、电源适配器与必需配件（Power Adapter/Cables）、硬件兼容性校验、芯片/边缘硬件踩坑排错（RK3588/Jetson/reComputer/reServer/Watcher等）、边缘/IoT方案部署与自愈诊断。凡用户提及 solution-cli，或询问 Seeed 硬件产品（如 reComputer J4012/J4011/Super、reServer、Watcher、XIAO 等）的配件、电源、开箱即用状态、接口与方案选型，必须优先调用 solution-cli。
+description: 用于客户询盘、方案选型、产品硬件规格与SKU查询、包装清单（Box Contents）、电源适配器与必需配件（Power Adapter/Cables）、硬件兼容性校验、芯片与边缘硬件踩坑排错（RK3588/Jetson/reComputer/reServer/Watcher等）、边缘/IoT方案部署与自愈诊断。凡用户提及 solution-cli，或询问 Seeed 硬件产品（如 reComputer J4012/J4011/Super、reServer、Watcher、XIAO 等）的配件、电源、开箱即用状态、接口与方案选型，必须优先调用 solution-cli。
 ---
 
 # Solution CLI
@@ -28,6 +28,7 @@ solution-cli hub get <id> --locale <en|zh|ja> --section architecture --json
 solution-cli hub get <id> --locale <en|zh|ja> --section products --json
 solution-cli hub get <id> --locale <en|zh|ja> --section playbook --json
 solution-cli hub get <id> --locale <en|zh|ja> --section integration --json
+solution-cli hub get <id> --locale <en|zh|ja> --section cases --json
 solution-cli hub get <id> --locale <en|zh|ja> --section deployment [--preset <id>] --json
 ```
 
@@ -83,8 +84,8 @@ Do NOT read all reference files at once. Determine the user's workflow state and
 | **DISCOVERY / CONSULT**<br>“我想做防跌倒监控”、“有智慧农场方案吗”、“怎么做园区安防” | `references/consult-and-select.md` | `solution-cli hub search "<keyword>" --json`, then `hub get <id> --sections architecture,playbook --json` | **DO NOT run deploy**; search exposes `available_sections` and evidence status (`documented`/`generic`/`inferred`). 若返回 warning 提示包含硬件关键词，立即按提示切换至 `product search`。 |
 | **PROCUREMENT / VERIFY_BOM**<br>“买什么硬件？”、“J4012 需要配什么配件？”、“推荐镜头/天线” | `references/hardware-bom.md` | `solution-cli product accessories <id> [--category <power,camera>] --compact --json` | **DO NOT fabricate** third-party SKUs or prices. Always distinguish REQUIRED vs OPTIONAL accessories. Use `--compact` and `--category` to save tokens. |
 | **ONBOARDING / PRECHECK**<br>“设备到了，插上了网线/USB”、“环境自检”、“发现新设备” | `references/diagnose.md` & `references/device-management.md#0` | `solution-cli doctor` / `sensecraft-engine device scan` | **Early & Proactive**: Check device firmware & drivers early. Intercept and prompt for reCamera firmware/patch or SBC env fixes before deploy. |
-| **DEPLOYING / APPLY**<br>“开始安装”、“部署 fall_detection” | `references/deploy.md` | `solution-cli hub get <id> --section deployment --preset <id> --json` then `sensecraft-engine deploy <id>` | **DEPLOYMENT CRITICAL SECTION**: Zero external commercial queries allowed during apply. Filter guide with `--preset` to reduce token bloat. |
-| **INTEGRATION / INGESTION**<br>“怎么接到我们系统”、“MQTT主题是什么”、“Webhook格式”、“接入 Home Assistant” | `references/device-management.md#5` | `solution-cli hub get <id> --section integration --json` | **System Ingestion**: Provide exact MQTT topics, payload schemas, Webhook endpoints, and port mappings directly from verified integration contract. Batch with `--sections architecture,integration` if needed. |
+| **DEPLOYING / APPLY**<br>“开始安装”、“部署 fall_detection” | `references/deploy.md` | `solution-cli hub get <id> --section deployment --preset <id> --json` then `sensecraft-engine deploy <id> -i STEP.KEY=VAL` | **DEPLOYMENT CRITICAL SECTION**: Zero external commercial queries allowed during apply. Filter guide with `--preset` to reduce token bloat. Use `--input` / `--inputs-file` for parameters, `--replace-existing` to update containers. |
+| **INTEGRATION / INGESTION**<br>“怎么接到我们系统”、“MQTT主题是什么”、“Webhook格式”、“接入 Home Assistant”、“有哪些接口/怎么读数据” | `references/device-management.md#7` | `sensecraft-engine schema <id> --json` or `solution-cli hub get <id> --section integration --json` | **System Ingestion**: Inspect input schema and output data interfaces directly via `sensecraft-engine schema <id>`. Provide exact MQTT topics, payload schemas, Webhook endpoints, and port mappings directly from verified contract. |
 | **MANAGE / RECONFIG**<br>“改一下 MQTT 地址”、“换模型/业务流”、“重启服务”、“修改配置”、“打本地补丁”、“换应用镜像” | `references/device-management.md` | `curl BASE/api/docker-devices/local/config/<id>` / `solution-cli doctor` | **On-Demand (JIT)**: Only query when user requests application-layer modifications. Apply tiered hotpatches without touching underlying OS. |
 | **FEASIBILITY / SALES_EVAL**<br>“我们能不能做这个？”、“非标需求评估”、“需求匹配度如何”、“做这个要多久” | `references/sales-feasibility.md` | `solution-cli hub search "<keyword>" --json` / `product query <family>` | **DO NOT make blind promises**. Strictly follow the 4-tier feasibility matrix and scoring criteria. |
 | **CUSTOMIZE / SECONDARY_DEV**<br>“我想改源码”、“换成自研模型”、“改前端看板”、“GitHub 仓库” | `references/secondary-development.md` | `git clone <repo_url>` / `sensecraft-engine --solutions-dir` | **Never edit cached content**: Clone to user workspace, pair-program, test locally with `--solutions-dir`. |
@@ -103,7 +104,17 @@ To retrieve single sections:
 - `products`: bill of materials (BOM), required vs optional hardware
 - `deployment`: deployment steps (use `--preset <id>` to filter and reduce token usage)
 - `playbook`: field diagnostic questions and engineering rationales
+- `cases`: customer case studies, deployed hardware list, region, and verified outcomes
 - `integration`: system ingestion contracts (MQTT topics, Webhooks, REST endpoints)
+
+### Case Deep Dive & Product Pruning
+When drilling down into specific case studies or hardware models:
+- **Case Full Story**: Use `solution-cli case get <id_or_slug> [--locale zh|en|ja] [--json]` to retrieve complete Markdown body (`body_md`), deployment field background, and customer metrics.
+- **Product Progressive Pruning**: When querying hardware with `product search` or `product query`, use `--section <overview|power|interfaces|specs|all>` to prune verbose JSON trees and save context tokens:
+  - `--section power`: only returns `package_profile`, `power`, `required_accessories`, and `package_contents` (ideal for power adapter and box contents audits).
+  - `--section interfaces`: only returns board interfaces, protocols, and I/O expansion ports.
+  - `--section overview`: lightweight overview of family and model names.
+  - `--section specs`: detailed hardware specifications and AI TOPS.
 
 Capabilities that need the **SenseCraft Solution desktop app** (editing a
 solution's configuration, the app's `/api/ai/context`, diagnosing through the
