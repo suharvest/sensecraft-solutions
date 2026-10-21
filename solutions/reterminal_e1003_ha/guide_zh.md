@@ -1,6 +1,6 @@
-## 套餐: 配置 E1003 {#usb_candidate}
+## 套餐: 智能家居控制面板 {#usb_candidate}
 
-通过 USB 连接 E1003 面板并接入 Home Assistant。安装器会自动检查固件并在需要时安装，部署或连接 Home Assistant，并自动完成面板联动。
+通过 USB 连接 E1003 面板并接入 Home Assistant。安装器会自动下载并烧录面板出厂固件，部署或连接 Home Assistant，并自动完成面板联动。
 
 > 注意：请确保通过 USB 连接 reTerminal E1003 面板。烧录步骤将直接从 CDN 下载并安装 0.2.1 固件。
 

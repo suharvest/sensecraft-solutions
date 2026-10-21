@@ -1,6 +1,6 @@
-## Preset: Configure E1003 {#usb_candidate}
+## Preset: Smart Home Wall Panel {#usb_candidate}
 
-Connect the E1003 panel via USB and integrate it into Home Assistant. The installer checks firmware, installs it when needed, deploys or connects to Home Assistant, and automatically links the panel.
+Connect the E1003 panel via USB and integrate it into Home Assistant. The installer downloads and flashes the panel firmware, sets up or connects to your Home Assistant host, and automatically links the panel for smart home control.
 
 > Note: Ensure the reTerminal E1003 panel is connected via USB. The flashing step downloads and installs the 0.2.1 firmware directly from the CDN.
 
