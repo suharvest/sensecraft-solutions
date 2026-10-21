@@ -17,18 +17,65 @@ solution. Then use the Engine's local list and `deploy-info` to confirm that
 the mapped `solution_id` and presets are actually installed. If several RDs
 fit, explain the difference and ask which one to use.
 
-## 2. Read what the deployment needs
+## 2. Read what the deployment needs & schema
 
 ```bash
+# 1. Inspect standard Draft-07 JSON Schema and external output data interfaces:
+sensecraft-engine schema <id> --json
+
+# 2. Or inspect deployment steps, hardware presets, and required parameters:
 sensecraft-engine deploy-info <id> --lang zh
 sensecraft-engine doctor --json
 sensecraft-engine device ports
 sensecraft-engine device scan --timeout 5
 ```
 
-Read `presets[]`, `steps[]`, `device_connections`, `selected_devices`, and `request_template` from `deploy-info`. A preset with more than one variant requires the user's choice. Fill every `<REQUIRED: ...>` value from the user or a read-only device check; never invent device IDs, connection keys, SSH credentials, serial ports, or Docker targets.
+The `schema` command returns:
+- `inputs`: Standard Draft-07 JSON Schema defining all accepted and required parameters per step, including target and mode conditional requirements (`allOf` with `if`/`then`) and parameter type definitions.
+- `output_interfaces`: Data ingestion specifications (MQTT topics, REST endpoints, TCP streams, and payload schemas) provided by the solution.
 
-For a `docker_deploy` step, use the target listed by `deploy-info` and copy its `type` into `target_type` (`local` or `remote`). Linux local and remote targets may declare `auto_install_docker`; the engine can install Docker/Compose when that option is enabled, but offline installation requires matching packages to be obtainable and usable permissions to already exist. Windows native local Docker is unsupported; use a Linux Docker host over SSH. macOS local Docker requires the user to install and start Docker Desktop first. The CLI does not install Docker Desktop or silently obtain `sudo`.
+> [!NOTE]
+> **Engine Capability & Versioning**: `sensecraft-engine schema`, direct inputs (`--input` / `-i`), and `--inputs-file` are supported on `sensecraft-engine >= 0.0.6`. If running an earlier version (e.g. 0.0.3), upgrade via `curl -fsSL https://sensecraft-statics.seeed.cc/solution-app/engine/install.sh | sh -s -- --with-content` or fall back to `sensecraft-engine deploy-info <id>` with Method B (`--params ./.sensecraft-work/body.json`).
+
+Read `presets[]`, `steps[]`, `device_connections`, `selected_devices`, and `request_template` from `deploy-info` or `schema`. A preset with more than one variant requires the user's choice. Fill every `<REQUIRED: ...>` value from the user or a read-only device check; never invent device IDs, connection keys, SSH credentials, serial ports, Docker targets, or mode IDs.
+
+### Understanding Targets vs Modes (`has_targets` vs `has_modes`)
+
+Each step in `steps[]` can deploy to different infrastructure locations (`has_targets: true`), support different hardware models or application configurations (`has_modes: true`), or have fixed parameters (both false). **Targets and Modes are strictly mutually exclusive per step.**
+
+1. **Target Selection (`has_targets: true`)**
+   - **Semantics**: Deployment infrastructure / location variants (e.g. `docker_deploy` step running locally vs remote SSH host).
+   - **Identification**: `step.has_targets == true`, `step.targets` lists available targets (`id`, `name`, `type: "local" | "remote"`).
+   - **Parameters Schema**: `step.parameters` is a dictionary keyed by target ID: `parameters[<target_id>]`.
+   - **Connection Specification**: Pass `target: "<target_id>"` and `target_type: "<local|remote>"`.
+     - In `-i`: `-i <step_id>.target=<target_id> -i <step_id>.target_type=<local|remote>`
+     - In `inputs.yaml` or `body.json`: `"target": "<target_id>"`, `"target_type": "<local|remote>"`
+   - **Docker Host Rules**: For a `docker_deploy` step, copy target `type` into `target_type` (`local` or `remote`). Linux local and remote targets may declare `auto_install_docker`. Windows native local Docker is unsupported (use a Linux Docker host over SSH). macOS local Docker requires Docker Desktop running first.
+
+2. **Mode Selection (`has_modes: true`)**
+   - **Semantics**: Hardware model or application configuration variants for the same logical step (e.g. `recamera_sg2002` vs `recamera_pro`, or standard sensor vs pro model).
+   - **Identification**: `step.has_modes == true`, `step.modes` lists available modes:
+     - `id`: Mode identifier (e.g. `"recamera_sg2002"`, `"recamera_pro"`).
+     - `name`: Human-readable label (e.g. `"reCamera (SG2002)"`, `"reCamera Pro (RV1126B)"`).
+     - `default`: Boolean indicating whether this is the default mode.
+     - `type`: Effective deployer type for this mode (e.g. `"recamera_console_app"`, `"recamera_pro_app"`).
+     - `description`: Explanation of what this mode configures.
+   - **Parameters Schema**: `step.parameters` is a dictionary keyed by mode ID: `parameters[<mode_id>]`. Each mode defines its own distinct parameters.
+   - **Connection Specification**: Pass `mode: "<mode_id>"`.
+     - In `-i`: `-i <step_id>.mode=<mode_id>`
+     - In `inputs.yaml` or `body.json`: `"mode": "<mode_id>"`
+   - **Agent Protocol for Modes**:
+     - `request_template.device_connections[<step_id>]` is pre-populated with the default mode (`default: true`) and its default parameters.
+     - If the user's intent or hardware matches the default mode, keep `mode: "<default_mode_id>"` and fill the parameters listed under `step.parameters[<default_mode_id>]`.
+     - If the user specifies or owns a non-default hardware variant (e.g. "I have a reCamera Pro"):
+       1. Set `<step_id>.mode = "<mode_id>"` (e.g. `recamera_pro`).
+       2. Look up required parameters exclusively in `step.parameters[<mode_id>]` (or inspect the conditional schema via `sensecraft-engine schema <id>`).
+       3. **Zero Cross-Mode Mixing**: Never pass parameters belonging to other modes. The engine strictly validates mode parameters and rejects foreign parameters with: `Parameter '<param>' in step '<step>' is not valid for mode '<selected_mode>' (it is defined in mode '<other_mode>').`
+     - If the hardware model is ambiguous from context, present the choices from `step.modes` to the user before proceeding.
+
+3. **Standard Step (neither targets nor modes)**
+   - `has_targets == false` and `has_modes == false`.
+   - `step.parameters` is a flat list of parameter objects for that step. No `target` or `mode` selector is needed.
 
 ## 3. Fill in and confirm (Zero-Plaintext-Password Protocol)
 
@@ -43,20 +90,82 @@ For a `docker_deploy` step, use the target listed by `deploy-info` and copy its 
 >   输入密码的交互在用户独立本地终端完成，密码绝不流经大模型上下文，亦不留在会话与历史中。
 > - **部署参数统一使用 `key_file`**：SenseCraft Engine 的部署请求格式要求远程目标通过 `key_file` 进行连接。严禁在聊天框索取明文密码。
 
+### Method A: Direct Input Flags / Inputs File (Recommended for Agents with Engine >= 0.0.6)
+
+Use `--input` (`-i`) to specify parameters directly without writing temporary files (requires `sensecraft-engine >= 0.0.6`; on earlier engine versions, use **Method B: Full Request Document (`--params`)** below):
+
+```bash
+# Direct step-scoped parameters (infrastructure target example):
+sensecraft-engine deploy <id> \
+  -i <step_id>.target=remote \
+  -i <step_id>.target_type=remote \
+  -i <step_id>.host=192.168.1.50 \
+  -i <step_id>.username=root \
+  -i <step_id>.key_file=~/.ssh/id_ed25519 \
+  --replace-existing \
+  --yes
+
+# Direct step-scoped parameters (hardware mode example, e.g. reCamera Pro):
+sensecraft-engine deploy recamera_ecosystem \
+  --preset object_detection \
+  -i obj_install_app.mode=recamera_pro \
+  -i obj_install_app.host=192.168.42.1 \
+  -i obj_install_app.key_file=~/.ssh/id_ed25519 \
+  -i obj_install_app.device_name=recamera_front \
+  --replace-existing \
+  --yes
+```
+
+Or pass a YAML/JSON configuration file via `--inputs-file`:
+
+```bash
+sensecraft-engine deploy <id> --inputs-file ./inputs.yaml --replace-existing --yes
+```
+
+Where `inputs.yaml` has step-scoped values:
+```yaml
+# Step with target selection:
+deploy_container:
+  target: remote
+  target_type: remote
+  host: 192.168.1.50
+  username: root
+  key_file: ~/.ssh/id_ed25519
+
+# Step with hardware mode selection:
+obj_install_app:
+  mode: recamera_pro
+  host: 192.168.42.1
+  key_file: ~/.ssh/id_ed25519
+  device_name: recamera_front
+```
+
+> [!TIP]
+> **Updating Existing Deployments**: When modifying parameters of an already deployed solution, `--replace-existing` automatically stops and replaces conflicting containers with the updated parameters and restarts them.
+
+### Method B: Full Request Document (Legacy `--params`)
+
 Write the completed request to `./.sensecraft-work/body.json`, keeping credentials out of the command line:
 
 ```json
 {
   "solution_id": "<id>",
   "preset_id": "<preset>",
-  "selected_devices": ["<step_id>"],
+  "selected_devices": ["step_with_target", "step_with_mode"],
   "device_connections": {
-    "<step_id>": {
+    "step_with_target": {
       "target": "<target_id>",
       "target_type": "remote",
       "host": "192.168.1.50",
       "username": "<user>",
       "key_file": "~/.ssh/id_ed25519"
+    },
+    "step_with_mode": {
+      "mode": "recamera_pro",
+      "host": "192.168.42.1",
+      "username": "root",
+      "key_file": "~/.ssh/id_ed25519",
+      "device_name": "recamera_front"
     }
   }
 }
@@ -67,6 +176,13 @@ Remote SSH uses a regular key under `~/.ssh` or the Engine data directory (`id_e
 Before a remote deployment, run the no-change validation:
 
 ```bash
+# Validate direct input parameters:
+sensecraft-engine validate <id> -i <step_id>.host=192.168.1.50 -i <step_id>.key_file=~/.ssh/id_ed25519
+
+# Validate with specific hardware mode:
+sensecraft-engine validate recamera_ecosystem --preset object_detection -i obj_install_app.mode=recamera_pro -i obj_install_app.host=192.168.42.1
+
+# Or validate request body:
 sensecraft-engine validate --params ./.sensecraft-work/body.json
 ```
 

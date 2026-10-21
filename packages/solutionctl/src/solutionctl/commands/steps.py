@@ -130,5 +130,8 @@ def run(solution_path: str, lang: str = "en", spec_dir: str | None = None) -> in
             for target in step.targets or []:
                 tcfg = f"  config={target.config_file}" if target.config_file else ""
                 print(f"       target: #{target.id} ({target.target_type}){tcfg}")
+            for mode in step.modes or []:
+                mcfg = f"  config={mode.config_file}" if mode.config_file else ""
+                print(f"       mode: #{mode.id}{mcfg}")
     print()
     return 0
