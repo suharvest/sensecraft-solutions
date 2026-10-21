@@ -141,6 +141,7 @@ def _step_fingerprint(step, lang: str) -> tuple:
         _localized_text(sec.post_deploy, lang),
         wiring,
         tuple(t.id for t in (step.targets or [])),
+        tuple((m.id, m.config_file or "", getattr(m, "default", False)) for m in (step.modes or [])),
     )
 
 
@@ -316,11 +317,15 @@ def _check_device_aware_target_grouping(result, fname: str, lang: str) -> list[s
 
 
 def _check_target_and_mode_exclusivity(result, fname: str) -> list[str]:
-    """Enforce architectural separation between Targets and Modes:
+    """Enforce architectural separation and rules for Targets and Modes:
     - docker_deploy natively uses targets (e.g. local/remote); it must NOT define modes.
     - A step cannot define both targets and modes.
+    - Mode IDs must be non-empty and unique within the step.
+    - At most one mode may be marked as default.
+    - Mode IDs cannot be reserved words ('target', 'mode').
     """
     errors: list[str] = []
+    reserved_ids = {"target", "mode"}
     for preset in result.presets:
         for step in preset.steps:
             has_targets = bool(step.targets)
@@ -337,6 +342,77 @@ def _check_target_and_mode_exclusivity(result, fname: str) -> list[str]:
                     "deployment target/host variants (e.g. docker_deploy), and modes for "
                     "device/model variants on other steps."
                 )
+            if has_modes:
+                seen_ids = set()
+                default_count = 0
+                for m in step.modes:
+                    mid = getattr(m, "id", "") or ""
+                    if not mid.strip():
+                        errors.append(
+                            f"{fname}: step '#{step.id}' (preset '{preset.id}') has a mode with empty id."
+                        )
+                        continue
+                    if mid in reserved_ids:
+                        errors.append(
+                            f"{fname}: step '#{step.id}' (preset '{preset.id}') uses reserved word '{mid}' as mode id."
+                        )
+                    if mid in seen_ids:
+                        errors.append(
+                            f"{fname}: step '#{step.id}' (preset '{preset.id}') defines duplicate mode id '{mid}'."
+                        )
+                    seen_ids.add(mid)
+                    if getattr(m, "default", False):
+                        default_count += 1
+                if default_count > 1:
+                    errors.append(
+                        f"{fname}: step '#{step.id}' (preset '{preset.id}') defines multiple default modes ({default_count} marked default)."
+                    )
+    return errors
+
+
+def _check_en_zh_modes_parity(en_result, zh_result) -> list[str]:
+    """Verify that modes in EN and ZH guide files have consistent structure."""
+    errors: list[str] = []
+    en_presets = {p.id: p for p in en_result.presets}
+    zh_presets = {p.id: p for p in zh_result.presets}
+
+    for pid, en_preset in en_presets.items():
+        zh_preset = zh_presets.get(pid)
+        if not zh_preset:
+            continue
+        en_steps = {s.id: s for s in en_preset.steps}
+        zh_steps = {s.id: s for s in zh_preset.steps}
+
+        for sid, en_step in en_steps.items():
+            zh_step = zh_steps.get(sid)
+            if not zh_step:
+                continue
+            en_modes = en_step.modes or []
+            zh_modes = zh_step.modes or []
+
+            if len(en_modes) != len(zh_modes):
+                errors.append(
+                    f"EN/ZH mode count mismatch in step '#{sid}' (preset '{pid}'): "
+                    f"EN has {len(en_modes)} modes, ZH has {len(zh_modes)} modes"
+                )
+                continue
+
+            for idx, (em, zm) in enumerate(zip(en_modes, zh_modes)):
+                if em.id != zm.id:
+                    errors.append(
+                        f"EN/ZH mode ID mismatch in step '#{sid}' at index {idx}: "
+                        f"EN has '{em.id}', ZH has '{zm.id}'"
+                    )
+                if em.config_file != zm.config_file:
+                    errors.append(
+                        f"EN/ZH mode config_file mismatch in step '#{sid}', mode '{em.id}': "
+                        f"EN has '{em.config_file}', ZH has '{zm.config_file}'"
+                    )
+                if getattr(em, "default", False) != getattr(zm, "default", False):
+                    errors.append(
+                        f"EN/ZH mode default flag mismatch in step '#{sid}', mode '{em.id}': "
+                        f"EN has default={getattr(em, 'default', False)}, ZH has default={getattr(zm, 'default', False)}"
+                    )
     return errors
 
 
@@ -1292,6 +1368,7 @@ def run(
             if not consistency.valid:
                 for cerr in consistency.errors:
                     errors.append(f"EN/ZH structure mismatch: {cerr}")
+            errors.extend(_check_en_zh_modes_parity(parsed["en"], parsed["zh"]))
 
         # --- 4b'. cross-step placeholders (one guide is enough: EN/ZH
         #          structure parity is enforced above) ---------------------
