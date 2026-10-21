@@ -1,0 +1,52 @@
+version: "1.0"
+id: e1003_usb
+name: Install E1003 panel firmware
+name_i18n:
+  zh: 安装 E1003 面板程序
+type: esp32_usb
+detection:
+  method: usb_serial
+  usb_vendor_id: "0x1a86"
+  usb_product_id: "0x7522"
+  manual_entry: true
+  fallback_ports:
+    - /dev/cu.wchusbserial*
+    - /dev/ttyUSB*
+firmware:
+  source:
+    path: https://sensecraft-statics.seeed.cc/solution-app/reterminal_e1003_ha/assets/firmware/firmware.factory.bin
+    checksum:
+      sha256: 472fea16c509b46ecb04d6636a8d8acbc05756ce02157d20fd40eaf483401291
+  flash_config:
+    chip: esp32s3
+    baud_rate: 115200
+    flash_mode: dio
+    flash_freq: 80m
+    # Keep the built image's 4 MB layout, despite 32 MB physical flash.
+    flash_size: 4MB
+    partitions:
+      - name: factory
+        offset: "0x0"
+        file: https://sensecraft-statics.seeed.cc/solution-app/reterminal_e1003_ha/assets/firmware/firmware.factory.bin
+steps:
+  - id: detect
+    name: Identify panel
+    name_i18n:
+      zh: 识别面板
+  - id: erase
+    name: Full-chip erase (keep off to retain saved settings)
+    name_i18n:
+      zh: 全片擦除（关闭以保留已有配置）
+    optional: true
+    default: false
+  - id: flash
+    name: Install panel firmware
+    name_i18n:
+      zh: 安装面板程序
+  - id: verify
+    name: Verify firmware write
+    name_i18n:
+      zh: 校验程序写入
+post_deployment:
+  reset_device: true
+  wait_for_ready: 10

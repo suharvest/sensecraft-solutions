@@ -1,0 +1,96 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "添加 reCamera",
+        "description": "填写 reCamera 地址；可以先添加设备，再用 reCamera Solution 安装应用。",
+        "data": {
+          "host": "主机（IP 地址）",
+          "device_name": "名称",
+          "api_port": "控制 API 端口",
+          "rtsp_port": "RTSP 端口",
+          "rtsp_stream": "RTSP 流名称"
+        },
+        "data_description": {
+          "host": "摄像机 IP，例如 192.168.1.50",
+          "device_name": "显示在侧边栏面板与设备页",
+          "api_port": "运动检测 HTTP API 端口（默认 8080）",
+          "rtsp_port": "RTSP 服务端口（默认 8554）",
+          "rtsp_stream": "检测程序发布的流名称（默认 live0）"
+        }
+      }
+    },
+    "error": {
+      "invalid_host": "请输入有效的 IP 地址或主机名。",
+      "cannot_connect": "无法连接运动检测 API。请确认地址正确、程序正在运行，且 Home Assistant 与摄像机网络互通。",
+      "unknown": "连接摄像机时发生未知错误。"
+    },
+    "abort": {
+      "already_configured": "该摄像机已经添加过了。"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "reCamera 选项",
+        "description": "默认值即可正常工作，以下选项用于调整带宽与通知方式。",
+        "data": {
+          "poll_interval": "状态轮询间隔（秒）",
+          "preview_fps": "实时预览帧率",
+          "snapshot_keep": "每台摄像机保留的抓拍数量",
+          "ha_notification": "运动时在 Home Assistant 中弹出通知",
+          "push_enabled": "允许摄像机主动推送事件到 Home Assistant",
+          "push_include_image": "推送事件时附带抓拍图片"
+        },
+        "data_description": {
+          "poll_interval": "摄像机无法推送时使用，同时作为兜底；运动期间会自动加快轮询。",
+          "preview_fps": "越高越流畅，带宽占用越大（每帧为 720p JPEG）。",
+          "snapshot_keep": "超出的历史抓拍会从 /config/www/recamera 中自动删除。",
+          "push_enabled": "告警更快，需要在 Home Assistant 设置中填写内部或外部访问地址。"
+        }
+      }
+    }
+  },
+  "entity": {
+    "binary_sensor": {
+      "motion": { "name": "运动" },
+      "zones_missing": { "name": "未绘制检测区域" }
+    },
+    "event": {
+      "motion": { "name": "运动事件" }
+    },
+    "image": {
+      "last_motion": { "name": "最近一次运动" }
+    },
+    "sensor": {
+      "last_motion": { "name": "最近运动时间" },
+      "motion_pixels": { "name": "运动像素" },
+      "zone_count": { "name": "检测区域数" }
+    },
+    "switch": {
+      "detection": { "name": "选区运动检测" }
+    }
+  },
+  "services": {
+    "reset_background": {
+      "name": "重建背景",
+      "description": "重新学习静止画面。移动摄像机或场景变化后使用。",
+      "fields": {
+        "device_id": {
+          "name": "摄像机",
+          "description": "需要重建背景的 reCamera。"
+        }
+      }
+    },
+    "test_push": {
+      "name": "发送测试告警",
+      "description": "让摄像机推送一条包含抓拍的测试事件，用于验证整条告警链路。",
+      "fields": {
+        "device_id": {
+          "name": "摄像机",
+          "description": "需要测试的 reCamera。"
+        }
+      }
+    }
+  }
+}

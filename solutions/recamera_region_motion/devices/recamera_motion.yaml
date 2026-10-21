@@ -29,6 +29,54 @@ binary:
   service_priority: 92
   auto_start: true
 
+  # 部署时通过官方机制让出摄像头（VPSS Grp）
+  conflict_services:
+    stop:
+      - S03node-red
+      - S91sscma-node
+      - S92face-emotion
+      - S92face-recognition
+      - S92face-analysis
+      - S92facemesh-reader
+      - S92fall-detection
+      - S92retail-vision
+      - S92weather-classifier
+      - S92yolo-detector
+
+actions:
+  before:
+    - name: Gracefully release camera via official console appMgr
+      sudo: true
+      name_i18n:
+        zh: 通过官方控制台接口释放摄像头
+      run: |
+        echo "Releasing camera hardware through official supervisor appMgr..."
+        # 1. 若控制台正在运行，调用官方 appMgr 停止当前活跃应用，保证 VPSS 优雅释放
+        if curl -s -m 3 http://127.0.0.1/api/health >/dev/null 2>&1; then
+          curl -s -m 5 -X POST http://127.0.0.1/api/appMgr/stop || true
+        fi
+        # 2. 若存在 supervisor 官方运维脚本，调用其 app_stop 统一回收
+        if [ -x /usr/share/supervisor/scripts/main.sh ]; then
+          /usr/share/supervisor/scripts/main.sh app_stop || true
+        fi
+        sleep 2
+
+  after:
+    - name: Verify camera pipeline acquisition
+      sudo: true
+      name_i18n:
+        zh: 验证摄像头出流与帧捕获
+      run: |
+        sleep 3
+        # 查询运动检测 HTTP 状态接口，验证 frame_count 是否正常递增
+        STATUS=$(curl -s http://127.0.0.1:8080/api/status 2>/dev/null || true)
+        FRAMES=$(echo "$STATUS" | grep -o '"frame_count":[0-9]*' | cut -d: -f2)
+        if [ -z "$FRAMES" ] || [ "$FRAMES" -le 0 ]; then
+          echo "ERROR: Camera is not capturing frames (frame_count=$FRAMES). Video pipeline may be locked." >&2
+          exit 1
+        fi
+        echo "Camera streaming verified: $FRAMES frames captured."
+
 user_inputs:
   - id: host
     name: Device IP Address

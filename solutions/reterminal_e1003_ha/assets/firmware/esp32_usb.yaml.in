@@ -1,6 +1,4 @@
-# Reviewed deployment payload, materialized as devices/e1003_usb.yaml by
-# scripts/stage_e1003_candidate.py after the exact firmware hash is checked.
-# This template is intentionally not registered as an executable device yet.
+# Reviewed deployment payload, materialized as devices/e1003_usb.yaml.
 version: "1.0"
 id: e1003_usb
 name: Install E1003 panel firmware
@@ -17,9 +15,9 @@ detection:
     - /dev/ttyUSB*
 firmware:
   source:
-    path: assets/firmware/firmware.factory.bin
+    path: https://sensecraft-statics.seeed.cc/solution-app/reterminal_e1003_ha/assets/firmware/firmware.factory.bin
     checksum:
-      sha256: 23dae64ed8b79f05a423a2748b6b3e2f1369e96b80f0d16fd03deebb62609528
+      sha256: 472fea16c509b46ecb04d6636a8d8acbc05756ce02157d20fd40eaf483401291
   flash_config:
     chip: esp32s3
     baud_rate: 115200
@@ -30,7 +28,7 @@ firmware:
     partitions:
       - name: factory
         offset: "0x0"
-        file: assets/firmware/firmware.factory.bin
+        file: https://sensecraft-statics.seeed.cc/solution-app/reterminal_e1003_ha/assets/firmware/firmware.factory.bin
 steps:
   - id: detect
     name: Identify panel

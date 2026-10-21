@@ -1,13 +1,12 @@
 # 0.2.1 plaintext-only factory resource
 
 The reference build at firmware `09b3bbb` compiles out API encryption.
-App `a597ccad` implements contract 15; formal content still uses public
-contract 5 and remains disabled pending synchronization and compatible App distribution.
+The solution enables one-click USB installation with firmware downloaded directly from Seeed CDN.
 
 `manifest.json` and `esp32_usb.yaml.in` pin the actual **0.2.1** image:
-1,337,072 bytes, SHA-256
-`23dae64ed8b79f05a423a2748b6b3e2f1369e96b80f0d16fd03deebb62609528`.
-No binary is committed and no public download URL or release exists.
+1,337,056 bytes, SHA-256
+`472fea16c509b46ecb04d6636a8d8acbc05756ce02157d20fd40eaf483401291`.
+Published to CDN: `https://sensecraft-statics.seeed.cc/solution-app/reterminal_e1003_ha/assets/firmware/firmware.factory.bin`.
 
 From the repository root, a maintainer can materialize a **local review copy**:
 

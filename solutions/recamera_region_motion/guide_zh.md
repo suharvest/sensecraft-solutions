@@ -1,28 +1,66 @@
 ## 套餐：reCamera 2002 {#recamera_2002}
 
-在 reCamera 2002 上安装选区运动检测器。检测在摄像头本机运行，不需要外部模型或云服务。
+在 reCamera 2002 上安装选区运动检测器，并无缝接入 Home Assistant。检测在摄像头本机运行，不需要外部模型或云服务。
 
 - **设备：** 可通过网络或 USB SSH 访问的 reCamera 2002。
-- **网络：** SenseCraft Solution 所在电脑需要能够通过 SSH 访问摄像头。
-- **摄像头占用：** 同一时间只能运行一个摄像头视频管线。应用运行时会停止系统自带的 ONVIF 和 SSCMA 摄像头服务。
+- **Home Assistant：** 本机或服务器上运行的 Home Assistant，或局域网中已有的 Home Assistant 实例（HAOS 实体机或 Docker）。
+- **摄像头占用：** 同一时间只能运行一个摄像头视频管线。应用运行时会由控制台自动协调让出摄像头硬件。
 
-## 步骤 1：安装运动检测 {#install_motion type=recamera_cpp required=true config=devices/recamera_motion.yaml}
+## 步骤 1: 更新 reCamera 控制台 {#update_console type=recamera_cpp required=false config=devices/recamera_console.yaml}
 
-填写摄像头地址和 SSH 凭据。部署器会传输并安装 Debian 软件包，然后通过 reCamera 应用管理器启动服务。
+安装 0.5.6 控制台，它负责管理相机应用。已经是该版本会自动跳过。
+
+### 前置条件
+
+1. 用 USB 连接 reCamera，或让它和这台电脑处于同一网络。
+2. USB 连接的地址是 `192.168.42.1`；走 Wi-Fi 时用路由器上显示的 IP。
+3. 默认密码是 `recamera`（较早期的设备用 `recamera.2`）。
+
+---
+
+## 步骤 2：安装运动检测 {#install_motion type=recamera_cpp required=true config=devices/recamera_motion.yaml}
+
+填写摄像头地址和 SSH 凭据。部署器通过控制台官方接口优雅释放摄像头，传输并安装 Debian 软件包，随后启动并验证运动检测服务。
 
 ### 部署目标 {#camera type=remote device_name="reCamera 2002" config=devices/recamera_motion.yaml default=true}
 
 USB 连接通常使用 `192.168.42.1`。使用 Wi-Fi 或以太网时，请填写摄像头当前 IP 地址。默认 SSH 用户为 `recamera`。
 
-## 步骤 2：检查服务 {#verify_health type=http_debug required=true config=devices/verify_health.yaml}
+---
 
-请求 `/api/health`。收到成功响应表示 HTTP 服务已运行，JSON 响应会显示 RTSP、抓拍和 Webhook 状态。
+## 步骤 3：安装 Home Assistant 宿主服务 {#deploy_ha_host type=docker_deploy required=false config=devices/ha_host.yaml}
+
+在电脑或边缘服务器上安装 Home Assistant。若目标机器已有运行中的 Home Assistant（或使用独立的 HAOS 实体设备），系统会自动检测并跳过此步骤。
+
+### 目标：本机安装 {#ha_local type=local device=generic_host device_name="本机电脑" config=devices/ha_host.yaml default=true}
+
+安装在当前运行 SenseCraft Solution 的电脑上。
+
+### 目标：远程 Linux 主机 {#ha_remote type=remote device=generic_host device_name="远程 Linux 主机" config=devices/ha_host.yaml}
+
+安装在局域网中的远程 Linux 服务器或 reComputer 工控机上。
+
+---
+
+## 步骤 4：配置 Home Assistant 集成 {#configure_ha type=ha_integration required=true config=devices/ha_integration.yaml}
+
+免 HACS 自动将 reCamera 插件注入 Home Assistant，配置摄像头连接参数，并注册摄像头和运动检测实体。无论目标是 HAOS 还是 Docker 版 Home Assistant 均可通用。
+
+### 部署完成
+
+- Home Assistant：打开 `http://<HA主机IP>:8123`，即可在侧边栏使用 reCamera 面板可视化绘制检测多边形。
+
+---
+
+## 步骤 5：检查服务与实时画面 {#verify_health type=http_debug required=true config=devices/verify_health.yaml}
+
+请求服务健康状态接口、运行状态与实时画面抓拍。收到成功响应表示 HTTP 服务与摄像头管线均正常工作。
 
 ### 部署完成
 
 - HTTP API：`http://<摄像头IP>:8080/api/health`
 - RTSP 视频流：`rtsp://<摄像头IP>:8554/live0`
-- Home Assistant：安装 [reCamera 集成](https://github.com/yyling0101-a11y/recamera-ha)，即可绘制检测区域、查看抓拍并接收告警。
+- 实时抓拍：`http://<摄像头IP>:8080/api/snapshot.jpg`
 
 ### 故障排查
 
@@ -30,4 +68,5 @@ USB 连接通常使用 `192.168.42.1`。使用 Wi-Fi 或以太网时，请填写
 |------|----------|
 | SSH 连接失败 | 检查摄像头 IP、USB 线或网络、用户名和密码。 |
 | 健康检查失败 | 在 Solution 中查看应用状态，并检查摄像头上的 `/var/log/recamera-motion.log`。 |
-| 摄像头预览不可用 | 在 Solution 中停止本应用，再启动其他需要摄像头的应用。 |
+| 摄像头预览不可用 | 确认控制台已正常退出旧应用；重启设备后再次检查。 |
+| Home Assistant 端口冲突 | 若目标机器 8123 端口已被其他服务占用，可指定其他端口或直接使用既有 Home Assistant。 |

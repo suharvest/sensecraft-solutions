@@ -3,6 +3,13 @@ id: homeassistant_deploy
 name: Home Assistant and MQTT Broker
 type: docker_deploy
 
+preconditions:
+  - command: "((curl -s -m 2 http://127.0.0.1:8123/api/ || curl -s -m 2 http://localhost:8123/api/) | grep -Eqi 'API running|Unauthorized') && (nc -z 127.0.0.1 1883 2>/dev/null || (echo > /dev/tcp/127.0.0.1/1883) 2>/dev/null || ss -tuln 2>/dev/null | grep -q ':1883 ')"
+    description: "Check if Home Assistant and MQTT Broker are already running on ports 8123 and 1883"
+    satisfied_message: "Home Assistant and MQTT broker are already running on this host, skipping Docker installation."
+    satisfied_message_i18n:
+      zh: "检测到该主机已运行 Home Assistant 和 MQTT Broker，自动跳过 Docker 安装。"
+
 # Shared by all three presets — the destination is the same regardless of how
 # the data got there. Pure application-layer Docker stack, so no device_class:
 # it runs on any Linux host (or Mac desktop Docker) that has Docker running.
@@ -52,9 +59,8 @@ pre_checks:
     description: Home Assistant image, its config volume and the broker's persistence file
   - type: port_available
     ports:
-      - 8123
       - 1883
-    description: Check that ports 8123 and 1883 are free
+    description: Check that port 1883 is free
 
 # Wall-clock budget for the whole round. Local smoke on Mac desktop Docker with
 # the images already cached took under a minute; this allows for a cold pull of

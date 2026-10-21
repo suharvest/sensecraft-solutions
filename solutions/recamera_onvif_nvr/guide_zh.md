@@ -50,3 +50,29 @@ Home Assistant 中添加 ONVIF 集成，填入摄像头 IP、端口 `8000` 与�
 | 预览没有画面 | 等待摄像头服务启动后重试，并确认没有其他摄像头应用处于活动状态。 |
 | NVR 无法发现摄像头 | 确认设备处于同一支持组播的网络；否则手动添加 ONVIF 服务地址。 |
 | 认证失败 | 用户名和密码必须分别为 `admin` 与 `recamera.1`。 |
+
+---
+
+## 步骤 3: 部署 Home Assistant（可选） {#deploy_ha type=docker_deploy required=false config=devices/ha_host.yaml}
+
+在本地或远程 Docker 主机上部署 Home Assistant。如果该主机 8123 端口已运行 Home Assistant，本步骤将自动检测并跳过。
+
+### 部署目标 {#ha_local type=local config=devices/ha_host.yaml default=true}
+
+在本地机器上部署 Home Assistant。
+
+### 部署目标 {#ha_remote type=remote config=devices/ha_host.yaml}
+
+通过局域网在远程主机（如 Raspberry Pi、reComputer）上部署 Home Assistant。
+
+---
+
+## 步骤 4: 将 reCamera ONVIF 接入 Home Assistant（可选） {#connect_ha type=ha_integration required=false config=devices/ha_integration.yaml}
+
+通过 Home Assistant 自动化 Config Flow API 将已运行 ONVIF 服务的 reCamera 直接接入 Home Assistant。
+
+### 前置条件
+
+- reCamera 已运行步骤 1 的 ONVIF 服务。
+- Home Assistant 正常运行且网络可达。
+- Home Assistant 管理员用户名与密码。

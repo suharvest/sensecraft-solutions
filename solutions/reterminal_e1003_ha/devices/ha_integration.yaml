@@ -1,0 +1,66 @@
+version: "1.0"
+id: ha_integration
+name: Connect E1003 to Home Assistant
+name_i18n:
+  zh: 将 E1003 接入 Home Assistant
+type: ha_integration
+
+ha_integration:
+  domain: esphome
+  restart: false
+  config_flow_data:
+    - name: host
+      value_from: e1003_ip
+    - name: port
+      value: "6053"
+      type: int
+    - name: noise_psk
+      value: ""
+
+user_inputs:
+  - id: ha_host
+    name: Home Assistant Host
+    name_i18n:
+      zh: Home Assistant 地址
+    type: text
+    default: "127.0.0.1"
+    required: true
+    description: IP address or hostname of your Home Assistant instance.
+    description_i18n:
+      zh: Home Assistant 实例的 IP 地址或主机名。
+  - id: ha_port
+    name: Home Assistant Port
+    name_i18n:
+      zh: Home Assistant 端口
+    type: text
+    default: "8123"
+    required: true
+    validation:
+      pattern: "^([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$"
+  - id: ha_username
+    name: Home Assistant Username
+    name_i18n:
+      zh: Home Assistant 用户名
+    type: text
+    required: true
+    description: Administrator username of Home Assistant.
+    description_i18n:
+      zh: Home Assistant 管理员用户名。
+  - id: ha_password
+    name: Home Assistant Password
+    name_i18n:
+      zh: Home Assistant 密码
+    type: password
+    required: true
+    description: Administrator password of Home Assistant.
+    description_i18n:
+      zh: Home Assistant 管理员密码。
+  - id: e1003_ip
+    name: E1003 IP Address
+    name_i18n:
+      zh: E1003 设备 IP 地址
+    type: text
+    required: true
+    description: IP address of the reTerminal E1003 on your local network.
+    description_i18n:
+      zh: reTerminal E1003 在局域网中的 IP 地址。

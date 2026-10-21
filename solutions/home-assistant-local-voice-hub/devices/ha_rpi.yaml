@@ -3,6 +3,12 @@ id: ha_rpi
 name: Home Assistant on the ARM64 Linux host
 name_i18n: {zh: ARM64 Linux 主机上的 Home Assistant}
 type: docker_deploy
+preconditions:
+  - command: "(curl -s -m 2 http://127.0.0.1:8123/api/ || curl -s -m 2 http://localhost:8123/api/) | grep -Eqi 'API running|Unauthorized'"
+    description: "Check if Home Assistant is already running on port 8123"
+    satisfied_message: "Home Assistant is already running on this host, skipping Docker installation."
+    satisfied_message_i18n:
+      zh: "检测到该主机已运行 Home Assistant，自动跳过 Docker 安装。"
 docker:
   compose_file: assets/docker/docker-compose.rpi-ha.yml
   compose_dir: assets

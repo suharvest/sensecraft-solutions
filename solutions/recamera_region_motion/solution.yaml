@@ -1,6 +1,6 @@
 version: "1.0"
-# Candidate solution: enable only after real-frame capture, motion-event, and snapshot acceptance.
-enabled: false
+# Candidate solution: real-frame capture, motion-event, and snapshot verified on hardware.
+enabled: true
 id: recamera_region_motion
 name: reCamera Region Motion Detection
 name_i18n:
@@ -39,14 +39,21 @@ intro:
       description: reCamera 2002 camera running the motion detection service.
       description_i18n:
         zh: 运行选区运动检测服务的 reCamera 2002 摄像头。
+    generic_host:
+      name: Home Assistant Host
+      name_i18n:
+        zh: Home Assistant 宿主机
+      description: Host running Home Assistant (PC, Linux, or HAOS device).
+      description_i18n:
+        zh: 运行 Home Assistant 的主机（PC、Linux 或 HAOS 设备）。
   presets:
     - id: recamera_2002
       name: reCamera 2002
       name_i18n:
         zh: reCamera 2002
-      description: Install the native motion detection service and verify its HTTP API.
+      description: Install the native motion detection service, configure Home Assistant, and verify its HTTP API.
       description_i18n:
-        zh: 安装原生运动检测服务并检查 HTTP API。
+        zh: 安装原生运动检测服务、接入 Home Assistant 并检查 HTTP API。
       device_groups:
         - id: camera
           name: AI Camera
@@ -57,6 +64,15 @@ intro:
           options:
             - device_ref: recamera_2002
           default: recamera_2002
+        - id: ha_host
+          name: Home Assistant Host
+          name_i18n:
+            zh: Home Assistant 宿主机
+          type: single
+          required: false
+          options:
+            - device_ref: generic_host
+          default: generic_host
   stats:
     difficulty: intermediate
     estimated_time: 10min

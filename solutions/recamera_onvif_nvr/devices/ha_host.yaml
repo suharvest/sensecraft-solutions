@@ -1,0 +1,45 @@
+version: "1.0"
+id: ha_host
+name: Home Assistant Host
+name_i18n:
+  zh: Home Assistant 宿主服务
+type: docker_deploy
+
+preconditions:
+  - command: "(curl -s -m 2 http://127.0.0.1:8123/api/ || curl -s -m 2 http://localhost:8123/api/) | grep -Eqi 'API running|Unauthorized'"
+    description: "Check if Home Assistant is already running on port 8123"
+    satisfied_message: "Home Assistant is already running on this host, skipping Docker installation."
+    satisfied_message_i18n:
+      zh: "检测到该主机已运行 Home Assistant，自动跳过 Docker 安装。"
+
+detection:
+  method: local
+  requirements:
+    - docker_installed
+    - docker_running
+
+docker:
+  compose_file: assets/docker/docker-compose.ha.yml
+  compose_dir: assets/docker
+  remote_path: ~/home-assistant
+  services:
+    - name: homeassistant
+      required: true
+
+ssh:
+  port: 22
+  default_user: root
+  connection_timeout: 30
+  command_timeout: 600
+
+remote_overrides:
+  compose_dir: assets/docker
+  detection:
+    method: network_scan
+    manual_entry: true
+    requirements:
+      - docker_installed
+      - docker_running
+  post_deployment:
+    open_browser: true
+    url: "http://{{host}}:8123"
