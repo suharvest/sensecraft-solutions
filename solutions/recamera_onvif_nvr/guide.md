@@ -50,3 +50,29 @@ For Home Assistant, add an ONVIF integration and enter the camera IP, port `8000
 | No video in the preview | Wait for the camera service to start, then retry. Check that another camera app is not active. |
 | NVR cannot discover the camera | Confirm both devices are on the same multicast network, or add the ONVIF URL manually. |
 | Authentication is rejected | Use `admin` and `recamera.1` exactly as shown. |
+
+---
+
+## Step 3: Deploy Home Assistant (Optional) {#deploy_ha type=docker_deploy required=false config=devices/ha_host.yaml}
+
+Deploy a Home Assistant instance on your local or remote Docker host. If Home Assistant is already running on port 8123, this step automatically detects it and skips.
+
+### Target {#ha_local type=local config=devices/ha_host.yaml default=true}
+
+Deploy Home Assistant on the local machine.
+
+### Target {#ha_remote type=remote config=devices/ha_host.yaml}
+
+Deploy Home Assistant on a remote host (e.g. Raspberry Pi, reComputer) over the local network.
+
+---
+
+## Step 4: Connect reCamera ONVIF to Home Assistant (Optional) {#connect_ha type=ha_integration required=false config=devices/ha_integration.yaml}
+
+Automatically add the reCamera ONVIF video and motion stream to Home Assistant using the native config flow API.
+
+### Prerequisites
+
+- reCamera running the ONVIF service from Step 1.
+- Home Assistant instance running and reachable.
+- Home Assistant administrator username and password.

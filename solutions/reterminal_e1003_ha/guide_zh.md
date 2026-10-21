@@ -49,3 +49,29 @@
 | 配置或写入失败 | 根据界面上的具体错误信息处理后重试，切勿全片擦除 NVS |
 | 界面提示正在保存或重启 | 保持设备供电，耐心等待读回并显示最终验证状态 |
 | 按键无反应或灯具不响应 | 确认目标灯实体 ID 正确且支持调光；检查 Home Assistant 中是否已开启“允许设备执行动作”权限 |
+
+---
+
+## 步骤 2: 部署 Home Assistant（可选） {#deploy_ha type=docker_deploy required=false config=devices/ha_host.yaml}
+
+在本地或远程 Docker 主机上部署 Home Assistant。如果该主机 8123 端口已运行 Home Assistant，本步骤将自动检测并跳过。
+
+### 部署目标 {#ha_local type=local config=devices/ha_host.yaml default=true}
+
+在本地机器上部署 Home Assistant。
+
+### 部署目标 {#ha_remote type=remote config=devices/ha_host.yaml}
+
+通过局域网在远程主机（如 Raspberry Pi、reComputer）上部署 Home Assistant。
+
+---
+
+## 步骤 3: 将 E1003 接入 Home Assistant（可选） {#connect_ha type=ha_integration required=false config=devices/ha_integration.yaml}
+
+通过 Home Assistant 自动化 Config Flow API 将已配网的 E1003 面板直接接入 Home Assistant。
+
+### 前置条件
+
+- E1003 已开机并接入局域网 Wi-Fi。
+- Home Assistant 正常运行且网络可达。
+- Home Assistant 管理员用户名与密码。

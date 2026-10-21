@@ -49,3 +49,29 @@ In a compatible test App, enter your settings, click **Save settings**, and wait
 | Setup or write failed | Check the displayed error message, resolve the issue, and retry; do not erase NVS |
 | Saving or verification in progress | Keep the device powered and wait for the final verification status |
 | Button or light does not respond | Confirm the light entity ID is correct and dimmable; ensure “Allow the device to perform Home Assistant actions” is enabled in Home Assistant |
+
+---
+
+## Step 2: Deploy Home Assistant (Optional) {#deploy_ha type=docker_deploy required=false config=devices/ha_host.yaml}
+
+Deploy a Home Assistant instance on your local or remote Docker host. If Home Assistant is already running on port 8123, this step automatically detects it and skips.
+
+### Target {#ha_local type=local config=devices/ha_host.yaml default=true}
+
+Deploy Home Assistant on the local machine.
+
+### Target {#ha_remote type=remote config=devices/ha_host.yaml}
+
+Deploy Home Assistant on a remote host (e.g. Raspberry Pi, reComputer) over the local network.
+
+---
+
+## Step 3: Connect E1003 to Home Assistant (Optional) {#connect_ha type=ha_integration required=false config=devices/ha_integration.yaml}
+
+Automatically add the E1003 ESPHome panel to Home Assistant using the native config flow API.
+
+### Prerequisites
+
+- E1003 powered on and connected to your Wi-Fi network.
+- Home Assistant instance running and reachable.
+- Home Assistant administrator username and password.

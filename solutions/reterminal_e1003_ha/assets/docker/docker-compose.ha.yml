@@ -1,0 +1,13 @@
+services:
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:2026.9.3
+    network_mode: host
+    privileged: true
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      SETUP_PORT: ${HA_PORT:-8123}
+    restart: unless-stopped
+    volumes:
+      - ~/home-assistant/config:/config
+      - /run/dbus:/run/dbus:ro
+      - /etc/localtime:/etc/localtime:ro
