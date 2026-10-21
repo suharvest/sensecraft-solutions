@@ -1,20 +1,20 @@
 version: "1.0"
 id: reterminal_e1003_ha
-name: E1003 Light Panel Setup Demo
+name: reTerminal E1003 Smart Home Control Panel
 name_i18n:
-  zh: E1003 灯光面板配置演示
+  zh: reTerminal E1003 智能家居控制面板
 enabled: true
 intro:
-  summary: Flash reTerminal E1003 smart control panel and integrate with Home Assistant to control smart lights and scenes.
+  summary: Low-power e-paper wall panel powered by ESPHome and Home Assistant, enabling always-on touch control for lights, scenes, and smart home automation.
   summary_i18n:
-    zh: 烧录 reTerminal E1003 智能控制面板，并一键接入 Home Assistant 控制智能灯光与场景。
+    zh: 基于 ESPHome 与 Home Assistant 的低功耗墨水屏智能家居控制面板，提供常显低眩光触控，轻松联动全屋灯光、场景与智能设备。
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
   cover_image: gallery/e1003-keyless-cover.png
-  category: sensing
-  solution_type: technical
-  tags: [home-assistant, esphome, epaper, usb]
+  category: home_building_automation
+  solution_type: solution
+  tags: [home-assistant, esphome, epaper, smart-home, touch-panel]
   output_interfaces:
     - type: serial
       endpoint: UART0
@@ -36,12 +36,12 @@ intro:
           model: [e1003]
   presets:
     - id: usb_candidate
-      name: Configure E1003
+      name: Smart Home Wall Panel
       name_i18n:
-        zh: 配置 E1003
-      description: Select the USB serial port to flash the E1003 panel firmware, and integrate with Home Assistant over the local network.
+        zh: 智能家居控制面板
+      description: Flash the factory e-paper firmware to reTerminal E1003 and integrate it seamlessly with Home Assistant.
       description_i18n:
-        zh: 选择 USB 串口烧录 E1003 面板固件，随后通过局域网接入 Home Assistant 控制灯具。
+        zh: 为 reTerminal E1003 烧录墨水屏出厂固件，并自动将其接入 Home Assistant 智能家居生态。
       device_groups:
         - id: panel
           name: Dashboard panel
