@@ -8,7 +8,29 @@
   1. 将手机、水杯或手伸入镜头，观察 AI 在 50ms 内画出检测框和类别标签；
   2. 缓慢移动物体或遮挡一部分，观察置信度数字变化，理解视觉模型对遮挡的鲁棒性。
 
-## 步骤 1: 安装目标检测应用 {#obj_install_app type=recamera_console_app required=false config=devices/recamera_console_app.yaml}
+## 步骤 1: 升级 reCamera 控制台 (SG2002) {#deploy_console type=recamera_cpp required=false config=devices/recamera_console.yaml}
+
+安装 0.5.6 版本的控制台。如果已是 0.5.6 版本将自动跳过。若使用 reCamera Pro，请直接跳到步骤 2。
+
+### 前置条件
+
+1. 通过 USB（地址 `192.168.42.1`）连接摄像头，或将其置于同一局域网下。
+2. 用户名为 `recamera`，默认密码为 `recamera`（旧固件可能为 `recamera.2`）。
+3. 全新出厂设备请先访问 `http://192.168.42.1/#/security` 开启 SSH。
+
+### 故障排查
+
+| 现象 | 解决方法 |
+|---|---|
+| 连接失败 | 通过 USB 连接使用 `192.168.42.1`；局域网连接请查看路由器 DHCP 列表 |
+| 密码错误 | 默认密码为 `recamera`（旧固件可能为 `recamera.2`） |
+| 安装失败 | 重启摄像头后重新运行本步骤 |
+| 无法使用 Node-RED | 控制台接管了摄像头；可在控制台系统设置中切换回 Node-RED |
+| 恢复出厂设置 | 通电开机时按住 **User** 键，直到红色 LED 常亮 |
+
+---
+
+## 步骤 2: 安装目标检测应用 {#obj_install_app type=recamera_console_app required=false config=devices/recamera_console_app.yaml}
 
 在下拉框中选择要运行的应用并部署到摄像头。
 
@@ -61,7 +83,7 @@
 
 ---
 
-## 步骤 2: 打开控制台查看 {#open_console type=web_dashboard required=false config=devices/console_dashboard.yaml}
+## 步骤 3: 打开控制台查看 {#open_console type=web_dashboard required=false config=devices/console_dashboard.yaml}
 
 打开摄像头的控制面板，查看实时推理画面与检测结果。
 
@@ -71,7 +93,7 @@
 
 ### 前置条件
 
-1. 用第 1 步的摄像头账号密码登录。
+1. 用第 2 步的摄像头账号密码登录。
 2. 在**应用**页点当前应用的**调试**，查看实时画面和检测框。
 
 ### 部署完成
@@ -108,7 +130,7 @@
 
 ---
 
-## 步骤 3: 部署 Home Assistant（可选） {#deploy_ha type=docker_deploy required=false config=devices/homeassistant_deploy.yaml}
+## 步骤 4: 部署 Home Assistant（可选） {#deploy_ha type=docker_deploy required=false config=devices/homeassistant_deploy.yaml}
 
 启动 Home Assistant 和一个 MQTT broker。两者都已在运行就跳过。
 
@@ -125,7 +147,7 @@
 ### 部署完成
 
 1. 打开 **http://localhost:8123**，按向导创建管理员账号。
-2. MQTT broker 在这台机器的 1883 端口，第 4 步填它的地址。
+2. MQTT broker 在这台机器的 1883 端口，第 5 步填它的地址。
 
 ### 故障排查
 
@@ -147,7 +169,7 @@
 ### 部署完成
 
 1. 打开 **http://<设备 IP>:8123**，按向导创建管理员账号。
-2. MQTT broker 在同一台设备的 1883 端口，第 4 步填它的地址。
+2. MQTT broker 在同一台设备的 1883 端口，第 5 步填它的地址。
 
 ### 故障排查
 
@@ -155,11 +177,11 @@
 |------|------|
 | 连接超时 | 检查网络，用 ping 测试 |
 | SSH 认证失败 | 核对用户名和密码 |
-| 目标机 1883 被占用 | 那里已有 broker，保留它，第 4 步直接填它 |
+| 目标机 1883 被占用 | 那里已有 broker，保留它，第 5 步直接填它 |
 
 ---
 
-## 步骤 4: 在 Home Assistant 里查看结果（可选） {#ha_dashboard type=web_dashboard required=false config=devices/ha_dashboard.yaml}
+## 步骤 5: 在 Home Assistant 里查看结果（可选） {#ha_dashboard type=web_dashboard required=false config=devices/ha_dashboard.yaml}
 
 在 Home Assistant 仪表盘上查看摄像头的实时画面与检测实体。
 
@@ -169,8 +191,8 @@
 
 ### 前置条件
 
-1. **在 Home Assistant 中添加 MQTT 集成**：进入「设置 → 设备与服务 → 添加集成」，选择 MQTT。Broker 填第 3 步部署的那台机器的地址，端口 1883，用户名密码留空。如果已经配好 MQTT 则跳过。
-2. **在摄像头上填写 broker 地址**：在摄像头控制台里打开「集成 → Home Assistant」，填入第 3 步的 MQTT Broker 地址和端口 1883，先点「测试连接」，再点「保存」。
+1. **在 Home Assistant 中添加 MQTT 集成**：进入「设置 → 设备与服务 → 添加集成」，选择 MQTT。Broker 填第 4 步部署的那台机器的地址，端口 1883，用户名密码留空。如果已经配好 MQTT 则跳过。
+2. **在摄像头上填写 broker 地址**：在摄像头控制台里打开「集成 → Home Assistant」，填入第 4 步的 MQTT Broker 地址和端口 1883，先点「测试连接」，再点「保存」。
 3. **查看实体**：在 Home Assistant「设置 → 设备与服务 → MQTT」找到摄像头实体。
 4. **添加卡片**：在仪表盘添加 Picture glance 卡片，将检测实体叠加在实时画面上。
 
@@ -192,7 +214,7 @@
 
 ### 前置条件
 
-1. **在 Home Assistant 中添加 MQTT 集成**：进入「设置 → 设备与服务 → 添加集成」，选择 MQTT。Broker 填第 3 步部署的那台机器的地址，端口 1883，用户名密码留空。如果已经配好 MQTT 则跳过。
+1. **在 Home Assistant 中添加 MQTT 集成**：进入「设置 → 设备与服务 → 添加集成」，选择 MQTT。Broker 填第 4 步部署的那台机器的地址，端口 1883，用户名密码留空。如果已经配好 MQTT 则跳过。
 2. **配置摄像头 MQTT**：如果部署时已填写 MQTT 服务器地址，设备会自动连接。否则在摄像头应用中心点当前应用的「配置」，在「结果输出」里勾选 MQTT，输出模式选择 Home Assistant，并填入 broker 地址和端口 1883。
 3. **查看实体**：「设置 → 设备与服务 → MQTT」，点进这台摄像头的设备，确认检测实体存在。
 4. **打开 RTSP**：在摄像头控制面板「画面设置 → 推流设置」开启 RTSP，复制视频流地址。
@@ -223,7 +245,29 @@
   1. 对着镜头闭眼 3 秒或假装打哈欠，观察系统如何通过人脸 468 关键点触发困倦提醒；
   2. 开启隐私打码模式，观察 WebRTC 画面中人脸如何在端侧被自动高斯模糊，原始人脸不出设备。
 
-## 步骤 1: 安装人体行为应用 {#human_install_app type=recamera_console_app required=false config=devices/recamera_console_app.yaml}
+## 步骤 1: 升级 reCamera 控制台 (SG2002) {#deploy_console type=recamera_cpp required=false config=devices/recamera_console.yaml}
+
+安装 0.5.6 版本的控制台。如果已是 0.5.6 版本将自动跳过。若使用 reCamera Pro，请直接跳到步骤 2。
+
+### 前置条件
+
+1. 通过 USB（地址 `192.168.42.1`）连接摄像头，或将其置于同一局域网下。
+2. 用户名为 `recamera`，默认密码为 `recamera`（旧固件可能为 `recamera.2`）。
+3. 全新出厂设备请先访问 `http://192.168.42.1/#/security` 开启 SSH。
+
+### 故障排查
+
+| 现象 | 解决方法 |
+|---|---|
+| 连接失败 | 通过 USB 连接使用 `192.168.42.1`；局域网连接请查看路由器 DHCP 列表 |
+| 密码错误 | 默认密码为 `recamera`（旧固件可能为 `recamera.2`） |
+| 安装失败 | 重启摄像头后重新运行本步骤 |
+| 无法使用 Node-RED | 控制台接管了摄像头；可在控制台系统设置中切换回 Node-RED |
+| 恢复出厂设置 | 通电开机时按住 **User** 键，直到红色 LED 常亮 |
+
+---
+
+## 步骤 2: 安装人体行为应用 {#human_install_app type=recamera_console_app required=false config=devices/recamera_console_app.yaml}
 
 在下拉框中选择要运行的人体行为分析应用并部署到摄像头。
 
@@ -276,7 +320,7 @@
 
 ---
 
-## 步骤 2: 打开控制台查看 {#open_console type=web_dashboard required=false config=devices/console_dashboard.yaml}
+## 步骤 3: 打开控制台查看 {#open_console type=web_dashboard required=false config=devices/console_dashboard.yaml}
 
 打开摄像头的控制面板，查看实时推理画面与检测结果。
 
@@ -286,7 +330,7 @@
 
 ### 前置条件
 
-1. 用第 1 步的摄像头账号密码登录。
+1. 用第 2 步的摄像头账号密码登录。
 2. 在**应用**页点当前应用的**调试**，查看实时画面和检测框。
 
 ### 部署完成
@@ -323,7 +367,7 @@
 
 ---
 
-## 步骤 3: 部署 Home Assistant（可选） {#deploy_ha type=docker_deploy required=false config=devices/homeassistant_deploy.yaml}
+## 步骤 4: 部署 Home Assistant（可选） {#deploy_ha type=docker_deploy required=false config=devices/homeassistant_deploy.yaml}
 
 启动 Home Assistant 和一个 MQTT broker。两者都已在运行就跳过。
 
@@ -340,7 +384,7 @@
 ### 部署完成
 
 1. 打开 **http://localhost:8123**，按向导创建管理员账号。
-2. MQTT broker 在这台机器的 1883 端口，第 4 步填它的地址。
+2. MQTT broker 在这台机器的 1883 端口，第 5 步填它的地址。
 
 ### 故障排查
 
@@ -362,7 +406,7 @@
 ### 部署完成
 
 1. 打开 **http://<设备 IP>:8123**，按向导创建管理员账号。
-2. MQTT broker 在同一台设备的 1883 端口，第 4 步填它的地址。
+2. MQTT broker 在同一台设备的 1883 端口，第 5 步填它的地址。
 
 ### 故障排查
 
@@ -370,11 +414,11 @@
 |------|------|
 | 连接超时 | 检查网络，用 ping 测试 |
 | SSH 认证失败 | 核对用户名和密码 |
-| 目标机 1883 被占用 | 那里已有 broker，保留它，第 4 步直接填它 |
+| 目标机 1883 被占用 | 那里已有 broker，保留它，第 5 步直接填它 |
 
 ---
 
-## 步骤 4: 在 Home Assistant 里查看结果（可选） {#ha_dashboard type=web_dashboard required=false config=devices/ha_dashboard.yaml}
+## 步骤 5: 在 Home Assistant 里查看结果（可选） {#ha_dashboard type=web_dashboard required=false config=devices/ha_dashboard.yaml}
 
 在 Home Assistant 仪表盘上查看摄像头的实时画面与检测实体。
 
@@ -384,8 +428,8 @@
 
 ### 前置条件
 
-1. **在 Home Assistant 中添加 MQTT 集成**：进入「设置 → 设备与服务 → 添加集成」，选择 MQTT。Broker 填第 3 步部署的那台机器的地址，端口 1883，用户名密码留空。如果已经配好 MQTT 则跳过。
-2. **在摄像头上填写 broker 地址**：在摄像头控制台里打开「集成 → Home Assistant」，填入第 3 步的 MQTT Broker 地址和端口 1883，先点「测试连接」，再点「保存」。
+1. **在 Home Assistant 中添加 MQTT 集成**：进入「设置 → 设备与服务 → 添加集成」，选择 MQTT。Broker 填第 4 步部署的那台机器的地址，端口 1883，用户名密码留空。如果已经配好 MQTT 则跳过。
+2. **在摄像头上填写 broker 地址**：在摄像头控制台里打开「集成 → Home Assistant」，填入第 4 步的 MQTT Broker 地址和端口 1883，先点「测试连接」，再点「保存」。
 3. **查看实体**：在 Home Assistant「设置 → 设备与服务 → MQTT」找到摄像头实体。
 4. **添加卡片**：在仪表盘添加 Picture glance 卡片，将检测实体叠加在实时画面上。
 
@@ -407,7 +451,7 @@
 
 ### 前置条件
 
-1. **在 Home Assistant 中添加 MQTT 集成**：进入「设置 → 设备与服务 → 添加集成」，选择 MQTT。Broker 填第 3 步部署的那台机器的地址，端口 1883，用户名密码留空。如果已经配好 MQTT 则跳过。
+1. **在 Home Assistant 中添加 MQTT 集成**：进入「设置 → 设备与服务 → 添加集成」，选择 MQTT。Broker 填第 4 步部署的那台机器的地址，端口 1883，用户名密码留空。如果已经配好 MQTT 则跳过。
 2. **配置摄像头 MQTT**：如果部署时已填写 MQTT 服务器地址，设备会自动连接。否则在摄像头应用中心点当前应用的「配置」，在「结果输出」里勾选 MQTT，输出模式选择 Home Assistant，并填入 broker 地址和端口 1883。
 3. **查看实体**：「设置 → 设备与服务 → MQTT」，点进这台摄像头的设备，确认检测实体存在。
 4. **打开 RTSP**：在摄像头控制面板「画面设置 → 推流设置」开启 RTSP，复制视频流地址。
@@ -438,7 +482,29 @@
   1. 将带有中英文字符的书本或包装纸放到镜头前，观察端侧 OCR 如何快速定位并识别文本内容；
   2. 测试不同光照与倾斜角度下的字符识别准确度。
 
-## 步骤 1: 安装文字识读应用 {#text_install_app type=recamera_console_app required=false config=devices/recamera_console_app.yaml}
+## 步骤 1: 升级 reCamera 控制台 (SG2002) {#deploy_console type=recamera_cpp required=false config=devices/recamera_console.yaml}
+
+安装 0.5.6 版本的控制台。如果已是 0.5.6 版本将自动跳过。若使用 reCamera Pro，请直接跳到步骤 2。
+
+### 前置条件
+
+1. 通过 USB（地址 `192.168.42.1`）连接摄像头，或将其置于同一局域网下。
+2. 用户名为 `recamera`，默认密码为 `recamera`（旧固件可能为 `recamera.2`）。
+3. 全新出厂设备请先访问 `http://192.168.42.1/#/security` 开启 SSH。
+
+### 故障排查
+
+| 现象 | 解决方法 |
+|---|---|
+| 连接失败 | 通过 USB 连接使用 `192.168.42.1`；局域网连接请查看路由器 DHCP 列表 |
+| 密码错误 | 默认密码为 `recamera`（旧固件可能为 `recamera.2`） |
+| 安装失败 | 重启摄像头后重新运行本步骤 |
+| 无法使用 Node-RED | 控制台接管了摄像头；可在控制台系统设置中切换回 Node-RED |
+| 恢复出厂设置 | 通电开机时按住 **User** 键，直到红色 LED 常亮 |
+
+---
+
+## 步骤 2: 安装文字识读应用 {#text_install_app type=recamera_console_app required=false config=devices/recamera_console_app.yaml}
 
 在下拉框中选择要运行的文字或符号识别应用并部署到摄像头。
 
@@ -491,7 +557,7 @@
 
 ---
 
-## 步骤 2: 打开控制台查看 {#open_console type=web_dashboard required=false config=devices/console_dashboard.yaml}
+## 步骤 3: 打开控制台查看 {#open_console type=web_dashboard required=false config=devices/console_dashboard.yaml}
 
 打开摄像头的控制面板，查看实时推理画面与检测结果。
 
@@ -501,7 +567,7 @@
 
 ### 前置条件
 
-1. 用第 1 步的摄像头账号密码登录。
+1. 用第 2 步的摄像头账号密码登录。
 2. 在**应用**页点当前应用的**调试**，查看实时画面和检测框。
 
 ### 部署完成
@@ -538,7 +604,7 @@
 
 ---
 
-## 步骤 3: 部署 Home Assistant（可选） {#deploy_ha type=docker_deploy required=false config=devices/homeassistant_deploy.yaml}
+## 步骤 4: 部署 Home Assistant（可选） {#deploy_ha type=docker_deploy required=false config=devices/homeassistant_deploy.yaml}
 
 启动 Home Assistant 和一个 MQTT broker。两者都已在运行就跳过。
 
@@ -555,7 +621,7 @@
 ### 部署完成
 
 1. 打开 **http://localhost:8123**，按向导创建管理员账号。
-2. MQTT broker 在这台机器的 1883 端口，第 4 步填它的地址。
+2. MQTT broker 在这台机器的 1883 端口，第 5 步填它的地址。
 
 ### 故障排查
 
@@ -577,7 +643,7 @@
 ### 部署完成
 
 1. 打开 **http://<设备 IP>:8123**，按向导创建管理员账号。
-2. MQTT broker 在同一台设备的 1883 端口，第 4 步填它的地址。
+2. MQTT broker 在同一台设备的 1883 端口，第 5 步填它的地址。
 
 ### 故障排查
 
@@ -585,11 +651,11 @@
 |------|------|
 | 连接超时 | 检查网络，用 ping 测试 |
 | SSH 认证失败 | 核对用户名和密码 |
-| 目标机 1883 被占用 | 那里已有 broker，保留它，第 4 步直接填它 |
+| 目标机 1883 被占用 | 那里已有 broker，保留它，第 5 步直接填它 |
 
 ---
 
-## 步骤 4: 在 Home Assistant 里查看结果（可选） {#ha_dashboard type=web_dashboard required=false config=devices/ha_dashboard.yaml}
+## 步骤 5: 在 Home Assistant 里查看结果（可选） {#ha_dashboard type=web_dashboard required=false config=devices/ha_dashboard.yaml}
 
 在 Home Assistant 仪表盘上查看摄像头的实时画面与检测实体。
 
@@ -599,8 +665,8 @@
 
 ### 前置条件
 
-1. **在 Home Assistant 中添加 MQTT 集成**：进入「设置 → 设备与服务 → 添加集成」，选择 MQTT。Broker 填第 3 步部署的那台机器的地址，端口 1883，用户名密码留空。如果已经配好 MQTT 则跳过。
-2. **在摄像头上填写 broker 地址**：在摄像头控制台里打开「集成 → Home Assistant」，填入第 3 步的 MQTT Broker 地址和端口 1883，先点「测试连接」，再点「保存」。
+1. **在 Home Assistant 中添加 MQTT 集成**：进入「设置 → 设备与服务 → 添加集成」，选择 MQTT。Broker 填第 4 步部署的那台机器的地址，端口 1883，用户名密码留空。如果已经配好 MQTT 则跳过。
+2. **在摄像头上填写 broker 地址**：在摄像头控制台里打开「集成 → Home Assistant」，填入第 4 步的 MQTT Broker 地址和端口 1883，先点「测试连接」，再点「保存」。
 3. **查看实体**：在 Home Assistant「设置 → 设备与服务 → MQTT」找到摄像头实体。
 4. **添加卡片**：在仪表盘添加 Picture glance 卡片，将检测实体叠加在实时画面上。
 
@@ -622,7 +688,7 @@
 
 ### 前置条件
 
-1. **在 Home Assistant 中添加 MQTT 集成**：进入「设置 → 设备与服务 → 添加集成」，选择 MQTT。Broker 填第 3 步部署的那台机器的地址，端口 1883，用户名密码留空。如果已经配好 MQTT 则跳过。
+1. **在 Home Assistant 中添加 MQTT 集成**：进入「设置 → 设备与服务 → 添加集成」，选择 MQTT。Broker 填第 4 步部署的那台机器的地址，端口 1883，用户名密码留空。如果已经配好 MQTT 则跳过。
 2. **配置摄像头 MQTT**：如果部署时已填写 MQTT 服务器地址，设备会自动连接。否则在摄像头应用中心点当前应用的「配置」，在「结果输出」里勾选 MQTT，输出模式选择 Home Assistant，并填入 broker 地址和端口 1883。
 3. **查看实体**：「设置 → 设备与服务 → MQTT」，点进这台摄像头的设备，确认检测实体存在。
 4. **打开 RTSP**：在摄像头控制面板「画面设置 → 推流设置」开启 RTSP，复制视频流地址。
@@ -653,7 +719,29 @@
   1. 人员走过划定区域，观察出入计数值的增加；
   2. 在指定区域停留超过设定阈值，观察驻足停留事件触发。
 
-## 步骤 1: 安装商业客流应用 {#retail_install_app type=recamera_console_app required=false config=devices/recamera_console_app.yaml}
+## 步骤 1: 升级 reCamera 控制台 (SG2002) {#deploy_console type=recamera_cpp required=false config=devices/recamera_console.yaml}
+
+安装 0.5.6 版本的控制台。如果已是 0.5.6 版本将自动跳过。若使用 reCamera Pro，请直接跳到步骤 2。
+
+### 前置条件
+
+1. 通过 USB（地址 `192.168.42.1`）连接摄像头，或将其置于同一局域网下。
+2. 用户名为 `recamera`，默认密码为 `recamera`（旧固件可能为 `recamera.2`）。
+3. 全新出厂设备请先访问 `http://192.168.42.1/#/security` 开启 SSH。
+
+### 故障排查
+
+| 现象 | 解决方法 |
+|---|---|
+| 连接失败 | 通过 USB 连接使用 `192.168.42.1`；局域网连接请查看路由器 DHCP 列表 |
+| 密码错误 | 默认密码为 `recamera`（旧固件可能为 `recamera.2`） |
+| 安装失败 | 重启摄像头后重新运行本步骤 |
+| 无法使用 Node-RED | 控制台接管了摄像头；可在控制台系统设置中切换回 Node-RED |
+| 恢复出厂设置 | 通电开机时按住 **User** 键，直到红色 LED 常亮 |
+
+---
+
+## 步骤 2: 安装商业客流应用 {#retail_install_app type=recamera_console_app required=false config=devices/recamera_console_app.yaml}
 
 在下拉框中选择要运行的客流分析应用并部署到摄像头。
 
@@ -706,7 +794,7 @@
 
 ---
 
-## 步骤 2: 打开控制台查看 {#open_console type=web_dashboard required=false config=devices/console_dashboard.yaml}
+## 步骤 3: 打开控制台查看 {#open_console type=web_dashboard required=false config=devices/console_dashboard.yaml}
 
 打开摄像头的控制面板，查看实时推理画面与检测结果。
 
@@ -716,7 +804,7 @@
 
 ### 前置条件
 
-1. 用第 1 步的摄像头账号密码登录。
+1. 用第 2 步的摄像头账号密码登录。
 2. 在**应用**页点当前应用的**调试**，查看实时画面和检测框。
 
 ### 部署完成
@@ -753,7 +841,7 @@
 
 ---
 
-## 步骤 3: 部署 Home Assistant（可选） {#deploy_ha type=docker_deploy required=false config=devices/homeassistant_deploy.yaml}
+## 步骤 4: 部署 Home Assistant（可选） {#deploy_ha type=docker_deploy required=false config=devices/homeassistant_deploy.yaml}
 
 启动 Home Assistant 和一个 MQTT broker。两者都已在运行就跳过。
 
@@ -770,7 +858,7 @@
 ### 部署完成
 
 1. 打开 **http://localhost:8123**，按向导创建管理员账号。
-2. MQTT broker 在这台机器的 1883 端口，第 4 步填它的地址。
+2. MQTT broker 在这台机器的 1883 端口，第 5 步填它的地址。
 
 ### 故障排查
 
@@ -792,7 +880,7 @@
 ### 部署完成
 
 1. 打开 **http://<设备 IP>:8123**，按向导创建管理员账号。
-2. MQTT broker 在同一台设备的 1883 端口，第 4 步填它的地址。
+2. MQTT broker 在同一台设备的 1883 端口，第 5 步填它的地址。
 
 ### 故障排查
 
@@ -800,11 +888,11 @@
 |------|------|
 | 连接超时 | 检查网络，用 ping 测试 |
 | SSH 认证失败 | 核对用户名和密码 |
-| 目标机 1883 被占用 | 那里已有 broker，保留它，第 4 步直接填它 |
+| 目标机 1883 被占用 | 那里已有 broker，保留它，第 5 步直接填它 |
 
 ---
 
-## 步骤 4: 在 Home Assistant 里查看结果（可选） {#ha_dashboard type=web_dashboard required=false config=devices/ha_dashboard.yaml}
+## 步骤 5: 在 Home Assistant 里查看结果（可选） {#ha_dashboard type=web_dashboard required=false config=devices/ha_dashboard.yaml}
 
 在 Home Assistant 仪表盘上查看摄像头的实时画面与检测实体。
 
@@ -814,8 +902,8 @@
 
 ### 前置条件
 
-1. **在 Home Assistant 中添加 MQTT 集成**：进入「设置 → 设备与服务 → 添加集成」，选择 MQTT。Broker 填第 3 步部署的那台机器的地址，端口 1883，用户名密码留空。如果已经配好 MQTT 则跳过。
-2. **在摄像头上填写 broker 地址**：在摄像头控制台里打开「集成 → Home Assistant」，填入第 3 步的 MQTT Broker 地址和端口 1883，先点「测试连接」，再点「保存」。
+1. **在 Home Assistant 中添加 MQTT 集成**：进入「设置 → 设备与服务 → 添加集成」，选择 MQTT。Broker 填第 4 步部署的那台机器的地址，端口 1883，用户名密码留空。如果已经配好 MQTT 则跳过。
+2. **在摄像头上填写 broker 地址**：在摄像头控制台里打开「集成 → Home Assistant」，填入第 4 步的 MQTT Broker 地址和端口 1883，先点「测试连接」，再点「保存」。
 3. **查看实体**：在 Home Assistant「设置 → 设备与服务 → MQTT」找到摄像头实体。
 4. **添加卡片**：在仪表盘添加 Picture glance 卡片，将检测实体叠加在实时画面上。
 
@@ -837,7 +925,7 @@
 
 ### 前置条件
 
-1. **在 Home Assistant 中添加 MQTT 集成**：进入「设置 → 设备与服务 → 添加集成」，选择 MQTT。Broker 填第 3 步部署的那台机器的地址，端口 1883，用户名密码留空。如果已经配好 MQTT 则跳过。
+1. **在 Home Assistant 中添加 MQTT 集成**：进入「设置 → 设备与服务 → 添加集成」，选择 MQTT。Broker 填第 4 步部署的那台机器的地址，端口 1883，用户名密码留空。如果已经配好 MQTT 则跳过。
 2. **配置摄像头 MQTT**：如果部署时已填写 MQTT 服务器地址，设备会自动连接。否则在摄像头应用中心点当前应用的「配置」，在「结果输出」里勾选 MQTT，输出模式选择 Home Assistant，并填入 broker 地址和端口 1883。
 3. **查看实体**：「设置 → 设备与服务 → MQTT」，点进这台摄像头的设备，确认检测实体存在。
 4. **打开 RTSP**：在摄像头控制面板「画面设置 → 推流设置」开启 RTSP，复制视频流地址。
