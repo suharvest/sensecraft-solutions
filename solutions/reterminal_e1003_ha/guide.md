@@ -1,17 +1,16 @@
 ## Preset: Configure E1003 {#usb_candidate}
 
-Connect the E1003 panel via USB and specify the light to control. The App checks firmware, installs it when needed, and saves your settings.
+Connect the E1003 panel via USB and integrate it into Home Assistant. The installer checks firmware, installs it when needed, deploys or connects to Home Assistant, and automatically links the panel.
 
 > Note: Ensure the reTerminal E1003 panel is connected via USB. The flashing step downloads and installs the 0.2.1 firmware directly from the CDN.
 
 ## Step 1: Install E1003 panel firmware {#e1003_usb type=esp32_usb required=true verify=true config=devices/e1003_usb.yaml}
 
-In a compatible test App, enter your settings, click **Save settings**, and wait for **Settings saved and verified**.
+Select your serial port, click **Deploy**, and wait for firmware installation and reboot verification to complete.
 
 ### Prerequisites
 
 - A reTerminal E1003 panel and a USB data cable.
-- A dimmable light already added to Home Assistant, with its entity ID ready (such as `light.bedroom`).
 - The computer, E1003 panel, and Home Assistant on the same reachable LAN.
 
 ### Wiring
@@ -35,11 +34,13 @@ In a compatible test App, enter your settings, click **Save settings**, and wait
 ### After setup
 
 1. If connecting Wi-Fi for the first time, configure Wi-Fi credentials via Improv Serial or the ESPHome captive portal.
-2. In Home Assistant, navigate to Settings → Devices & Services → Integrations, add an ESPHome device, and enter the device IP address (no API key required).
-3. In the device options, check “Allow the device to perform Home Assistant actions”.
+2. If not using Step 3 automatic integration, navigate to Settings → Devices & Services → Integrations in Home Assistant, add ESPHome, and enter the panel IP (no API key required).
+3. In Home Assistant, create an Automation (Settings → Automations & Scenes → Create Automation) to bind the panel actions:
+   - **Trigger**: State / Device trigger from E1003 entities (power button or brightness level).
+   - **Action**: Call service `light.toggle` or `light.turn_on` on your desired dimmable light entity (such as `light.living_room`).
 4. Test the on/off touch zone and the 25%, 50%, 75%, and 100% brightness zones.
 
-> **Note**: Only these five touch zones have actions defined; other screen elements are static. Saved settings do not imply physical control or two-way display synchronization have completed acceptance.
+> **Note**: Only these five touch zones have actions defined; other screen elements are static.
 
 ### Troubleshooting
 
@@ -48,7 +49,7 @@ In a compatible test App, enter your settings, click **Save settings**, and wait
 | Device serial port not found | Click Refresh; verify the USB cable supports data transfer; close other programs using the serial port |
 | Setup or write failed | Check the displayed error message, resolve the issue, and retry; do not erase NVS |
 | Saving or verification in progress | Keep the device powered and wait for the final verification status |
-| Button or light does not respond | Confirm the light entity ID is correct and dimmable; ensure “Allow the device to perform Home Assistant actions” is enabled in Home Assistant |
+| Button or light does not respond | Confirm the automation trigger and action are set correctly in Home Assistant; ensure “Allow the device to perform Home Assistant actions” is enabled in the ESPHome device options |
 
 ---
 

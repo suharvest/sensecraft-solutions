@@ -4,11 +4,11 @@ name: Home Assistant
 type: docker_deploy
 
 preconditions:
-  - command: "curl -s -m 2 http://127.0.0.1:8123/api/ >/dev/null 2>&1 || curl -s -m 2 http://localhost:8123/api/ >/dev/null 2>&1"
-    description: "Check if Home Assistant is already running on port 8123"
-    satisfied_message: "Home Assistant is already running on this host, skipping Docker installation."
+  - command: "((curl -s -m 2 http://127.0.0.1:8123/api/ || curl -s -m 2 http://localhost:8123/api/) | grep -Eqi 'API running|Unauthorized') && (nc -z 127.0.0.1 1883 2>/dev/null || (echo > /dev/tcp/127.0.0.1/1883) 2>/dev/null || ss -tuln 2>/dev/null | grep -q ':1883 ')"
+    description: "Check if Home Assistant and MQTT Broker are already running on ports 8123 and 1883"
+    satisfied_message: "Home Assistant and MQTT broker are already running on this host, skipping Docker installation."
     satisfied_message_i18n:
-      zh: "检测到该主机已运行 Home Assistant，自动跳过 Docker 安装。"
+      zh: "检测到该主机已运行 Home Assistant 和 MQTT Broker，自动跳过 Docker 安装。"
 
 # Single source-of-truth device YAML. Backend derives docker_local and
 # docker_remote views via derive_docker_views(). Pure application-layer

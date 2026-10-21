@@ -5,7 +5,6 @@ services:
     privileged: true
     environment:
       TZ: ${TZ:-Asia/Shanghai}
-      SETUP_PORT: ${HA_PORT:-8123}
     restart: unless-stopped
     volumes:
       - ~/home-assistant/config:/config

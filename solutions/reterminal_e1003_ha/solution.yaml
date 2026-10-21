@@ -5,9 +5,9 @@ name_i18n:
   zh: E1003 灯光面板配置演示
 enabled: true
 intro:
-  summary: Connect E1003 and specify a Home Assistant light; the App handles firmware checks and setup.
+  summary: Flash reTerminal E1003 smart control panel and integrate with Home Assistant to control smart lights and scenes.
   summary_i18n:
-    zh: 连接 E1003 并指定 Home Assistant 调光灯，App 会自动检查固件并完成配置。
+    zh: 烧录 reTerminal E1003 智能控制面板，并一键接入 Home Assistant 控制智能灯光与场景。
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
@@ -23,9 +23,9 @@ intro:
         zh: UART0 以 115200 波特率运行 Improv Serial，返回设备身份和联网状态。
   input_requirements:
     - type: network
-      description: The setup computer, panel, and Home Assistant must be on the same reachable LAN, with an existing dimmable light entity.
+      description: The setup computer, panel, and Home Assistant must be on the same reachable LAN.
       description_i18n:
-        zh: 配置电脑、面板和 Home Assistant 需在同一可达局域网，且已有一盏可调光的灯。
+        zh: 配置电脑、面板和 Home Assistant 需在同一可达局域网。
   device_catalog:
     reterminal_e_series:
       description: Runs the fixed E1003 screen and touch interface.
