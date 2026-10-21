@@ -67,14 +67,11 @@ services:
       - facedb:/var/lib/unmanned-store-access/facedb
     healthcheck:
       test: ["CMD", "python", "-c",
-             "import urllib.request;urllib.request.urlopen('http://127.0.0.1:8080/v1/facedb/current')"]
+             "import http.client; conn = http.client.HTTPConnection('127.0.0.1', 8080); conn.request('GET', '/v1/facedb/current'); res = conn.getresponse(); raise SystemExit(0 if res.status in (200, 404) else 1)"]
       interval: 30s
       timeout: 5s
       retries: 3
-      # A brand-new server has no published version and answers 404 there. That
-      # is correct, not unhealthy — start_period covers the window before the
-      # first enrolment.
-      start_period: 60s
+      start_period: 10s
 
   web:
     <<: [*cloud_image, *bounded_logs]
@@ -136,6 +133,8 @@ services:
       - ./config/web-config.json:/app/config/web-config.json:ro
     depends_on:
       facedb:
+        condition: service_started
+      mosquitto:
         condition: service_started
     healthcheck:
       test: ["CMD", "python", "-c",
