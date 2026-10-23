@@ -161,7 +161,7 @@
       "type": "object"
     },
     "ActionWhen": {
-      "description": "Conditional execution for an action or model deployment",
+      "description": "Conditional execution for an action or model/file deployment",
       "properties": {
         "field": {
           "title": "Field",
@@ -822,12 +822,44 @@
           "default": true,
           "title": "Required",
           "type": "boolean"
+        },
+        "startup": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/StartupPolicy"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
         "name"
       ],
       "title": "DockerService",
+      "type": "object"
+    },
+    "EraseRegionConfig": {
+      "description": "A flash region erased before writing (esptool ``erase_region``).\n\n``offset`` and ``size`` are hex strings (``\"0xe000\"``) and must be\nmultiples of the 4 KB flash sector size, which esptool requires; the\npattern (last three hex digits ``000``) puts that check in the JSON\nschema too. ``size`` must be non-zero.",
+      "properties": {
+        "offset": {
+          "pattern": "^0[xX][0-9a-fA-F]*000$",
+          "title": "Offset",
+          "type": "string"
+        },
+        "size": {
+          "pattern": "^0[xX][0-9a-fA-F]*000$",
+          "title": "Size",
+          "type": "string"
+        }
+      },
+      "required": [
+        "offset",
+        "size"
+      ],
+      "title": "EraseRegionConfig",
       "type": "object"
     },
     "FaceDatabasePanelConfig": {
@@ -941,6 +973,17 @@
         "url": {
           "title": "Url",
           "type": "string"
+        },
+        "when": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ActionWhen"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
@@ -1086,6 +1129,21 @@
           "default": "esp32s3",
           "title": "Chip",
           "type": "string"
+        },
+        "erase_regions": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/EraseRegionConfig"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Erase Regions"
         },
         "flash_freq": {
           "default": "80m",
@@ -2002,6 +2060,11 @@
           "default": 1880,
           "title": "Port",
           "type": "integer"
+        },
+        "supervisor_mode_handoff": {
+          "default": false,
+          "title": "Supervisor Mode Handoff",
+          "type": "boolean"
         }
       },
       "required": [
@@ -2744,10 +2807,34 @@
           "title": "Config When",
           "type": "array"
         },
+        "package": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Package"
+        },
         "require_installed": {
           "default": true,
           "title": "Require Installed",
           "type": "boolean"
+        },
+        "signature": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Signature"
         }
       },
       "required": [
@@ -3066,6 +3153,7 @@
       "type": "object"
     },
     "ScriptStartCommand": {
+      "additionalProperties": false,
       "description": "Platform-specific start commands",
       "properties": {
         "env": {
@@ -3492,6 +3580,128 @@
       "title": "ServiceConfig",
       "type": "object"
     },
+    "StartupFailurePattern": {
+      "additionalProperties": false,
+      "description": "A solution-specific log line rule applied while a service starts.\n\n``severity``:\n\n* ``fatal`` -- the start fails as soon as ``threshold`` matching lines\n  were seen within ``window`` seconds (default: the first line).\n* ``transient`` -- like fatal, but the default threshold is 3 lines in\n  60 s and byte/progress growth in the window resets the count (a\n  download that keeps moving is not failing).\n* ``ignore`` -- matching lines are never classified, including by the\n  built-in rules (e.g. an optional download whose failure is followed by\n  a fallback). They still count as activity.\n\n``pattern`` and every ``exclude`` entry are plain case-insensitive\nsubstrings (not regular expressions), at most 200 characters. A line\ncontaining any ``exclude`` text does not count for this rule.",
+      "properties": {
+        "exclude": {
+          "items": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 10,
+          "title": "Exclude",
+          "type": "array"
+        },
+        "pattern": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Pattern",
+          "type": "string"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        },
+        "severity": {
+          "default": "fatal",
+          "enum": [
+            "fatal",
+            "transient",
+            "ignore"
+          ],
+          "title": "Severity",
+          "type": "string"
+        },
+        "threshold": {
+          "anyOf": [
+            {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Threshold"
+        },
+        "window": {
+          "anyOf": [
+            {
+              "maximum": 3600,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Window"
+        }
+      },
+      "required": [
+        "pattern"
+      ],
+      "title": "StartupFailurePattern",
+      "type": "object"
+    },
+    "StartupPolicy": {
+      "additionalProperties": false,
+      "description": "How long a slow first start (e.g. a model download) may take.\n\nAbsent on a service = the fixed ``health_check_timeout`` wait, unchanged.\nPresent: ``health_check_timeout`` is the initial window; container\nactivity (new log lines, parsed download progress, received bytes) moves\nthe deadline to ``last activity + idle_timeout``, never past\n``max_wait`` (seconds after ``compose up``). Ready = HTTP 2xx from the\nhealth endpoint or Docker ``healthy``; still active at ``max_wait`` =\nthe deploy reports the service as still starting instead of failing.\n\n``progress_pattern`` optionally restricts progress parsing to log lines\ncontaining this case-insensitive substring (not a regular expression);\nthe numbers are extracted by the built-in parser (``45%``,\n``371MB/825MB``, ``100 of 900 KiB``).",
+      "properties": {
+        "failure_patterns": {
+          "items": {
+            "$ref": "#/$defs/StartupFailurePattern"
+          },
+          "maxItems": 20,
+          "title": "Failure Patterns",
+          "type": "array"
+        },
+        "idle_timeout": {
+          "default": 180,
+          "maximum": 86400,
+          "minimum": 10,
+          "title": "Idle Timeout",
+          "type": "integer"
+        },
+        "max_wait": {
+          "default": 1800,
+          "maximum": 86400,
+          "minimum": 10,
+          "title": "Max Wait",
+          "type": "integer"
+        },
+        "progress_pattern": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Progress Pattern"
+        }
+      },
+      "title": "StartupPolicy",
+      "type": "object"
+    },
     "StreamConfig": {
       "description": "SSE streaming configuration.",
       "properties": {
@@ -3652,19 +3862,6 @@
           "default": {},
           "title": "Description I18N",
           "type": "object"
-        },
-        "generate": {
-          "anyOf": [
-            {
-              "const": "hex32",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Generate"
         },
         "id": {
           "title": "Id",
@@ -3869,7 +4066,7 @@
       "type": "object"
     }
   },
-  "contract_version": 5,
+  "contract_version": 10,
   "description": "Complete device configuration",
   "properties": {
     "actions": {

@@ -1,0 +1,51 @@
+version: "1.0"
+id: recamera_pro_firmware
+name: Check or Flash reCamera Pro Firmware
+name_i18n:
+  zh: 检查或刷写 reCamera Pro 固件
+type: manual
+
+steps:
+  - id: check_firmware_version
+    name: Verify device firmware compatibility
+    name_i18n:
+      zh: 检查设备固件兼容性
+    description: >-
+      Open your reCamera Pro Web Console in a browser (https://<device-ip>/). Check whether App Center is available and whether the firmware includes userdata mount guard (RECAMERA_USERDATA_GUARD=1). If your camera was recently flashed with the updated firmware package, you may skip flashing and proceed directly to Step 2.
+    description_i18n:
+      zh: >-
+        在浏览器中打开 reCamera Pro 的 Web 管理页面（https://<device-ip>/）。检查是否存在「应用中心」且已集成存储防清空保护（RECAMERA_USERDATA_GUARD=1）。若设备已刷入最新定制固件，可直接跳到步骤 2。
+    optional: false
+
+  - id: prepare_flash_tools
+    name: Prepare flashing tools and firmware image
+    name_i18n:
+      zh: 准备刷机工具与固件镜像
+    description: >-
+      Download the latest firmware update package (e.g., from Seeed release CDN or official documentation). Extract the compressed firmware if necessary: gzip -dc update.img.gz > update.img. The Linux Rockchip upgrade_tool (or Windows RKDevTool) is used for flashing.
+    description_i18n:
+      zh: >-
+        获取官方最新固件升级包（如通过 Seeed 发布 CDN 或官方文档链接）。若使用压缩包，执行解压：gzip -dc update.img.gz > update.img。使用 Linux 下的 upgrade_tool（或 Windows 下的 RKDevTool）执行烧录。
+    optional: false
+
+  - id: flash_firmware
+    name: Flash firmware via upgrade_tool
+    name_i18n:
+      zh: 执行固件烧录
+    description: >-
+      Connect the camera to your host via USB Type-C in Maskrom / Loader mode (or execute reboot loader via adb: adb reboot loader). Then flash using: sudo ./upgrade_tool uf update.img. The camera will automatically reboot upon completion.
+    description_i18n:
+      zh: >-
+        使用 Type-C 数据线将摄像头连接至电脑，进入 Loader / Maskrom 模式（或通过 adb reboot loader 进入），运行：sudo ./upgrade_tool uf update.img。烧录完成后设备会自动重启。
+    optional: false
+
+  - id: confirm_appmgr_ready
+    name: Confirm App Center and network reachability
+    name_i18n:
+      zh: 确认应用中心与网络就绪
+    description: >-
+      After the camera reboots, verify that you can sign into the Web Console (default admin/admin). You are now ready to deploy and activate the Eldercare Monitor application.
+    description_i18n:
+      zh: >-
+        设备重启完成后，登录 Web 控制台确认正常访问（默认 admin/admin）。此时设备已就绪，可继续进行看护应用的自动安装与配置。
+    optional: false

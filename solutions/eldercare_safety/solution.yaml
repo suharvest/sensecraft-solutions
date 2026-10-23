@@ -1,0 +1,75 @@
+version: "1.0"
+id: eldercare_safety
+name: Eldercare Safety Monitor
+name_i18n:
+  zh: 居家养老安全守护
+
+intro:
+  summary: >-
+    All-in-one on-device eldercare safety monitoring on reCamera Pro, combining YOLO11n-Pose vision fall detection and SenseVoice offline speech recognition for immediate voice help call alerts. Pure edge inference ensures 100% privacy without streaming video or audio to the cloud.
+  summary_i18n:
+    zh: >-
+      基于 reCamera Pro 的端侧一体化居家养老看护方案：融合 YOLO11n-Pose 骨架跌倒视觉检测与 SenseVoice 端侧离线语音求助转写，发生意外或呼喊求救时即刻告警。全本地推理，音视频不出设备，保障长者隐私。
+  description_file: description.md
+  description_file_i18n:
+    zh: description_zh.md
+  category: vision_video_ai
+  solution_type: solution
+  tags:
+    - elderly-care
+    - fall-detection
+    - voice-asr
+    - recamera-pro
+    - npu
+    - privacy-first
+    - home-assistant
+    - mqtt
+
+  output_interfaces:
+    - type: mqtt
+      port: 1883
+      topic: <device-name>/eldercare-monitor/events
+      description: Real-time structured fall detection and voice distress alert event stream.
+      description_i18n:
+        zh: 实时结构化跌倒检测与语音呼救告警事件流。
+    - type: websocket
+      port: 8123
+      path: /ws/inference/results
+      description: Live WebSocket inference result feed providing pose keypoints and bounding boxes.
+      description_i18n:
+        zh: 实时 WebSocket 推理结果流，提供骨骼关键点与目标框。
+
+hardware_requirements:
+  devices:
+    recamera_pro:
+      name: reCamera Pro
+      name_i18n:
+        zh: reCamera Pro
+      description: Smart AI camera based on Rockchip RV1126B with 3.0 TOPS NPU, running visual pose tracking and offline ASR on-device.
+      description_i18n:
+        zh: 基于瑞芯微 RV1126B 芯片的智能 AI 摄像头，集成 3.0 TOPS NPU，单机完成骨架检测与离线 ASR 语音推理。
+
+presets:
+  - id: recamera_pro
+    name: reCamera Pro All-in-One
+    name_i18n:
+      zh: reCamera Pro 一体化部署
+    description: Deploy Eldercare Monitor on reCamera Pro with automatic package uploading, installation, and activation.
+    description_i18n:
+      zh: 在 reCamera Pro 上一键部署居家看护应用，自动上传固件配套安装包、配置并激活。
+    device_groups:
+      - id: camera
+        name: AI Camera
+        name_i18n:
+          zh: AI 摄像头
+        type: single
+        required: true
+        options:
+          - device_ref: recamera_pro
+        default: recamera_pro
+
+deployment:
+  guide_file: guide.md
+  guide_file_i18n:
+    zh: guide_zh.md
+  selection_mode: sequential

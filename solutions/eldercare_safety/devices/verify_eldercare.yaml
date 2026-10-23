@@ -1,0 +1,14 @@
+version: "1.0"
+id: verify_eldercare
+name: View Eldercare Monitor Dashboard
+name_i18n:
+  zh: 查看居家看护控制台
+type: web_dashboard
+inherit_host_from: deploy_recamera_pro_eldercare
+
+web_dashboard:
+  url: "https://{{deploy.host}}/"
+  title: Eldercare Safety Console
+  description: Open the reCamera Pro Web Console and navigate to the Eldercare Monitor app to view real-time pose estimation overlays, fall alarms, and offline voice transcription logs.
+  description_i18n:
+    zh: 打开 reCamera Pro Web 控制台并进入 Eldercare Monitor 应用，查看实时骨架姿态估计、跌倒判定告警与端侧离线语音转写日志。
