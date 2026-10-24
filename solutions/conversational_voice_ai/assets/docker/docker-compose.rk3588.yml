@@ -1,4 +1,10 @@
-# Speech image: sensecraft-missionpack.seeed.cn/solution/openvoicestream:rk-20260921-bargein
+# Speech image: sensecraft-missionpack.seeed.cn/solution/openvoicestream:rk-20261024-ttsnum
+#   index sha256:0030846210c84cfef112c13966370f962d150942f099263977cf7737ba5f3d50
+#   (linux/arm64 sha256:4629a129edb7bd8d505c4773ad9e6e577e45f991694e0fe46d70af5db4a41d5c).
+#   Rebuilt from openvoicestream main 8271afba (PR #130) with voxedge 0.0.15a4:
+#   fixes Chinese number pronunciation in Matcha TTS (_to_speakable normalization).
+# Previous speech image:
+#   sensecraft-missionpack.seeed.cn/solution/openvoicestream:rk-20260921-bargein
 #   index sha256:66c1609280eca64c2e9559f61f047e8d7f593c80d9e136787ac048cdb05fda33
 #   (linux/arm64 sha256:8e24d89a35215906df10779de85d0045a83fea0662d8a386a968d74dd34d041f).
 #   Thin overlay on rk-20260921-twosentence, two files from openvoicestream
@@ -65,7 +71,7 @@ services:
   # path this compose does not pin; the openvoicestream test suite is what
   # guarantees every profile the matrix names exists.
   profile-init:
-    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/openvoicestream:rk-20260921-bargein}
+    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/openvoicestream:rk-20261024-ttsnum}
     container_name: conversational-voice-profile-init
     init: true
     network_mode: none
@@ -84,7 +90,7 @@ services:
     restart: "no"
 
   speech:
-    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/openvoicestream:rk-20260921-bargein}
+    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/openvoicestream:rk-20261024-ttsnum}
     container_name: conversational-voice-speech
     privileged: true
     init: true
