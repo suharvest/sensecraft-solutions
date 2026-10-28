@@ -31,21 +31,21 @@ ssh:
 # 注意语义与 device_detection 相反：device_detection 退出非 0 会中止部署，
 # 而 precondition 退出非 0 只是「尚未满足，正常安装」，不算失败。
 preconditions:
-  - command: "opkg list-installed 2>/dev/null | grep -q '^supervisor - 0\\.5\\.6'"
-    description: Console already at 0.5.6
+  - command: "opkg list-installed 2>/dev/null | grep -q '^supervisor - 0\\.5\\.7'"
+    description: Console already at 0.5.7
     description_i18n:
-      zh: 控制台已是 0.5.6
-    satisfied_message: Console is already at 0.5.6 — nothing to install.
+      zh: 控制台已是 0.5.7
+    satisfied_message: Console is already at 0.5.7 — nothing to install.
     satisfied_message_i18n:
-      zh: 控制台已是 0.5.6，无需重复安装。
+      zh: 控制台已是 0.5.7，无需重复安装。
 
 binary:
   deb_package:
-    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/supervisor_0.5.6_riscv64.deb
+    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/supervisor_0.5.7_riscv64.deb
     name: supervisor
     includes_init_script: true
     checksum:
-      sha256: 957f253b7b790a3f3f18f5d8b31490cb651adcfae80f46e9b183a2af983ad17d
+      sha256: d0ccbdce2a9775f4672e476e4266a94c038fda77e076bfdbedfdacd75fb2e6d1
 
   # service_name 是 init 脚本名 S93sscma-supervisor 去掉 S93 的部分，
   # 与 deb 包名 supervisor 不同，必须显式写出，否则会回落到包名拼出
