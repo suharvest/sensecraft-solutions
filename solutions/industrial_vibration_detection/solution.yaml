@@ -11,13 +11,18 @@ intro:
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
-  cover_image: https://files.seeedstudio.com/wiki/SenseCAP/T1000/T1000_1.png
+  cover_image: gallery/cover.png
   gallery:
     - type: image
-      src: https://files.seeedstudio.com/wiki/SenseCAP/T1000/T1000_1.png
-      caption: SenseCAP Card Tracker T1000-E
+      src: gallery/cover.png
+      caption: SenseCraft AI Vibration Monitoring & Calibration Workspace
       caption_i18n:
-        zh: SenseCAP 卡片追踪器 T1000-E
+        zh: SenseCraft AI 振动异常监测与工况标定工作台
+    - type: image
+      src: gallery/detection_panel.png
+      caption: Real-Time Vibration Anomaly Alert
+      caption_i18n:
+        zh: 实时机械异常振动报警
   category: industrial_control_automation
   solution_type: technical
 

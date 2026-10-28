@@ -21,7 +21,7 @@ ssh:
 
 script:
   start_command:
-    command: |
+    linux_macos: |
       set -e
       # 1. broker（NRD-2 §S12）：mosquitto 缺失时安装
       if ! command -v mosquitto >/dev/null 2>&1; then
@@ -40,8 +40,6 @@ script:
         -o /tmp/edge-parking-install.sh
       SITE_ID="{{site_id}}" GATE_ID="{{gate_id}}" DO_LINE="{{do_line}}" \
         bash /tmp/edge-parking-install.sh --with-gate
-    sudo: true
-    timeout: 600
   health_check:
     type: log_pattern
     pattern: "active"
