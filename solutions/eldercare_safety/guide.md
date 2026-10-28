@@ -16,8 +16,9 @@ Required only once if your camera does not yet have the updated firmware contain
 
 - Open `https://<device-ip>/` in your browser.
 - Verify web console login and check that App Center is visible.
-- If flashing is needed, download the official release image (`update.img.gz`) and flashing tool.
-- Flash command: `sudo ./upgrade_tool uf update.img`.
+- If flashing is needed, download the official release image: [update.img.gz](https://sensecraft-statics.seeed.cc/solution-app/eldercare_safety/update.img.gz) (SHA-256: `baccc7d6fbd03394ebd5a9b58021eb3a6f2a0f2e5489f3033a2276850f1276cd`).
+- Extract the image: `gzip -dc update.img.gz > update.img`.
+- Flash command (USB in Loader mode): `sudo ./upgrade_tool uf update.img`.
 
 ### Troubleshooting
 

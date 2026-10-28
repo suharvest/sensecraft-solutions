@@ -7,8 +7,8 @@ type: recamera_pro_app
 
 recamera_pro_app:
   app_id: eldercare-monitor
-  package: https://files.seeedstudio.com/solutions/eldercare-safety/eldercare-monitor-0.1.5-arm64.tar.gz
-  signature: https://files.seeedstudio.com/solutions/eldercare-safety/eldercare-monitor-0.1.5-arm64.tar.gz.sig
+  package: https://sensecraft-statics.seeed.cc/solution-app/eldercare_safety/eldercare-monitor-0.1.5-arm64.tar.gz
+  signature: https://sensecraft-statics.seeed.cc/solution-app/eldercare_safety/eldercare-monitor-0.1.5-arm64.tar.gz.sig
   activation_timeout: 90
   config:
     output_channels: ["ws"]

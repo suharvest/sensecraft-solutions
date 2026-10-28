@@ -16,7 +16,8 @@
 
 - 在浏览器中访问设备 IP：`https://<device-ip>/`。
 - 确认可登录管理页面且存在「应用中心」入口。
-- 如需刷机，从官方发布地址下载最新固件镜像与烧录工具包（包含 `update.img.gz` 及 `upgrade_tool`）。
+- 如需刷机，从官方发布地址下载固件镜像：[update.img.gz](https://sensecraft-statics.seeed.cc/solution-app/eldercare_safety/update.img.gz)（SHA-256: `baccc7d6fbd03394ebd5a9b58021eb3a6f2a0f2e5489f3033a2276850f1276cd`）。
+- 解压固件：`gzip -dc update.img.gz > update.img`。
 - 执行刷写命令（USB 处于 Loader 模式下）：`sudo ./upgrade_tool uf update.img`。
 
 ### 故障排查

@@ -22,10 +22,10 @@ steps:
     name_i18n:
       zh: 准备刷机工具与固件镜像
     description: >-
-      Download the latest firmware update package (e.g., from Seeed release CDN or official documentation). Extract the compressed firmware if necessary: gzip -dc update.img.gz > update.img. The Linux Rockchip upgrade_tool (or Windows RKDevTool) is used for flashing.
+      Download the latest firmware image package: https://sensecraft-statics.seeed.cc/solution-app/eldercare_safety/update.img.gz (SHA-256: baccc7d6fbd03394ebd5a9b58021eb3a6f2a0f2e5489f3033a2276850f1276cd). Extract the compressed firmware: gzip -dc update.img.gz > update.img. Use Linux Rockchip upgrade_tool (or Windows RKDevTool) to flash.
     description_i18n:
       zh: >-
-        获取官方最新固件升级包（如通过 Seeed 发布 CDN 或官方文档链接）。若使用压缩包，执行解压：gzip -dc update.img.gz > update.img。使用 Linux 下的 upgrade_tool（或 Windows 下的 RKDevTool）执行烧录。
+        下载官方固件包：https://sensecraft-statics.seeed.cc/solution-app/eldercare_safety/update.img.gz（SHA-256: baccc7d6fbd03394ebd5a9b58021eb3a6f2a0f2e5489f3033a2276850f1276cd）。解压固件镜像：gzip -dc update.img.gz > update.img。使用 Linux 下的 upgrade_tool（或 Windows 下的 RKDevTool）执行烧录。
     optional: false
 
   - id: flash_firmware
