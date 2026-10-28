@@ -14,10 +14,25 @@ intro:
   cover_image: gallery/cover.png
   gallery:
     - type: image
-      src: gallery/cover.png
-      caption: reSpeaker Audio Lab - Real-Time Acoustic Tuning Interface
+      src: gallery/noise_comparison.png
+      caption: Real-Time Noise Suppression & Dual-Channel Spectrogram Comparison
       caption_i18n:
-        zh: reSpeaker Audio Lab 实时声学调优与波形分析工作台
+        zh: 降噪对比与实时双通道频段瀑布图
+    - type: image
+      src: gallery/echo_experiment.png
+      caption: Hardware AEC Echo Cancellation & Barge-in Test Flow
+      caption_i18n:
+        zh: 硬件 AEC 回声消除与打断唤醒测试
+    - type: image
+      src: gallery/spatial_doa.png
+      caption: 360-Degree DOA Sound Source Direction Tracking & Multi-Channel Monitor
+      caption_i18n:
+        zh: 360° 声源测向（DOA）与多通道电平监测
+    - type: image
+      src: gallery/transcription.png
+      caption: 6-Second Dual-Channel Audio Capture & On-Device Whisper Transcription
+      caption_i18n:
+        zh: 6 秒双路音频采样与端侧 Whisper 离线转写
   category: voice_ai
   solution_type: technical
 
