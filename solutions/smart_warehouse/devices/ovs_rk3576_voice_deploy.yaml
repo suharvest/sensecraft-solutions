@@ -1,0 +1,78 @@
+version: "1.0"
+id: ovs_rk3576_voice_deploy
+name: Speech Service (RK3576 NPU)
+name_i18n:
+  zh: 语音服务（RK3576 NPU）
+type: docker_deploy
+
+# 私有云方案：在 RK3576 上通过 RKNN NPU 硬件加速运行 OpenVoiceStream（Qwen3-ASR + Matcha-TTS）。
+# 注意：RK3576 仅支持单路会话（单台 Watcher 独占），不支持多路并发。
+device_class: rk3576
+
+docker:
+  compose_file: assets/docker/docker-compose-rk-voice.yml
+  options:
+    project_name: smart_warehouse_rk_voice
+    remove_orphans: true
+  environment:
+    DEVICE: rk3576
+    LANGUAGE: zh
+  services:
+    - name: speech
+      port: 8621
+      health_check_endpoint: /readyz
+      health_check_port: 8621
+      health_check_timeout: 1800
+      required: true
+
+ssh:
+  port: 22
+  default_user: cat
+  auth_methods:
+    - password
+    - key
+  connection_timeout: 30
+  command_timeout: 3600
+
+pre_checks:
+  - type: docker_version
+    min_version: "20.0"
+    description: Check Docker version
+  - type: disk_space
+    min_gb: 12
+    description: At least 12GB for speech service image and models
+
+post_deployment:
+  message: "Speech service is running on RK3576 NPU: OpenVoiceStream on 8621 (Single session only)."
+  message_i18n:
+    zh: "语音服务已部署在 RK3576 NPU：OpenVoiceStream 在 8621（仅支持单路独占）。"
+
+remote_overrides:
+  remote_path: /home/{{username}}/smart_warehouse_rk_voice
+  compose_dir: assets/docker
+  detection:
+    method: network_scan
+    manual_entry: true
+  environment:
+    DEVICE: rk3576
+    LANGUAGE: zh
+  user_inputs:
+    - id: host
+      name: Device IP
+      type: text
+      required: true
+      name_i18n:
+        zh: 设备 IP
+    - id: username
+      name: SSH Username
+      type: text
+      default: cat
+      required: true
+      name_i18n:
+        zh: SSH 用户名
+    - id: password
+      name: SSH Password
+      type: password
+      required: true
+      name_i18n:
+        zh: SSH 密码

@@ -1,0 +1,66 @@
+# OpenVoiceStream on Rockchip RK3576 / RK3588 (RKNN NPU 加速)
+#
+# 提供 ASR (Qwen3-ASR) 与 TTS (Matcha-TTS) 服务，对外暴露 8621 端口。
+# 注意：RK 系列 NPU 算子仅支持单路语音会话，不支持多并发。
+
+services:
+  profile-init:
+    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/openvoicestream:rk-20260921-bargein}
+    container_name: smart-warehouse-profile-init
+    init: true
+    network_mode: none
+    entrypoint:
+      - python3
+      - /opt/voice/config/resolve_profile.py
+      - --matrix=/opt/voice/config/language_device.yaml
+      - --language=${LANGUAGE:-zh}
+      - --device=${DEVICE:-rk3576}
+      - --no-verify-profile
+      - --write-env=/opt/voice/resolved/ovs.env
+    volumes:
+      - ./resolve_profile.py:/opt/voice/config/resolve_profile.py:ro
+      - ./language_device.yaml:/opt/voice/config/language_device.yaml:ro
+      - resolved-profile:/opt/voice/resolved
+    restart: "no"
+
+  speech:
+    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/openvoicestream:rk-20260921-bargein}
+    container_name: smart-warehouse-rk-speech
+    privileged: true
+    init: true
+    network_mode: host
+    command:
+      - /bin/sh
+      - -c
+      - 'set -a; . /opt/voice/resolved/ovs.env; set +a; exec python3 -m uvicorn server.main:app --host ${OVS_SPEECH_BIND:-0.0.0.0} --port 8621'
+    depends_on:
+      profile-init:
+        condition: service_completed_successfully
+    mem_limit: 12g
+    memswap_limit: 12g
+    volumes:
+      - resolved-profile:/opt/voice/resolved:ro
+      - /dev:/dev
+      - rk-asr-models:/opt/asr/models
+      - rk-tts-models:/opt/tts/models
+      - voice-data:/opt/seeed-local-voice/data
+    environment:
+      OVS_PROFILE: ${OVS_PROFILE:-}
+      HF_ENDPOINT: ${HF_ENDPOINT:-https://hf-mirror.com}
+      OVS_V2V_VAD_ENDPOINT_SILENCE_MS: ${OVS_V2V_VAD_ENDPOINT_SILENCE_MS:-0}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8621/readyz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 300s
+
+volumes:
+  resolved-profile:
+  rk-asr-models:
+    name: rk-asr-models
+  rk-tts-models:
+    name: rk-tts-models
+  voice-data:
+    name: smart-warehouse-rk-voice-data

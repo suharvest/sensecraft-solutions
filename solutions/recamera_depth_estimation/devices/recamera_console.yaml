@@ -32,23 +32,23 @@ ssh:
 #   - 先停后起：S93sscma-supervisor 自身（引擎 DEFAULT_CONFLICT_SERVICES 先 stop，
 #     postinst 再 start；全程 stop→start，不用 restart，避开 download 态竞态）
 preconditions:
-  - command: "opkg list-installed 2>/dev/null | grep -q '^supervisor - 0\\.5\\.6' && [ -d /etc/recamera.conf ]"
-    description: Console already at 0.5.6 and config directory ready
+  - command: "opkg list-installed 2>/dev/null | grep -q '^supervisor - 0\\.5\\.7' && [ -d /etc/recamera.conf ]"
+    description: Console already at 0.5.7 and config directory ready
     description_i18n:
-      zh: 控制台已是 0.5.6 且配置目录正常
-    satisfied_message: Console is already at 0.5.6 — nothing to install.
+      zh: 控制台已是 0.5.7 且配置目录正常
+    satisfied_message: Console is already at 0.5.7 — nothing to install.
     satisfied_message_i18n:
-      zh: 控制台已是 0.5.6，无需重复安装。
+      zh: 控制台已是 0.5.7，无需重复安装。
 
 binary:
   # .deb 包安装（自带 /etc/init.d/S93sscma-supervisor）
   # 包内已含 SPA 前端、画廊应用定义和 yolo11n 四件套模型，无需额外下发模型
   deb_package:
-    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/supervisor_0.5.6_riscv64.deb
+    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/supervisor_0.5.7_riscv64.deb
     name: supervisor
     includes_init_script: true
     checksum:
-      sha256: 957f253b7b790a3f3f18f5d8b31490cb651adcfae80f46e9b183a2af983ad17d
+      sha256: d0ccbdce2a9775f4672e476e4266a94c038fda77e076bfdbedfdacd75fb2e6d1
 
   # 服务配置
   #

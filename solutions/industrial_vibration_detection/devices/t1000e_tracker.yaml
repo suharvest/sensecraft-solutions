@@ -32,6 +32,7 @@ user_inputs:
           zh: "LoRaWAN 工业低功耗巡检固件"
 
 firmware:
+  protocol: adafruit_dfu
   source:
     path: assets/firmware/t1000e_mesh_vad.zip
   variants:

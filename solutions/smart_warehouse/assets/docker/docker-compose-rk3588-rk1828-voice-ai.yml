@@ -1,0 +1,100 @@
+# OpenVoiceStream (RK3588 NPU) + EdgeLLM (RK1828 NPU PCIe 加速卡) 全本地离线栈
+#
+# 提供：
+#   1. ASR + TTS：RK3588 NPU 硬件加速，端口 8621
+#   2. 本地大模型：RK1828 NPU 加速卡，端口 1828 (OpenAI 兼容接口 /v1)
+# 注意：RK 系列 NPU 算子仅支持单路语音会话，不支持多并发。
+
+services:
+  profile-init:
+    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/openvoicestream:rk-20260921-bargein}
+    container_name: smart-warehouse-rk1828-profile-init
+    init: true
+    network_mode: none
+    entrypoint:
+      - python3
+      - /opt/voice/config/resolve_profile.py
+      - --matrix=/opt/voice/config/language_device.yaml
+      - --language=${LANGUAGE:-zh}
+      - --device=rk3588
+      - --no-verify-profile
+      - --write-env=/opt/voice/resolved/ovs.env
+    volumes:
+      - ./resolve_profile.py:/opt/voice/config/resolve_profile.py:ro
+      - ./language_device.yaml:/opt/voice/config/language_device.yaml:ro
+      - resolved-profile:/opt/voice/resolved
+    restart: "no"
+
+  speech:
+    image: ${SPEECH_IMAGE:-sensecraft-missionpack.seeed.cn/solution/openvoicestream:rk-20260921-bargein}
+    container_name: smart-warehouse-rk1828-speech
+    privileged: true
+    init: true
+    network_mode: host
+    command:
+      - /bin/sh
+      - -c
+      - 'set -a; . /opt/voice/resolved/ovs.env; set +a; exec python3 -m uvicorn server.main:app --host ${OVS_SPEECH_BIND:-0.0.0.0} --port 8621'
+    depends_on:
+      profile-init:
+        condition: service_completed_successfully
+    mem_limit: 12g
+    memswap_limit: 12g
+    volumes:
+      - resolved-profile:/opt/voice/resolved:ro
+      - /dev:/dev
+      - rk-asr-models:/opt/asr/models
+      - rk-tts-models:/opt/tts/models
+      - voice-data:/opt/seeed-local-voice/data
+    environment:
+      OVS_PROFILE: ${OVS_PROFILE:-rk3588-default}
+      OVS_PROFILE_DEFAULT: rk3588-default
+      HF_ENDPOINT: ${HF_ENDPOINT:-https://hf-mirror.com}
+      OVS_V2V_VAD_ENDPOINT_SILENCE_MS: ${OVS_V2V_VAD_ENDPOINT_SILENCE_MS:-0}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8621/readyz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 300s
+
+  llm:
+    image: ${LLM_IMAGE:-sensecraft-missionpack.seeed.cn/solution/edge-llm-rk1828:20260919-hostruntime.2}
+    container_name: smart-warehouse-rk1828-llm
+    privileged: true
+    init: true
+    network_mode: host
+    volumes:
+      - /dev:/dev
+      - rk1828-llm-models:/opt/llm/models
+      - /usr/lib:/opt/rk1828/host-lib:ro
+    environment:
+      RK1828_ARTIFACT_AUTO_DOWNLOAD: "1"
+      RK1828_ARTIFACT_REPO_ID: harvestsu/seeed-local-voice-rk-artifacts
+      RK1828_ARTIFACT_PREFIX: rk1828/opt/llm/qwen3-4b
+      RK1828_MAX_CONTEXT: ${RK1828_MAX_CONTEXT:-2048}
+      RK1828_CORE_MASK: ff
+      RK1828_PORT: "8000"
+      RK1828_READY_TIMEOUT: ${RK1828_READY_TIMEOUT:-180}
+      RK1828_START_ATTEMPTS: ${RK1828_START_ATTEMPTS:-3}
+      RK1828_HOST: ${RK1828_HOST:-0.0.0.0}
+      HF_ENDPOINT: ${HF_ENDPOINT:-https://hf-mirror.com}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 900s
+
+volumes:
+  resolved-profile:
+  rk-asr-models:
+    name: rk-asr-models
+  rk-tts-models:
+    name: rk-tts-models
+  rk1828-llm-models:
+    name: rk1828-llm-models
+  voice-data:
+    name: smart-warehouse-rk1828-voice-data

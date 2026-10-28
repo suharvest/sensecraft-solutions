@@ -882,26 +882,42 @@ After deployment, open the warehouse system to complete initial setup:
 
 ## Step 5: Speech Service {#voice_stack_private_cloud_multi type=docker_deploy required=true config=devices/ovs_voice_deploy.yaml}
 
-Deploy OpenVoiceStream on the J40 series device to provide speech recognition, synthesis and voiceprint; the voice AI service in the next step connects to it.
+Deploy OpenVoiceStream to provide speech recognition (Qwen3-ASR), synthesis (Matcha-TTS) and voiceprint; the voice AI service in the next step connects to it. Supports deployment to Jetson (Orin NX) or RK3576 / RK3588 (RKNN NPU hardware acceleration).
 
-### Target {#voice_stack_local type=local config=devices/ovs_voice_deploy.yaml}
+### Target {#voice_stack_remote type=remote device=jetson device_name="Jetson" config=devices/ovs_voice_deploy.yaml default=true}
 
-Deploy directly on this machine — only applicable when it is the J40 series device itself. Needs at least 15 GB of free disk; models download automatically.
+Deploy to the reComputer J40 series (Jetson Orin NX, the same device as Step 3). Needs at least 15 GB of free disk. Supports up to 3 concurrent voice sessions.
 
-### Target {#voice_stack_remote type=remote config=devices/ovs_voice_deploy.yaml default=true}
+### Target {#voice_stack_rk3576_remote type=remote device=rk3576 device_name="RK3576" config=devices/ovs_rk3576_voice_deploy.yaml}
 
-Deploy to the reComputer J40 series (the same device as Step 3). Needs at least 15 GB of free disk.
+Deploy to an RK3576 device. Qwen3-ASR and Matcha-TTS run fully accelerated by the **RKNN NPU**. **Note: RK3576 supports single-channel voice sessions only (single Watcher dedicated), no concurrency.**
+
+### Target {#voice_stack_rk3588_remote type=remote device=rk3588 device_name="RK3588" config=devices/ovs_rk3588_voice_deploy.yaml}
+
+Deploy to an RK3588 device. Qwen3-ASR and Matcha-TTS run fully accelerated by the **RKNN NPU**. **Note: RK3588 supports single-channel voice sessions only (single Watcher dedicated), no concurrency.**
+
+### Target {#voice_stack_local type=local device=jetson device_name="Jetson" config=devices/ovs_voice_deploy.yaml}
+
+Deploy directly on this Jetson device. Needs at least 15 GB of free disk.
+
+### Target {#voice_stack_rk3576_local type=local device=rk3576 device_name="RK3576" config=devices/ovs_rk3576_voice_deploy.yaml}
+
+Deploy directly on this RK3576 device. Needs at least 12 GB of free disk.
+
+### Target {#voice_stack_rk3588_local type=local device=rk3588 device_name="RK3588" config=devices/ovs_rk3588_voice_deploy.yaml}
+
+Deploy directly on this RK3588 device. Needs at least 12 GB of free disk.
 
 ### Wiring
 
 > 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/voice-warehouse-management/#how-to-deploy-on-site).
 
 
-1. Connect the J40 series device to power and ethernet
-2. Enter the J40 series device's IP address and SSH credentials (the same device as Step 3)
+1. Connect the speech host (Jetson or RK3576/RK3588) to power and ethernet
+2. Enter the device's IP address and SSH credentials
 3. Click Deploy and wait for the models to download and the service to start
 
-The service listens on **8621** and admits up to **3 concurrent voice sessions**, one per Watcher; a 4th is rejected. **Note this machine's LAN IP — the next step asks for it as the Voice Service Address.**
+The service listens on **8621**. **Note this machine's LAN IP — the next step asks for it as the Voice Service Address.**
 
 > Even when the voice service and the next step land on the same machine, do **not** use `127.0.0.1`.
 
@@ -909,12 +925,13 @@ The service listens on **8621** and admits up to **3 concurrent voice sessions**
 
 | Symptom | Action |
 |-------|----------|
-| First deploy seems stuck | The first start downloads ~5GB of models; this can take 10+ minutes |
-| Not enough disk space | This step needs at least 15GB free |
-| NVIDIA runtime unavailable | Install nvidia-container-toolkit and restart Docker |
-| Deploy aborts with a container-name conflict | The device already has a hand-installed voice service or the other tier's voice step; they cannot coexist. `docker rm -f` the existing containers as instructed and retry |
-| Deployed but 8621 unreachable | Models are still loading; ready when `curl localhost:8621/readyz` returns 200 |
-| A Watcher gets `4429 too_many_sessions` | All 3 sessions are busy; check for a Watcher stuck in an open session |
+| First deploy seems stuck | The first start downloads models; this can take 10+ minutes |
+| Not enough disk space | This step needs at least 12GB to 15GB free |
+| NVIDIA runtime unavailable | (Jetson only) Install nvidia-container-toolkit and restart Docker |
+| RK device reports NPU error or fails to start | Confirm `/dev/rknpu` device node exists on host and RKNN driver is loaded |
+| Deploy aborts with a container-name conflict | The device already has a hand-installed voice service. `docker rm -f` existing containers and retry |
+| Deployed but 8621 unreachable | Models are still loading; ready when `curl localhost:8621/health` or `/readyz` returns 200 |
+| A Watcher gets `4429 too_many_sessions` | Sessions are busy (Jetson supports up to 3; RK supports 1 dedicated); check for stuck sessions |
 
 ---
 
@@ -1253,36 +1270,49 @@ After deployment, open the warehouse system to complete initial setup:
 
 ## Step 5: Voice AI Stack {#jetson_ai type=docker_deploy required=true config=devices/ovs_jetson_deploy.yaml}
 
-Deploy OpenVoiceStream (speech recognition + synthesis + voiceprint) and EdgeLLM (Qwen3.5-4B) on the Jetson. The next step's voice service connects to both.
+Deploy local speech recognition and synthesis (OpenVoiceStream) along with local conversational LLM. All services run on-device, fully offline. Supports deployment to Jetson (J50) or the RK3588 + RK1828 all-local stack.
 
-### Target {#jetson_ai_local type=local config=devices/ovs_jetson_deploy.yaml}
+### Target {#jetson_remote type=remote device=jetson device_name="Jetson" config=devices/ovs_jetson_deploy.yaml default=true}
 
-Deploy directly on this Jetson. Needs at least 25 GB of free disk; models download automatically.
+Deploy to the reComputer J50 series (Jetson AGX Orin). Needs at least 25 GB of free disk. Runs OpenVoiceStream (8621) and EdgeLLM Qwen3.5-4B (8000).
 
-### Target {#jetson_remote type=remote config=devices/ovs_jetson_deploy.yaml default=true}
+### Target {#rk3588_rk1828_ai_remote type=remote device=rk3588 device_name="RK3588 + RK1828" config=devices/ovs_rk3588_rk1828_deploy.yaml}
 
-Deploy to the reComputer J50 series. Needs at least 25 GB of free disk.
+Deploy to an RK3588 device equipped with an RK1828 PCIe accelerator card. **Fully local and offline**: speech recognition/synthesis is accelerated by the RK3588 NPU (port 8621), and the local Qwen3-4B LLM is powered by the **RK1828 NPU accelerator card** (port 8000). **Note: supports single-channel voice sessions only, no concurrency.** Needs at least 20 GB of free disk.
+
+### Target {#jetson_ai_local type=local device=jetson device_name="Jetson" config=devices/ovs_jetson_deploy.yaml}
+
+Deploy directly on this Jetson device. Needs at least 25 GB of free disk; models download automatically.
+
+### Target {#rk3588_rk1828_ai_local type=local device=rk3588 device_name="RK3588 + RK1828" config=devices/ovs_rk3588_rk1828_deploy.yaml}
+
+Deploy directly on this RK3588 + RK1828 device. Needs at least 20 GB of free disk.
 
 ### Wiring
 
 > 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/voice-warehouse-management/#how-to-deploy-on-site).
 
 
-1. Connect Jetson (reComputer J50 series) to power and ethernet
-2. Enter Jetson IP address and SSH credentials
+1. Connect the AI host (reComputer J50 or RK3588+RK1828) to power and ethernet
+2. Enter the device IP address and SSH credentials
 3. Click Deploy and wait for the models to download and services to start
 
-Two containers come up: voice service on **8621**, LLM on **8000**. **Note this Jetson's IP — the next step needs it.**
+Services come up after deployment:
+- Voice service on **8621**
+- Local LLM on **8000** (Jetson runs EdgeLLM; RK3588+RK1828 runs local Qwen3-4B)
+
+**Note this machine's IP — the next step needs it.**
 
 ### Troubleshooting
 
 | Symptom | Action |
 |-------|----------|
-| SSH connection failed | Confirm Jetson is powered on, verify IP address |
-| First deploy seems stuck | The first start downloads ~10GB of models and inference engines; this can take 10+ minutes |
-| Not enough disk space | This step needs at least 25GB free |
-| NVIDIA runtime unavailable | Install nvidia-container-toolkit on the Jetson and restart Docker |
-| Deploy aborts with a container-name conflict | The device already has a hand-installed voice service; they cannot coexist. `docker rm -f` the existing containers as instructed and retry; models are not re-downloaded |
+| SSH connection failed | Confirm the device is powered on, verify IP address |
+| First deploy seems stuck | The first start downloads ~10GB to 15GB of models and inference engines; this can take 10+ minutes |
+| Not enough disk space | This step needs at least 20GB to 25GB free |
+| NVIDIA runtime unavailable | (Jetson only) Install nvidia-container-toolkit on the Jetson and restart Docker |
+| RK3588/RK1828 reports NPU/driver error | Confirm host package `rknn3-rk182x-m2` is installed and `/dev/rknpu` and `/dev/rknn3*` exist |
+| Deploy aborts with a container-name conflict | The device already has a hand-installed voice service. `docker rm -f` the existing containers and retry |
 
 ---
 ## Step 6: Voice AI Service {#voice_service_edge_computing type=docker_deploy required=true config=devices/xiaozhi_console_deploy.yaml}
@@ -1291,8 +1321,8 @@ Two containers come up: voice service on **8621**, LLM on **8000**. **Note this 
 
 Deploy the voice AI service and its management console on the Industrial R21 series device. Select "**Edge Computing**" mode and fill in two addresses:
 
-- **Voice Service Address**: LAN IP of the Jetson running OpenVoiceStream from the previous step, port 8621 (not `127.0.0.1`)
-- **Local LLM Address**: the same Jetson's LAN IP, port 8000 (leave empty if co-located)
+- **Voice Service Address**: LAN IP of the host running OpenVoiceStream from the previous step, port 8621 (not `127.0.0.1`)
+- **Local LLM Address**: LAN IP of the host from the previous step, port 8000 (leave empty if co-located)
 
 Model addresses, the device access address and the MCP endpoint are then configured automatically.
 

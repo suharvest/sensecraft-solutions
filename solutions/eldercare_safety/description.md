@@ -6,7 +6,7 @@ The system seamlessly combines computer vision pose tracking and continuous offl
 
 ---
 
-## Challenges and Multimodal Edge Solution
+## What This Solution Does
 
 - **Traditional Motion Sensors & Radars**: Frequently triggered by room activities, pets, or robot vacuums, and unable to distinguish lying on the floor from sitting or tying shoelaces.
 - **Cloud-Connected Cameras**: Transmitting continuous 24/7 video streams to third-party cloud services raises severe privacy resistance, especially in bedrooms and living rooms, and fails entirely during broadband outages.
@@ -17,7 +17,7 @@ The system seamlessly combines computer vision pose tracking and continuous offl
 
 ---
 
-## Technical Specifications & Benchmarks
+## Key Benefits & Technical Specifications
 
 ### 1. Skeleton Pose & Fall Detection (YOLO11n-Pose)
 - **Architecture**: YOLO11n-Pose (quantized INT8 on Rockchip NPU), tracking 17 COCO body joints.
@@ -44,7 +44,7 @@ The system seamlessly combines computer vision pose tracking and continuous offl
 
 ---
 
-## Communication Interfaces & Protocol Schemas
+## Interfaces & Communication
 
 ### 1. Structured MQTT Event Stream
 Publishes structured JSON alerts to local MQTT brokers (such as Home Assistant, Node-RED, or alarm gateways).
@@ -79,7 +79,15 @@ Publishes structured JSON alerts to local MQTT brokers (such as Home Assistant, 
 
 ---
 
-## Camera Placement & Mounting Guidelines
+## Suitable Scenarios
+
+- **Home Eldercare & Living Spaces**: Bedrooms, living rooms, and private quarters where continuous video streaming to the cloud is unacceptable.
+- **Senior Care Facilities & Assisted Living**: Corridors, community activity rooms, and blind spots requiring automated real-time alerts.
+- **Autonomous Emergency Response**: Local integration with Home Assistant or on-premise alarm systems for instantaneous notification.
+
+---
+
+## Measured Benchmarks & Usage Notes
 
 1. **Mounting Height**: **2.2 to 2.5 meters** above the floor on a corner or wall mount.
 2. **Tilt Angle**: Downwards tilt of **15° to 25°**. Avoid 90° top-down placement (which compresses vertical joint distance and hinders pose classification).
