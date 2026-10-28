@@ -364,10 +364,15 @@ actions:
         SQL
 
         if [ "$DEPLOY_MODE" = "edge_computing" ]; then
-          echo "写入本地 LLM 地址：$LLM_HOST:8000"
+          TARGET_LLM_HOST="$LLM_HOST"
+          case "$TARGET_LLM_HOST" in
+            *:*) ;;
+            *) TARGET_LLM_HOST="${TARGET_LLM_HOST}:8000" ;;
+          esac
+          echo "写入本地 LLM 地址：$TARGET_LLM_HOST"
           run_sql <<SQL
           UPDATE ai_model_config
-             SET config_json = JSON_SET(config_json, '\$.base_url', 'http://$(sql_quote "$LLM_HOST"):8000/v1')
+             SET config_json = JSON_SET(config_json, '\$.base_url', 'http://$(sql_quote "$TARGET_LLM_HOST")/v1')
            WHERE id = 'LLM_EdgeLLM' AND JSON_VALID(config_json);
         SQL
         else
@@ -685,10 +690,15 @@ remote_overrides:
           SQL
 
           if [ "$DEPLOY_MODE" = "edge_computing" ]; then
-            echo "写入本地 LLM 地址：$LLM_HOST:8000"
+            TARGET_LLM_HOST="$LLM_HOST"
+            case "$TARGET_LLM_HOST" in
+              *:*) ;;
+              *) TARGET_LLM_HOST="${TARGET_LLM_HOST}:8000" ;;
+            esac
+            echo "写入本地 LLM 地址：$TARGET_LLM_HOST"
             run_sql <<SQL
             UPDATE ai_model_config
-               SET config_json = JSON_SET(config_json, '\$.base_url', 'http://$LLM_HOST:8000/v1')
+               SET config_json = JSON_SET(config_json, '\$.base_url', 'http://$TARGET_LLM_HOST/v1')
              WHERE id = 'LLM_EdgeLLM' AND JSON_VALID(config_json);
           SQL
           else

@@ -1,0 +1,78 @@
+version: "1.0"
+id: ovs_rk3588_rk1828_deploy
+name: Voice AI Stack (RK3588 + RK1828)
+name_i18n:
+  zh: 语音 AI 栈（RK3588 + RK1828 全本地）
+type: docker_deploy
+
+# 边缘计算方案（套餐三全本地）：在 RK3588 上跑 NPU 语音识别与合成，在 RK1828 PCIe 加速卡上跑全本地 Qwen3-4B 大模型。
+# 注意：RK 系列 NPU 算子仅支持单路会话，不支持多并发。
+device_class: rk3588
+
+docker:
+  compose_file: assets/docker/docker-compose-rk3588-rk1828-voice-ai.yml
+  options:
+    project_name: smart_warehouse_rk1828_voice_ai
+    remove_orphans: true
+  services:
+    - name: speech
+      port: 8621
+      health_check_endpoint: /readyz
+      health_check_port: 8621
+      health_check_timeout: 1800
+      required: true
+    - name: llm
+      port: 8000
+      health_check_endpoint: /health
+      health_check_port: 8000
+      health_check_timeout: 1800
+      required: true
+
+ssh:
+  port: 22
+  default_user: radxa
+  auth_methods:
+    - password
+    - key
+  connection_timeout: 30
+  command_timeout: 3600
+
+pre_checks:
+  - type: docker_version
+    min_version: "20.0"
+    description: Check Docker version
+  - type: disk_space
+    min_gb: 20
+    description: Check available disk space (speech + RK1828 LLM models ~15GB)
+
+post_deployment:
+  message: "Voice AI stack is running on RK3588 + RK1828: OpenVoiceStream on 8621, Local Qwen3-4B on 8000."
+  message_i18n:
+    zh: "全本地语音 AI 栈已部署：RK3588 语音服务在 8621，RK1828 本地大模型在 8000。"
+
+remote_overrides:
+  remote_path: /home/{{username}}/smart_warehouse_rk1828_voice_ai
+  compose_dir: assets/docker
+  detection:
+    method: network_scan
+    manual_entry: true
+  user_inputs:
+    - id: host
+      name: Device IP
+      type: text
+      required: true
+      name_i18n:
+        zh: 设备 IP
+    - id: username
+      name: SSH Username
+      type: text
+      default: radxa
+      required: true
+      name_i18n:
+        zh: SSH 用户名
+    - id: password
+      name: SSH Password
+      type: password
+      required: true
+      name_i18n:
+        zh: SSH 密码

@@ -886,26 +886,42 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 
 ## 步骤 5: 语音服务 {#voice_stack_private_cloud_multi type=docker_deploy required=true config=devices/ovs_voice_deploy.yaml}
 
-在 J40 系列设备上部署 OpenVoiceStream，提供语音识别、语音合成与声纹能力，下一步的语音 AI 服务会连接到它。
+部署 OpenVoiceStream，提供语音识别（Qwen3-ASR）、语音合成（Matcha-TTS）与声纹能力，下一步的语音 AI 服务会连接到它。支持部署到 Jetson（Orin NX）或 RK3576 / RK3588（RKNN NPU 硬件加速）。
 
-### 部署目标 {#voice_stack_local type=local config=devices/ovs_voice_deploy.yaml}
+### 部署目标 {#voice_stack_remote type=remote device=jetson device_name="Jetson" config=devices/ovs_voice_deploy.yaml default=true}
 
-直接在本机部署，仅当本机就是 J40 系列设备时适用。需要至少 15 GB 可用磁盘，模型自动下载。
+部署到 reComputer J40 系列（Jetson Orin NX，与步骤 3 是同一台设备），需要至少 15 GB 可用磁盘。支持最多 3 路语音并发。
 
-### 部署目标 {#voice_stack_remote type=remote config=devices/ovs_voice_deploy.yaml default=true}
+### 部署目标 {#voice_stack_rk3576_remote type=remote device=rk3576 device_name="RK3576" config=devices/ovs_rk3576_voice_deploy.yaml}
 
-部署到 reComputer J40 系列（与步骤 3 是同一台设备），需要至少 15 GB 可用磁盘。
+部署到 RK3576 设备。Qwen3-ASR 与 Matcha-TTS 全程由 **RKNN NPU** 硬件加速。**注意：RK3576 仅支持单路语音会话（单台 Watcher 独占），不支持多路并发。**
+
+### 部署目标 {#voice_stack_rk3588_remote type=remote device=rk3588 device_name="RK3588" config=devices/ovs_rk3588_voice_deploy.yaml}
+
+部署到 RK3588 设备。Qwen3-ASR 与 Matcha-TTS 全程由 **RKNN NPU** 硬件加速。**注意：RK3588 仅支持单路语音会话（单台 Watcher 独占），不支持多路并发。**
+
+### 部署目标 {#voice_stack_local type=local device=jetson device_name="Jetson" config=devices/ovs_voice_deploy.yaml}
+
+直接在本机 Jetson 设备部署。仅当本机就是 J40 系列设备时适用。需要至少 15 GB 可用磁盘，模型自动下载。
+
+### 部署目标 {#voice_stack_rk3576_local type=local device=rk3576 device_name="RK3576" config=devices/ovs_rk3576_voice_deploy.yaml}
+
+直接在本机 RK3576 设备部署。需要至少 12 GB 可用磁盘。
+
+### 部署目标 {#voice_stack_rk3588_local type=local device=rk3588 device_name="RK3588" config=devices/ovs_rk3588_voice_deploy.yaml}
+
+直接在本机 RK3588 设备部署。需要至少 12 GB 可用磁盘。
 
 ### 接线
 
 > 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/voice-warehouse-management/#现场怎么部署)。
 
 
-1. 将 J40 系列设备接上电源和网线
-2. 输入 J40 系列设备的 IP 地址和 SSH 凭据（与步骤 3 是同一台设备）
+1. 将语音主机（Jetson 或 RK3576/RK3588）接上电源和网线，确保与控制电脑在同一局域网
+2. 输入设备的 IP 地址和 SSH 凭据
 3. 点击部署，等待模型下载与服务启动
 
-部署完成后服务监听 **8621**，最多 **3 路语音并发**，每台 Watcher 一路，第 4 路会被拒绝。**记下这台机器的局域网 IP，下一步填「语音服务地址」要用。**
+部署完成后服务监听 **8621** 端口。**记下这台机器的局域网 IP，下一步填「语音服务地址」要用。**
 
 > 即使语音服务与下一步装在同一台机器上，也**不能填 `127.0.0.1`**。
 
@@ -913,12 +929,13 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 
 | 现象 | 处理 |
 |------|----------|
-| 首次部署很久没反应 | 首次启动要下载约 5GB 模型，视网络可能要十几分钟 |
-| 磁盘空间不足 | 该步骤需要至少 15GB 可用空间 |
-| 提示 NVIDIA runtime 不可用 | 确认已安装 nvidia-container-toolkit 并重启 Docker |
-| 部署中止，提示容器名冲突 | 设备上已有手工安装的语音服务或另一个套餐的语音步骤，两者不能共存。按提示 `docker rm -f` 原有容器后重试 |
-| 部署完但 8621 不通 | 模型仍在加载，`curl localhost:8621/readyz` 返回 200 即就绪 |
-| Watcher 报 `4429 too_many_sessions` | 3 路已占满，检查是否有 Watcher 卡在未结束的会话里 |
+| 首次部署很久没反应 | 首次启动要下载模型，视网络可能要十几分钟 |
+| 磁盘空间不足 | 该步骤需要至少 12GB ~ 15GB 可用空间 |
+| 提示 NVIDIA runtime 不可用 | （仅 Jetson）确认已安装 nvidia-container-toolkit 并重启 Docker |
+| RK 设备报 NPU 错误或启动失败 | 确认宿主机存在 `/dev/rknpu` 设备节点且驱动正常加载 |
+| 部署中止，提示容器名冲突 | 设备上已有手工安装的语音服务，按提示 `docker rm -f` 原有容器后重试 |
+| 部署完但 8621 不通 | 模型仍在加载，`curl localhost:8621/health` 或 `/readyz` 返回 200 即就绪 |
+| Watcher 报 `4429 too_many_sessions` | 会话已占满（Jetson 最大 3 路，RK 系列仅支持 1 路独占），检查是否有未退出的会话 |
 
 ---
 
@@ -1257,36 +1274,49 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 
 ## 步骤 5: 语音 AI 栈 {#jetson_ai type=docker_deploy required=true config=devices/ovs_jetson_deploy.yaml}
 
-在 Jetson 上部署 OpenVoiceStream（语音识别 + 语音合成 + 声纹）和 EdgeLLM（对话大模型 Qwen3.5-4B）。下一步的语音服务会连接到这两个地址。
+部署本地语音识别与合成（OpenVoiceStream）以及本地对话大模型。所有服务均在本地运行，完全不依赖外网。支持部署到 Jetson（J50）或 RK3588 + RK1828 全本地方案。
 
-### 部署目标 {#jetson_ai_local type=local config=devices/ovs_jetson_deploy.yaml}
+### 部署目标 {#jetson_remote type=remote device=jetson device_name="Jetson" config=devices/ovs_jetson_deploy.yaml default=true}
+
+部署到 reComputer J50 系列（Jetson AGX Orin），需要至少 25 GB 可用磁盘。运行 OpenVoiceStream（8621）与 EdgeLLM Qwen3.5-4B（8000）。
+
+### 部署目标 {#rk3588_rk1828_ai_remote type=remote device=rk3588 device_name="RK3588 + RK1828" config=devices/ovs_rk3588_rk1828_deploy.yaml}
+
+部署到搭载 RK1828 PCIe 加速卡的 RK3588 设备。**全本地离线运行**：语音识别/合成由 RK3588 NPU 加速（端口 8621），本地对话大模型 Qwen3-4B 由 **RK1828 NPU 加速卡**承载（端口 8000）。**注意：仅支持单路语音会话，不支持多并发。** 需要至少 20 GB 可用磁盘。
+
+### 部署目标 {#jetson_ai_local type=local device=jetson device_name="Jetson" config=devices/ovs_jetson_deploy.yaml}
 
 直接在本机 Jetson 上部署。需要至少 25 GB 可用磁盘，模型自动下载。
 
-### 部署目标 {#jetson_remote type=remote config=devices/ovs_jetson_deploy.yaml default=true}
+### 部署目标 {#rk3588_rk1828_ai_local type=local device=rk3588 device_name="RK3588 + RK1828" config=devices/ovs_rk3588_rk1828_deploy.yaml}
 
-部署到 reComputer J50 系列，需要至少 25 GB 可用磁盘。
+直接在本机 RK3588 + RK1828 设备上部署。需要至少 20 GB 可用磁盘。
 
 ### 接线
 
 > 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/voice-warehouse-management/#现场怎么部署)。
 
 
-1. 将 Jetson（reComputer J50 系列）接上电源和网线
-2. 输入 Jetson 的 IP 地址和 SSH 凭据
+1. 将 AI 主机（reComputer J50 或 RK3588+RK1828）接上电源和网线
+2. 输入设备的 IP 地址和 SSH 凭据
 3. 点击部署，等待模型下载与服务启动
 
-部署完成后会起两个容器：语音服务在 **8621**，大模型在 **8000**。**记下这台 Jetson 的 IP，下一步要填。**
+部署完成后会启动服务：
+- 语音服务在 **8621**
+- 本地大模型在 **8000**（Jetson 运行 EdgeLLM，RK3588+RK1828 运行本地 Qwen3-4B）
+
+**记下这台主机的 IP，下一步要填。**
 
 ### 故障排除
 
 | 现象 | 处理 |
 |------|----------|
-| SSH 连接失败 | 确认 Jetson 已开机，检查 IP 地址是否正确 |
-| 首次部署很久没反应 | 首次启动要下载约 10GB 的模型与推理引擎，视网络可能要十几分钟 |
-| 磁盘空间不足 | 该步骤需要至少 25GB 可用空间 |
-| 提示 NVIDIA runtime 不可用 | 在 Jetson 上确认已安装 nvidia-container-toolkit 并重启 Docker |
-| 部署中止，提示容器名冲突 | 设备上已有手工安装的语音服务，两者不能共存。按提示 `docker rm -f` 原有容器后重试，模型无需重新下载 |
+| SSH 连接失败 | 确认设备已开机，检查 IP 地址是否正确 |
+| 首次部署很久没反应 | 首次启动要下载约 10GB~15GB 的模型与推理引擎，视网络可能要十几分钟 |
+| 磁盘空间不足 | 该步骤需要至少 20GB~25GB 可用空间 |
+| 提示 NVIDIA runtime 不可用 | （仅 Jetson）在 Jetson 上确认已安装 nvidia-container-toolkit 并重启 Docker |
+| RK3588/RK1828 报 NPU 或驱动错误 | 确认宿主机驱动包 `rknn3-rk182x-m2` 已正确安装，且存在 `/dev/rknpu` 与 `/dev/rknn3*` 节点 |
+| 部署中止，提示容器名冲突 | 设备上已有手工安装的语音服务，按提示 `docker rm -f` 原有容器后重试，模型无需重新下载 |
 
 ---
 ## 步骤 6: 语音 AI 服务 {#voice_service_edge_computing type=docker_deploy required=true config=devices/xiaozhi_console_deploy.yaml}
@@ -1295,8 +1325,8 @@ D1001 在触摸屏上配网，不走手机热点——这是与 Watcher 的主�
 
 在 Industrial R21 系列设备上部署语音 AI 服务与智控台。部署时选择「**边缘计算方案**」，并填写两个地址：
 
-- **语音服务地址**：上一步部署 OpenVoiceStream 的 Jetson 局域网 IP，端口 8621（不能填 `127.0.0.1`）
-- **本地 LLM 地址**：上一步记下的 Jetson 局域网 IP，端口 8000（与语音服务同机时可留空）
+- **语音服务地址**：上一步部署 OpenVoiceStream 的主机局域网 IP，端口 8621（不能填 `127.0.0.1`）
+- **本地 LLM 地址**：上一步记下的主机局域网 IP，端口 8000（若与智控台同机可留空）
 
 部署完成后会自动配好模型地址、设备接入地址和 MCP 接入点。
 

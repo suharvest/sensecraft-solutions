@@ -42,6 +42,9 @@ intro:
     - watcher
     - integration
     - warehouse
+    - rk3576
+    - rk3588
+    - rk1828
 
   includes_demos:
     - jetson_voice_assistant
@@ -69,6 +72,14 @@ intro:
       purchase:
         require:
           ai_accelerator: [hailo-8]
+    recomputer_rk3576:
+      description: Runs Qwen3 ASR and Matcha TTS on RK3576 NPU
+      description_i18n:
+        zh: RK3576 NPU 硬件加速运行 Qwen3 语音识别与合成
+    recomputer_rk3588:
+      description: Runs speech stack on RK3588 NPU; pair with RK1828 for local Qwen3-4B
+      description_i18n:
+        zh: RK3588 NPU 运行语音链路，支持选配 RK1828 本地 Qwen3-4B
     recomputer_j40:
       description: AI compute unit, supports multi-channel concurrent voice processing
       description_i18n:
