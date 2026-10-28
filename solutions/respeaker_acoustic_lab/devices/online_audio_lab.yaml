@@ -1,0 +1,13 @@
+version: "1.0"
+id: online_audio_lab
+name: reSpeaker Acoustic Lab Workbench
+name_i18n:
+  zh: reSpeaker 声学前端调测工作台
+
+type: web_dashboard
+
+web_dashboard:
+  url: https://files.seeedstudio.com/Solution/landpage_asset/respeaker-audio-lab/8d0198b8/index.html?lang=zh-hans
+  title: reSpeaker Audio Lab
+  title_i18n:
+    zh: reSpeaker 声学工作台

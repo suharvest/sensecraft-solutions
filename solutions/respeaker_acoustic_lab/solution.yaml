@@ -1,0 +1,82 @@
+version: "1.0"
+id: respeaker_acoustic_lab
+name: reSpeaker Acoustic Front-End & Array Tuning Workbench
+name_i18n:
+  zh: reSpeaker 声学前端与麦克风阵列调优工作台
+
+intro:
+  summary: Browser-native acoustic tuning laboratory for reSpeaker USB mic arrays. Calibrate AEC, analyze beamforming waveforms, track sound source direction (DOA), and evaluate on-device Whisper transcription without installing drivers.
+  summary_i18n:
+    zh: 基于浏览器的 reSpeaker USB 麦克风阵列声学调测工作台。免装驱动直接在线校准回声消除（AEC）、波束成形（Beamforming）、声源测向（DOA）及端侧 Whisper 语音转写。
+  description_file: description.md
+  description_file_i18n:
+    zh: description_zh.md
+  cover_image: gallery/cover.png
+  gallery:
+    - type: image
+      src: gallery/cover.png
+      caption: reSpeaker Audio Lab - Real-Time Acoustic Tuning Interface
+      caption_i18n:
+        zh: reSpeaker Audio Lab 实时声学调优与波形分析工作台
+  category: voice_ai
+  solution_type: technical
+
+  tags:
+    - respeaker
+    - acoustic-tuning
+    - aec
+    - beamforming
+    - doa
+    - webusb
+    - webaudio
+    - whisper
+
+  device_catalog:
+    respeaker_lite:
+      description: reSpeaker Lite 2-Mic array with onboard DSP and hardware AEC
+      description_i18n:
+        zh: reSpeaker Lite 双麦克风阵列，板载硬件 DSP 与 AEC 回声消除
+    respeaker_xvf3800:
+      description: reSpeaker XVF3800 4-Mic array with 360-degree far-field voice capture and DOA
+      description_i18n:
+        zh: reSpeaker XVF3800 四麦克风阵列，支持 360 度远场拾音与声源测向
+
+  presets:
+    - id: acoustic_tuning_workbench
+      name: Acoustic Tuning Workbench
+      name_i18n:
+        zh: 声学前端实时调测工作台
+      badge: Start Here
+      badge_i18n:
+        zh: 快速体验
+      description: Connect your reSpeaker USB microphone array and launch the browser-based acoustic workbench. Verify background noise level, test barge-in echo cancellation, and adjust DSP parameters.
+      description_i18n:
+        zh: 连接 reSpeaker USB 麦克风阵列，通过浏览器直接打开声学调测台。实时监测环境底噪、测试打断唤醒（AEC 回声消除）、观察声源方位并调试硬件 DSP 参数。
+      device_groups:
+        - id: mic_array
+          name: Microphone Array
+          name_i18n:
+            zh: 麦克风阵列
+          type: single
+          required: true
+          options:
+            - device_ref: respeaker_lite
+            - device_ref: respeaker_xvf3800
+          default: respeaker_lite
+
+  stats:
+    difficulty: beginner
+    estimated_time: 5min
+
+has_description: true
+has_description_i18n:
+  zh: true
+has_guide: true
+has_guide_i18n:
+  zh: true
+
+deployment:
+  guide_file: guide.md
+  guide_file_i18n:
+    zh: guide_zh.md
+  selection_mode: sequential
