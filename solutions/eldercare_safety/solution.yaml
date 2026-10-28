@@ -5,6 +5,7 @@ name_i18n:
   zh: 居家养老安全守护
 
 intro:
+  cover_image: gallery/cover.jpg
   summary: >-
     All-in-one on-device eldercare safety monitoring on reCamera Pro, combining YOLO11n-Pose vision fall detection and SenseVoice offline speech recognition for immediate voice help call alerts. Pure edge inference ensures 100% privacy without streaming video or audio to the cloud.
   summary_i18n:
