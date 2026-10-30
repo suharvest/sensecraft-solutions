@@ -39,14 +39,15 @@ The `schema` command returns:
 
 Read `presets[]`, `steps[]`, `device_connections`, `selected_devices`, and `request_template` from `deploy-info` or `schema`. A preset with more than one variant requires the user's choice. Fill every `<REQUIRED: ...>` value from the user or a read-only device check; never invent device IDs, connection keys, SSH credentials, serial ports, Docker targets, or mode IDs.
 
-### Step Selection: Core Hardware vs. Optional Container Services
+### Step Selection: Core Hardware, Container Services, and Integrations
 
-When a solution preset contains both core hardware flashing steps (such as `esp32_usb`, `himax_xmodem`) and optional container services (such as `docker_deploy` for local services):
+When a solution preset contains core hardware flashing steps (such as `esp32_usb`, `himax_xmodem`), optional container services (such as `docker_deploy`), and integration steps (such as `ha_integration` connecting via HTTP/API):
 1. **Verify Local Docker Availability First**: Run `sensecraft-engine doctor --json` to inspect the local environment.
 2. **Selective `selected_devices` (Avoid `ERR_PRECHECK`)**:
-   - If local Docker is not installed, not running, or running in an environment without native host networking support (such as Docker Desktop on macOS or Windows where host network mode cannot support Home Assistant mDNS and LAN device discovery), **`selected_devices` MUST default to the core hardware step only** (e.g. `selected_devices: ["e1003_usb"]`).
-   - Do NOT blindly select all steps in `selected_devices`. Selecting an optional `docker_deploy` step when Docker is absent or unsupported causes immediate `ERR_PRECHECK` failures.
-   - If the user explicitly requests container deployment or already possesses a dedicated Linux Docker host, configure the remote target (`ha_remote`) with SSH credentials or guide the user to reuse their existing service instance.
+   - If local Docker is not installed, not running, or running in an environment without native host networking support (such as Docker Desktop on macOS or Windows where host network mode cannot support Home Assistant mDNS and LAN device discovery), **`selected_devices` MUST only exclude local container service steps whose prerequisites are unfulfilled** (e.g. excluding a `docker_deploy` step like `deploy_ha` when targeting local Docker).
+   - Integration steps connecting to an existing external or independent service (such as `connect_ha` via HTTP/API) do not depend on local Docker and SHOULD be retained in `selected_devices` alongside the hardware steps whenever an existing instance is available.
+   - Do NOT blindly select all steps in `selected_devices`. Selecting an unready `docker_deploy` step targeting local Docker when Docker is absent or unsupported causes immediate `ERR_PRECHECK` failures.
+   - If the user explicitly requests container deployment or already possesses a dedicated Linux Docker host, dynamically match an available remote target from `step.targets` where `type == "remote"` (do not hardcode an assumed target ID), configure it with SSH credentials, or guide the user to reuse their existing service instance.
 
 ### Understanding Targets vs Modes (`has_targets` vs `has_modes`)
 
@@ -224,7 +225,7 @@ Report the URL, device, deployed solution, and verification evidence. Do not rep
 For solutions combining microcontroller hardware with smart home / IoT integration (e.g. ESP32 panels with Home Assistant):
 
 ```
-Flashed (固件写入完成) 
+Flashed (固件写入完成)
   ↳ Provisioned (Wi-Fi 凭据注入，获取局域网 IP)
     ↳ Entry Verified (HA 中存在本面板 entry 且 loaded)
       ↳ Entity Bound (目标灯写入 text 实体，允许执行动作开启)
