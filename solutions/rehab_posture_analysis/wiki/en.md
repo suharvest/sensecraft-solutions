@@ -1,5 +1,5 @@
 ---
-description: Edge AI Rehabilitation Posture Analysis Engineering Document: 33-keypoint anatomical topology retraining, hysteresis state machine, ROM angle measurement, compensation alert engine, secondary cascade hand/foot models, WebSocket/EMR protocols, and edge benchmarks
+description: Edge AI Rehabilitation Posture Analysis Engineering Document: 33-keypoint anatomical topology retraining, hysteresis state machine, ROM angle measurement, compensation alert engine, secondary cascade hand/foot models, solution-cli automated deployment, WebSocket/EMR protocols, and edge benchmarks
 title: Edge AI Rehabilitation Posture Analysis: Architecture, 33-Keypoint Retraining, Extension Guide, and Edge Benchmarks
 keywords:
   - Rehabilitation Posture Analysis
@@ -9,6 +9,7 @@ keywords:
   - Joint Range of Motion ROM
   - Pathological Compensation Alert
   - Cascade Micro-Model Extension
+  - solution-cli
   - reCamera Pro
   - RV1126B RKNN
   - SG2002
@@ -35,6 +36,7 @@ In outpatient clinics, senior rehabilitation centers, or home exercise corners, 
 
 - Open Source Repository: [github.com/suharvest/rehab-posture-analysis](https://github.com/suharvest/rehab-posture-analysis)
 - Sizing and Deployment: [Reference Design Landing Page](https://www.seeed.cc/solutions/reference-designs/rehab_posture_analysis)
+- Deployment Platform: [SenseCraft Solution Automation Platform](https://www.seeed.cc/solutions/sensecraft-solution)
 
 <div class="info-section">
     <ul class="info-list">
@@ -111,37 +113,39 @@ Only an all-in-one smart camera or an existing camera with an edge accelerator i
 - **Working Distance**: **2.0 ~ 3.5 m** for standing full-body exercises; **1.5 ~ 2.5 m** for seated upper-extremity training;
 - **Lighting**: Recommended illumination ≥ 150 Lux; avoid harsh backlight from windows.
 
-### 2. Software Installation: GUI & CLI Paths
+### 2. Software Installation: Recommended Official Toolchain
+
+This solution is integrated with the official Seeed automation framework. The primary recommended method uses **`solution-cli` (or AI Solution Assistant)** for automated precheck and deployment, with GUI options also supported:
 
 <div class="get_one_now_container" style={{textAlign: 'center'}}>
-    <a class="get_one_now_item" href="https://www.seeed.cc/solutions/reference-designs/rehab_posture_analysis" target="_blank">
-        <strong><span><font color={'FFFFFF'} size={"4"}>Configure and Download App Package 🖱️</font></span></strong>
+    <a class="get_one_now_item" href="https://www.seeed.cc/solutions/sensecraft-solution" target="_blank">
+        <strong><span><font color={'FFFFFF'} size={"4"}>Explore SenseCraft Solution Platform 🖱️</font></span></strong>
     </a>
 </div><br />
 
-#### Option A: One-Click GUI Installation (SenseCraft Web / App Center)
+#### Recommended: Automated Deployment with `solution-cli` (CLI Best Practice)
+`solution-cli` is Seeed's unified deployment and sizing toolkit for industrial edge AI solutions ([Documentation](https://www.seeed.cc/solutions/sensecraft-solution)). Deploy with three steps without manually extracting tarballs:
+
+```bash
+# 1. Install or run solution-cli (skip if already available)
+npm install -g @seeed-studio/solution-cli
+# Or run on the fly via npx: npx @seeed-studio/solution-cli doctor
+
+# 2. Diagnose local environment and scan network for reCamera hardware
+solution-cli doctor
+solution-cli device scan
+
+# 3. Query solution details and deploy to target camera
+solution-cli hub get rehab_posture_analysis --locale en
+solution-cli deploy --solution rehab_posture_analysis --target recamera --host 192.168.42.1
+```
+> **Tip**: If you are using AI agents like Claude Code, Codex, or Antigravity, prompt directly: *"Please deploy reference design rehab_posture_analysis to my connected reCamera Pro using solution-cli"*. The agent invokes the built-in skill to run pre-flight checks and mount the pipeline automatically.
+
+#### Alternative: GUI Installation (SenseCraft Web / App Center)
 1. Connect your PC to the reCamera hotspot or local IP, open `http://<camera_ip>` in a browser;
 2. Navigate to **App Center**, search for `rehab_posture_analysis`;
 3. Click **Install / Run**; the device automatically downloads the pre-compiled INT8 engine and kinematics pipeline;
 4. Click **Open Live HUD** to display the real-time interactive screen on a local display or tablet.
-
-#### Option B: CLI Deployment (For System Integrators & Engineers)
-Deploy via SSH or ADB shell:
-```bash
-# 1. Login to reCamera Pro
-ssh root@192.168.42.1
-
-# 2. Fetch standalone deployment bundle
-wget https://files.seeedstudio.com/ReferenceDesign/packages/rehab_posture_analysis_arm64.tar.gz
-tar -zxvf rehab_posture_analysis_arm64.tar.gz && cd rehab_posture_analysis
-
-# 3. Launch on-device kinematics daemon
-./bin/rehab_engine --config ./configs/recamera_pro.json --daemon
-
-# 4. Check service health
-curl -s http://127.0.0.1:8124/health
-# Returns: {"status":"healthy","fps":24.0,"model":"yolo11n_pose_33kpt"}
-```
 
 ---
 

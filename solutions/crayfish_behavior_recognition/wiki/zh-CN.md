@@ -1,10 +1,11 @@
 ---
-description: 水产养殖高密度水槽螯虾打斗与行为识别工程文档：4 级漏斗流水线、8 帧时序拼图网络、公母多帧投票分类、模型与运行时矩阵、MQTT/WS 输出协议及现场实测数据
+description: 水产养殖高密度水槽螯虾打斗与行为识别工程文档：4 级漏斗流水线、8 帧时序拼图网络、公母多帧投票分类、solution-cli 自动化部署、模型与运行时矩阵、MQTT/WS 输出协议及现场实测数据
 title: 水产螯虾打斗与行为识别：4级漏斗架构、时序行为分类与工程实测数据
 keywords:
   - 螯虾打斗识别
   - 水产养殖 AI
   - 澳洲淡水龙虾
+  - solution-cli
   - reCamera Pro
   - SG2002 cvimodel
   - 时序行为分类
@@ -33,6 +34,7 @@ generated_from: sensecraft-solutions@crayfish_behavior_recognition
 
 - 开源实现：[github.com/suharvest/crayfish-fight](https://github.com/suharvest/crayfish-fight)
 - 选型与部署：[可部署方案页](https://www.seeedstudio.com.cn/solutions/reference-designs/crayfish_behavior_recognition)
+- 方案部署平台：[SenseCraft Solution 部署中枢](https://www.seeedstudio.com.cn/solutions/sensecraft-solution)
 
 <div class="info-section">
     <ul class="info-list">
@@ -103,36 +105,39 @@ generated_from: sensecraft-solutions@crayfish_behavior_recognition
 - **水深与水体透明度**：适用水深 20~80 cm，水体透明度 ≥ 25 cm；避免气泡发生器正对摄像头造成反光；
 - **补光条件**：水槽上方建议配备匀光柔光灯带（照度 ≥ 100 Lux），消除波光粼粼造成的高频反光噪点。
 
-### 二、软件安装：CLI 与 GUI 双途径
+### 二、软件安装：使用官方推荐工具部署
+
+本方案纳入 Seeed 方案自动化部署体系，官方首选使用 **`solution-cli`（或 AI 方案助手）** 执行自动化选型校验与端侧下发，同时兼容控制台 GUI 操作：
 
 <div class="get_one_now_container" style={{textAlign: 'center'}}>
-    <a class="get_one_now_item" href="https://www.seeedstudio.com.cn/solutions/reference-designs/crayfish_behavior_recognition" target="_blank">
-        <strong><span><font color={'FFFFFF'} size={"4"}>选配置并下载应用包 🖱️</font></span></strong>
+    <a class="get_one_now_item" href="https://www.seeedstudio.com.cn/solutions/sensecraft-solution" target="_blank">
+        <strong><span><font color={'FFFFFF'} size={"4"}>查看 SenseCraft Solution 自动化部署平台 🖱️</font></span></strong>
     </a>
 </div><br />
 
-#### 方式 A：GUI 一键安装（SenseCraft Web / App Center）
+#### 推荐途径：使用 `solution-cli` 自动化部署与环境自检（CLI 最佳实践）
+`solution-cli` 是官方面向工业方案与 AI 边缘设备的部署工具包（[官网文档](https://www.seeedstudio.com.cn/solutions/sensecraft-solution)）。无需手动管理容器镜像，执行三步即可完成端侧自检与下发：
+
+```bash
+# 1. 检查并安装 solution-cli（已安装用户可跳过）
+npm install -g @seeed-studio/solution-cli
+# 或直接通过 npx 运行：npx @seeed-studio/solution-cli doctor
+
+# 2. 环境诊断与设备连通性巡检（自动探测局域网内的 reCamera 设备）
+solution-cli doctor
+solution-cli device scan
+
+# 3. 查看方案详情与硬件需求并一键完成端侧部署下发
+solution-cli hub get crayfish_behavior_recognition --locale zh
+solution-cli deploy --solution crayfish_behavior_recognition --target recamera --host 192.168.42.1
+```
+> **提示**：若你在使用 Claude Code、Codex、Antigravity 等开发工具，也可以直接让 AI 助手调用内置的 `solution-cli` 技能，输入：*“请使用 solution-cli 帮我部署方案 crayfish_behavior_recognition 到水槽上方的 reCamera Pro 上”*，AI 助手将自动执行环境预检并挂载开箱即用的推理引擎。
+
+#### 备选途径：GUI 控制台可视化安装（SenseCraft Web / App Center）
 1. 浏览器访问 `http://<camera_ip>` 登录设备后台；
 2. 在 **App Center（应用中心）** 搜索 `crayfish_behavior_recognition`；
 3. 点击 **Install**，应用自动部署检测器与时序分析流水线；
 4. 进入设置页，填入养殖场 MQTT Broker 地址（如 `192.168.1.100:1883`）并开启服务。
-
-#### 方式 B：CLI 命令行部署
-```bash
-# 1. 登录相机
-ssh root@192.168.42.1
-
-# 2. 拉取工程发布包
-wget https://files.seeedstudio.com/ReferenceDesign/packages/crayfish_behavior_recognition_arm64.tar.gz
-tar -zxvf crayfish_behavior_recognition_arm64.tar.gz && cd crayfish_behavior_recognition
-
-# 3. 启动 4 级漏斗处理服务
-./bin/crayfish_pipeline --config ./configs/ras_tank.json --daemon
-
-# 4. 检查自检输出
-curl -s http://127.0.0.1:8124/health
-# 返回: {"status":"healthy","fps":14.5,"tracked_crayfish":12}
-```
 
 ---
 

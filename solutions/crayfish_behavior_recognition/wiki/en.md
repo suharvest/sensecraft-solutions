@@ -1,10 +1,11 @@
 ---
-description: Aquaculture Crayfish Behavior & Fighting Recognition Engineering Document: 4-stage funnel pipeline, 8-frame temporal mosaic network, multi-frame sex voting, runtime matrix, MQTT/WS protocols, and field benchmarks
+description: Aquaculture Crayfish Behavior & Fighting Recognition Engineering Document: 4-stage funnel pipeline, 8-frame temporal mosaic network, multi-frame sex voting, solution-cli automated deployment, runtime matrix, MQTT/WS protocols, and field benchmarks
 title: Aquaculture Crayfish Fighting & Behavior Recognition: 4-Stage Funnel, Temporal Classification, and Benchmarks
 keywords:
   - Crayfish Fighting Recognition
   - Aquaculture Edge AI
   - Cherax quadricarinatus
+  - solution-cli
   - reCamera Pro
   - SG2002 cvimodel
   - Temporal Behavior Classification
@@ -33,6 +34,7 @@ In high-density recirculating aquaculture systems (RAS) or breeding tanks, Austr
 
 - Open Source Repository: [github.com/suharvest/crayfish-fight](https://github.com/suharvest/crayfish-fight)
 - Sizing and Deployment: [Reference Design Landing Page](https://www.seeed.cc/solutions/reference-designs/crayfish_behavior_recognition)
+- Deployment Platform: [SenseCraft Solution Automation Platform](https://www.seeed.cc/solutions/sensecraft-solution)
 
 <div class="info-section">
     <ul class="info-list">
@@ -103,36 +105,39 @@ Only an all-in-one IP67 smart camera is mounted over the tanks and connected to 
 - **Water Depth & Clarity**: Suitable for depths 20~80 cm with visibility ≥ 25 cm; avoid placing aerators directly under the camera lens;
 - **Diffused Lighting**: Uniform LED strip lighting (≥ 100 Lux) is recommended to prevent surface ripples from generating specular reflections.
 
-### 2. Software Installation: GUI & CLI Paths
+### 2. Software Installation: Recommended Official Toolchain
+
+This solution is integrated with the official Seeed automation framework. The primary recommended method uses **`solution-cli` (or AI Solution Assistant)** for automated precheck and deployment, with GUI options also supported:
 
 <div class="get_one_now_container" style={{textAlign: 'center'}}>
-    <a class="get_one_now_item" href="https://www.seeed.cc/solutions/reference-designs/crayfish_behavior_recognition" target="_blank">
-        <strong><span><font color={'FFFFFF'} size={"4"}>Configure and Download App Package 🖱️</font></span></strong>
+    <a class="get_one_now_item" href="https://www.seeed.cc/solutions/sensecraft-solution" target="_blank">
+        <strong><span><font color={'FFFFFF'} size={"4"}>Explore SenseCraft Solution Platform 🖱️</font></span></strong>
     </a>
 </div><br />
 
-#### Option A: One-Click GUI Installation (SenseCraft Web / App Center)
+#### Recommended: Automated Deployment with `solution-cli` (CLI Best Practice)
+`solution-cli` is Seeed's unified deployment and sizing toolkit for industrial edge AI solutions ([Documentation](https://www.seeed.cc/solutions/sensecraft-solution)). Deploy with three steps without manually managing containers or tarballs:
+
+```bash
+# 1. Install or run solution-cli (skip if already available)
+npm install -g @seeed-studio/solution-cli
+# Or run on the fly via npx: npx @seeed-studio/solution-cli doctor
+
+# 2. Diagnose local environment and scan network for reCamera hardware
+solution-cli doctor
+solution-cli device scan
+
+# 3. Query solution details and deploy to target camera
+solution-cli hub get crayfish_behavior_recognition --locale en
+solution-cli deploy --solution crayfish_behavior_recognition --target recamera --host 192.168.42.1
+```
+> **Tip**: If you are using AI agents like Claude Code, Codex, or Antigravity, prompt directly: *"Please deploy reference design crayfish_behavior_recognition to the reCamera mounted over tank RAS-01 using solution-cli"*. The agent invokes the built-in skill to run pre-flight checks and mount the pipeline automatically.
+
+#### Alternative: GUI Installation (SenseCraft Web / App Center)
 1. Open `http://<camera_ip>` in a browser;
 2. Navigate to **App Center**, search for `crayfish_behavior_recognition`;
 3. Click **Install**; the camera automatically configures detection and temporal pipelines;
 4. In settings, configure the farm MQTT Broker address (e.g. `192.168.1.100:1883`) and enable the daemon.
-
-#### Option B: CLI Deployment
-```bash
-# 1. Login to camera
-ssh root@192.168.42.1
-
-# 2. Fetch release package
-wget https://files.seeedstudio.com/ReferenceDesign/packages/crayfish_behavior_recognition_arm64.tar.gz
-tar -zxvf crayfish_behavior_recognition_arm64.tar.gz && cd crayfish_behavior_recognition
-
-# 3. Start 4-stage funnel service
-./bin/crayfish_pipeline --config ./configs/ras_tank.json --daemon
-
-# 4. Check service health
-curl -s http://127.0.0.1:8124/health
-# Returns: {"status":"healthy","fps":14.5,"tracked_crayfish":12}
-```
 
 ---
 
