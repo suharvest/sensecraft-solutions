@@ -1,0 +1,117 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" width="1200" height="675">
+  <defs>
+    <linearGradient id="cardBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#162942" stop-opacity="0.88"/>
+      <stop offset="100%" stop-color="#0e1a2b" stop-opacity="0.95"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Real Camera Frame Video Background -->
+  <image href="/tmp/dumbel_frames/frame_015.png" width="1200" height="675" preserveAspectRatio="xMidYMid slice"/>
+
+  <!-- Medical UI Dark Film Overlay -->
+  <rect width="1200" height="675" fill="#070D18" opacity="0.45"/>
+
+  <!-- Header Badges -->
+  <g transform="translate(60, 45)">
+    <rect width="160" height="28" rx="14" fill="#00E5FF" fill-opacity="0.18" stroke="#00E5FF" stroke-width="1.2"/>
+    <text x="80" y="19" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="12" font-weight="700" fill="#00E5FF" text-anchor="middle">CLINICAL REHAB AI</text>
+
+    <rect x="175" y="0" width="180" height="28" rx="14" fill="#00E676" fill-opacity="0.18" stroke="#00E676" stroke-width="1.2"/>
+    <text x="265" y="19" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="12" font-weight="700" fill="#00E676" text-anchor="middle">13.3 FPS · 71.1ms</text>
+
+    <!-- Title -->
+    <text x="0" y="65" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="34" font-weight="800" fill="#FFFFFF">reCamera 2002 Rehab Posture Tracker</text>
+    <text x="0" y="94" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="15" fill="#94A3B8">reCamera 2002 (SG2002 · 1GHz TPU) · 33-Keypoint BlazePose INT8 · TPU INT8 · Hardware Normalize</text>
+  </g>
+
+  <!-- 33-Keypoint Skeleton on Person -->
+  <g transform="translate(140, 20)">
+    <!-- Head -->
+    <circle cx="360" cy="220" r="26" fill="none" stroke="#00E5FF" stroke-width="3"/>
+    <!-- Shoulders -->
+    <line x1="300" y1="290" x2="420" y2="290" stroke="#00E5FF" stroke-width="4.5" stroke-linecap="round"/>
+    <!-- Arms -->
+    <line x1="300" y1="290" x2="270" y2="390" stroke="#00E5FF" stroke-width="4" stroke-linecap="round"/>
+    <line x1="270" y1="390" x2="290" y2="480" stroke="#00E5FF" stroke-width="4" stroke-linecap="round"/>
+    <line x1="420" y1="290" x2="450" y2="390" stroke="#00E5FF" stroke-width="4" stroke-linecap="round"/>
+    <line x1="450" y1="390" x2="440" y2="480" stroke="#00E5FF" stroke-width="4" stroke-linecap="round"/>
+
+    <!-- Spine & Pelvis -->
+    <line x1="300" y1="290" x2="320" y2="450" stroke="#00E5FF" stroke-width="3.5" opacity="0.8"/>
+    <line x1="420" y1="290" x2="400" y2="450" stroke="#00E5FF" stroke-width="3.5" opacity="0.8"/>
+    <line x1="320" y1="450" x2="400" y2="450" stroke="#00E676" stroke-width="4.5" stroke-linecap="round"/>
+
+    <!-- Legs -->
+    <line x1="320" y1="450" x2="320" y2="560" stroke="#00E676" stroke-width="4.5" stroke-linecap="round"/>
+    <line x1="320" y1="560" x2="320" y2="640" stroke="#00E676" stroke-width="4.5" stroke-linecap="round"/>
+    <line x1="400" y1="450" x2="400" y2="560" stroke="#00E676" stroke-width="4.5" stroke-linecap="round"/>
+    <line x1="400" y1="560" x2="400" y2="640" stroke="#00E676" stroke-width="4.5" stroke-linecap="round"/>
+
+    <!-- Keypoint Dots -->
+    <circle cx="300" cy="290" r="6" fill="#FFFFFF" stroke="#00E5FF" stroke-width="2.5"/>
+    <circle cx="420" cy="290" r="6" fill="#FFFFFF" stroke="#00E5FF" stroke-width="2.5"/>
+    <circle cx="270" cy="390" r="7" fill="#FFFFFF" stroke="#00E5FF" stroke-width="2.5"/>
+    <circle cx="290" cy="480" r="6" fill="#00E5FF"/>
+    <circle cx="320" cy="450" r="6" fill="#FFFFFF" stroke="#00E676" stroke-width="2.5"/>
+    <circle cx="400" cy="450" r="6" fill="#FFFFFF" stroke="#00E676" stroke-width="2.5"/>
+
+    <!-- ROM Arc -->
+    <path d="M 270,390 A 32 32 0 0 0 295,415" fill="none" stroke="#00E5FF" stroke-width="2.5" stroke-dasharray="4,2"/>
+    <rect x="200" y="375" width="60" height="24" rx="4" fill="rgba(10,16,28,0.85)" stroke="#00E5FF" stroke-width="1"/>
+    <text x="230" y="392" font-family="monospace" font-size="13" font-weight="700" fill="#00E5FF" text-anchor="middle">54.2°</text>
+  </g>
+
+  <!-- HUD Dashboard Card on Right -->
+  <g transform="translate(710, 190)">
+    <rect width="430" height="420" rx="14" fill="url(#cardBg)" stroke="#1F3C64" stroke-width="1.8"/>
+
+    <!-- Header -->
+    <g transform="translate(25, 20)">
+      <text x="0" y="20" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="16" font-weight="700" fill="#FFFFFF">Exercise: Bicep Curl / Flexion</text>
+      <rect x="300" y="4" width="85" height="24" rx="12" fill="#00E676" fill-opacity="0.18" stroke="#00E676" stroke-width="1"/>
+      <text x="342" y="20" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="11" font-weight="700" fill="#00E676" text-anchor="middle">ACTIVE</text>
+    </g>
+
+    <!-- Metrics Row 1: Reps & Score -->
+    <g transform="translate(25, 65)">
+      <rect width="180" height="75" rx="8" fill="rgba(8,14,24,0.7)" stroke="#1E293B" stroke-width="1"/>
+      <text x="18" y="24" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="11" fill="#8EA2C6">COMPLETED REPS</text>
+      <text x="18" y="58" font-family="monospace" font-size="30" font-weight="800" fill="#00E676">5 <tspan font-size="15" fill="#8EA2C6">/ 10</tspan></text>
+
+      <rect x="195" y="0" width="185" height="75" rx="8" fill="rgba(8,14,24,0.7)" stroke="#1E293B" stroke-width="1"/>
+      <text x="213" y="24" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="11" fill="#8EA2C6">QUALITY SCORE</text>
+      <text x="213" y="58" font-family="monospace" font-size="30" font-weight="800" fill="#00E676">95.0</text>
+    </g>
+
+    <!-- Metrics Row 2: ROM & Phase -->
+    <g transform="translate(25, 155)">
+      <rect width="180" height="75" rx="8" fill="rgba(8,14,24,0.7)" stroke="#1E293B" stroke-width="1"/>
+      <text x="18" y="24" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="11" fill="#8EA2C6">JOINT ROM</text>
+      <text x="18" y="58" font-family="monospace" font-size="26" font-weight="800" fill="#00E5FF">54.2° <tspan font-size="12" fill="#8EA2C6">(Peak 50°)</tspan></text>
+
+      <rect x="195" y="0" width="185" height="75" rx="8" fill="rgba(8,14,24,0.7)" stroke="#1E293B" stroke-width="1"/>
+      <text x="213" y="24" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="11" fill="#8EA2C6">PHASE STAGE</text>
+      <text x="213" y="58" font-family="-apple-system,BlinkMacSystemFont,monospace" font-size="20" font-weight="800" fill="#38BDF8">PEAK HOLD</text>
+    </g>
+
+    <!-- Compensations Bar -->
+    <g transform="translate(25, 245)">
+      <rect width="380" height="42" rx="8" fill="rgba(8,14,24,0.7)" stroke="#1E293B" stroke-width="1"/>
+      <text x="18" y="26" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="12" font-weight="600" fill="#8EA2C6">COMPENSATIONS:</text>
+      <text x="175" y="26" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="12" font-weight="700" fill="#00E676">NONE DETECTED (NORMAL)</text>
+    </g>
+
+    <!-- Guidance Banner -->
+    <g transform="translate(25, 300)">
+      <rect width="380" height="42" rx="8" fill="#00E676" fill-opacity="0.14" stroke="#00E676" stroke-width="1"/>
+      <text x="18" y="26" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="12" font-weight="600" fill="#00E676">✓ Full flexion, upper arm stabilized.</text>
+    </g>
+
+    <!-- Telemetry Footer -->
+    <g transform="translate(25, 365)">
+      <text x="0" y="15" font-family="monospace" font-size="11" fill="#8EA2C6">reCamera 2002 (SG2002 · 1GHz TPU)</text>
+      <text x="0" y="32" font-family="monospace" font-size="10" fill="#64748B">reCamera 2002 (SG2002 · 1GHz TPU) | 13.3 FPS · 71.1ms | TPU INT8 · Hardware Normalize | Zero Video Leakage</text>
+    </g>
+  </g>
+</svg>

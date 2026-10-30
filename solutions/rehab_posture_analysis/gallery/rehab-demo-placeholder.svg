@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" width="800" height="450">
+  <rect width="800" height="450" fill="#0b1320"/>
+  <rect x="20" y="20" width="760" height="410" rx="12" fill="#111c2e" stroke="#1f3c64" stroke-width="2" stroke-dasharray="6,6"/>
+  <text x="400" y="190" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="22" font-weight="700" fill="#ffffff" text-anchor="middle">reCamera Hardware Live Demo</text>
+  <text x="400" y="230" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="15" fill="#8ea2c6" text-anchor="middle">[ Placeholder: Live Video Capture &amp; Animated GIF Recording ]</text>
+  <text x="400" y="270" font-family="-apple-system,BlinkMacSystemFont,sans-serif" font-size="13" fill="#00d26a" text-anchor="middle">Will be recorded and attached upon hardware device live plug-in</text>
+</svg>

@@ -1,0 +1,14 @@
+version: "1.0"
+id: verify_recamera_pro
+name: View Rehab Dashboard
+name_i18n:
+  zh: 查看康复分析看板
+type: web_dashboard
+inherit_host_from: deploy_rehab_pro
+
+web_dashboard:
+  url: "https://{{deploy.host}}/#/apps/rehab-posture-analysis"
+  title: reCamera Pro Rehab Live Console
+  description: Open the live video stream with real-time 33-point skeleton overlay, ROM angle metrics, and compensation alert panel.
+  description_i18n:
+    zh: 打开实时视频画面，查看 33 点骨架高亮叠加层、实时 ROM 关节活动度指标、动作计数与代偿预警看板。

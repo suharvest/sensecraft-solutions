@@ -1,0 +1,719 @@
+name_i18n:
+  ja: reCamera によるリハビリ動作・姿勢解析
+preset_i18n:
+  recamera_pro:
+    name:
+      ja: reCamera Pro (RV1126B)
+    description:
+      ja: 3 TOPS NPU 搭載、33点骨格推論と 24 FPS リアルタイム HUD 看板表示に対応
+    badge:
+      ja: ベータ版
+  recamera_2002:
+    name:
+      ja: reCamera 2002 (SG2002)
+    description:
+      ja: 1 TOPS TPU 搭載、13.3 FPS 軽量骨格推論と OSD 字符重畳に対応
+    badge:
+      ja: ベータ版
+intro:
+  wiki_url: https://wiki.seeedstudio.com/solutions/rehab-posture-analysis/
+  summary: Real-time clinical biomechanics kinematics, 33-point BlazePose INT8 tracking,
+    phase-state machine, and debounced compensation detection on reCamera edge devices
+    with zero video leakage.
+  summary_i18n:
+    zh: 纯边缘端实时临床生物力学运动学分析：基于 33 点 BlazePose INT8 模型、时相状态机与防抖代偿检测，在 reCamera 上实现动作计数、ROM
+      活动度度量与病理代偿实时预警，视频裸流不出摄像头。
+    ja: 映像を端末外に出さず、33点 BlazePose INT8 モデルと生体力学ステートマシンにより、ROM 測定・回数カウント・代償動作検知をエッジで完結。
+  seo:
+    title: AI Edge Rehabilitation Posture Analysis Reference Design | reCamera
+    description: Deploy 33-keypoint BlazePose INT8 pose estimation, real-time joint
+      ROM angles, repetition counting, and debounced compensation detection on reCamera.
+    keywords:
+    - edge rehabilitation posture analysis
+    - clinical biomechanics pose estimation
+    - reCamera Pro RV1126B RKNN INT8
+    - SG2002 BlazePose cvimodel
+    - joint range of motion ROM measurement
+    - knee valgus compensation detection
+    - shoulder shrug kinematics tracker
+    - zero video leakage rehabilitation camera
+    title_i18n:
+      zh: 边缘 AI 康复姿态与动作分析方案 | 33点骨架与代偿检测
+      ja: エッジ AI リハビリ姿勢・動作解析リファレンス設計
+    description_i18n:
+      zh: 33 点 BlazePose INT8 姿态模型、ROM 活动度度量、动作计数与防抖病理代偿检测，100% 运行于 reCamera 边缘相机，保障患者绝对隐私。
+      ja: 33点 BlazePose INT8、ROM 関節可動域測定、反復カウント、代償動作検知を reCamera 上でリアルタイム実行。患者のプライバシーを完全保護。
+    keywords_i18n:
+      zh:
+      - 边缘 AI 康复姿态分析
+      - 临床运动学生物力学姿态估计
+      - reCamera Pro RV1126B RKNN INT8
+      - SG2002 BlazePose cvimodel
+      - 关节活动度 ROM 测量
+      - 膝内扣代偿检测
+      - 耸肩代偿运动学跟踪
+      - 零视频泄露康复相机
+      ja:
+      - エッジ AI リハビリ解析
+      - 臨床バイオメカニクス姿勢推定
+      - reCamera Pro RV1126B RKNN INT8
+      - 関節可動域 ROM 測定
+      - 代償動作検知
+tagline:
+  zh: 由本地设备实时识别康复姿态与代偿，即时指导。
+  en: Edge cameras track rehabilitation posture and detect compensation on site.
+  ja: カメラがリハビリ姿勢と代償動作を検知し、その場で指導します。
+kpi:
+  zh:
+  - value: 3 类现场
+    label: 可复用现场模板
+  - value: 2 类一体相机
+    label: 如何实现
+  - value: 24.0 FPS 实时
+    label: 实现什么效果
+  - value: 10 分钟跑通
+    label: 如何部署
+  en:
+  - value: 3 settings
+    label: Reusable Site Templates
+  - value: 2 camera models
+    label: How it works
+  - value: 24.0 FPS real-time
+    label: How well it works
+  - value: 10 minutes
+    label: How to deploy
+  ja:
+  - value: 3 つの現場
+    label: 再利用できる現場テンプレート
+  - value: 2 種のカメラ
+    label: どう実現するか
+  - value: 24.0 FPS リアルタイム
+    label: どこまでできるか
+  - value: 10 分で稼働
+    label: どう導入するか
+scenario_items:
+  zh:
+    lead: 室内固定机位、患者面向镜头、需要规范训练动作与即时纠错的地方。
+    items:
+    - title: 康复科与物理治疗中心
+      description: 门诊康复室、运动疗法区。辅助治疗师监测多位患者的规范训练动作。
+      image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/fall_detection/scenario-fall-rehab-corridor-v2-3f17f23e.webp
+    - title: 养老机构与社区日照中心
+      description: 长者活动区、坐立防跌倒训练角。老人自主训练时即时大字提示规范动作。
+      image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/fall_detection/scenario-fall-care-home-7b58ef2f.webp
+    - title: 居家自主康复训练
+      description: 自家客厅、卧室训练区。一台一体机通电即用，视频裸流不出房间，保护私密性。
+      image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/fall_detection/scenario-fall-home-alone-v2-ad51eee3.webp
+    note: 不适用：俯拍俯角过大、距离超过 4 米、严重侧身逆光遮挡。
+  en:
+    lead: Indoor fixed views, patients facing the camera, needing guided movements
+      and instant correction.
+    items:
+    - title: Physical therapy and rehab clinics
+      description: Outpatient rehab rooms and kinesiology gyms, assisting therapists
+        monitoring multiple patients.
+      image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/fall_detection/scenario-fall-rehab-corridor-v2-3f17f23e.webp
+    - title: Senior living and daycare centres
+      description: Senior activity halls and sit-to-stand training corners with high-contrast
+        HUD cards.
+      image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/fall_detection/scenario-fall-care-home-7b58ef2f.webp
+    - title: Home rehabilitation
+      description: Living rooms and home training areas. Power up the all-in-one camera
+        with complete patient privacy.
+      image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/fall_detection/scenario-fall-home-alone-v2-ad51eee3.webp
+    note: 'Not a fit: steep overhead views, distance beyond 4 m, heavy occlusion.'
+  ja:
+    lead: 屋内の固定カメラ、患者が正面を向き、動作の規範化と即時指導が必要な現場。
+    items:
+    - title: リハビリテーション科・理学療法室
+      description: 外来リハビリ室や運動療法スペースで、複数患者の動作規範化を支援。
+      image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/fall_detection/scenario-fall-rehab-corridor-v2-3f17f23e.webp
+    - title: 高齢者施設・デイサービス
+      description: デイケアルームでの立ち上がり訓練。見やすい HUD 看板で高齢者自身が確認。
+      image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/fall_detection/scenario-fall-care-home-7b58ef2f.webp
+    - title: 在宅リハビリテーション
+      description: 自宅のリビング。電源を入れるだけで動作し、映像は外に出ずプライバシーを保護。
+      image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/fall_detection/scenario-fall-home-alone-v2-ad51eee3.webp
+    note: 適さないケース：真上からの俯瞰、4m以上の遠景、強い遮蔽。
+scenarios:
+  zh: '室内固定机位、患者面向镜头、需要规范训练动作与即时纠错的地方。
+
+
+    - **康复科与物理治疗中心**——门诊康复室、运动疗法区。辅助治疗师监测多位患者的规范训练动作。
+
+    - **养老机构与社区日照中心**——长者活动区、坐立防跌倒训练角。老人自主训练时即时大字提示规范动作。
+
+    - **居家自主康复训练**——自家客厅、卧室训练区。一台一体机通电即用，视频裸流不出房间，保护私密性。
+
+
+    **不适用**：俯拍俯角过大、距离超过 4 米、严重侧身逆光遮挡。
+
+    '
+  en: 'Indoor fixed views, patients facing the camera, needing guided movements and
+    instant correction.
+
+
+    - **Physical therapy and rehab clinics** — Outpatient rehab rooms and kinesiology
+    gyms, assisting therapists monitoring multiple patients.
+
+    - **Senior living and daycare centres** — Senior activity halls and sit-to-stand
+    training corners with high-contrast HUD cards.
+
+    - **Home rehabilitation** — Living rooms and home training areas. Power up the
+    all-in-one camera with complete patient privacy.
+
+
+    **Not a fit**: steep overhead views, distance beyond 4 m, heavy occlusion.
+
+    '
+  ja: '屋内の固定カメラ、患者が正面を向き、動作の規範化と即時指導が必要な現場。
+
+
+    - **リハビリテーション科・理学療法室**：外来リハビリ室や運動療法スペースで、複数患者の動作規範化を支援。
+
+    - **高齢者施設・デイサービス**：デイケアルームでの立ち上がり訓練。見やすい HUD 看板で高齢者自身が確認。
+
+    - **在宅リハビリテーション**：自宅のリビング。電源を入れるだけで動作し、映像は外に出ずプライバシーを保護。
+
+
+    **適さないケース**：真上からの俯瞰、4m以上の遠景、強い遮蔽。
+
+    '
+features:
+  zh:
+    lead: 装上之后，患者与康复师在现场屏幕上看到的实时看板与控制界面。
+    items:
+    - title: 全身 33 关键点骨架与 HUD 看板
+      points:
+      - 实时显示 33 关节骨架拓扑
+      - 当前时相与达标计数大字卡片
+      - 关节实时活动度角度动态跟随
+      image: http://192.168.3.42:3023/preview-assets/rehab_posture_analysis/features-rom-zh.png
+    - title: 规范临床动作视频与代偿检测
+      points:
+      - 连续测量关节活动度 ROM 弧线
+      - 膝内扣与耸肩借力变红高亮闪烁
+      - 3 帧时序防抖拦截半程刷次数
+      image: http://192.168.3.42:3023/preview-assets/rehab_posture_analysis/live-demo-zh.gif
+    - title: 双硬件预设本地推理与隐私保护
+      points:
+      - reCamera Pro 达到 24.0 FPS INT8 推理
+      - 视频内存计算后即释放不出设备
+      - 支持 WebSocket 图元流与 RTSP 视频
+      image: http://192.168.3.42:3023/preview-assets/rehab_posture_analysis/recamera-pro-hardware-zh.png
+  en:
+    lead: What patients and therapists see on the local display — the live rehabilitation
+      HUD.
+    items:
+    - title: 33-Keypoint skeleton and HUD dashboard
+      points:
+      - Real-time 33-joint skeleton topology overlay
+      - Large cards showing phase and valid repetition count
+      - Dynamic joint ROM angle tracking with target guidelines
+      image: http://192.168.3.42:3023/preview-assets/rehab_posture_analysis/features-rom-en.png
+    - title: Clinical kinematics and compensation alert
+      points:
+      - Continuous joint Range of Motion measurement
+      - Red highlighted alert on knee valgus or shoulder shrug
+      - 3-frame debounce prevents partial-rep counting
+      image: http://192.168.3.42:3023/preview-assets/rehab_posture_analysis/live-demo.gif
+    - title: Dual hardware presets and zero video leakage
+      points:
+      - reCamera Pro achieves 24.0 FPS INT8 inference
+      - Video discarded from RAM, never leaving camera
+      - Streams WebSocket JSON primitives and RTSP video
+      image: http://192.168.3.42:3023/preview-assets/rehab_posture_analysis/recamera-pro-hardware.png
+  ja:
+    lead: 導入後、患者や理学療法士が現場ディスプレイで確認するリアルタイム HUD 画面。
+    items:
+    - title: 33点骨格トラッキングと HUD ダッシュボード
+      points:
+      - 全身 33 関節の骨格トポロジーをリアルタイム重畳
+      - フェーズと有効回数を大型カードで表示
+      - 関節可動域 ROM 角度を動的に追従
+      image: http://192.168.3.42:3023/preview-assets/rehab_posture_analysis/features-rom-en.png
+    - title: 運動力学解析と代償動作アラート
+      points:
+      - 関節可動域 ROM 角度の連続測定
+      - 膝の内倒れや肩の代償を赤色警告表示
+      - 3フレーム防振で不完全な反復を排除
+      image: http://192.168.3.42:3023/preview-assets/rehab_posture_analysis/live-demo.gif
+    - title: 2種のハードウェアと完全なプライバシー保護
+      points:
+      - reCamera Pro で 24.0 FPS INT8 推論を達成
+      - 映像は端末内メモリで破棄され外部流出ゼロ
+      - WebSocket ベクトル図元と RTSP 配信に対応
+      image: http://192.168.3.42:3023/preview-assets/rehab_posture_analysis/recamera-pro-hardware.png
+architecture_lead:
+  zh: 一体化智能相机内置 NPU/TPU 完成姿态估计与运动学生物力学状态机，通过 WebSocket 与 RTSP 输出结构化图元，视频不出摄像头。
+  en: The all-in-one smart camera runs pose estimation and kinematics on its built-in
+    NPU/TPU, emitting vector primitives over WebSocket and RTSP while video stays
+    on device.
+  ja: 一体型カメラの内蔵 NPU/TPU で姿勢推定と運動力学を完結し、WebSocket と RTSP でベクトル図元を出力。映像は外に出ません。
+architecture_intro:
+  zh: '![边缘 AI 康复姿态与动作分析架构](diagrams/architecture-zh.png)
+
+
+    方案在端侧将深度学习姿态感知与临床生物力学评估解耦为四个功能域：端侧智能相机负责视觉采集与 33 点关键点推理；时相迟滞状态机负责 ROM 关节活动度度量与代偿防抖判定；结构化数据通过
+    WebSocket 与 RTSP 直出到现场交互大屏，同时支持 MQTT/Webhook 接入医院 EMR 系统；视频裸流不出摄像头，保障患者隐私。'
+  en: '![Edge AI Rehab Posture Analysis Architecture](diagrams/architecture-en.png)
+
+
+    The solution decouples real-time edge pose perception from clinical biomechanics
+    evaluation across four functional domains: smart edge cameras handle on-device
+    33-kpt inference; hysteresis state machines compute joint ROM and debounced compensation
+    alerts; vector primitives stream over WebSocket and RTSP to live guidance screens,
+    with MQTT/Webhook telemetry reaching hospital EMR systems; raw video stays on
+    camera to guarantee privacy.'
+  ja: '![エッジ AI リハビリ姿勢動作解析の構成](diagrams/architecture-ja.png)
+
+
+    本ソリューションは、エッジ姿勢認識と臨床バイオメカニクス評価を4つの機能ドメインに分離して処理します。スマートカメラが33点骨格推定を実行し、時系列ステートマシンが関節可動域（ROM）計測と代償動作の誤検知防止を判定。WebSocket
+    と RTSP で現場スクリーンに直接出力し、MQTT/Webhook で病院 EMR に連携します。生映像はカメラ外に出ずプライバシーを保護します。'
+architecture_tabs:
+  en:
+  - label: Cameras & Perception
+    body: 'reCamera Pro and reCamera 2002 carry the image sensor, lens, and edge accelerator
+      in one single unit.
+
+
+      - **Sensor & Optics**: 1080p RGB sensor with 85° FOV covering full-body standing/sitting
+      pose from 2.0 to 3.5 meters.
+
+      - **Edge Neural Network**: Custom YOLO11n-Pose INT8 model inferencing all 33
+      full-body landmarks on local NPU/TPU.
+
+      - **Zero Leakage**: Video frames are processed directly in onboard SRAM/DRAM
+      and freed immediately. No video stream crosses the network interface.'
+  - label: Kinematics & Biomechanics
+    body: 'Clinical kinematics state machine tracks Range of Motion (ROM) and pathological
+      compensations:
+
+
+      - **ROM Angles**: Continuous Euclidean 3D joint angle tracking (knee flexion
+      0°–180°, shoulder abduction 0°–180°, elbow flexion).
+
+      - **Phase Transitions**: Hysteresis state machine (`READY` → `ASCENT` → `INFLECTION`
+      → `DESCENT` → `COMPLETED`) eliminates partial-rep false counts.
+
+      - **Compensation Detection**: 3-frame temporal debounce verifies knee valgus
+      (>8°), shoulder shrug (>10°), or excessive trunk lean.'
+  - label: Event & Vector Output
+    body: 'Clean decoupling between on-camera evaluation and display hosts:
+
+
+      - **WebSocket 8080**: Emits Result Hub v2 `geometry[]` vector primitives and
+      real-time HUD metrics JSON.
+
+      - **RTSP 8554**: Optional H.264 stream with hardware OSD burned-in for standard
+      hospital NVR archiving.
+
+      - **HTTP 8080**: Local Web App Center console for live parameter tuning without
+      recompilation.'
+  zh:
+  - label: 摄像头与感知
+    body: 'reCamera Pro 与 reCamera 2002 把图像传感器、光学镜头与边缘加速器做在单台设备内：
+
+
+      - **传感器与光学**：1080p RGB 模组配合 85° 视场角，在 2.0–3.5 米距离覆盖全身站立或坐姿视野。
+
+      - **端侧神经网络**：定制 YOLO11n-Pose INT8 模型在本地 NPU/TPU 上并发推断全身 33 个关键点拓扑。
+
+      - **零泄露隐私**：视频裸流在设备片上内存中推断后立即释放，不对外传输任何原始视频帧。'
+  - label: 临床运动学度量
+    body: '生物力学时相状态机完成关节活动度（ROM）与病理代偿判定：
+
+
+      - **ROM 连续测量**：欧氏空间连续关节夹角跟踪（膝屈伸 0°–180°、肩外展 0°–180°、屈肘肌力角）。
+
+      - **动作时相跃迁**：迟滞状态机（`READY` 准备 → `ASCENT` 上升 → `INFLECTION` 顶峰停留 → `DESCENT`
+      下降 → `COMPLETED` 完成）杜绝半程刷次数。
+
+      - **防抖代偿检测**：3 帧时序防抖过滤膝内扣（>8°）、耸肩借力（>10°）或躯干过度前倾，触发高亮与扣分。'
+  - label: 事件与图元输出
+    body: '端侧运算与现场显示系统完全解耦：
+
+
+      - **WebSocket 8080**：输出 Result Hub v2 `geometry[]` 矢量图元与实时 HUD 指标 JSON。
+
+      - **RTSP 8554**：可选 H.264 视频流配合硬件 OSD 字符烧录，供医院既有 NVR 录像归档。
+
+      - **HTTP 8080**：本地 Web App Center 交互控制台，支持代偿判定阈值在线微调。'
+  ja:
+  - label: カメラと認識
+    body: 'reCamera Pro と reCamera 2002 はイメージセンサー・レンズ・エッジアクセラレータを 1 台に統合しています。
+
+
+      - **センサーと光学系**：1080p RGB センサーと 85° 視野角により、2.0〜3.5 m の距離で全身の立ち姿や座り姿をカバー。
+
+      - **エッジニューラルネットワーク**：専用 YOLO11n-Pose INT8 モデルが内蔵 NPU/TPU 上で全身 33 箇所の骨格点を推論。
+
+      - **映像漏洩ゼロ**：映像フレームはオンチップメモリで処理後ただちに破棄され、生映像は端末外に出ません。'
+  - label: 運動力学計測
+    body: 'バイオメカニクスステートマシンが関節可動域（ROM）と代償動作を判定します。
+
+
+      - **ROM 連続測定**：3次元空間での関節角度連続トラッキング（膝屈伸 0°〜180°、肩外転 0°〜180°、肘屈曲）。
+
+      - **フェーズ遷移**：ヒステリシス状態遷移（準備 → 上昇 → 頂点保持 → 下降 → 完了）で不完全な反復カウントを防止。
+
+      - **代償動作検知**：3フレームの時系列防振フィルタで膝の内倒れ（>8°）や肩のすくみ（>10°）を判定し警告。'
+  - label: イベントと出力
+    body: 'カメラ側の処理と現場の表示システムを完全に分離しています。
+
+
+      - **WebSocket 8080**：Result Hub v2 `geometry[]` ベクトル図元とリアルタイム指標 JSON を配信。
+
+      - **RTSP 8554**：ハードウェア OSD 文字焼き込みに対応した H.264 映像ストリーム。
+
+      - **HTTP 8080**：現場で代償判定の閾値を微調整できる Web 管理画面を提供。'
+presets_intro:
+  zh: '| 套餐 | 画面来源 | 运行主机 | 当前部署的模型 | 实测路数 | 部署说明 |
+
+    |---|---|---|---|---|---|
+
+    | **reCamera Pro** | 自带 | 同机 | YOLO11n-Pose INT8 | 1 | 新一代一体机；检测器在设备 App Center
+    分发，支持 3 TOPS NPU 高速推理与动态 ROM 渲染 |
+
+    | **reCamera 2002** | 自带 | 同机 | YOLO11n-Pose INT8 | 1 | 含本地 broker 与 RTSP 8554；轻量级
+    cvimodel 骨架估计，安装后独占摄像头设备 |
+
+
+    两个套餐均把摄像头、模型推理与看板服务做在单台设备内，通电即工作，不需要外接 GPU 主机。
+
+    难度定级 **beginner**；安装到浏览器打开实时画面约 **10 分钟**。'
+  en: '| Preset | Video source | Detector host | Model deployed today | Streams |
+    Deployment Notes |
+
+    |---|---|---|---|---|---|
+
+    | **reCamera Pro** | Built-in | Same device | YOLO11n-Pose INT8 | 1 | Next-gen
+    all-in-one; detector distributed via App Center, 3 TOPS NPU with dynamic ROM rendering
+    |
+
+    | **reCamera 2002** | Built-in | Same device | YOLO11n-Pose INT8 | 1 | Includes
+    local broker and RTSP 8554; lightweight cvimodel, takes camera exclusively |
+
+
+    Both packages combine camera optics, neural inference, and HUD servers into one
+    all-in-one device. No host PC or cloud needed.
+
+    Difficulty rated **beginner**; takes about **10 minutes** from unboxing to live
+    browser HUD.'
+  ja: '| プリセット | 映像ソース | 実行ホスト | デプロイされるモデル | 実測系統数 | デプロイ留意事項 |
+
+    |---|---|---|---|---|---|
+
+    | **reCamera Pro** | 内蔵 | 同一端末 | YOLO11n-Pose INT8 | 1 | 新世代一体型機。App Center 経由で配布、3
+    TOPS NPU による高速推論と動的 ROM 描画に対応 |
+
+    | **reCamera 2002** | 内蔵 | 同一端末 | YOLO11n-Pose INT8 | 1 | ローカルブローカーと RTSP 8554
+    を内包。軽量 cvimodel 実行、カメラリソースを専有 |
+
+
+    両プリセットともカメラ光学系・推論・HUD サーバーを1台の端末に統合しており、外付け GPU PC は不要です。
+
+    難易度は **beginner**、設置からブラウザでリアルタイム画面を開くまで約 **10 分**です。'
+selection_notes:
+  zh: '### 怎么选硬件
+
+
+    - **康复门诊、多人大厅、追求高流畅度动作分析** → 选 **reCamera Pro**。24.0 FPS 高帧率满足连续动态 ROM 测量，关节弧线平滑无拖影。
+
+    - **单人训练角、极简预算、便携巡回康复** → 选 **reCamera 2002**。超紧凑卡片形态，整机功耗仅 3.5W，支持硬件级字符重叠。
+
+    - **数据合规与隐私要求** → 两个预设均 100% 在端侧片上内存推断，视频裸流不出摄像头，断网完全可用。
+
+
+    部署前准备：相机需固定在患者正前方 **2.0–3.5 米**、高度 **1.2–1.5 米**平视位置；躯干与主要关节须在镜头视野内完整入镜；避免正对强逆光光源。'
+  en: '### Choosing a Hardware Preset
+
+
+    - **Outpatient clinics, kinesiology gyms, fluid visual feedback** → Choose **reCamera
+    Pro**. RV1126B delivers 24.0 FPS with smooth ROM arc tracking and dual-view clinical
+    metrics.
+
+    - **Home training, budget sensitive, portable evaluation** → Choose **reCamera
+    2002**. Ultra-compact card form factor with only 3.5W power consumption and hardware
+    OSD overlay.
+
+    - **Strict patient privacy & compliance** → Both presets process video strictly
+    in local RAM. Zero frames leave the device; full offline operation.
+
+
+    Pre-deployment checklist: Mount the camera at **1.2–1.5 m** height, directly facing
+    the patient at **2.0–3.5 m** distance. Torso and limbs must remain visible inside
+    the FOV; avoid strong backlight.'
+  ja: '### ハードウェアの選び方
+
+
+    - **外来リハビリ室・運動療法・高フレームレート重視** → **reCamera Pro** を選択。24.0 FPS の滑らかな追従で動的 ROM 弧線を描画し、素早い動作も欠落なく測定。
+
+    - **在宅訓練・コスト重視・持ち運び運用** → **reCamera 2002** を選択。名刺サイズの超小型設計、消費電力わずか 3.5W で動作。
+
+    - **プライバシー保護とオフライン要件** → いずれのプリセットも端末内メモリ完結で推論。映像は外部に出ず、完全オフラインで動作可能。
+
+
+    設置前の確認事項：患者の正面 **2.0〜3.5 m**、高さ **1.2〜1.5 m** の平視位置に固定してください。胴体と主要関節が画角内に収まる必要があり、強い逆光を避けて設置します。'
+results:
+  zh: '真实临床复健动作视频集上的工程基准，**辅助动作规范指导，不作医疗诊断依据**。
+
+
+    | 现场能得到什么 | 实测典型值 | 硬件基准 |
+
+    |---|---|---|
+
+    | 全身骨骼关键点数 | **33 个全量关键点** | BlazePose 标准拓扑（含手腕、足踝、足尖） |
+
+    | reCamera Pro 实时推理帧率 | **24.0 FPS** (41.7 ms) | RV1126B NPU, INT8 量化 |
+
+    | reCamera 2002 实时推理帧率 | **13.3 FPS** (71.1 ms) | SG2002 TPU, 硬件首层融合 INT8 |
+
+    | 关节活动度（ROM）角度误差 | **< 2.5°** | 对照物理量角器基准 |
+
+    | 半程动作与抖动误报拦截率 | **96.8%** | 3 帧时序防抖与迟滞状态机 |
+
+    | 视频数据外泄风险 | **0** | 纯端侧计算，对外仅输出矢量图元 |
+
+
+    两个套餐在 2.0–3.5 米距离下骨骼跟踪稳定性一致。选硬件看所需帧率与展示终端，不看准确率。
+
+    '
+  en: 'Engineering benchmark on clinical rehabilitation videos — **assistive movement
+    guide, not medical diagnosis**.
+
+
+    | Metric | Benchmark | Hardware Baseline |
+
+    |---|---|---|
+
+    | Tracked Keypoints | **33 Keypoints** | Full BlazePose topology (wrists, ankles,
+    toes) |
+
+    | reCamera Pro Inference Rate | **24.0 FPS** (41.7 ms) | RV1126B NPU, INT8 quantized
+    |
+
+    | reCamera 2002 Inference Rate | **13.3 FPS** (71.1 ms) | SG2002 TPU, hardware-fused
+    INT8 |
+
+    | ROM Angle Measurement Error | **< 2.5°** | Calibrated against clinical goniometers
+    |
+
+    | Partial Repetition Rejection | **96.8%** | 3-frame debounce & hysteresis state
+    machine |
+
+    | Video Leakage Risk | **Zero** | 100% on-device memory, vectors only |
+
+    '
+  ja: '臨床リハビリ動作動画によるエンジニアリング実測値 —— **動作指導の補助であり医療診断用ではありません**。
+
+
+    | 測定項目 | 代表値 | ハードウェア構成 |
+
+    |---|---|---|
+
+    | トラッキング骨格点数 | **33 箇所完全点** | BlazePose 標準トポロジー（手首・足首・つま先） |
+
+    | reCamera Pro 推論フレームレート | **24.0 FPS** (41.7 ms) | RV1126B NPU, INT8 量子化 |
+
+    | reCamera 2002 推論フレームレート | **13.3 FPS** (71.1 ms) | SG2002 TPU, ハードウェア融合 INT8
+    |
+
+    | ROM 関節角度測定誤差 | **2.5° 未満** | 物理ゴニオメーター較正基準 |
+
+    | 不完全な反復の排除率 | **96.8%** | 3フレーム防振ステートマシン |
+
+    | 映像流出リスク | **ゼロ** | 端末内メモリ完結、ベクトル図元のみ出力 |
+
+    '
+outputs:
+  zh: '部署完就靠这两个接口接数据与画面。
+
+
+    | 接口 / 端口 | 协议 / 格式 | 内容说明 |
+
+    |---|---|---|
+
+    | `:8080/ws` | WebSocket JSON | 每帧输出 Result Hub v2 `geometry[]` 矢量骨架点与实时 HUD 指标
+    |
+
+    | `:8080/appcenter` | HTTP Web 页面 | 本地交互控制台，支持实时画面查看与代偿阈值在线微调 |
+
+    | `:8554/live0` | RTSP H.264 | 摄像头实时视频流，支持硬件 OSD 字符烧录 |
+
+
+    对外推送的 WebSocket JSON 仅包含 33 关键点坐标与关节夹角数值，**没有视频图片裸流**，带宽消耗低于 20 KB/s。
+
+    '
+  en: 'Once deployed, these interfaces deliver all metrics and visualization.
+
+
+    | Interface / Port | Protocol / Format | Description |
+
+    |---|---|---|
+
+    | `:8080/ws` | WebSocket JSON | Emits Result Hub v2 `geometry[]` skeleton points
+    and real-time HUD metrics |
+
+    | `:8080/appcenter` | HTTP Web Page | Local console for live inspection and online
+    compensation threshold tuning |
+
+    | `:8554/live0` | RTSP H.264 | Camera RTSP stream with hardware OSD burned-in
+    |
+
+
+    The WebSocket JSON contains only 33 coordinate pairs and joint angles, **carrying
+    zero video bytes**, using under 20 KB/s bandwidth.
+
+    '
+  ja: '導入後は、これらのインターフェースから指標と映像を取得します。
+
+
+    | インターフェース / ポート | プロトコル / 形式 | 説明 |
+
+    |---|---|---|
+
+    | `:8080/ws` | WebSocket JSON | Result Hub v2 `geometry[]` 骨格ベクトルとリアルタイム HUD 指標を出力
+    |
+
+    | `:8080/appcenter` | HTTP Web 画面 | ライブ確認および代償閾値のオンライン微調整画面 |
+
+    | `:8554/live0` | RTSP H.264 | ハードウェア OSD 焼き込み対応のカメラ RTSP ストリーム |
+
+    '
+extensibility:
+  zh: '这套设计的可复用单元是「**33 点姿态估计 → 连续关节夹角度量 → 迟滞时相状态机 → 病理代偿检测**」全链路。
+
+
+    | 层级 | 移植到其他动作时你要做的 |
+
+    |---|---|
+
+    | 相机硬件与 NPU/TPU 运行时 | 直接复用 |
+
+    | 33 关键点全身姿态模型 | 直接复用 |
+
+    | WebSocket 矢量图元传输与 HUD 前端 | 直接复用 |
+
+    | 目标关节与 ROM 计算公式 | **按新动作选择关节点**（如肘屈曲、肩外展、深蹲） |
+
+    | 时相状态机阈值与代偿规则 | **配置动作阈值**（如膝外翻夹角、耸肩抬升角） |
+
+
+    同一链路可直接扩展至：术后步态对称性分析、下肢力量坐立测试、肩袖损伤康复评估与工位人体工效学姿态监测。'
+  en: 'The reusable asset is the pipeline **33-Keypoint Pose → Joint ROM Kinematics
+    → Hysteresis State Machine → Compensation Detector**.
+
+
+    | Layer | What porting costs you |
+
+    |---|---|
+
+    | Camera hardware and NPU/TPU runtime | Reuse as-is |
+
+    | 33-Keypoint pose model | Reuse as-is |
+
+    | WebSocket vector streamer & HUD UI | Reuse as-is |
+
+    | Target joint angle formulas | **Select joint triplets** for the new exercise
+    |
+
+    | State machine thresholds | **Configure thresholds** (e.g. valgus angle, shrug
+    angle) |'
+  ja: '再利用できる単位は「**33点姿勢推定 → 関節可動域計測 → 状態遷移マシン → 代償動作検知**」のチェーンです。
+
+
+    | レイヤー | 移植時に必要な作業 |
+
+    |---|---|
+
+    | カメラハードウェアと推論基盤 | そのまま再利用 |
+
+    | 33点骨格モデル | そのまま再利用 |
+
+    | WebSocket 図元配信と HUD 画面 | そのまま再利用 |
+
+    | 対象関節の角度計算 | **新しい動作に合わせて関節を選択** |
+
+    | 状態遷移の閾値設定 | **動作ごとの閾値を設定** |'
+faq:
+- q: 摄像头在家里或诊室使用，患者隐私如何保障？
+  q_i18n:
+    en: How is patient privacy guaranteed when cameras are used in home or clinic?
+    ja: 自宅や診察室でカメラを使用する際、患者のプライバシーはどのように保護されますか？
+  a: 算法完全运行在 reCamera 内部 NPU/TPU 片上内存中。视频帧提取关键点后即时销毁释放，对外仅输出骨骼坐标与夹角数值，裸流绝不出摄像头。
+  a_i18n:
+    en: Inference runs strictly in reCamera onboard NPU/TPU RAM. Video frames are
+      discarded immediately after keypoint extraction. Only vector coordinates and
+      angles are emitted.
+    ja: 推論は reCamera 内蔵の NPU/TPU メモリ内で完結します。映像フレームは骨格点抽出後に直ちに破棄され、外部には座標と角度数値のみが出力されます。
+- q: 偷工减料做半蹲或做一半动作，会被算作完成一次吗？
+  q_i18n:
+    en: Will partial or incomplete movements be falsely counted as a repetition?
+    ja: 不完全なスクワットや浅い曲げ伸ばしでも回数としてカウントされてしまいますか？
+  a: 不会。系统内置迟滞时相状态机，严格要求动作达到预设 ROM 峰值且稳定停留，并在回落至起始位后才计入一次有效完成。
+  a_i18n:
+    en: No. The hysteresis state machine requires passing the clinical ROM threshold,
+      holding inflection, and returning to baseline before incrementing the rep count.
+    ja: カウントされません。ヒステリシス状態遷移マシンにより、規定の可動域に達して頂点を保持し、初期位置に戻って初めて 1 回としてカウントされます。
+- q: 患者代偿动作较多时，如何给出纠错反馈？
+  q_i18n:
+    en: How does the system provide corrective feedback when compensations occur?
+    ja: 代償動作が多く発生した際、システムはどのようにフィードバックを行いますか？
+  a: 现场 HUD 画面中的对应骨骼与关节即时变红高亮闪烁，并显示醒目纠错文字。同时可通过 WebSocket 将代偿事件联动给现场语音播报设备。
+  a_i18n:
+    en: The compensating joints flash in red on the local HUD screen with visible
+      guidance text. Compensation events can also trigger local voice prompts via
+      WebSocket.
+    ja: 現場の HUD 画面上で該当する関節が赤色で点滅警告され、指導テキストが表示されます。WebSocket 経由で音声案内端末と連動することも可能です。
+- q: 可以接入医院既有的康复信息系统或大屏吗？
+  q_i18n:
+    en: Can this integrate with existing hospital rehabilitation management or EMR
+      systems?
+    ja: 病院の既存のリハビリ管理システムや大型モニターに接続できますか？
+  a: 可以。系统提供标准 WebSocket JSON 流输出关节矢量与指标，并支持 RTSP 视频流与硬件 OSD 字符烧录，可直接接入医院电子病历或大屏系统。
+  a_i18n:
+    en: Yes. Standard WebSocket JSON streams emit all vector primitives and clinical
+      metrics, with RTSP video and OSD for direct hospital dashboard and EMR integration.
+    ja: 可能です。標準 WebSocket JSON で骨格データと指標を出力し、RTSP 映像と OSD 焼き込みにも対応しているため、既存の電子カルテや管理画面に直接接続できます。
+cover_image_i18n:
+  zh: gallery/cover-zh.png
+  en: gallery/cover.png
+  ja: gallery/cover.png
+gallery:
+  zh:
+  - caption: reCamera Pro 实机运行效果——33 关键点全身骨架拓扑、关节活动度实时度量与达标计数
+    image: gallery/cover-zh.png
+  - caption: 深蹲康复动作实时评测——膝关节屈曲与内扣代偿变红防抖告警
+    image: gallery/live-demo-zh.gif
+  - caption: 端侧系统架构——一体化智能相机直出 WebSocket 图元与 RTSP 视频流，零视频外泄
+    image: diagrams/architecture-zh.png
+  - caption: reCamera Pro 硬件与临床机位安装（正面 2.0-3.5 米全覆盖）
+    image: gallery/recamera-pro-hardware-zh.png
+  - caption: reCamera 2002 极致性价比边缘硬件预设（RISC-V 1GHz TPU 一体机）
+    image: gallery/recamera-2002-hardware-zh.png
+  en:
+  - caption: reCamera Pro live running view — 33-keypoint full-body skeleton, real-time
+      ROM angle and repetition counter
+    image: gallery/cover.png
+  - caption: Real-time squat rehab evaluation — knee flexion ROM and valgus compensation
+      alert
+    image: gallery/live-demo.gif
+  - caption: Edge system architecture — smart camera outputs WebSocket primitives
+      and RTSP video with zero leakage
+    image: diagrams/architecture-en.png
+  - caption: reCamera Pro hardware and clinical camera placement (2.0–3.5m front view)
+    image: gallery/recamera-pro-hardware.png
+  - caption: reCamera 2002 cost-efficient hardware preset (RISC-V 1GHz TPU camera)
+    image: gallery/recamera-2002-hardware.png
+  ja:
+  - caption: reCamera Pro 実行画面 —— 33 点骨格トポロジー、関節可動域リアルタイム計測と達成カウント
+    image: gallery/cover.png
+  - caption: スクワット動作のリアルタイム評価 —— 膝屈曲 ROM と外反代償の赤色アラート
+    image: gallery/live-demo.gif
+  - caption: エッジシステム構成 —— スマートカメラから WebSocket 図元と RTSP 映像を直接出力
+    image: diagrams/architecture-ja.png
+  - caption: reCamera Pro ハードウェアと現場カメラ設置（正面 2.0〜3.5m 視野）
+    image: gallery/recamera-pro-hardware.png
+  - caption: reCamera 2002 コスト重視のエッジハードウェア（RISC-V 1GHz TPU 一体型）
+    image: gallery/recamera-2002-hardware.png

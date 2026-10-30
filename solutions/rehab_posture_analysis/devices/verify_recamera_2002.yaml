@@ -1,0 +1,14 @@
+version: "1.0"
+id: verify_recamera_2002
+name: Verify reCamera 2002 Stream
+name_i18n:
+  zh: 验证 reCamera 2002 视频流
+type: web_dashboard
+inherit_host_from: deploy_rehab_2002
+
+web_dashboard:
+  url: "http://{{deploy.host}}/"
+  title: reCamera Console
+  description: Open the reCamera console to view the real-time posture analysis video stream and kinematics statistics.
+  description_i18n:
+    zh: 打开 reCamera 控制台查看实时姿态分析视频流与运动学统计看板。

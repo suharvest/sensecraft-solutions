@@ -1,0 +1,48 @@
+version: "1.0"
+id: recamera_pro
+name: reCamera Pro Rehab Posture Analysis
+name_i18n:
+  zh: reCamera Pro 康复姿态分析
+type: recamera_pro_app
+
+recamera_pro_app:
+  app_id: rehab-posture-analysis
+  activation_timeout: 90
+  package:
+    name: rehab-posture-analysis
+    source_archive: https://sensecraft-statics.seeed.cc/solution-app/rehab_posture_analysis/packages/rehab-posture-analysis-v0.1.0-core.tar.gz
+  config:
+    output_channels: ["ws"]
+    exercise: "{{exercise}}"
+    simulate: false
+    min_conf: 0.4
+    debounce_frames: 3
+
+ssh:
+  port: 443
+  default_user: admin
+  connection_timeout: 30
+
+post_deployment:
+  open_browser: false
+
+user_inputs:
+  - id: exercise
+    name: Exercise Type
+    name_i18n:
+      zh: 复健训练动作
+    type: select
+    default: "squat"
+    required: true
+    options:
+      - value: "squat"
+        label: "Squat / Sit-to-Stand (深蹲与坐立评测)"
+      - value: "shoulder_abduction"
+        label: "Shoulder Abduction (肩外展抬升评测)"
+      - value: "bicep_curl"
+        label: "Bicep Curl (屈肘肌力评测)"
+      - value: "knee_extension"
+        label: "Seated Knee Extension (坐姿伸膝评测)"
+    description: Select the default rehabilitation movement to monitor upon startup.
+    description_i18n:
+      zh: 选择启动时默认激活的复健动作评测项目。

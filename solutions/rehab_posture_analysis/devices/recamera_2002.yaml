@@ -1,0 +1,48 @@
+version: "1.0"
+id: recamera_2002
+name: reCamera 2002 Rehab Posture Analysis
+name_i18n:
+  zh: reCamera 2002 康复姿态分析
+type: recamera_cpp
+device_class: recamera
+
+detection:
+  method: network_scan
+  manual_entry: true
+  requirements: []
+
+ssh:
+  port: 22
+  default_user: recamera
+  default_host: 192.168.42.1
+  connection_timeout: 30
+  command_timeout: 300
+
+binary:
+  deb_package:
+    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/yolo-detector_0.6.0_riscv64.deb
+    name: yolo-detector
+    includes_init_script: true
+  models:
+    - path: https://sensecraft-statics.seeed.cc/solution-app/rehab_posture_analysis/models/blazepose_33kpt_cv181x_int8.cvimodel
+      target_path: /userdata/local/models
+      filename: blazepose_33kpt_cv181x_int8.cvimodel
+  service_name: rehab-posture-analysis
+  service_priority: 92
+  auto_start: true
+
+user_inputs:
+  - id: host
+    name: reCamera IP Address
+    type: text
+    default: "192.168.42.1"
+    default_template: "{{host}}"
+    placeholder: "192.168.42.1"
+    name_i18n:
+      zh: reCamera IP 地址
+  - id: password
+    name: SSH Password
+    type: password
+    default: "recamera"
+    name_i18n:
+      zh: SSH 密码

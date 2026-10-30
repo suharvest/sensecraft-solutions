@@ -1,0 +1,129 @@
+schema_version: 1
+diagram_level: overview
+id: rehab-posture-analysis-rd
+locale: zh-hans
+title:
+  zh-hans: 边缘 AI 康复姿态与动作分析方案 —— 设备构成与系统架构
+  en: AI Edge Rehabilitation Posture Analysis Reference Design — Device Composition & Architecture
+  ja: エッジ AI リハビリ姿勢・動作解析リファレンスデザイン —— デバイス構成とシステムアーキテクチャ
+description:
+  zh-hans: 一体化智能相机在端侧完成 33 关键点姿态估计与生物力学运动学分析，通过 WebSocket 与 RTSP 直出结构化图元流，视频裸流不出摄像头，保障医疗级隐私。
+  en: All-in-one edge AI camera executes 33-keypoint pose estimation and biomechanics kinematics locally, outputting structured vector primitives via WebSocket and RTSP with zero video leakage.
+  ja: 一体型エッジ AI カメラが端末内で 33 点骨格推定と生体力学運動学解析を実行し、WebSocket と RTSP 経由で構造化ベクター図元を出力。映像は外部に出ず完全なプライバシーを保護。
+label_locale_contract:
+  required_locales: [zh-hans, en, ja]
+  allowed_latin_tokens_in_zh: [AI, NPU, TPU, INT8, ROM, FPS, WebSocket, RTSP, EMR, HIS, reCamera, RV1126B, SG2002, BlazePose, YOLO11]
+canvas: {width: 2400, height: 780, background: '#FFFFFF'}
+theme: seeed-architecture-v1
+layout:
+  family: staged-flow
+  direction: left-to-right
+  horizontal_alignment: content-center
+  horizontal_padding: 80
+  stage_label_y: 725
+  stage_label_alignment: node-bbox
+  content_box: [70, 40, 2330, 680]
+typography:
+  product_label:
+    gap: 17
+    color: '#9AA0A6'
+    hosted_gap: 7
+    hosted_line_height: 29
+    hosted_color: '#7F878D'
+  connection_label: {gap_above: 20, color: '#9AA0A6'}
+  stage_label: {weight: 700, color: '#111111'}
+connectors:
+  stroke_width: 3
+  endpoint_gap: 22
+  min_terminal_segment: 48
+  min_arrow_segment: 32
+  min_bus_common_segment: 100
+  max_orthogonal_bends: 2
+stages:
+  - id: sensor
+    label: {zh-hans: 视觉采集与端侧设备, en: Visual Perception & Edge Device, ja: 視覚取得・エッジ端末}
+    order: 10
+    width: 480
+  - id: compute
+    label: {zh-hans: 端侧推理与运动学生物力学, en: Edge Inference & Biomechanics, ja: エッジ推論・バイオメカニクス}
+    order: 20
+    width: 580
+  - id: protocol
+    label: {zh-hans: 结构化输出与通讯协议, en: Output Primitives & Protocols, ja: 出力図元・プロトコル}
+    order: 30
+    width: 480
+  - id: application
+    label: {zh-hans: 现场交互与业务系统, en: Clinical Displays & Hospital Systems, ja: 現場表示・病院業務システム}
+    order: 40
+    width: 540
+nodes:
+  - id: recamera-pro
+    stage: sensor
+    product_ref: recamera_pro
+    label: {zh-hans: reCamera Pro, en: reCamera Pro, ja: reCamera Pro}
+    hosted_copy: {zh-hans: RV1126B · 3 TOPS NPU, en: RV1126B · 3 TOPS NPU, ja: RV1126B · 3 TOPS NPU}
+  - id: recamera-2002
+    stage: sensor
+    product_ref: recamera_2002
+    label: {zh-hans: reCamera 2002, en: reCamera 2002, ja: reCamera 2002}
+    hosted_copy: {zh-hans: SG2002 · 1 TOPS TPU, en: SG2002 · 1 TOPS TPU, ja: SG2002 · 1 TOPS TPU}
+  - id: pose-model
+    stage: compute
+    label: {zh-hans: 33 关键点 BlazePose INT8, en: 33-Keypoint BlazePose INT8, ja: 33点 BlazePose INT8}
+    hosted_copy: {zh-hans: 硬件首层融合 · 零拷贝推理, en: Hardware-Fused · Zero-Copy, ja: ハードウェア融合・ゼロコピー}
+  - id: biomechanics-engine
+    stage: compute
+    label: {zh-hans: 临床运动学生物力学引擎, en: Biomechanics Kinematics Engine, ja: 生体力学運動学エンジン}
+    hosted_copy: {zh-hans: ROM 活动度度量 · 3 帧时序防抖, en: Continuous ROM · 3-Frame Debounce, ja: ROM 測定・3フレーム防振}
+  - id: ws-stream
+    stage: protocol
+    label: {zh-hans: Result Hub v2 矢量流, en: Result Hub v2 Primitives, ja: Result Hub v2 ベクター流}
+    hosted_copy: {zh-hans: WebSocket · JSON 拓扑与 HUD 指标, en: WebSocket · JSON Topology & HUD, ja: WebSocket · JSON 骨格と指標}
+  - id: rtsp-stream
+    stage: protocol
+    label: {zh-hans: RTSP 实时视频流, en: RTSP Video Stream, ja: RTSP リアルタイム映像流}
+    hosted_copy: {zh-hans: H.264 · 可选硬件 OSD 烧录, en: H.264 · Optional Hardware OSD, ja: H.264 · ハードウェア OSD 重畳}
+  - id: clinical-hud
+    stage: application
+    label: {zh-hans: 康复动作交互与训练大屏, en: Rehabilitation HUD & Display, ja: リハビリ訓練・現場 HUD 大画面}
+    hosted_copy: {zh-hans: 实时骨骼重叠 · 达标计数 · 耸肩内扣警示, en: Live Skeleton · Reps · Error Alerts, ja: 骨格重畳・回数カウント・代償警告}
+  - id: hospital-emr
+    stage: application
+    label: {zh-hans: 医院 HIS / 康复电子病历 EMR, en: Hospital HIS / Rehab EMR, ja: 病院 HIS / リハビリ電子カルテ EMR}
+    hosted_copy: {zh-hans: 标准 Webhook / MQTT 数据落盘, en: Standard Webhook / MQTT Ingestion, ja: 標準 Webhook / MQTT 連携}
+links:
+  - from: recamera-pro
+    to: pose-model
+    carrier: internal
+    protocol: MIPI CSI
+    label: {zh-hans: 1080p RGB 视频流, en: 1080p RGB Stream, ja: 1080p RGB 映像}
+  - from: recamera-2002
+    to: pose-model
+    carrier: internal
+    protocol: MIPI CSI
+    label: {zh-hans: 1080p RGB 视频流, en: 1080p RGB Stream, ja: 1080p RGB 映像}
+  - from: pose-model
+    to: biomechanics-engine
+    carrier: internal
+    protocol: Shared Memory
+    label: {zh-hans: 33 关节坐标与置信度, en: 33 Coordinates & Scores, ja: 33関節座標とスコア}
+  - from: biomechanics-engine
+    to: ws-stream
+    carrier: ethernet
+    protocol: WebSocket
+    label: {zh-hans: 骨架图元与代偿预警, en: Skeleton & Alerts, ja: 骨格図元と代償警告}
+  - from: biomechanics-engine
+    to: rtsp-stream
+    carrier: ethernet
+    protocol: RTSP
+    label: {zh-hans: 烧录视频流, en: Burned Video Stream, ja: OSD 重畳映像流}
+  - from: ws-stream
+    to: clinical-hud
+    carrier: ethernet
+    protocol: WebSocket
+    label: {zh-hans: 24 FPS 零抖动渲染, en: 24 FPS Low Latency, ja: 24 FPS 低遅延表示}
+  - from: ws-stream
+    to: hospital-emr
+    carrier: ethernet
+    protocol: Webhook/MQTT
+    label: {zh-hans: 每次训练量化指标包, en: Session Metrics Bundle, ja: 訓練セッション指標データ}
