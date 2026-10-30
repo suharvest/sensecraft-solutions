@@ -1,6 +1,6 @@
 # Aquaculture Crayfish Behavior & Fighting Recognition
 
-## What the Solution Does
+## Overview
 
 In high-density commercial aquaculture (such as Australian redclaw crayfish *Cherax quadricarinatus* and giant freshwater prawns), intra-species aggression directly reduces survival rates and market yield. Territorial conflicts and competition for mates cause claw loss and limb damage. During molting cycles, soft-shell individuals are highly vulnerable to cannibalism. Conventional water quality sensors (DO, pH, temperature) only track chemical parameters and cannot detect real-time behavioral dynamics or aggression frequency.
 
@@ -8,7 +8,7 @@ The **Aquaculture Crayfish Behavior & Fighting Recognition Solution** provides a
 
 ---
 
-## Core Value
+## 4-Stage Funnel Pipeline Architecture
 
 1. **Stage 1: High-Precision Detection (YOLO11n 640x640)**  
    Trained on indoor tank environments with water refraction and reflection, achieving **mAP50 of 0.950** (Precision 0.914, Recall 0.880) on field validation sets. Augmented with 15% defocus blur to separate touching individuals reliably.
@@ -30,7 +30,7 @@ The **Aquaculture Crayfish Behavior & Fighting Recognition Solution** provides a
 
 ---
 
-## Measured Performance
+## Hardware Benchmarks & Deployment
 
 | Platform | Compute Architecture | Runtime Stack | Inference Throughput | Highlights |
 |---|---|---|---|---|

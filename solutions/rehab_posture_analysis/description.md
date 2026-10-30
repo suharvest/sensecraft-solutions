@@ -1,4 +1,4 @@
-## What the Solution Does
+## What This Reference Design Is
 
 **Rehabilitation posture tracking running entirely on edge cameras.**
 
