@@ -188,19 +188,19 @@ features:
       - 实时显示 33 关节骨架拓扑
       - 当前时相与达标计数大字卡片
       - 关节实时活动度角度动态跟随
-      image: http://192.168.3.42:3023/preview-assets/rehab_posture_analysis/features-rom-zh.png
+      image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/rehab_posture_analysis/features-rom-zh-9bc6a150.png
     - title: 规范临床动作视频与代偿检测
       points:
       - 连续测量关节活动度 ROM 弧线
       - 膝内扣与耸肩借力变红高亮闪烁
       - 3 帧时序防抖拦截半程刷次数
-      image: http://192.168.3.42:3023/preview-assets/rehab_posture_analysis/live-demo-zh.gif
+      image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/rehab_posture_analysis/features-compensation-zh-799e3115.png
     - title: 双硬件预设本地推理与隐私保护
       points:
       - reCamera Pro 达到 24.0 FPS INT8 推理
       - 视频内存计算后即释放不出设备
       - 支持 WebSocket 图元流与 RTSP 视频
-      image: http://192.168.3.42:3023/preview-assets/rehab_posture_analysis/recamera-pro-hardware-zh.png
+      image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/rehab_posture_analysis/recamera-pro-hardware-zh-06626ad0.png
   en:
     lead: What patients and therapists see on the local display — the live rehabilitation
       HUD.
@@ -210,19 +210,19 @@ features:
       - Real-time 33-joint skeleton topology overlay
       - Large cards showing phase and valid repetition count
       - Dynamic joint ROM angle tracking with target guidelines
-      image: http://192.168.3.42:3023/preview-assets/rehab_posture_analysis/features-rom-en.png
+      image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/rehab_posture_analysis/features-rom-en-1e785b87.png
     - title: Clinical kinematics and compensation alert
       points:
       - Continuous joint Range of Motion measurement
       - Red highlighted alert on knee valgus or shoulder shrug
       - 3-frame debounce prevents partial-rep counting
-      image: http://192.168.3.42:3023/preview-assets/rehab_posture_analysis/live-demo.gif
+      image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/rehab_posture_analysis/features-compensation-en-f5b27ac2.png
     - title: Dual hardware presets and zero video leakage
       points:
       - reCamera Pro achieves 24.0 FPS INT8 inference
       - Video discarded from RAM, never leaving camera
       - Streams WebSocket JSON primitives and RTSP video
-      image: http://192.168.3.42:3023/preview-assets/rehab_posture_analysis/recamera-pro-hardware.png
+      image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/rehab_posture_analysis/recamera-pro-hardware-f8fd1721.png
   ja:
     lead: 導入後、患者や理学療法士が現場ディスプレイで確認するリアルタイム HUD 画面。
     items:
@@ -231,19 +231,19 @@ features:
       - 全身 33 関節の骨格トポロジーをリアルタイム重畳
       - フェーズと有効回数を大型カードで表示
       - 関節可動域 ROM 角度を動的に追従
-      image: http://192.168.3.42:3023/preview-assets/rehab_posture_analysis/features-rom-en.png
+      image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/rehab_posture_analysis/features-rom-en-1e785b87.png
     - title: 運動力学解析と代償動作アラート
       points:
       - 関節可動域 ROM 角度の連続測定
       - 膝の内倒れや肩の代償を赤色警告表示
       - 3フレーム防振で不完全な反復を排除
-      image: http://192.168.3.42:3023/preview-assets/rehab_posture_analysis/live-demo.gif
+      image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/rehab_posture_analysis/features-compensation-en-f5b27ac2.png
     - title: 2種のハードウェアと完全なプライバシー保護
       points:
       - reCamera Pro で 24.0 FPS INT8 推論を達成
       - 映像は端末内メモリで破棄され外部流出ゼロ
       - WebSocket ベクトル図元と RTSP 配信に対応
-      image: http://192.168.3.42:3023/preview-assets/rehab_posture_analysis/recamera-pro-hardware.png
+      image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/rehab_posture_analysis/recamera-pro-hardware-f8fd1721.png
 architecture_lead:
   zh: 一体化智能相机内置 NPU/TPU 完成姿态估计与运动学生物力学状态机，通过 WebSocket 与 RTSP 输出结构化图元，视频不出摄像头。
   en: The all-in-one smart camera runs pose estimation and kinematics on its built-in

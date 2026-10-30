@@ -1,124 +1,146 @@
-version: "1.0"
+version: '1.0'
 enabled: true
 id: rehab_posture_analysis
 name: AI Edge Rehabilitation Posture Analysis
 name_i18n:
   zh: 边缘 AI 康复姿态与动作分析方案
-
 intro:
-  summary: Real-time clinical biomechanics kinematics, 33-point BlazePose INT8 tracking, phase-state machine, and debounced compensation detection on reCamera edge devices without video leaving the camera.
+  summary: Real-time clinical biomechanics kinematics, 33-point BlazePose INT8 tracking,
+    phase-state machine, and debounced compensation detection on reCamera edge devices
+    without video leaving the camera.
   summary_i18n:
-    zh: 纯边缘端实时临床生物力学运动学分析：基于 33 点 BlazePose INT8 模型、时相状态机与防抖代偿检测，在 reCamera 上实现动作计数、ROM 活动度度量与病理代偿实时预警，视频裸流不出摄像头。
+    zh: 纯边缘端实时临床生物力学运动学分析：基于 33 点 BlazePose INT8 模型、时相状态机与防抖代偿检测，在 reCamera 上实现动作计数、ROM
+      活动度度量与病理代偿实时预警，视频裸流不出摄像头。
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
-  cover_image: gallery/cover.png
+  cover_image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/rehab_posture_analysis/cover-93765b27.png
   category: vision_video_ai
   solution_type: solution
-  tags: [recamera, rehab, pose-estimation, kinematics, blazepose, edge-ai, healthcare, silver-economy]
+  tags:
+  - recamera
+  - rehab
+  - pose-estimation
+  - kinematics
+  - blazepose
+  - edge-ai
+  - healthcare
+  - silver-economy
   gallery:
-    - type: image
-      src: gallery/cover.png
-      src_i18n:
-        zh: gallery/cover-zh.png
-      caption: Real-time 33-keypoint rehabilitation pose tracking and Result Hub v2 HUD dashboard
-      caption_i18n:
-        zh: 实时 33 关键点康复姿态跟踪与 Result Hub v2 HUD 看板
-    - type: image
-      src: gallery/recamera-pro-hardware.png
-      src_i18n:
-        zh: gallery/recamera-pro-hardware-zh.png
-      caption: reCamera Pro (RV1126B) official gallery card with 24.0 FPS INT8 kinematics and dual-view clinical metrics
-      caption_i18n:
-        zh: reCamera Pro 官方硬件图：24.0 FPS INT8 运动学分析与双重视角临床度量
-    - type: image
-      src: gallery/recamera-2002-hardware.png
-      src_i18n:
-        zh: gallery/recamera-2002-hardware-zh.png
-      caption: reCamera 2002 (SG2002) official gallery card with 13.3 FPS hardware-fused INT8 tracking
-      caption_i18n:
-        zh: reCamera 2002 官方硬件图：13.3 FPS 硬件首层融合 INT8 跟踪与 OSD 字符叠加
-    - type: image
-      src: gallery/live-demo.gif
-      src_i18n:
-        zh: gallery/live-demo-zh.gif
-      caption: Live video stream analysis on edge device — continuous joint ROM, repetition tracking, and debounced compensation alert
-      caption_i18n:
-        zh: 边缘端真实视频流实时运动学分析：连续关节 ROM 度量、动作时相跃迁计数与病理代偿实时预警
+  - type: image
+    src: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/rehab_posture_analysis/cover-93765b27.png
+    src_i18n:
+      zh: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/rehab_posture_analysis/cover-zh-49df730f.png
+    caption: Real-time 33-keypoint rehabilitation pose tracking and Result Hub v2
+      HUD dashboard
+    caption_i18n:
+      zh: 实时 33 关键点康复姿态跟踪与 Result Hub v2 HUD 看板
+  - type: image
+    src: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/rehab_posture_analysis/recamera-pro-hardware-f8fd1721.png
+    src_i18n:
+      zh: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/rehab_posture_analysis/recamera-pro-hardware-zh-06626ad0.png
+    caption: reCamera Pro (RV1126B) official gallery card with 24.0 FPS INT8 kinematics
+      and dual-view clinical metrics
+    caption_i18n:
+      zh: reCamera Pro 官方硬件图：24.0 FPS INT8 运动学分析与双重视角临床度量
+  - type: image
+    src: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/rehab_posture_analysis/recamera-2002-hardware-de1246f4.png
+    src_i18n:
+      zh: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/rehab_posture_analysis/recamera-2002-hardware-zh-d3a76983.png
+    caption: reCamera 2002 (SG2002) official gallery card with 13.3 FPS hardware-fused
+      INT8 tracking
+    caption_i18n:
+      zh: reCamera 2002 官方硬件图：13.3 FPS 硬件首层融合 INT8 跟踪与 OSD 字符叠加
+  - type: image
+    src: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/rehab_posture_analysis/live-demo-abdc6cbb.gif
+    src_i18n:
+      zh: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/rehab_posture_analysis/live-demo-zh-734bccc4.gif
+    caption: Live video stream analysis on edge device — continuous joint ROM, repetition
+      tracking, and debounced compensation alert
+    caption_i18n:
+      zh: 边缘端真实视频流实时运动学分析：连续关节 ROM 度量、动作时相跃迁计数与病理代偿实时预警
   output_interfaces:
-    - type: ws
-      port: 8080
-      path: /ws
-      description: Result Hub v2 geometry[] vector primitives carrying 33 skeleton joints and real-time HUD metrics card.
-      description_i18n:
-        zh: Result Hub v2 geometry[] 矢量图元流，包含 33 骨骼关键点拓扑与实时 HUD 评估看板卡片。
-    - type: http
-      port: 8080
-      endpoint: /appcenter
-      description: Interactive web application console for real-time visualization and parameter tuning.
-      description_i18n:
-        zh: 交互式 Web 控制台，用于实时视频叠加可视化与康复代偿阈值在线调节。
-    - type: rtsp
-      port: 8554
-      path: /live0
-      description: H.264 camera video stream with optional hardware OSD metrics burned in.
-      description_i18n:
-        zh: H.264 摄像头实时视频流，支持硬件 OSD 关键指标直接烧录。
+  - type: ws
+    port: 8080
+    path: /ws
+    description: Result Hub v2 geometry[] vector primitives carrying 33 skeleton joints
+      and real-time HUD metrics card.
+    description_i18n:
+      zh: Result Hub v2 geometry[] 矢量图元流，包含 33 骨骼关键点拓扑与实时 HUD 评估看板卡片。
+  - type: http
+    port: 8080
+    endpoint: /appcenter
+    description: Interactive web application console for real-time visualization and
+      parameter tuning.
+    description_i18n:
+      zh: 交互式 Web 控制台，用于实时视频叠加可视化与康复代偿阈值在线调节。
+  - type: rtsp
+    port: 8554
+    path: /live0
+    description: H.264 camera video stream with optional hardware OSD metrics burned
+      in.
+    description_i18n:
+      zh: H.264 摄像头实时视频流，支持硬件 OSD 关键指标直接烧录。
   input_requirements:
-    - type: camera
-      description: Built-in camera module with 2.0-3.5m full-body standing/sitting field of view.
-      description_i18n:
-        zh: 内置摄像头模组，需保证 2.0-3.5m 距离覆盖患者全身站立或坐姿视野。
+  - type: camera
+    description: Built-in camera module with 2.0-3.5m full-body standing/sitting field
+      of view.
+    description_i18n:
+      zh: 内置摄像头模组，需保证 2.0-3.5m 距离覆盖患者全身站立或坐姿视野。
   device_catalog:
     recamera_pro:
       name: reCamera Pro (RV1126B)
       name_i18n:
         zh: reCamera Pro (RV1126B)
-      description: Smart edge camera with 3 TOPS NPU, running YOLO11n-Pose 33kpt INT8 RKNN with Result Hub v2 geometry overlay.
+      description: Smart edge camera with 3 TOPS NPU, running YOLO11n-Pose 33kpt INT8
+        RKNN with Result Hub v2 geometry overlay.
       description_i18n:
         zh: 内置 3 TOPS NPU 的智能边缘相机，运行 33 点 INT8 RKNN 姿态模型与 Result Hub v2 矢量叠加。
     recamera_2002:
       name: reCamera 2002 (SG2002)
       name_i18n:
         zh: reCamera 2002 (SG2002)
-      description: Ultra-compact RISC-V 1GHz TPU camera running YOLO11n-Pose 33kpt INT8 cvimodel with lightweight OSD.
+      description: Ultra-compact RISC-V 1GHz TPU camera running YOLO11n-Pose 33kpt
+        INT8 cvimodel with lightweight OSD.
       description_i18n:
         zh: 紧凑型 RISC-V 1GHz TPU 边缘相机，运行 33 点 INT8 cvimodel 与轻量 OSD/Web 叠加。
   presets:
-    - id: recamera_pro
-      name: reCamera Pro
+  - id: recamera_pro
+    name: reCamera Pro
+    name_i18n:
+      zh: reCamera Pro
+    description: Deploy on reCamera Pro with RKNN INT8 model acceleration, full 33-point
+      skeleton overlay, and interactive HUD dashboard.
+    description_i18n:
+      zh: 部署在 reCamera Pro 上，依托 RKNN INT8 硬件加速、33 骨架彩色矢量图元与交互式 HUD 数据看板。
+    device_groups:
+    - id: camera
+      name: AI Camera
       name_i18n:
-        zh: reCamera Pro
-      description: Deploy on reCamera Pro with RKNN INT8 model acceleration, full 33-point skeleton overlay, and interactive HUD dashboard.
-      description_i18n:
-        zh: 部署在 reCamera Pro 上，依托 RKNN INT8 硬件加速、33 骨架彩色矢量图元与交互式 HUD 数据看板。
-      device_groups:
-        - id: camera
-          name: AI Camera
-          name_i18n:
-            zh: AI 摄像头
-          type: single
-          required: true
-          options:
-            - device_ref: recamera_pro
-          default: recamera_pro
-    - id: recamera_2002
-      name: reCamera 2002
+        zh: AI 摄像头
+      type: single
+      required: true
+      options:
+      - device_ref: recamera_pro
+      default: recamera_pro
+  - id: recamera_2002
+    name: reCamera 2002
+    name_i18n:
+      zh: reCamera 2002
+    description: Deploy on reCamera 2002 (SG2002) with CVI TPU INT8 model and lightweight
+      streaming OSD.
+    description_i18n:
+      zh: 部署在 reCamera 2002 上，依托 SG2002 CVI TPU INT8 加速与轻量化视频流 OSD。
+    device_groups:
+    - id: camera
+      name: AI Camera
       name_i18n:
-        zh: reCamera 2002
-      description: Deploy on reCamera 2002 (SG2002) with CVI TPU INT8 model and lightweight streaming OSD.
-      description_i18n:
-        zh: 部署在 reCamera 2002 上，依托 SG2002 CVI TPU INT8 加速与轻量化视频流 OSD。
-      device_groups:
-        - id: camera
-          name: AI Camera
-          name_i18n:
-            zh: AI 摄像头
-          type: single
-          required: true
-          options:
-            - device_ref: recamera_2002
-          default: recamera_2002
+        zh: AI 摄像头
+      type: single
+      required: true
+      options:
+      - device_ref: recamera_2002
+      default: recamera_2002
   stats:
     difficulty: beginner
     estimated_time: 5min
