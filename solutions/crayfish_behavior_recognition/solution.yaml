@@ -1,0 +1,154 @@
+version: "1.0"
+enabled: true
+id: crayfish_behavior_recognition
+name: Aquaculture Crayfish Behavior & Fighting Recognition
+name_i18n:
+  zh: 水产螯虾打斗与行为识别方案
+  ja: 養殖ザリガニ闘争・行動認識ソリューション
+
+intro:
+  summary: Monitor aquaculture crayfish interactions, detect fighting/harassment, and prevent cannibalism during molting using edge AI vision on reCamera.
+  summary_i18n:
+    zh: 基于 reCamera 边缘视觉实时识别高密度水产养殖中澳洲淡水龙虾的打斗、骚扰与残食风险，公母性别自动鉴别，纯端侧闭环无公网依赖。
+    ja: reCamera エッジ AI で高密度養殖におけるザリガニの闘争・威嚇・脱皮時共食いリスクをリアルタイム検知。性別識別も端末完結。
+  description_file: description.md
+  description_file_i18n:
+    zh: description_zh.md
+  cover_image: gallery/cover.svg
+  category: vision_video_ai
+  solution_type: solution
+  tags:
+    - recamera
+    - aquaculture
+    - crayfish
+    - computer-vision
+    - yolo11
+    - edge-ai
+    - behavior-recognition
+    - animal-husbandry
+  gallery:
+    - type: image
+      src: gallery/cover.svg
+      src_i18n:
+        zh: gallery/cover_zh.svg
+      caption: Real-time crayfish detection, proximity trigger, and fight classification HUD
+      caption_i18n:
+        zh: 实时水槽螯虾检测、靠近触发与打斗分类 HUD
+    - type: image
+      src: gallery/detection_clear_scene.jpg
+      caption: Field detection performance in clear tank scene (YOLO11n 640x640, mAP50 0.950)
+      caption_i18n:
+        zh: 清晰水槽场景下的现场检测表现（YOLO11n 640x640，mAP50 0.950）
+    - type: image
+      src: gallery/detection_under_blur.jpg
+      caption: Robust individual segmentation under out-of-focus and water surface reflection
+      caption_i18n:
+        zh: 虚焦与水面反光干扰下依然稳健的个体分框与重叠切分
+    - type: image
+      src: gallery/temporal_8frame_mosaic.jpg
+      caption: 8-frame ROI mosaic temporal classifier resolving perspective occlusion
+      caption_i18n:
+        zh: 8 帧交互 ROI 拼图时序确认网络，排除侧拍透视错位伪打斗
+    - type: image
+      src: gallery/vlm_annotation_sex_fight.jpg
+      caption: Multimodal VLM data flywheel with sex coloring and fight bounding audit
+      caption_i18n:
+        zh: 多模态 VLM 数据飞轮：雌雄着色标注与打斗交互对框自动审计
+  output_interfaces:
+    - type: mqtt
+      port: 1883
+      endpoint: crayfish/behavior/event, crayfish/detection
+      description: Real-time fight/harassment state-change events and tracked crayfish coordinates.
+      description_i18n:
+        zh: 实时打斗/骚扰状态变更事件与跟踪螯虾坐标。
+    - type: ws
+      port: 8124
+      path: /ws
+      description: Event trigger stream with cropped interaction ROI screenshots and metadata.
+      description_i18n:
+        zh: 事件触发流，包含交互区域截帧与行为置信度元数据。
+    - type: rtsp
+      port: 8554
+      path: /live0
+      description: H.264 camera video stream with hardware OSD bounding boxes.
+      description_i18n:
+        zh: H.264 摄像头实时视频流，支持硬件 OSD 边框烧录。
+  input_requirements:
+    - type: camera
+      description: Top-down or side-view camera overlooking aquaculture tanks, 1080p @ 10-15 FPS.
+      description_i18n:
+        zh: 俯视或侧视对准养殖水槽的摄像头，1080p @ 10-15 FPS。
+  device_catalog:
+    recamera_pro:
+      name: reCamera Pro
+      name_i18n:
+        zh: reCamera Pro
+        ja: reCamera Pro
+      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/-/1-100092895-recamera-pro.jpg
+      product_url: https://www.seeedstudio.com/reCamera-Pro-p-6644.html
+      description: Smart edge camera with 3 TOPS NPU, running autonomous 4-stage funnel pipeline and sex voting.
+      description_i18n:
+        zh: 搭载 1/1.8" 大底感光与 3 TOPS NPU 的智能边缘相机，跑通端侧 4 级漏斗行为时序流水线与性别投票。
+        ja: 1/1.8" 大型センサーと 3 TOPS NPU を搭載したエッジ AI カメラ。時系列 8 コマ解析と雌雄判定を完結。
+      purchase:
+        family: recamera_pro
+    recamera_2002:
+      name: reCamera 2002 HQ PoE
+      name_i18n:
+        zh: reCamera 2002 HQ PoE
+        ja: reCamera 2002 HQ PoE
+      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/p/o/poe__1.png
+      product_url: https://www.seeedstudio.com/reCamera-2002-HQ-PoE-64GB-p-6557.html
+      description: RISC-V 1GHz TPU edge camera running native BF16 cvimodel detection and alert daemon.
+      description_i18n:
+        zh: 搭载 RISC-V 1GHz TPU 的紧凑边缘相机，标准 PoE 供电，运行原生 BF16 cvimodel 螯虾检测与报警守护进程。
+        ja: RISC-V 1GHz TPU 搭載のエッジカメラ。標準 PoE 駆動、軽量検出と初期接近アラートを経済的に実現。
+      purchase:
+        family: recamera_2002
+        require:
+          model: [2002_hq_poe]
+  presets:
+    - id: recamera_pro
+      name: reCamera Pro (1/1.8" Sensor · High-Res Wide Tank & Multi-Target)
+      name_i18n:
+        zh: reCamera Pro（1/1.8" 大底高清）
+      description: 1/1.8" large-sensor 4K/1080p capture with 3 TOPS NPU. Covers wide breeding tanks with clear details, running full 4-stage funnel with 8-frame mosaic temporal confirmation and sex voting.
+      description_i18n:
+        zh: 搭载 1/1.8" 大底高清传感器与 3 TOPS NPU。大视野水槽画面更清晰、低照度噪点更低，端侧跑通多目标 8 帧时序拼图与公母鉴别全流水线，适合宽水槽与高精度科研。
+      device_groups:
+        - id: camera
+          name: AI Camera
+          name_i18n:
+            zh: AI 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: recamera_pro
+          default: recamera_pro
+    - id: recamera_2002
+      name: reCamera 2002 (1/2.8" Sensor · Standard Tank Cost-Optimized)
+      name_i18n:
+        zh: reCamera 2002（1/2.8" 标准经济款）
+      description: 1/2.8" compact PoE camera with 1 TOPS TPU. Ideal for high-density standard tanks requiring lightweight object detection and proximity aggression triage.
+      description_i18n:
+        zh: 搭载 1/2.8" 紧凑型传感器与 1 TOPS TPU。适用于标准水槽高密度铺设，PoE 供电，原生 C++ 运行 640² 目标检测与靠近打斗初筛报警，功耗低且极具性价比。
+      device_groups:
+        - id: camera
+          name: AI Camera
+          name_i18n:
+            zh: AI 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: recamera_2002
+          default: recamera_2002
+  stats:
+    difficulty: beginner
+    estimated_time: 10min
+  links:
+    github: https://github.com/suharvest/crayfish-fight
+deployment:
+  guide_file: guide.md
+  guide_file_i18n:
+    zh: guide_zh.md
+  selection_mode: sequential

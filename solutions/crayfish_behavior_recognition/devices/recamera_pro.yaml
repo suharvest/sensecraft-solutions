@@ -1,0 +1,60 @@
+version: "1.0"
+id: recamera_pro
+name: reCamera Pro — Crayfish Behavior Pipeline
+name_i18n:
+  zh: reCamera Pro——螯虾打斗与行为识别套件
+type: recamera_pro_app
+device_class: recamera_pro
+
+ssh:
+  port: 22
+  default_user: root
+  default_host: 192.168.3.53
+  connection_timeout: 30
+  command_timeout: 300
+
+app:
+  name: crayfish-fight
+  target_dir: /userdata/local/apps/crayfish-fight
+  source_archive: https://sensecraft-statics.seeed.cc/solution-app/crayfish_behavior_recognition/packages/crayfish-fight-v0.1.2-core.tar.gz
+  entrypoint: /userdata/rknnenv/bin/python3 -m kit.run --app /userdata/local/apps/crayfish-fight/app.py
+  service_name: crayfish-fight
+  auto_start: true
+
+user_inputs:
+  - id: host
+    name: Device IP Address
+    name_i18n:
+      zh: 设备 IP 地址
+    type: text
+    default: "192.168.3.53"
+    placeholder: "192.168.3.53"
+    description: IP address of your reCamera Pro
+    description_i18n:
+      zh: reCamera Pro 的 IP 地址
+    required: true
+    validation:
+      pattern: '^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$'
+  - id: proximity_k
+    name: Proximity Factor (k * Body Length)
+    name_i18n:
+      zh: 靠近判定系数（体长倍数）
+    type: select
+    default: "1.1"
+    options:
+      - value: "0.9"
+        label: Tight (0.9x body length)
+        label_i18n:
+          zh: 严格接触（0.9倍体长）
+      - value: "1.1"
+        label: Standard (1.1x body length)
+        label_i18n:
+          zh: 标准交互（1.1倍体长）
+      - value: "1.3"
+        label: Sensitive (1.3x body length)
+        label_i18n:
+          zh: 敏感预警（1.3倍体长）
+    required: false
+
+post_deployment:
+  open_browser: false
