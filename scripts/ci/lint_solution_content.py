@@ -60,11 +60,11 @@ SENTENCE_ENDINGS = ("。", "！", "？", ".", "!", "?", ":", "：", ";", "；")
 
 ZH_SECTION_PATTERNS = {
     "what_it_does": re.compile(
-        r"^##\s+.*(做什么|这是什么|能抓什么|是什么|能帮你做什么|这个能力|这个方案|这个\s*Lab)",
+        r"^##\s+.*(做什么|这是什么|能抓什么|是什么|能帮你做什么|这个能力|这个方案|方案概述|概述|这个\s*Lab)",
         re.IGNORECASE,
     ),
     "core_value": re.compile(
-        r"^##\s+.*(核心价值|你会得到什么|你能得到什么|值班人员实际看到什么|核心优势|得到什么|工作原理|输出接口|技术规格)",
+        r"^##\s+.*(核心价值|你会得到什么|你能得到什么|值班人员实际看到什么|核心优势|得到什么|工作原理|输出接口|技术规格|系统架构|架构)",
         re.IGNORECASE,
     ),
     "scenarios": re.compile(
@@ -72,14 +72,14 @@ ZH_SECTION_PATTERNS = {
         re.IGNORECASE,
     ),
     "measured_or_notes": re.compile(
-        r"^##\s+.*(实测效果|实测数据|实测边界|实测结果|使用须知|硬件要求|技术规格|使用要求|标称值|部署方式|已知限制|注意事项|集成指南)",
+        r"^##\s+.*(实测效果|实测数据|实测边界|实测结果|实测指标|使用须知|硬件要求|硬件支持|技术规格|使用要求|标称值|部署方式|已知限制|注意事项|集成指南)",
         re.IGNORECASE,
     ),
 }
 
 EN_SECTION_PATTERNS = {
     "what_it_does": re.compile(
-        r"^##\s+.*(What\s+.*(Does|Helps|Is|Adds|Grasp)|How it works|What\s+this\s+capability)",
+        r"^##\s+.*(What\s+.*(Does|Helps|Is|Adds|Grasp)|Overview|How it works|What\s+this\s+capability)",
         re.IGNORECASE,
     ),
     "core_value": re.compile(
@@ -91,14 +91,14 @@ EN_SECTION_PATTERNS = {
         re.IGNORECASE,
     ),
     "measured_or_notes": re.compile(
-        r"^##\s+.*(Measured|Usage\s+Notes|Hardware\s+Requirements|Technical\s+Specs|Requirements|Known\s+Limitations|What\s+You\s+Need|Deployment\s+(Options|Comparison)|How\s+Well\s+It\s+Works|Notes)",
+        r"^##\s+.*(Measured|Benchmarks|Usage\s+Notes|Hardware\s+(Requirements|Support)|Technical\s+Specs|Requirements|Known\s+Limitations|What\s+You\s+Need|Deployment\s+(Options|Comparison)|How\s+Well\s+It\s+Works|Notes)",
         re.IGNORECASE,
     ),
 }
 
 JA_SECTION_PATTERNS = {
     "what_it_does": re.compile(
-        r"^##\s+.*(このソリューション[でが]できること|このソリューションは何をするか|何ができるか|この機能でできること)",
+        r"^##\s+.*(このソリューション[でが]できること|このソリューションは何をするか|何ができるか|この機能でできること|概要)",
         re.IGNORECASE,
     ),
     "core_value": re.compile(

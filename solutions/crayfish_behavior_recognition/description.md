@@ -23,6 +23,13 @@ The **Aquaculture Crayfish Behavior & Fighting Recognition Solution** provides a
 
 ---
 
+## Suitable Scenarios
+
+- Broad recirculating aquaculture tanks and breeding pools that need the full 4-stage funnel and temporal confirmation
+- Dense small-tank deployments focused on detection and initial proximity triage
+
+---
+
 ## Hardware Benchmarks & Deployment
 
 | Platform | Compute Architecture | Runtime Stack | Inference Throughput | Highlights |
