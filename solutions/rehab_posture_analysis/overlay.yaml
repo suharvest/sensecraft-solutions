@@ -97,13 +97,13 @@ scenario_items:
     items:
     - title: 康复科与物理治疗中心
       description: 门诊康复室、运动疗法区。辅助治疗师监测多位患者的规范训练动作。
-      image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/fall_detection/scenario-fall-rehab-corridor-v2-3f17f23e.webp
+      image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/rehab_posture_analysis/scenario-clinic-7d0c7237.webp
     - title: 养老机构与社区日照中心
       description: 长者活动区、坐立防跌倒训练角。老人自主训练时即时大字提示规范动作。
-      image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/fall_detection/scenario-fall-care-home-7b58ef2f.webp
+      image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/rehab_posture_analysis/scenario-senior-center-3301f95e.webp
     - title: 居家自主康复训练
       description: 自家客厅、卧室训练区。一台一体机通电即用，视频裸流不出房间，保护私密性。
-      image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/fall_detection/scenario-fall-home-alone-v2-ad51eee3.webp
+      image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/rehab_posture_analysis/scenario-home-rehab-f4c2cfc5.webp
     note: 不适用：俯拍俯角过大、距离超过 4 米、严重侧身逆光遮挡。
   en:
     lead: Indoor fixed views, patients facing the camera, needing guided movements
@@ -112,28 +112,28 @@ scenario_items:
     - title: Physical therapy and rehab clinics
       description: Outpatient rehab rooms and kinesiology gyms, assisting therapists
         monitoring multiple patients.
-      image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/fall_detection/scenario-fall-rehab-corridor-v2-3f17f23e.webp
+      image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/rehab_posture_analysis/scenario-clinic-7d0c7237.webp
     - title: Senior living and daycare centres
       description: Senior activity halls and sit-to-stand training corners with high-contrast
         HUD cards.
-      image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/fall_detection/scenario-fall-care-home-7b58ef2f.webp
+      image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/rehab_posture_analysis/scenario-senior-center-3301f95e.webp
     - title: Home rehabilitation
       description: Living rooms and home training areas. Power up the all-in-one camera
         with complete patient privacy.
-      image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/fall_detection/scenario-fall-home-alone-v2-ad51eee3.webp
+      image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/rehab_posture_analysis/scenario-home-rehab-f4c2cfc5.webp
     note: 'Not a fit: steep overhead views, distance beyond 4 m, heavy occlusion.'
   ja:
     lead: 屋内の固定カメラ、患者が正面を向き、動作の規範化と即時指導が必要な現場。
     items:
     - title: リハビリテーション科・理学療法室
       description: 外来リハビリ室や運動療法スペースで、複数患者の動作規範化を支援。
-      image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/fall_detection/scenario-fall-rehab-corridor-v2-3f17f23e.webp
+      image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/rehab_posture_analysis/scenario-clinic-7d0c7237.webp
     - title: 高齢者施設・デイサービス
       description: デイケアルームでの立ち上がり訓練。見やすい HUD 看板で高齢者自身が確認。
-      image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/fall_detection/scenario-fall-care-home-7b58ef2f.webp
+      image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/rehab_posture_analysis/scenario-senior-center-3301f95e.webp
     - title: 在宅リハビリテーション
       description: 自宅のリビング。電源を入れるだけで動作し、映像は外に出ずプライバシーを保護。
-      image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/fall_detection/scenario-fall-home-alone-v2-ad51eee3.webp
+      image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/rehab_posture_analysis/scenario-home-rehab-f4c2cfc5.webp
     note: 適さないケース：真上からの俯瞰、4m以上の遠景、強い遮蔽。
 scenarios:
   zh: '室内固定机位、患者面向镜头、需要规范训练动作与即时纠错的地方。

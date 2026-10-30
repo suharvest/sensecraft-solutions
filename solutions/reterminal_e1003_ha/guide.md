@@ -61,11 +61,11 @@ Deploy a Home Assistant instance on your local or remote Docker host. If Home As
 
 > **Platform Constraint**: The Home Assistant container relies on native host networking (`network_mode: host`) for mDNS and LAN device discovery. **Local installation is supported on Linux hosts only**. On macOS or Windows environments, Docker Desktop cannot provide native host networking: please **uncheck this step to skip it**, or select `ha_remote` to deploy to an independent Linux host (such as a Raspberry Pi or reComputer), or reuse an existing Home Assistant instance on your network.
 
-### Target {#ha_local type=local config=devices/ha_host.yaml default=true}
+### Target {#ha_local type=local config=devices/ha_host.yaml}
 
 Deploy Home Assistant on a local Linux machine using host network mode (Linux host only; skip on macOS/Windows).
 
-### Target {#ha_remote type=remote config=devices/ha_host.yaml}
+### Target {#ha_remote type=remote config=devices/ha_host.yaml default=true}
 
 Deploy Home Assistant on a remote host (e.g. Raspberry Pi, reComputer) over the local network.
 

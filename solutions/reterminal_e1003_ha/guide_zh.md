@@ -61,11 +61,11 @@
 
 > **宿主平台限制**：Home Assistant 容器依赖 Linux 原生 host 网络（`network_mode: host`）实现 mDNS 与局域网设备自动发现。**本地安装仅支持 Linux 宿主环境**。在 macOS 或 Windows 环境下，Docker Desktop 无法提供原生 host 网络，请**取消勾选本步骤以跳过**，或选择 `ha_remote` 部署到局域网内的独立 Linux 主机（如树莓派、reComputer），也可直接复用局域网中已有的 Home Assistant 实例。
 
-### 部署目标 {#ha_local type=local config=devices/ha_host.yaml default=true}
+### 部署目标 {#ha_local type=local config=devices/ha_host.yaml}
 
 在本地 Linux 机器上部署 Home Assistant（仅支持 Linux host 网络，macOS/Windows 环境请跳过）。
 
-### 部署目标 {#ha_remote type=remote config=devices/ha_host.yaml}
+### 部署目标 {#ha_remote type=remote config=devices/ha_host.yaml default=true}
 
 通过局域网在远程 Linux 主机（如 Raspberry Pi、reComputer）上部署 Home Assistant。
 

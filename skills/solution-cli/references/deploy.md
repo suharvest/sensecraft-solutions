@@ -42,12 +42,16 @@ Read `presets[]`, `steps[]`, `device_connections`, `selected_devices`, and `requ
 ### Step Selection: Core Hardware, Container Services, and Integrations
 
 When a solution preset contains core hardware flashing steps (such as `esp32_usb`, `himax_xmodem`), optional container services (such as `docker_deploy`), and integration steps (such as `ha_integration` connecting via HTTP/API):
-1. **Verify Local Docker Availability First**: Run `sensecraft-engine doctor --json` to inspect the local environment.
+1. **Prefer Remote Target / Auto-Discovery for Container Services**:
+   - For services supporting `remote` targets (e.g. `ha_remote`), the device definition supports `network_scan` detection.
+   - Run `sensecraft-engine device scan --timeout 5` to discover reachable SSH devices on the LAN (e.g. Raspberry Pi, reComputer, home server).
+   - If reachable hosts exist, prompt the user with detected candidates or ask for their target host IP, rather than assuming local execution.
 2. **Selective `selected_devices` (Avoid `ERR_PRECHECK`)**:
+   - If targeting local Docker, **Verify Local Docker Availability First**: Run `sensecraft-engine doctor --json`.
    - If local Docker is not installed, not running, or running in an environment without native host networking support (such as Docker Desktop on macOS or Windows where host network mode cannot support Home Assistant mDNS and LAN device discovery), **`selected_devices` MUST only exclude local container service steps whose prerequisites are unfulfilled** (e.g. excluding a `docker_deploy` step like `deploy_ha` when targeting local Docker).
    - Integration steps connecting to an existing external or independent service (such as `connect_ha` via HTTP/API) do not depend on local Docker and SHOULD be retained in `selected_devices` alongside the hardware steps whenever an existing instance is available.
-   - Do NOT blindly select all steps in `selected_devices`. Selecting an unready `docker_deploy` step targeting local Docker when Docker is absent or unsupported causes immediate `ERR_PRECHECK` failures.
-   - If the user explicitly requests container deployment or already possesses a dedicated Linux Docker host, dynamically match an available remote target from `step.targets` where `type == "remote"` (do not hardcode an assumed target ID), configure it with SSH credentials, or guide the user to reuse their existing service instance.
+   - Do NOT blindly select all steps in `selected_devices`. When required connection parameters for `remote` (such as `host` and SSH credentials) have not been provided by the user, the step MUST remain pending or excluded, preventing premature execution.
+   - When the user selects remote container deployment, dynamically match an available remote target from `step.targets` where `type == "remote"`, populate SSH connection fields, and let remote preconditions inspect whether the service is already running on the target host before attempting Docker deployment.
 
 ### Understanding Targets vs Modes (`has_targets` vs `has_modes`)
 
