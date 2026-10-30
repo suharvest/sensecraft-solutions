@@ -23,13 +23,27 @@ binary:
     path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/yolo-detector_0.6.0_riscv64.deb
     name: yolo-detector
     includes_init_script: true
+    checksum:
+      sha256: 72f9b2ac058e132098990a45cf27a80175adacb0682e842b41eb4304d2547b20
   models:
     - path: https://sensecraft-statics.seeed.cc/solution-app/rehab_posture_analysis/models/blazepose_33kpt_cv181x_int8.cvimodel
       target_path: /userdata/local/models
       filename: blazepose_33kpt_cv181x_int8.cvimodel
-  service_name: rehab-posture-analysis
+  service_name: yolo-detector
   service_priority: 92
   auto_start: true
+
+actions:
+  after:
+    - name: Configure Rehab 33-Keypoint Model
+      run: |
+        set -e
+        mkdir -p /userdata/local/apps
+        echo "/userdata/local/models/blazepose_33kpt_cv181x_int8.cvimodel" > /userdata/local/apps/yolo-detector.model
+        chmod 644 /userdata/local/models/blazepose_33kpt_cv181x_int8.cvimodel
+      sudo: true
+      name_i18n:
+        zh: 配置康复姿态 33 关键点模型加载指向
 
 user_inputs:
   - id: host
@@ -43,6 +57,12 @@ user_inputs:
   - id: password
     name: SSH Password
     type: password
-    default: "recamera"
+    default: "recamera.1"
+    description: SSH password (default "recamera.1" or "recamera")
+    description_i18n:
+      zh: SSH 密码（默认 "recamera.1" 或 "recamera"）
     name_i18n:
       zh: SSH 密码
+
+post_deployment:
+  open_browser: false

@@ -8,9 +8,7 @@ type: recamera_pro_app
 recamera_pro_app:
   app_id: rehab-posture-analysis
   activation_timeout: 90
-  package:
-    name: rehab-posture-analysis
-    source_archive: https://sensecraft-statics.seeed.cc/solution-app/rehab_posture_analysis/packages/rehab-posture-analysis-v0.1.0-core.tar.gz
+  require_installed: true
   config:
     output_channels: ["ws"]
     exercise: "{{exercise}}"

@@ -6,6 +6,11 @@ name_i18n:
 type: recamera_cpp
 device_class: recamera
 
+detection:
+  method: network_scan
+  manual_entry: true
+  requirements: []
+
 ssh:
   port: 22
   default_user: recamera
@@ -24,12 +29,21 @@ binary:
     - path: https://sensecraft-statics.seeed.cc/solution-app/crayfish_behavior_recognition/models/crayfish_det_cv181x_bf16.cvimodel
       target_path: /userdata/local/models
       filename: crayfish_det_cv181x_bf16.cvimodel
-    - path: https://sensecraft-statics.seeed.cc/solution-app/crayfish_behavior_recognition/models/crayfish_behavior_cv181x_bf16.cvimodel
-      target_path: /userdata/local/models
-      filename: crayfish_behavior_cv181x_bf16.cvimodel
   service_name: yolo-detector
   service_priority: 92
   auto_start: true
+
+actions:
+  after:
+    - name: Configure Crayfish Detection Model
+      run: |
+        set -e
+        mkdir -p /userdata/local/apps
+        echo "/userdata/local/models/crayfish_det_cv181x_bf16.cvimodel" > /userdata/local/apps/yolo-detector.model
+        chmod 644 /userdata/local/models/crayfish_det_cv181x_bf16.cvimodel
+      sudo: true
+      name_i18n:
+        zh: 配置螯虾检测模型加载指向
 
 user_inputs:
   - id: host
@@ -50,10 +64,10 @@ user_inputs:
     name_i18n:
       zh: SSH 密码
     type: password
-    default: "recamera"
-    description: SSH password (try "recamera" or "recamera.2")
+    default: "recamera.1"
+    description: SSH password (default "recamera.1" or "recamera")
     description_i18n:
-      zh: SSH 密码（默认 "recamera" 或 "recamera.2"）
+      zh: SSH 密码（默认 "recamera.1" 或 "recamera"）
     required: true
 
 post_deployment:

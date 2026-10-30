@@ -6,35 +6,22 @@ name_i18n:
 type: recamera_pro_app
 device_class: recamera_pro
 
-ssh:
-  port: 22
-  default_user: root
-  default_host: 192.168.3.53
-  connection_timeout: 30
-  command_timeout: 300
+recamera_pro_app:
+  app_id: crayfish-fight
+  activation_timeout: 90
+  require_installed: true
+  config:
+    proximity_k: "{{proximity_k}}"
 
-app:
-  name: crayfish-fight
-  target_dir: /userdata/local/apps/crayfish-fight
-  source_archive: https://sensecraft-statics.seeed.cc/solution-app/crayfish_behavior_recognition/packages/crayfish-fight-v0.1.2-core.tar.gz
-  entrypoint: /userdata/rknnenv/bin/python3 -m kit.run --app /userdata/local/apps/crayfish-fight/app.py
-  service_name: crayfish-fight
-  auto_start: true
+ssh:
+  port: 443
+  default_user: admin
+  connection_timeout: 30
+
+post_deployment:
+  open_browser: false
 
 user_inputs:
-  - id: host
-    name: Device IP Address
-    name_i18n:
-      zh: 设备 IP 地址
-    type: text
-    default: "192.168.3.53"
-    placeholder: "192.168.3.53"
-    description: IP address of your reCamera Pro
-    description_i18n:
-      zh: reCamera Pro 的 IP 地址
-    required: true
-    validation:
-      pattern: '^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$'
   - id: proximity_k
     name: Proximity Factor (k * Body Length)
     name_i18n:
@@ -55,6 +42,3 @@ user_inputs:
         label_i18n:
           zh: 敏感预警（1.3倍体长）
     required: false
-
-post_deployment:
-  open_browser: false

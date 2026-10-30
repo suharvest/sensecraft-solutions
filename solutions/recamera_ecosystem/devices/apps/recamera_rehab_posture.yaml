@@ -1,0 +1,77 @@
+version: "1.0"
+id: recamera_rehab_posture
+name: reCamera Rehab Posture Analysis
+name_i18n:
+  zh: reCamera 康复姿态动作分析
+type: recamera_cpp
+device_class: recamera
+
+detection:
+  method: network_scan
+  manual_entry: true
+  requirements: []
+
+ssh:
+  port: 22
+  default_user: recamera
+  default_host: 192.168.42.1
+  connection_timeout: 30
+  command_timeout: 300
+
+binary:
+  deb_package:
+    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/yolo-detector_0.6.0_riscv64.deb
+    name: rehab-posture-analysis
+    includes_init_script: true
+    checksum:
+      sha256: 72f9b2ac058e132098990a45cf27a80175adacb0682e842b41eb4304d2547b20
+
+  models:
+    - path: https://sensecraft-statics.seeed.cc/solution-app/rehab_posture_analysis/models/blazepose_33kpt_cv181x_int8.cvimodel
+      target_path: /userdata/local/models
+      filename: blazepose_33kpt_cv181x_int8.cvimodel
+      checksum:
+        sha256: cbcd96011c50aa8eb72edb80d8bdc829b59b2f10d02a9b57a20565b5d29a9e40
+
+  service_name: rehab-posture-analysis
+  service_priority: 92
+  conflict_services:
+    stop:
+      - S03node-red
+      - S91sscma-node
+  auto_start: true
+
+user_inputs:
+  - id: host
+    name: Device IP Address
+    type: text
+    default: "192.168.42.1"
+    placeholder: "192.168.42.1"
+    description: IP address of your reCamera (USB default 192.168.42.1)
+    required: true
+    validation:
+      pattern: "^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$"
+    name_i18n:
+      zh: 设备 IP 地址
+    description_i18n:
+      zh: reCamera 的 IP 地址（USB 默认 192.168.42.1）
+  - id: password
+    name: SSH Password
+    type: password
+    default: "recamera.1"
+    description: SSH password (try 'recamera.1' or 'recamera')
+    required: true
+    name_i18n:
+      zh: SSH 密码
+    description_i18n:
+      zh: SSH 密码（尝试 'recamera.1' 或 'recamera'）
+
+post_deployment:
+  open_browser: false
+
+catalog_name: "Rehab Posture Analysis"
+catalog_name_i18n:
+  zh: "康复姿态动作分析"
+catalog_description: "Real-time 33-keypoint edge AI pose tracking and range-of-motion (ROM) rehabilitation metrics on SG2002 RISC-V TPU"
+catalog_description_i18n:
+  zh: "基于 SG2002 RISC-V TPU 的 33 关键点轻量姿态追踪与康复关节活动度（ROM）评估，实时推流与事件分发"
