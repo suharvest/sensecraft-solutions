@@ -4,7 +4,6 @@ name: reCamera Pro — Crayfish Behavior Pipeline
 name_i18n:
   zh: reCamera Pro——螯虾打斗与行为识别套件
 type: recamera_pro_app
-device_class: recamera_pro
 
 recamera_pro_app:
   app_id: crayfish-fight

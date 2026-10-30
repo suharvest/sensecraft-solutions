@@ -12,7 +12,26 @@ Autonomous 4-stage funnel vision pipeline running entirely on reCamera Pro (RV11
 
 The deployer inspects App Center on the reCamera Pro. It automatically downloads and uploads the official signed package (`crayfish-fight-v0.1.2-core.tar.gz`), installs, and activates it.
 
-### Target {#recamera_pro_device type=remote device_name="reCamera Pro" config=devices/recamera_pro.yaml}
+### Prerequisites
+
+1. Connect reCamera Pro to your local network router via Ethernet, or connect via USB-C to your workstation.
+2. Ensure the device IP is reachable (default HTTPS on port 443 with self-signed certificate).
+3. Select your desired proximity factor for aggression triage.
+
+### Deployment & Configuration
+
+Enter the reCamera Pro address and web credentials (default user: `admin`). The system uploads the application package (`crayfish-fight-v0.1.2-core.tar.gz`), applies the configured parameters, and starts the service.
+
+---
+
+## Step 2: Verify Video Stream {#verify_stream_pro type=video_stream required=true verify=true}
+
+Verify live video streaming and real-time crayfish behavior recognition overlay.
+
+### Deployment Complete
+
+- Open `https://<camera-ip>/` in your browser.
+- Verify real-time crayfish detection bounding boxes, proximity interaction triggers, and behavioral classification events.
 
 ---
 
@@ -20,8 +39,27 @@ The deployer inspects App Center on the reCamera Pro. It automatically downloads
 
 Ultra-compact RISC-V edge camera running native SG2002 TPU BF16 models for crayfish detection and cascaded behavior alerts.
 
-## Step 1: Deploy Crayfish Detector {#deploy_recamera_2002_crayfish type=recamera_app required=true config=devices/recamera_2002.yaml}
+## Step 1: Deploy Crayfish Detector {#deploy_recamera_2002_crayfish type=recamera_cpp required=true config=devices/recamera_2002.yaml}
 
 Installs native `crayfish_det_cv181x_bf16.cvimodel` and `crayfish_behavior_cv181x_bf16.cvimodel` alongside the C++ inference and alert daemon.
 
-### Target {#recamera_2002_device type=remote device_name="reCamera 2002" config=devices/recamera_2002.yaml}
+### Prerequisites
+
+1. Connect reCamera 2002 via USB. Default IP is `192.168.42.1`.
+2. Default SSH login: user `recamera`, password `recamera`.
+3. Camera exclusivity: active conflicting video pipelines are automatically managed.
+
+### Target {#recamera_2002_device type=remote device_name="reCamera 2002" config=devices/recamera_2002.yaml default=true}
+
+Deploy to the reCamera 2002 device over SSH.
+
+---
+
+## Step 2: Verify Video Stream {#verify_stream_2002 type=video_stream required=true verify=true}
+
+Verify camera video streaming and real-time detection overlay.
+
+### Deployment Complete
+
+- Open `http://<camera-ip>/` in your browser.
+- Confirm live video stream display with detected crayfish bounding boxes and proximity alerts.
