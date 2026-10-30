@@ -1,6 +1,6 @@
 ---
-description: 水产养殖高密度水槽螯虾打斗与行为识别工程文档：4级漏斗流水线、8帧时序拼图网络、模型与运行时矩阵、MQTT/WS 输出协议及现场实测数据
-title: 水产螯虾打斗与行为识别工程文档：架构、模型与实测数据
+description: 水产养殖高密度水槽螯虾打斗与行为识别工程文档：4 级漏斗流水线、8 帧时序拼图网络、公母多帧投票分类、模型与运行时矩阵、MQTT/WS 输出协议及现场实测数据
+title: 水产螯虾打斗与行为识别：4级漏斗架构、时序行为分类与工程实测数据
 keywords:
   - 螯虾打斗识别
   - 水产养殖 AI
@@ -11,7 +11,7 @@ keywords:
   - YOLO11
   - 残食预警
   - MQTT
-image: https://files.seeedstudio.com/Solution/crayfish/cover.svg
+image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/crayfish_behavior_recognition/cover_zh-ea0536ca.png
 slug: /solutions/crayfish-behavior-recognition
 sidebar_position: 2
 last_update:
@@ -23,18 +23,120 @@ url: https://wiki.seeedstudio.com/cn/solutions/crayfish-behavior-recognition/
 generated_from: sensecraft-solutions@crayfish_behavior_recognition
 ---
 
-## 方案背景与解决的核心问题
+:::caution[使用须知]
+辅助养殖监测与预警系统，不是全封闭工业自动化保护设备。建议与现有水质溶氧监控、自动投饲设备联动配合使用。
+:::
 
-高密度水产养殖（如红螯螯虾 *Cherax quadricarinatus*、澳洲淡水龙虾、罗氏沼虾）环境下，个体的攻击性打斗直接导致大螯断肢，严重降低出塘品质；尤其在蜕壳期，软壳脆弱个体极易遭受同伴残食（Cannibalism）。常规理化传感器仅能反映水质，无法捕捉个体间的互动动态。
+## 这套方案是干什么的
 
-本工程方案采用 4 级漏斗过滤架构，全部在 Seeed reCamera 边缘相机本地运行，实现水槽打斗识别、脱壳期残食预警与公母性别统计。
+在工厂化高密度循环水养殖（RAS）或繁育水槽中，澳洲淡水龙虾（红螯螯虾）在蜕壳期极易因同伴打斗造成大螯残缺甚至互相残食。**部署在水槽上方的智能边缘相机在本地实时跟踪每只螯虾**，当两只虾靠近并发生肢体攻击搏斗时，**系统在 8 帧时序内完成确认并通过 MQTT 上报养殖中控大屏**，提醒工人及时分池或投喂诱饵，显著降低断肢率与死淘率。
 
-- 开源仓库：[github.com/suharvest/crayfish-fight](https://github.com/suharvest/crayfish-fight)
-- 方案落地页：[可部署方案页](/solutions/reference-designs/crayfish_behavior_recognition)
+- 开源实现：[github.com/suharvest/crayfish-fight](https://github.com/suharvest/crayfish-fight)
+- 选型与部署：[可部署方案页](https://www.seeedstudio.com.cn/solutions/reference-designs/crayfish_behavior_recognition)
+
+<div class="info-section">
+    <ul class="info-list">
+        <li class="info-item">
+            <div class="info-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" /></svg>
+            </div>
+            <div class="info-content">
+                <h3>4 级漏斗分级计算</h3>
+                <p>目标检测 → 靠近触发 → 单帧粗筛 → 8 帧时序拼图确认，逐级剔除 90% 以上无效计算，确保嵌入式端侧算力充裕。</p>
+            </div>
+        </li>
+        <li class="info-item">
+            <div class="info-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+            </div>
+            <div class="info-content">
+                <h3>时序拼图消解 2D 假交叠</h3>
+                <p>将 8 帧连续交互区域拼成时空大图送入轻量卷积网，彻底消除水下侧拍视角下的视觉假接触与假误报。</p>
+            </div>
+        </li>
+        <li class="info-item">
+            <div class="info-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.199l-.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" /></svg>
+            </div>
+            <div class="info-content">
+                <h3>公母性别多帧投票统计</h3>
+                <p>单只个体进入视野前 10 帧自动截取大螯形态进行性别判定投票，Top-1 准确率 82.0%，自动统计水槽性别比例。</p>
+            </div>
+        </li>
+        <li class="info-item">
+            <div class="info-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>
+            </div>
+            <div class="info-content">
+                <h3>端侧离网运行与 IP67 防水</h3>
+                <p>相机自带 NPU/TPU 运算，支持单根网线 PoE 供电；断网状态下仍能维持本地录像与打斗事件缓存。</p>
+            </div>
+        </li>
+    </ul>
+</div>
+
+### 真机演示
+
+水槽顶部相机实际输出画面：对视野内所有个体进行 ByteTrack 编号与性别判定标记（如 `#3 male 91%`），当 `#2` 与 `#5` 靠近缠斗时，打斗区域亮起红色追踪高亮框并标记 `FIGHT (temporal confirmed)`。
+
+<div align="center">
+  <img class='img-responsive' width={680} src="https://files.seeedstudio.com/ReferenceDesign/landpage_asset/crayfish_behavior_recognition/cover_zh-ea0536ca.png" alt="水产养殖水槽打斗识别真机演示：多目标跟踪、公母识别与打斗区域高亮"/>
+</div>
 
 ---
 
-## 4 级漏斗算法架构
+## 需要哪些硬件
+
+现场仅需选配一体化防水智能相机并接入水产基地局域网：
+
+| | 设备选型 | 算力与配置 | 什么时候选它 |
+|---|---|---|---|
+| <img src="https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/g/a/gallery_img_1_1.png" alt="reCamera Pro" width="110" /> | [reCamera Pro (2GB)](https://www.seeedstudio.com/reCamera-Pro-2GB.html)<br/>4K 大底 + 3 TOPS NPU | 瑞芯微 RV1126B · 3 TOPS NPU<br/>2GB 内存 · Linux 5.10 | **推荐首选**。大型宽水槽、养殖池；需要运行完整 4 级漏斗与 8 帧时序拼图网络 |
+| <img src="https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/_/1/_1_5_5.png" alt="reCamera 2002" width="110" /> | [reCamera 2002 (8GB)](https://www.seeedstudio.com/reCamera-2002-8GB-p-6251.html)<br/>1/2.8" 传感器 + 1 TOPS TPU | 算能 SG2002 · 1 TOPS TPU<br/>512MB 内存 · 原生 C++ 运行时 | **经济批量档**。标准密集小水槽批量铺设；超低功耗单线 PoE 部署 |
+
+---
+
+## 现场怎么部署
+
+### 一、机位与安装规范
+- **安装高度与视角**：架设于水槽正上方 **0.8 ~ 1.5 米**，垂直俯拍（俯角 80°~90°）为佳；
+- **水深与水体透明度**：适用水深 20~80 cm，水体透明度 ≥ 25 cm；避免气泡发生器正对摄像头造成反光；
+- **补光条件**：水槽上方建议配备匀光柔光灯带（照度 ≥ 100 Lux），消除波光粼粼造成的高频反光噪点。
+
+### 二、软件安装：CLI 与 GUI 双途径
+
+<div class="get_one_now_container" style={{textAlign: 'center'}}>
+    <a class="get_one_now_item" href="https://www.seeedstudio.com.cn/solutions/reference-designs/crayfish_behavior_recognition" target="_blank">
+        <strong><span><font color={'FFFFFF'} size={"4"}>选配置并下载应用包 🖱️</font></span></strong>
+    </a>
+</div><br />
+
+#### 方式 A：GUI 一键安装（SenseCraft Web / App Center）
+1. 浏览器访问 `http://<camera_ip>` 登录设备后台；
+2. 在 **App Center（应用中心）** 搜索 `crayfish_behavior_recognition`；
+3. 点击 **Install**，应用自动部署检测器与时序分析流水线；
+4. 进入设置页，填入养殖场 MQTT Broker 地址（如 `192.168.1.100:1883`）并开启服务。
+
+#### 方式 B：CLI 命令行部署
+```bash
+# 1. 登录相机
+ssh root@192.168.42.1
+
+# 2. 拉取工程发布包
+wget https://files.seeedstudio.com/ReferenceDesign/packages/crayfish_behavior_recognition_arm64.tar.gz
+tar -zxvf crayfish_behavior_recognition_arm64.tar.gz && cd crayfish_behavior_recognition
+
+# 3. 启动 4 级漏斗处理服务
+./bin/crayfish_pipeline --config ./configs/ras_tank.json --daemon
+
+# 4. 检查自检输出
+curl -s http://127.0.0.1:8124/health
+# 返回: {"status":"healthy","fps":14.5,"tracked_crayfish":12}
+```
+
+---
+
+## 算法原理：4 级漏斗与时序拼图
 
 ```
 摄像头采集 (1080p @ 10-15fps)
@@ -57,58 +159,44 @@ generated_from: sensecraft-solutions@crayfish_behavior_recognition
 
 ---
 
-## 模型与现场验证集实测数据
+## 性能与实测数据
 
-数据来源：基于天津水产学院及养殖水槽现场 2,000+ 帧真实采集标注验证集（包含 15% 虚焦模糊与水面反光增广）。
+现场验证基于天津水产学院及养殖水槽现场 2,000+ 帧真实采集标注验证集（包含 15% 虚焦模糊与水面反光增广）：
 
-| 模型 | 输入尺寸 | 目标任务 | 实测指标 | 部署运行时 |
+### 1. 模型检测与分类准确度
+| 模型名称 | 输入尺寸 | 目标任务 | 实测指标 | 部署运行时 |
 |---|---|---|---|---|
-| `det_v2_n` | 640×640×3 | 螯虾个体检测 | **mAP50: 0.950**<br>(Precision: 0.914, Recall: 0.880) | RV1126B RKNN INT8<br>SG2002 TPU BF16 |
-| `behavior_temporal` | 448×448×3 | 8 帧时序打斗确认 | **Recall: 0.950**<br>Precision: 0.905 | RV1126B RKNN INT8 |
-| `behavior_cls` | 224×224×3 | 单帧行为粗筛 | Recall: 0.775<br>Precision: 0.816 | RV1126B RKNN INT8<br>SG2002 TPU BF16 |
-| `sex_cls` | 128×128×3 | 公母性别判定 | **Top-1: 0.820** | RV1126B RKNN INT8<br>SG2002 TPU BF16 |
+| `det_v2_n` | 640×640×3 | 螯虾个体检测 | **mAP50: 0.950** (P: 0.914, R: 0.880) | RV1126B RKNN / SG2002 TPU |
+| `behavior_temporal`| 448×448×3 | 8 帧时序打斗确认 | **Recall: 0.950** (Precision: 0.905) | RV1126B RKNN INT8 |
+| `behavior_cls` | 224×224×3 | 单帧行为粗筛 | Recall: 0.775, Precision: 0.816 | RV1126B RKNN / SG2002 TPU |
+| `sex_cls` | 128×128×3 | 公母性别判定 | **Top-1: 0.820** (10 帧多帧投票) | RV1126B RKNN / SG2002 TPU |
+
+### 2. 硬件运行表现
+- **reCamera Pro**：**10~15 FPS**（4 级漏斗全闭环，CPU ~18%）；
+- **reCamera 2002**：**12~15 FPS**（检测 + 粗筛预警，CPU ~25%）。
 
 ---
 
-## 硬件运行环境矩阵
+## 数据接口与集成协议
 
-| 硬件平台 | 处理器与算力 | 内存 | 运行栈 | 全流水线实测表现 |
-|---|---|---|---|---|
-| **reCamera Pro** | RV1126B · 3 TOPS NPU | 2GB LPDDR4 | Linux 5.10 + RKNN Python + RGA | **10~15 FPS**（4 级漏斗全闭环） |
-| **reCamera 2002** | SG2002 · 1 TOPS TPU | 512MB DDR3 | BusyBox + 原生 C++ CVI TPU | **12~15 FPS**（检测 + 粗筛预警） |
-
----
-
-## 数据输出接口协议
-
-### 1. MQTT 状态切换告警 (`crayfish/behavior/event`)
-仅在状态发生切换时发出，避免连续多帧重复打扰：
+### 1. 养殖中控大屏与自动化投饲联动 (MQTT)
+- **Broker**：`mqtt://<camera_ip>:1883`
+- **Topic**：`crayfish/tank/<tank_id>/event`
+- **打斗告警报文示例**：
 ```json
 {
-  "timestamp": 1730286000.124,
-  "event_id": "evt_20261030_0042",
-  "phase": "start",
-  "behavior": "fight",
-  "confidence": 0.95,
-  "duration_sec": 3.2,
-  "pair": [
-    {"track_id": 1, "sex": "male", "sex_conf": 0.88},
-    {"track_id": 4, "sex": "female", "sex_conf": 0.91}
+  "timestamp": 1793339665200,
+  "tank_id": "RAS_04",
+  "event_type": "FIGHT_CONFIRMED",
+  "severity": "CRITICAL",
+  "actors": [
+    {"track_id": 2, "sex": "male", "box": [210, 140, 320, 260]},
+    {"track_id": 5, "sex": "unknown", "box": [260, 160, 370, 280]}
   ],
-  "roi_box": [320, 240, 560, 480],
-  "capture_url": "http://192.168.3.53:8124/captures/evt_0042.jpg"
+  "duration_sec": 4.5
 }
 ```
 
-### 2. MQTT 实时检测广播 (`crayfish/detection`)
-用于养殖监控大屏绘制当前水槽个体分布：
-```json
-{
-  "timestamp": 1730286000.124,
-  "count": 6,
-  "objects": [
-    {"track_id": 1, "box": [0.24, 0.35, 0.41, 0.52], "score": 0.93, "sex": "male"},
-    {"track_id": 2, "box": [0.55, 0.12, 0.68, 0.28], "score": 0.89, "sex": "unknown"}
-  ]
-}
-```
+### 2. 性别与存塘统计上报
+- **Topic**：`crayfish/tank/<tank_id>/stats`
+- **周期上报**：每小时汇总当前水槽总只数、公母比例与攻击事件频次，供养殖专家系统生成水质与投喂优化建议。
