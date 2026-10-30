@@ -13,9 +13,9 @@
 
 **场景要求：** 画面里的物体远近差异明显。空白墙面、天花板、玻璃和天空会得到一张平坦的深度图。
 
-## 步骤 1: 升级 reCamera 控制台 {#deploy_console type=recamera_cpp required=true config=devices/recamera_console.yaml}
+## 步骤 1: 安装深度估计应用 {#deploy_depth type=recamera_cpp required=true config=devices/recamera_depth.yaml}
 
-安装 0.5.6 版控制台，摄像头上的应用由它管理。已经是这个版本会自动跳过。
+把深度估计应用和模型装到摄像头上。
 
 ### 前置条件
 
@@ -30,31 +30,17 @@
 |------|----------|
 | 连不上 | USB 用 `192.168.42.1`；走网络就到路由器里查 IP |
 | 密码不对 | 默认是 `recamera`，较早固件的机器是 `recamera.2` |
-| 安装失败 | 重启摄像头后重新执行这一步 |
-| Node-RED 用不了了 | 正常现象，控制台接管了摄像头。可以在控制台的系统设置里切回去，不会卸载任何东西 |
-
----
-
-## 步骤 2: 安装深度估计应用 {#deploy_depth type=recamera_cpp required=true config=devices/recamera_depth.yaml}
-
-把深度估计应用和模型装到摄像头上。地址和密码与上一步相同。
-
-### 故障排查
-
-| 问题 | 解决方法 |
-|------|----------|
-| 连不上或密码不对 | 与步骤 1 使用同一个地址和密码 |
 | 安装失败 | 确认这台电脑能上网（安装包从云端下载），重启摄像头后重新执行这一步 |
 
 ---
 
-## 步骤 3: 在控制台启用应用 {#open_console type=web_dashboard required=true config=devices/console_dashboard.yaml}
+## 步骤 2: 在控制台启用应用 {#open_console type=web_dashboard required=true config=devices/console_dashboard.yaml}
 
 打开摄像头的控制台，启用单目深度估计。
 
 ### 前置条件
 
-1. 用摄像头账号登录，和步骤 1 是同一套密码。
+1. 用摄像头账号登录，默认密码 `recamera`（较早的机器是 `recamera.2`）。
 2. 在**应用**页启用**单目深度估计**。摄像头同一时间只运行一个应用，启用它会停掉正在运行的其他应用。
 
 ### 部署完成
@@ -66,13 +52,13 @@
 | 问题 | 解决方法 |
 |------|----------|
 | 页面打不开 | 等一分钟让摄像头启动完成，再刷新 |
-| 应用列表里没有单目深度估计 | 重新执行步骤 2 |
+| 应用列表里没有单目深度估计 | 重新执行步骤 1 |
 | 顶部显示 **Node-RED 模式**，应用无法启用 | 在控制台里切回 Console 模式 |
 | 画面卡住不动 | 重启摄像头 |
 
 ---
 
-## 步骤 4: 查看输出 {#verify type=manual required=false verify=true}
+## 步骤 3: 查看输出 {#verify type=manual required=false verify=true}
 
 ### 部署完成
 
@@ -106,4 +92,4 @@
 | 问题 | 解决方法 |
 |------|----------|
 | 深度图很平 | 把摄像头对准有纵深的场景，避开空白墙面、天花板、玻璃和天空 |
-| 视频流打不开 | 确认步骤 3 里应用处于启用状态 |
+| 视频流打不开 | 确认步骤 2 里应用处于启用状态 |

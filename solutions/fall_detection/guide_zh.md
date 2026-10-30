@@ -4,33 +4,17 @@
 
 **重要提示：** 这是辅助告警，不是经过认证的医疗或人身安全系统。远景、遮挡、低光以及看起来像跌倒的地面动作仍是弱项。
 
-## 步骤 1: 更新 reCamera 控制台 {#update_console type=recamera_cpp required=false config=devices/recamera_console.yaml}
+## 步骤 1: 安装跌倒检测 {#deploy_recamera_fall type=recamera_cpp required=true config=devices/recamera_fall.yaml}
 
-安装 0.5.6 控制台，它负责管理相机应用。已经是该版本会自动跳过。
+安装姿态模型和跌倒检测应用，并在相机上启动它。
 
 ### 前置条件
 
 > 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-fall-detection/#现场怎么部署)。
 
-
 1. 用 USB 连接 reCamera，或让它和这台电脑处于同一网络。
 2. USB 连接的地址是 `192.168.42.1`；走 Wi-Fi 时用路由器上显示的 IP。
 3. 默认密码是 `recamera`（较早期的设备用 `recamera.2`）。
-4. 下一步安装跌倒检测需要该版本控制台。
-
-### 故障排查
-
-| 现象 | 处理 |
-|-------|----------|
-| 连不上 | 确认设备已开启 SSH，IP 和密码填写正确 |
-| 装完后控制台页面打不开 | 等待 30 秒让它重启，然后重新加载 `http://<摄像头 IP>/` |
-| 密码被拒绝 | 试试 `recamera.2`，出厂固件较早的设备用这个密码 |
-
----
-
-## 步骤 2: 安装跌倒检测 {#deploy_recamera_fall type=recamera_cpp required=true config=devices/recamera_fall.yaml}
-
-安装姿态模型和跌倒检测应用，并在相机上启动它。
 
 ### 接线
 
@@ -50,6 +34,8 @@
 
 | 现象 | 处理 |
 |-------|----------|
+| 连不上 | 确认设备已开启 SSH，IP 和密码填写正确 |
+| 密码被拒绝 | 试试 `recamera.2`，出厂固件较早的设备用这个密码 |
 | 服务启动后立刻退出 | 还有别的相机应用在占用摄像头；同一时间只能有一个程序占用，重启设备后重试 |
 | 装完后 Node-RED 不工作了 | 属于预期——安装会把摄像头从 Node-RED 和其他视觉应用手里接管过来 |
 | 跌倒漏报 | 拉大视野、改善照明，保证倒地前后肩部和髋部都可见 |
@@ -58,7 +44,7 @@
 
 ---
 
-## 步骤 3: 查看跌倒状态 {#preview_recamera_fall type=preview required=false config=devices/preview_recamera_fall.yaml}
+## 步骤 2: 查看跌倒状态 {#preview_recamera_fall type=preview required=false config=devices/preview_recamera_fall.yaml}
 
 点击 **连接**，实时看到骨架、当前状态和事件编号。
 
@@ -88,7 +74,7 @@
 
 ---
 
-## 步骤 4: 安装告警面板（可选） {#panel_host_recamera type=docker_deploy required=false config=devices/panel_host.yaml}
+## 步骤 3: 安装告警面板（可选） {#panel_host_recamera type=docker_deploy required=false config=devices/panel_host.yaml}
 
 跳过这一步部署即告完成：摄像头照旧发 MQTT 事件，其余什么都不变。
 
@@ -120,7 +106,7 @@
 
 通过 SSH 部署到面板主机。
 
-## 步骤 5: 打开告警面板 {#panel_open_recamera type=web_dashboard required=false config=devices/panel_console.yaml}
+## 步骤 4: 打开告警面板 {#panel_open_recamera type=web_dashboard required=false config=devices/panel_console.yaml}
 
 只有装了面板才需要这一步。
 
@@ -138,7 +124,7 @@
 
 - 在实时画面上把识别区域画出来，替换部署时创建的那个覆盖整幅画面的矩形。
 - 之前留空的话，把 webhook 指向你自己的告警系统。
-- 语音确认默认关闭，需要一个 OpenVoiceStream 实例，以及接在这台主机上的 USB 麦克风与扬声器，见步骤 6。
+- 语音确认默认关闭，需要一个 OpenVoiceStream 实例，以及接在这台主机上的 USB 麦克风与扬声器，见步骤 5。
 
 ### 故障排查
 
@@ -148,7 +134,7 @@
 | 出现登录页 | 部署设置了 `ELDERCARE_API_TOKEN`。输入该口令与操作者姓名——姓名会写进确认/驳回回执。 |
 | 某个房间显示「未知 + 断流」 | 面板主机连不上那台摄像头，检查网络；卡片上的「最近一帧」是最后收到画面的时间。 |
 
-## 步骤 6: 语音确认（可选） {#voice_checkin_recamera type=manual required=false verify=true config=devices/voice_checkin.yaml}
+## 步骤 5: 语音确认（可选） {#voice_checkin_recamera type=manual required=false verify=true config=devices/voice_checkin.yaml}
 
 可选，默认关闭。跌倒告警触发后，服务出声询问住户是否安好，并按回答处置；关闭后告警链路不变。
 

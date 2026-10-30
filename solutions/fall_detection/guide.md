@@ -4,33 +4,17 @@ A reCamera 2002 decides on-device whether someone fell and publishes the event o
 
 **Important:** this is an assistive alert, not a certified medical or life-safety system. Long shots, occlusion, low light and fall-like floor activities remain weak cases.
 
-## Step 1: Update the reCamera Console {#update_console type=recamera_cpp required=false config=devices/recamera_console.yaml}
+## Step 1: Install Fall Detection {#deploy_recamera_fall type=recamera_cpp required=true config=devices/recamera_fall.yaml}
 
-Install console 0.5.6, which manages the camera apps. Already current? It's skipped.
+Install the pose model and the fall detector, then start it on the camera.
 
 ### Prerequisites
 
 > 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-fall-detection/#how-to-deploy-on-site).
 
-
 1. Connect the reCamera over USB, or put it on the same network as this computer.
 2. Over USB the address is `192.168.42.1`; over Wi-Fi use the IP your router shows.
 3. The default password is `recamera` (older units use `recamera.2`).
-4. The next step, installing fall detection, needs this console version.
-
-### Troubleshooting
-
-| Symptom | Action |
-|-------|----------|
-| Cannot connect | Confirm SSH is enabled and the IP and password are correct |
-| Console page does not load after install | Give it 30 seconds to restart, then reload `http://<camera-ip>/` |
-| Password rejected | Try `recamera.2`; units shipped with older firmware use it |
-
----
-
-## Step 2: Install Fall Detection {#deploy_recamera_fall type=recamera_cpp required=true config=devices/recamera_fall.yaml}
-
-Install the pose model and the fall detector, then start it on the camera.
 
 ### Wiring
 
@@ -50,6 +34,8 @@ Install the pose model and the fall detector, then start it on the camera.
 
 | Symptom | Action |
 |-------|----------|
+| Cannot connect | Confirm SSH is enabled and the IP and password are correct |
+| Password rejected | Try `recamera.2`; units shipped with older firmware use it |
 | Service exits immediately | Another camera app is still running; only one app can hold the camera, so reboot and retry |
 | Node-RED stopped working after install | Expected — installing takes the camera from Node-RED and any other vision app |
 | Falls are missed | Widen the view, improve lighting, keep shoulders and hips visible before and after impact |
@@ -58,7 +44,7 @@ Install the pose model and the fall detector, then start it on the camera.
 
 ---
 
-## Step 3: Watch Fall Status {#preview_recamera_fall type=preview required=false config=devices/preview_recamera_fall.yaml}
+## Step 2: Watch Fall Status {#preview_recamera_fall type=preview required=false config=devices/preview_recamera_fall.yaml}
 
 Click **Connect** to see the skeleton, the state and the event number live.
 
@@ -92,7 +78,7 @@ Alerts go to `recamera/fall-detection/results`, and Home Assistant discovery cre
 
 ---
 
-## Step 4: Install the Alarm Panel (optional) {#panel_host_recamera type=docker_deploy required=false config=devices/panel_host.yaml}
+## Step 3: Install the Alarm Panel (optional) {#panel_host_recamera type=docker_deploy required=false config=devices/panel_host.yaml}
 
 Skip this step and the deployment is finished: the camera keeps publishing MQTT
 events and nothing else changes.
@@ -125,7 +111,7 @@ The panel goes on a separate box on the camera's network and needs no AI acceler
 
 Deploy to the panel host over SSH.
 
-## Step 5: Open the Alarm Panel {#panel_open_recamera type=web_dashboard required=false config=devices/panel_console.yaml}
+## Step 4: Open the Alarm Panel {#panel_open_recamera type=web_dashboard required=false config=devices/panel_console.yaml}
 
 Only relevant if you installed the panel in the previous step.
 
@@ -145,7 +131,7 @@ Only relevant if you installed the panel in the previous step.
 
 - Draw the zones on the live picture instead of keeping the single whole-frame rectangle the deploy created.
 - Point the webhook at your own alerting system if you left it empty.
-- Voice check-in is off by default and needs an OpenVoiceStream instance plus a USB microphone and speaker on this host; see Step 6.
+- Voice check-in is off by default and needs an OpenVoiceStream instance plus a USB microphone and speaker on this host; see Step 5.
 
 ### Troubleshooting
 
@@ -155,7 +141,7 @@ Only relevant if you installed the panel in the previous step.
 | A login screen appears | The deployment set `ELDERCARE_API_TOKEN`. Enter that token plus an operator name — the name goes on confirm and dismiss receipts. |
 | A room reads unknown and stream-lost | The panel host cannot reach that camera; check the network. The last-frame time on the card shows when a frame last arrived. |
 
-## Step 6: Voice Check-in (optional) {#voice_checkin_recamera type=manual required=false verify=true config=devices/voice_checkin.yaml}
+## Step 5: Voice Check-in (optional) {#voice_checkin_recamera type=manual required=false verify=true config=devices/voice_checkin.yaml}
 
 Optional, off by default. After a fall alarm is raised, the service asks the resident out loud whether they are all right and acts on the answer; turning it off leaves the alarm path unchanged.
 

@@ -15,9 +15,9 @@ near/far out — no stereo pair, no depth camera.
 **Scene:** objects at clearly different distances. Blank walls, ceilings, glass
 and sky produce a flat depth map.
 
-## Step 1: Update the reCamera Console {#deploy_console type=recamera_cpp required=true config=devices/recamera_console.yaml}
+## Step 1: Install the Depth Estimation App {#deploy_depth type=recamera_cpp required=true config=devices/recamera_depth.yaml}
 
-Install console 0.5.6, which manages the camera's apps. Already current? It's skipped.
+Install the depth app and its model onto the camera.
 
 ### Prerequisites
 
@@ -32,32 +32,17 @@ Install console 0.5.6, which manages the camera's apps. Already current? It's sk
 |-------|----------|
 | Cannot connect | USB: use `192.168.42.1`; network: check your router for the IP |
 | Password rejected | Default is `recamera`; units shipped with older firmware use `recamera.2` |
-| Install failed | Restart the camera and run the step again |
-| Node-RED stopped working | Expected — the console takes over the camera. Switch back from the console's system settings; nothing is uninstalled |
-
----
-
-## Step 2: Install the Depth Estimation App {#deploy_depth type=recamera_cpp required=true config=devices/recamera_depth.yaml}
-
-Install the depth app and its model onto the camera. Address and password are
-the same as the previous step.
-
-### Troubleshooting
-
-| Issue | Solution |
-|-------|----------|
-| Cannot connect or password rejected | Use the same address and password as Step 1 |
 | Install failed | Make sure this computer is online (the package is downloaded from the cloud), restart the camera and run the step again |
 
 ---
 
-## Step 3: Enable the App in the Console {#open_console type=web_dashboard required=true config=devices/console_dashboard.yaml}
+## Step 2: Enable the App in the Console {#open_console type=web_dashboard required=true config=devices/console_dashboard.yaml}
 
 Open the camera's console and enable Monocular Depth Estimation.
 
 ### Prerequisites
 
-1. Sign in with the camera's account — the same password as Step 1.
+1. Sign in with the camera's account — default password `recamera` (older units use `recamera.2`).
 2. On the **Applications** page, enable **Monocular Depth Estimation**. The camera runs one app at a time; enabling it stops whatever else was running.
 
 ### Deployment Complete
@@ -70,13 +55,13 @@ bottom-right corner.
 | Issue | Solution |
 |-------|----------|
 | Page does not open | Wait a minute for the camera to finish starting, then refresh |
-| Monocular Depth Estimation is not in the list | Run Step 2 again |
+| Monocular Depth Estimation is not in the list | Run Step 1 again |
 | A **Node-RED mode** banner is shown and the app cannot be enabled | Switch back to Console mode in the console |
 | Picture freezes | Restart the camera |
 
 ---
 
-## Step 4: Check the Output {#verify type=manual required=false verify=true}
+## Step 3: Check the Output {#verify type=manual required=false verify=true}
 
 ### Deployment Complete
 
@@ -113,4 +98,4 @@ The values are relative near/far, not metres, and cannot be converted to distanc
 | Issue | Solution |
 |-------|----------|
 | Depth map looks flat | Point the camera at a scene with real depth; avoid blank walls, ceilings, glass and sky |
-| Stream does not open | Check that the app is enabled in Step 3 |
+| Stream does not open | Check that the app is enabled in Step 2 |
