@@ -80,31 +80,16 @@ intro:
         zh: 俯视或侧视对准养殖水槽的摄像头，1080p @ 10-15 FPS。
   device_catalog:
     recamera_pro:
-      name: reCamera Pro
-      name_i18n:
-        zh: reCamera Pro
-        ja: reCamera Pro
-      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/-/1-100092895-recamera-pro.jpg
-      product_url: https://www.seeedstudio.com/reCamera-Pro-p-6644.html
       description: Smart edge camera with 3 TOPS NPU, running autonomous 4-stage funnel pipeline and sex voting.
       description_i18n:
         zh: 搭载 1/1.8" 大底感光与 3 TOPS NPU 的智能边缘相机，跑通端侧 4 级漏斗行为时序流水线与性别投票。
-        ja: 1/1.8" 大型センサーと 3 TOPS NPU を搭載したエッジ AI カメラ。時系列 8 コマ解析と雌雄判定を完結。
-      purchase:
-        family: recamera_pro
+        ja: 1/1.8" 大型センサーと 3 TOPS NPU を搭載したエッジ AI カメラ。時系列 8 コマ解析と雌雄判定を完结。
     recamera_2002:
-      name: reCamera 2002 HQ PoE
-      name_i18n:
-        zh: reCamera 2002 HQ PoE
-        ja: reCamera 2002 HQ PoE
-      image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/p/o/poe__1.png
-      product_url: https://www.seeedstudio.com/reCamera-2002-HQ-PoE-64GB-p-6557.html
       description: RISC-V 1GHz TPU edge camera running native BF16 cvimodel detection and alert daemon.
       description_i18n:
         zh: 搭载 RISC-V 1GHz TPU 的紧凑边缘相机，标准 PoE 供电，运行原生 BF16 cvimodel 螯虾检测与报警守护进程。
         ja: RISC-V 1GHz TPU 搭載のエッジカメラ。標準 PoE 駆動、軽量検出と初期接近アラートを経済的に実現。
       purchase:
-        family: recamera_2002
         require:
           model: [2002_hq_poe]
   presets:

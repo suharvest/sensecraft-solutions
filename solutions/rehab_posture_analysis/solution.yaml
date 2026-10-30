@@ -89,17 +89,11 @@ intro:
       zh: 内置摄像头模组，需保证 2.0-3.5m 距离覆盖患者全身站立或坐姿视野。
   device_catalog:
     recamera_pro:
-      name: reCamera Pro (RV1126B)
-      name_i18n:
-        zh: reCamera Pro (RV1126B)
       description: Smart edge camera with 3 TOPS NPU, running YOLO11n-Pose 33kpt INT8
         RKNN with Result Hub v2 geometry overlay.
       description_i18n:
         zh: 内置 3 TOPS NPU 的智能边缘相机，运行 33 点 INT8 RKNN 姿态模型与 Result Hub v2 矢量叠加。
     recamera_2002:
-      name: reCamera 2002 (SG2002)
-      name_i18n:
-        zh: reCamera 2002 (SG2002)
       description: Ultra-compact RISC-V 1GHz TPU camera running YOLO11n-Pose 33kpt
         INT8 cvimodel with lightweight OSD.
       description_i18n:
