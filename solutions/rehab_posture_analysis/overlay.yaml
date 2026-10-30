@@ -188,13 +188,13 @@ features:
       - 实时显示 33 关节骨架拓扑
       - 当前时相与达标计数大字卡片
       - 关节实时活动度角度动态跟随
-      image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/rehab_posture_analysis/features-rom-zh-2ba80e5d.gif
+      image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/rehab_posture_analysis/features-rom-zh-8f8cefb9.gif
     - title: 规范临床动作视频与代偿检测
       points:
       - 连续测量关节活动度 ROM 弧线
       - 膝内扣与耸肩借力变红高亮闪烁
       - 3 帧时序防抖拦截半程刷次数
-      image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/rehab_posture_analysis/features-compensation-zh-0892048d.gif
+      image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/rehab_posture_analysis/features-compensation-zh-10e3198c.gif
     - title: 双硬件预设本地推理与隐私保护
       points:
       - reCamera Pro 达到 24.0 FPS INT8 推理
@@ -210,13 +210,13 @@ features:
       - Real-time 33-joint skeleton topology overlay
       - Large cards showing phase and valid repetition count
       - Dynamic joint ROM angle tracking with target guidelines
-      image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/rehab_posture_analysis/features-rom-en-49df3ed5.gif
+      image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/rehab_posture_analysis/features-rom-en-e95471f2.gif
     - title: Clinical kinematics and compensation alert
       points:
       - Continuous joint Range of Motion measurement
       - Red highlighted alert on knee valgus or shoulder shrug
       - 3-frame debounce prevents partial-rep counting
-      image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/rehab_posture_analysis/features-compensation-en-8fcff0fd.gif
+      image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/rehab_posture_analysis/features-compensation-en-d8bd5846.gif
     - title: Dual hardware presets and zero video leakage
       points:
       - reCamera Pro achieves 24.0 FPS INT8 inference
@@ -231,13 +231,13 @@ features:
       - 全身 33 関節の骨格トポロジーをリアルタイム重畳
       - フェーズと有効回数を大型カードで表示
       - 関節可動域 ROM 角度を動的に追従
-      image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/rehab_posture_analysis/features-rom-en-49df3ed5.gif
+      image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/rehab_posture_analysis/features-rom-en-e95471f2.gif
     - title: 運動力学解析と代償動作アラート
       points:
       - 関節可動域 ROM 角度の連続測定
       - 膝の内倒れや肩の代償を赤色警告表示
       - 3フレーム防振で不完全な反復を排除
-      image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/rehab_posture_analysis/features-compensation-en-8fcff0fd.gif
+      image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/rehab_posture_analysis/features-compensation-en-d8bd5846.gif
     - title: 2種のハードウェアと完全なプライバシー保護
       points:
       - reCamera Pro で 24.0 FPS INT8 推論を達成
