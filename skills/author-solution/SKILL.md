@@ -239,6 +239,37 @@ docker run --rm ${DOCKER_REGISTRY_PREFIX}library/alpine sh -c '...'
 
 该变量由引擎按探测结果注入，非受限网络下为空串，不影响。官方镜像必须写全 `library/<name>`：Docker 只在直连 Docker Hub 时自动补 `library/`，加了镜像源前缀后 `docker.m.daocloud.io/alpine` 与 `docker.m.daocloud.io/library/alpine` 是两个路径，前者实测间歇性 401/502。空前缀时 `library/alpine` 等同 `alpine`。`solutionctl validate` 会拦截 `${DOCKER_REGISTRY_PREFIX}<不带 / 的名字>`。
 
+### Phase 2.7: Home Assistant 与 MQTT 联动标准范式 (Canonical HA Stack)
+
+当方案依赖 reCamera MQTT 自动发现（MQTT Discovery）或 IoT 设备 MQTT 上报并与 Home Assistant 联动时，必须遵循标准双容器 Canonical HA 架构，以确保开箱即用且支持复用已有生态。参考基准实现见 `solutions/recamera_ecosystem/`。
+
+**1. 双容器 Docker Compose 栈（Dual-container Compose Stack）**
+- **严禁部署裸 HA**：Home Assistant 容器镜像自身并不包含 MQTT Broker，而无论是 reCamera（如 SG2002 / RK3576）还是其他 IoT 边缘设备均作为 MQTT Client 发布消息，两者之间必须有 Broker 承载。
+- **打包标准**：方案必须通过 canonical `devices/homeassistant_deploy.yaml` 统一部署，并在 `assets/docker/docker-compose.yml` 中打包 `homeassistant`（端口 8123）与 `mosquitto`（端口 1883，挂载 `mosquitto.conf` 并开启匿名访问 `allow_anonymous true`）。严禁省略 Mosquitto 部署裸 HA。
+
+**2. 探测前置条件（Preconditions）**
+- `homeassistant_deploy.yaml` 的 `preconditions` 必须同时探测端口 8123（HA API）与端口 1883（MQTT Broker）：
+  ```yaml
+  preconditions:
+    - command: "((curl -s -m 2 http://127.0.0.1:8123/api/ || curl -s -m 2 http://localhost:8123/api/) | grep -Eqi 'API running|Unauthorized') && (nc -z 127.0.0.1 1883 2>/dev/null || (echo > /dev/tcp/127.0.0.1/1883) 2>/dev/null || ss -tuln 2>/dev/null | grep -q ':1883 ')"
+      description: "Check if Home Assistant and MQTT Broker are already running on ports 8123 and 1883"
+      satisfied_message: "Home Assistant and MQTT broker are already running on this host, skipping Docker installation."
+      satisfied_message_i18n:
+        zh: "检测到该主机已运行 Home Assistant 和 MQTT Broker，自动跳过 Docker 安装。"
+  ```
+- 当用户本机或局域网已存在运行中的 HA 及 Broker 时，引擎自动跳过容器安装。
+
+**3. 步骤可选性与现有服务复用（Step Optionality & Standalone Reuse）**
+- 在 `guide.md` 和 `guide_zh.md` 中，部署步骤必须标记为可选：`required=false`（例如 `## Step 2: Deploy Home Assistant (Optional) {#deploy_ha type=docker_deploy required=false config=devices/homeassistant_deploy.yaml}`）。
+- 必须在前置条件和正文文案中明确说明：如果用户已经拥有运行中的独立 Home Assistant（例如另一台机器上的 HAOS 硬件设备）或外部 MQTT Broker，可以直接跳过/取消勾选此步骤，并将设备直接指向现有的 Broker 地址。
+
+**4. 部署后指引（Guide Post-Deployment Guidance）**
+- 部署完成说明中必须包含明确的操作路径：
+  1. 浏览器打开 `http://<host>:8123` 完成初始管理员账户初始化；
+  2. 在 Home Assistant 中进入 **Settings (设置) -> Devices & Services (设备与服务) -> Add Integration (添加集成)**，搜索并添加官方 **MQTT** 集成；
+  3. Broker 地址填写宿主机 IP（本地填 `127.0.0.1`），端口 `1883`，无需账号密码；
+  4. 保存后，reCamera 发布的自动发现实体（如 `binary_sensor.recamera_motion`）将自动在 HA 中显现。
+
 ---
 
 ## Phase 3: 整理配置文件
@@ -270,6 +301,10 @@ device YAML 的字段、各部署类型（`docker_local` / `docker_remote` / `es
 | 用户需要填的值 | `user_inputs` 列表 |
 
 > **reCamera C++ 应用必须优先做 deb 包**：如果原项目产物是 C/C++ 可执行文件，不要在 solution 里用 `files:` 复制裸二进制，也不要用 `actions.after` 做 `chmod + nohup`。正确做法是使用 `skills/prepare-deb-package` 打包成 `.deb`，在 device YAML 中写 `binary.deb_package.path/name/includes_init_script/checksum`，并提供 `/etc/init.d/S92<service>` 管理启动、停止和卸载。这样切换应用、重复部署、卸载还原才可控。只有一次性诊断脚本或非长期运行文件才考虑 `files:`。
+
+> **禁止在应用方案中包含控制台升级/安装步骤（强制架构边界）**：
+> 严禁任何应用方案（包括 technical demo / 演示类方案）在 `guide.md` 中包含控制台升级或安装步骤（例如 `update_console`、`deploy_console`，或在 `devices/` 中打包 `recamera_console.yaml`）。
+> 控制台（Console / Supervisor）属于设备级运行时基础设施（Runtime Infrastructure），其版本管理、环境准备与踩坑适配由 `solution-cli`、设备诊断以及引擎的 runtime hooks 统一接管。应用方案的步骤必须仅关注自身业务工作负载的部署（如 `install_motion`、`deploy_yolo` 等）与验证闭环。
 
 > **`docker_deploy` 派生规则**（一个 device YAML 写成 `type: docker_deploy`，引擎在加载时拆成 `docker_local` + `docker_remote` 两个视图）的完整规则见 `spec/CONTRACT.md`「docker_deploy view 派生规则」。要点：`remote_path` 必填且无 `solution_id` 兜底；`remote_overrides.actions` 是整体替换不是合并。
 
@@ -577,6 +612,7 @@ uv run python scripts/check_compose_naming.py
 - [ ] 每个 deploy step 都对得上一个 verify step（看 guide.md 步骤列表）
 - [ ] RTSP + HTTP 结果类方案使用 `video_stream` 在 App 内预览并叠加结果，不把预览和 API 查询拆成两步
 - [ ] reCamera C++ 长驻应用使用 `.deb + init script`，不使用裸二进制 `files:` + `chmod/nohup`
+- [ ] 严禁在应用方案中包含控制台升级/安装步骤（如 `update_console`/`deploy_console` 或 `recamera_console.yaml`），运行时环境由 `solution-cli` / engine hooks 统一管理
 - [ ] `### Wiring` 段确实只放接线说明
 - [ ] description 风格匹配类型（solution: 四段式 / technical: 能力产物 → 集成场景 → 接口详情）
 - [ ] technical 首屏不是端口表或 curl；首段专业缩写不超过 2 个，并有通俗解释

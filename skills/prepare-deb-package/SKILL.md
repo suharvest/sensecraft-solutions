@@ -518,7 +518,7 @@ dpkg-deb --build yolo11-detector_0.1.1_riscv64
 Add deployment step:
 
 ```markdown
-## Step 2: Deploy YOLO Detector {#deploy_yolo type=recamera_cpp required=true config=devices/recamera_yolo11.yaml}
+## Step 1: Deploy YOLO Detector {#deploy_yolo type=recamera_cpp required=true config=devices/recamera_yolo11.yaml}
 
 Deploy the YOLO11 object detector to reCamera.
 
