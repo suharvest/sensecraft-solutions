@@ -42,10 +42,15 @@ Read `presets[]`, `steps[]`, `device_connections`, `selected_devices`, and `requ
 ### Step Selection: Core Hardware, Container Services, and Integrations
 
 When a solution preset contains core hardware flashing steps (such as `esp32_usb`, `himax_xmodem`), optional container services (such as `docker_deploy`), and integration steps (such as `ha_integration` connecting via HTTP/API):
-1. **Prefer Remote Target / Auto-Discovery for Container Services**:
-   - For services supporting `remote` targets (e.g. `ha_remote`), the device definition supports `network_scan` detection.
-   - Run `sensecraft-engine device scan --timeout 5` to discover reachable SSH devices on the LAN (e.g. Raspberry Pi, reComputer, home server).
-   - If reachable hosts exist, prompt the user with detected candidates or ask for their target host IP, rather than assuming local execution.
+1. **Clarify Intent: Reuse Existing Service vs. Fresh Container Install**:
+   - Always clarify whether the user already has an accessible instance (e.g. an existing Home Assistant on NAS, Pi, HAOS, or server) before initiating any container deployment.
+   - **Path A (Reuse Existing Instance)**:
+     - Exclude the container step (e.g. `deploy_ha`) from `selected_devices`.
+     - Direct the user to supply the existing instance endpoint/credentials in the integration step (e.g. `connect_ha`), verifying HTTP reachability directly without touching Docker.
+   - **Path B (Fresh Container Installation on Remote Host)**:
+     - Only include the container step after explicit user confirmation to install on a designated host.
+     - **Discovery & Input**: Run `sensecraft-engine device scan --timeout 5` to discover mDNS service candidates (such as `_ssh._tcp` or `_workstation._tcp`). Note that mDNS scan only provides discovery candidates; if scan finds no candidates or the target host does not advertise mDNS, prompt the user for their host IP directly.
+     - **Pre-flight Reachability**: Validate SSH connectivity and remote Docker availability prior to starting deployment. The remote `preconditions` check serves as defense-in-depth against accidental duplicate container creation, but must not replace user intent confirmation.
 2. **Selective `selected_devices` (Avoid `ERR_PRECHECK`)**:
    - If targeting local Docker, **Verify Local Docker Availability First**: Run `sensecraft-engine doctor --json`.
    - If local Docker is not installed, not running, or running in an environment without native host networking support (such as Docker Desktop on macOS or Windows where host network mode cannot support Home Assistant mDNS and LAN device discovery), **`selected_devices` MUST only exclude local container service steps whose prerequisites are unfulfilled** (e.g. excluding a `docker_deploy` step like `deploy_ha` when targeting local Docker).
