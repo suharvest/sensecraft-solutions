@@ -10,7 +10,7 @@ Traditional smart home controls often require navigating mobile apps or looking 
 |---------|---------|
 | Eye-Friendly Ambient Display | E-paper provides non-glare, paper-like reading that blends naturally into bedrooms and living spaces without dark-room glare |
 | Ultra-Low Power Consumption | Power is consumed only during display refresh, with persistent image retention even on power loss |
-| Native Local Integration | Integrates directly with Home Assistant through the ESPHome native API with high reliability and zero cloud latency |
+| Native Local Integration | Integrates directly with Home Assistant via the ESPHome native API to invoke actions directly from on-device entities without manual automations or cloud dependencies |
 | Rapid One-Click Deployment | Automated firmware flashing and HA registration with no manual code compilation or complex YAML editing |
 
 ## Where to use it
@@ -29,7 +29,7 @@ Traditional smart home controls often require navigating mobile apps or looking 
 |--------|-------------|----------|
 | reTerminal E1003 | Touch e-paper panel terminal (ESP32-S3) | ✓ Required |
 | USB Data Cable | For initial firmware flashing and panel power supply | ✓ Required |
-| Linux Host / Raspberry Pi | Host running Home Assistant (can reuse existing HA setup) | ✓ Required |
+| Linux Host / Raspberry Pi | Host running Home Assistant (reusable existing HA instance; local Docker deployment requires Linux host network) | ✓ Required |
 
 ### Network Requirements
 

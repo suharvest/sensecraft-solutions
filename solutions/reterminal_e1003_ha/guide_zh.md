@@ -33,14 +33,16 @@
 
 ### 部署完成
 
-1. 设备首次配网时，可通过 Improv Serial 或 ESPHome 热点（Captive Portal）配置 2.4 GHz Wi-Fi。
-2. 若未执行步骤 3 自动接入，打开 Home Assistant，在“设置 → 设备与服务 → 集成”中添加 ESPHome 设备，填入面板 IP 地址（无需 API 密钥）。
-3. 在 Home Assistant 中创建自动化（“设置 → 自动化与场景 → 创建自动化”）：
-   - **触发条件**：选择 E1003 设备的按键或状态变化（例如开关按键或亮度滑块）。
-   - **动作**：调用服务 `light.toggle` 或 `light.turn_on` 控制目标灯光实体（例如 `light.living_room`）。
-4. 按压面板上的开关键以及 25% / 50% / 75% / 100% 亮度区域测试调光。
+1. **配网引导**：固件烧录完成后，设备可通过 USB 串口以 115200 波特率运行 Improv Serial 协议一键配置 Wi-Fi，或连接面板广播的临时 ESPHome 热点通过 Captive Portal 网页配置 2.4 GHz Wi-Fi（不支持纯 5 GHz 频段）。配网成功后面板将连接局域网并获取 IP 地址。
+2. **设备接入**：若未执行步骤 3 自动接入，打开 Home Assistant，进入“设置 → 设备与服务 → 集成”，添加 ESPHome 设备并填入面板 IP 地址（Native API 无需密钥）。
+3. **配置两步法绑定目标灯（无需创建自动化）**：固件通过 Native API 原生调用 Home Assistant action，由板载配置实体直接指定目标灯具，无需在 HA 中手动创建任何 Automation 规则：
+   - **第一步（开启动作权限）**：在 Home Assistant 的 ESPHome 集成中找到 E1003 设备卡片，点击齿轮或选项，勾选开启 **“允许设备执行 Home Assistant 动作”**（Allow the device to perform Home Assistant actions）；
+   - **第二步（写入目标灯 ID）**：在 E1003 设备的配置实体中找到目标灯实体（`text.e1003_target_light`），填入目标灯具实体 ID（例如 `light.living_room`）。固件将通过 Native API 原生控制该目标灯具。
+4. **物理触控验收**：
+   - 轻触面板开关键（Toggle），确认目标灯具能够实时开关；
+   - 分别按压 25%、50%、75%、100% 亮度区域，确认目标灯平滑切换亮度，完成物理触控闭环。
 
-> **注意**：面板目前仅定义了这五个触控区域，其他图标为静态展示。
+> **注意**：面板目前仅定义了这五个触控区域，其他图标为静态常显展示。
 
 ### 故障排查
 
@@ -49,7 +51,7 @@
 | 找不到设备串口 | 点击刷新按钮；检查 USB 数据线是否支持数据传输；退出可能占用串口的其它程序 |
 | 配置或写入失败 | 根据界面上的具体错误信息处理后重试，切勿全片擦除 NVS |
 | 界面提示正在保存或重启 | 保持设备供电，耐心等待读回并显示最终验证状态 |
-| 按键无反应或灯具不响应 | 确认 Home Assistant 中的自动化触发条件与控制实体配置正确；检查 ESPHome 设备设置中是否开启“允许设备执行动作” |
+| 按键无反应或灯具不响应 | 确认 ESPHome 设备设置中已开启“允许设备执行 Home Assistant 动作”；检查 `text.e1003_target_light` 实体中填写的目标灯 ID 正确且实体存在；确认面板与 HA 处于同一局域网并正常在线 |
 
 ---
 
@@ -57,13 +59,15 @@
 
 在本地或远程 Docker 主机上部署 Home Assistant。如果该主机 8123 端口已运行 Home Assistant，本步骤将自动检测并跳过。
 
+> **宿主平台限制**：Home Assistant 容器依赖 Linux 原生 host 网络（`network_mode: host`）实现 mDNS 与局域网设备自动发现。**本地安装仅支持 Linux 宿主环境**。在 macOS 或 Windows 环境下，Docker Desktop 无法提供原生 host 网络，请**取消勾选本步骤以跳过**，或选择 `ha_remote` 部署到局域网内的独立 Linux 主机（如树莓派、reComputer），也可直接复用局域网中已有的 Home Assistant 实例。
+
 ### 部署目标 {#ha_local type=local config=devices/ha_host.yaml default=true}
 
-在本地机器上部署 Home Assistant。
+在本地 Linux 机器上部署 Home Assistant（仅支持 Linux host 网络，macOS/Windows 环境请跳过）。
 
 ### 部署目标 {#ha_remote type=remote config=devices/ha_host.yaml}
 
-通过局域网在远程主机（如 Raspberry Pi、reComputer）上部署 Home Assistant。
+通过局域网在远程 Linux 主机（如 Raspberry Pi、reComputer）上部署 Home Assistant。
 
 ---
 

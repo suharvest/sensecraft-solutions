@@ -39,6 +39,15 @@ The `schema` command returns:
 
 Read `presets[]`, `steps[]`, `device_connections`, `selected_devices`, and `request_template` from `deploy-info` or `schema`. A preset with more than one variant requires the user's choice. Fill every `<REQUIRED: ...>` value from the user or a read-only device check; never invent device IDs, connection keys, SSH credentials, serial ports, Docker targets, or mode IDs.
 
+### Step Selection: Core Hardware vs. Optional Container Services
+
+When a solution preset contains both core hardware flashing steps (such as `esp32_usb`, `himax_xmodem`) and optional container services (such as `docker_deploy` for local services):
+1. **Verify Local Docker Availability First**: Run `sensecraft-engine doctor --json` to inspect the local environment.
+2. **Selective `selected_devices` (Avoid `ERR_PRECHECK`)**:
+   - If local Docker is not installed, not running, or running in an environment without native host networking support (such as Docker Desktop on macOS or Windows where host network mode cannot support Home Assistant mDNS and LAN device discovery), **`selected_devices` MUST default to the core hardware step only** (e.g. `selected_devices: ["e1003_usb"]`).
+   - Do NOT blindly select all steps in `selected_devices`. Selecting an optional `docker_deploy` step when Docker is absent or unsupported causes immediate `ERR_PRECHECK` failures.
+   - If the user explicitly requests container deployment or already possesses a dedicated Linux Docker host, configure the remote target (`ha_remote`) with SSH credentials or guide the user to reuse their existing service instance.
+
 ### Understanding Targets vs Modes (`has_targets` vs `has_modes`)
 
 Each step in `steps[]` can deploy to different infrastructure locations (`has_targets: true`), support different hardware models or application configurations (`has_modes: true`), or have fixed parameters (both false). **Targets and Modes are strictly mutually exclusive per step.**
@@ -209,6 +218,32 @@ Without `--detach`, `deploy --json` waits for the final result. Interrupting the
 - For services with a health check, check once more after about 60 seconds and inspect restart counts for a crash loop.
 
 Report the URL, device, deployed solution, and verification evidence. Do not report success when a container restarts, disappears, or its endpoint stops answering.
+
+### IoT End-to-End Verification Pipeline (Hardware Flashing to Closed Loop)
+
+For solutions combining microcontroller hardware with smart home / IoT integration (e.g. ESP32 panels with Home Assistant):
+
+```
+Flashed (固件写入完成) 
+  ↳ Provisioned (Wi-Fi 凭据注入，获取局域网 IP)
+    ↳ Entry Verified (HA 中存在本面板 entry 且 loaded)
+      ↳ Entity Bound (目标灯写入 text 实体，允许执行动作开启)
+        ↳ Touch Verified (捕获物理触控导致的灯具状态变化)
+```
+
+1. **Flashed**: Core firmware successfully flashed and verified via post-flash reboot.
+2. **Provisioned (Improv Serial Wi-Fi Setup)**:
+   - For devices running Improv Serial over USB UART (115200 baud), prompt and guide the user through serial Wi-Fi provisioning to inject 2.4 GHz credentials without manual configuration files.
+   - Alternatively, connect via the device's Captive Portal hotspot if serial provisioning is unavailable. Confirm the device connects to the local network and acquires a valid LAN IP.
+3. **Entry Verified (Unique Identity Matching)**:
+   - Confirm the device integration entry exists in Home Assistant and is in the `loaded` state.
+   - **Device Uniqueness Principle**: In multi-device local networks, match devices strictly by unique MAC address or assigned IP address, avoiding misconfiguration across multiple ESPHome nodes sharing similar default names.
+4. **Entity Bound (Two-Step Action Binding)**:
+   - Enable "Allow the device to perform Home Assistant actions" under the device's integration options.
+   - Write the target light entity ID (e.g. `light.living_room`) to the designated configuration entity (`text.e1003_target_light`). Native API actions eliminate the need for manual Home Assistant Automation rules.
+5. **Touch Verified (Physical Closed Loop)**:
+   - Instruct the user to physically tap on-device touch zones (toggle button, brightness steps: 25%, 50%, 75%, 100%).
+   - Verify that the target light entity state and brightness update accordingly in Home Assistant.
 
 ## 6. If anything failed
 

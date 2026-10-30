@@ -33,14 +33,16 @@ Select your serial port, click **Deploy**, and wait for firmware installation an
 
 ### After setup
 
-1. If connecting Wi-Fi for the first time, configure Wi-Fi credentials via Improv Serial or the ESPHome captive portal.
-2. If not using Step 3 automatic integration, navigate to Settings → Devices & Services → Integrations in Home Assistant, add ESPHome, and enter the panel IP (no API key required).
-3. In Home Assistant, create an Automation (Settings → Automations & Scenes → Create Automation) to bind the panel actions:
-   - **Trigger**: State / Device trigger from E1003 entities (power button or brightness level).
-   - **Action**: Call service `light.toggle` or `light.turn_on` on your desired dimmable light entity (such as `light.living_room`).
-4. Test the on/off touch zone and the 25%, 50%, 75%, and 100% brightness zones.
+1. **Network Provisioning**: After flashing, configure 2.4 GHz Wi-Fi credentials via Improv Serial over USB at 115200 baud, or connect to the fallback ESPHome hotspot via the Captive Portal page (5 GHz only networks are not supported). Once connected, the panel joins your LAN and obtains an IP address.
+2. **Device Integration**: If Step 3 (automatic integration) was not executed, open Home Assistant, go to **Settings → Devices & Services → Integrations**, add ESPHome, and enter the panel IP address (Native API requires no key).
+3. **Two-Step Light Binding (No Automations Needed)**: The firmware calls Home Assistant actions directly via the Native API, with the target light specified by the on-device configuration entity. No manual Home Assistant Automation rules are required:
+   - **Step 1 (Grant Action Permissions)**: In Home Assistant's ESPHome integration, find the E1003 device card, click the options/gear icon, and enable **"Allow the device to perform Home Assistant actions"**;
+   - **Step 2 (Assign Target Light ID)**: Under the E1003 device's configuration entities, locate the target light entity (`text.e1003_target_light`), and enter your target light entity ID (such as `light.living_room`). The panel firmware will directly control this target light.
+4. **Physical Touch Verification**:
+   - Tap the on/off touch zone (Toggle) on the panel to confirm the target light toggles in real time;
+   - Tap the 25%, 50%, 75%, and 100% brightness zones to confirm smooth stepped dimming, completing the physical closed loop.
 
-> **Note**: Only these five touch zones have actions defined; other screen elements are static.
+> **Note**: Only these five touch zones have actions defined; other screen elements are static ambient graphics.
 
 ### Troubleshooting
 
@@ -49,7 +51,7 @@ Select your serial port, click **Deploy**, and wait for firmware installation an
 | Device serial port not found | Click Refresh; verify the USB cable supports data transfer; close other programs using the serial port |
 | Setup or write failed | Check the displayed error message, resolve the issue, and retry; do not erase NVS |
 | Saving or verification in progress | Keep the device powered and wait for the final verification status |
-| Button or light does not respond | Confirm the automation trigger and action are set correctly in Home Assistant; ensure “Allow the device to perform Home Assistant actions” is enabled in the ESPHome device options |
+| Button or light does not respond | Confirm "Allow the device to perform Home Assistant actions" is enabled in ESPHome device settings; verify `text.e1003_target_light` contains a valid, existing light entity ID; ensure the panel is online on the same local network |
 
 ---
 
@@ -57,9 +59,11 @@ Select your serial port, click **Deploy**, and wait for firmware installation an
 
 Deploy a Home Assistant instance on your local or remote Docker host. If Home Assistant is already running on port 8123, this step automatically detects it and skips.
 
+> **Platform Constraint**: The Home Assistant container relies on native host networking (`network_mode: host`) for mDNS and LAN device discovery. **Local installation is supported on Linux hosts only**. On macOS or Windows environments, Docker Desktop cannot provide native host networking: please **uncheck this step to skip it**, or select `ha_remote` to deploy to an independent Linux host (such as a Raspberry Pi or reComputer), or reuse an existing Home Assistant instance on your network.
+
 ### Target {#ha_local type=local config=devices/ha_host.yaml default=true}
 
-Deploy Home Assistant on the local machine.
+Deploy Home Assistant on a local Linux machine using host network mode (Linux host only; skip on macOS/Windows).
 
 ### Target {#ha_remote type=remote config=devices/ha_host.yaml}
 
