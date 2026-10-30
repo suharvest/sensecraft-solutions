@@ -30,6 +30,13 @@ This is an assistive aquaculture monitoring and early warning system, not a seal
 
 ## What this solution does
 
+### System Architecture & Topology
+
+![Aquaculture Crayfish Behavior Recognition Architecture](https://files.seeedstudio.com/ReferenceDesign/landpage_asset/crayfish_behavior_recognition/architecture-en-5ac111ce.png)
+
+Two things are required: the edge AI camera monitoring the tank, and the dashboard receiving events. Everything runs locally on the camera over standard IoT protocols without centralized GPU servers.
+
+
 In high-density recirculating aquaculture systems (RAS) or breeding tanks, Australian freshwater crayfish (*Cherax quadricarinatus*) frequently suffer limb loss or fatal cannibalism during molting periods due to aggressive attacks. **An edge AI smart camera mounted above the tank tracks each crayfish in real time**. When two individuals approach and engage in combat, **the camera confirms aggression within an 8-frame temporal window and publishes an MQTT alert to the farm dashboard**, prompting automated feeding or staff intervention to protect soft-shell individuals.
 
 - Open Source Repository: [github.com/suharvest/crayfish-fight](https://github.com/suharvest/crayfish-fight)
@@ -108,9 +115,9 @@ Only an all-in-one IP67 smart camera is mounted over the tanks and connected to 
 
 This solution is integrated with the official Seeed automation framework. The primary recommended method uses **`solution-cli` (or AI Solution Assistant)** for automated precheck and deployment, with GUI options also supported:
 
-<div class="get_one_now_container" style={{textAlign: 'center'}}>
-    <a class="get_one_now_item" href="https://www.seeed.cc/solutions/reference-designs/crayfish_behavior_recognition/deploy" target="_blank">
-        <strong><span><font color={'FFFFFF'} size={"4"}>Open Reference Design Deployment Guide 🖱️</font></span></strong>
+<div class="get_one_now_container" style="text-align: center; margin: 24px 0;">
+    <a class="get_one_now_item" href="https://www.seeed.cc/solutions/reference-designs/crayfish_behavior_recognition/deploy" target="_blank" style="display: inline-flex; align-items: center; justify-content: center; background: #8fc31f; color: #ffffff !important; padding: 12px 28px; border-radius: 6px; font-weight: bold; text-decoration: none; font-size: 15px; box-shadow: 0 4px 12px rgba(143,195,31,0.35); line-height: 1.4;">
+        <span style="color: #ffffff !important;">View Field Deployment Guide 🖱️</span>
     </a>
 </div><br />
 

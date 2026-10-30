@@ -30,6 +30,13 @@ generated_from: sensecraft-solutions@crayfish_behavior_recognition
 
 ## 这套方案是干什么的
 
+### 系统架构与设备拓扑
+
+![智能水产小龙虾争斗识别系统架构图](https://files.seeedstudio.com/ReferenceDesign/landpage_asset/crayfish_behavior_recognition/architecture-zh-c066342f.png)
+
+要跑起来只需要两样东西：出画面的智能边缘相机、接事件的养殖监控系统。摄像头与看板通过标准网络协议互联，无需复杂的集中式算力服务器。
+
+
 在工厂化高密度循环水养殖（RAS）或繁育水槽中，澳洲淡水龙虾（红螯螯虾）在蜕壳期极易因同伴打斗造成大螯残缺甚至互相残食。**部署在水槽上方的智能边缘相机在本地实时跟踪每只螯虾**，当两只虾靠近并发生肢体攻击搏斗时，**系统在 8 帧时序内完成确认并通过 MQTT 上报养殖中控大屏**，提醒工人及时分池或投喂诱饵，显著降低断肢率与死淘率。
 
 - 开源实现：[github.com/suharvest/crayfish-fight](https://github.com/suharvest/crayfish-fight)
@@ -108,9 +115,9 @@ generated_from: sensecraft-solutions@crayfish_behavior_recognition
 
 本方案纳入 Seeed 方案自动化部署体系，官方首选使用 **`solution-cli`（或 AI 方案助手）** 执行自动化选型校验与端侧下发，同时兼容控制台 GUI 操作：
 
-<div class="get_one_now_container" style={{textAlign: 'center'}}>
-    <a class="get_one_now_item" href="https://www.seeedstudio.com.cn/solutions/reference-designs/crayfish_behavior_recognition/deploy" target="_blank">
-        <strong><span><font color={'FFFFFF'} size={"4"}>查看现场选型与部署指南（Reference Design Deploy） 🖱️</font></span></strong>
+<div class="get_one_now_container" style="text-align: center; margin: 24px 0;">
+    <a class="get_one_now_item" href="https://www.seeedstudio.com.cn/solutions/reference-designs/crayfish_behavior_recognition/deploy" target="_blank" style="display: inline-flex; align-items: center; justify-content: center; background: #8fc31f; color: #ffffff !important; padding: 12px 28px; border-radius: 6px; font-weight: bold; text-decoration: none; font-size: 15px; box-shadow: 0 4px 12px rgba(143,195,31,0.35); line-height: 1.4;">
+        <span style="color: #ffffff !important;">查看现场选型与部署指南 🖱️</span>
     </a>
 </div><br />
 

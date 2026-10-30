@@ -32,6 +32,13 @@ This is an assistive biomechanical assessment tool, not a certified medical diag
 
 ## What this solution does
 
+### System Architecture & Data Flow
+
+![Edge AI Rehab Posture Analysis Architecture](https://files.seeedstudio.com/ReferenceDesign/landpage_asset/rehab_posture_analysis/architecture-en-328afea6.png)
+
+The solution decouples real-time edge pose perception from clinical biomechanics evaluation across four functional domains: smart edge cameras handle on-device 33-kpt inference; hysteresis state machines compute joint ROM and debounced compensation alerts; vector primitives stream over WebSocket and RTSP to live guidance screens, with MQTT/Webhook telemetry reaching hospital EMR systems; raw video stays on camera to guarantee privacy.
+
+
 In outpatient clinics, senior rehabilitation centers, or home exercise corners, **the edge AI smart camera estimates a full-body 33-keypoint anatomical skeleton topology in real time**. When patients demonstrate involuntary compensations like shoulder shrugging or medial knee collapse, **the on-screen HUD triggers a red visual alert and auditory cue within 50ms**, reporting objective joint Range of Motion (ROM) and valid repetition metrics to hospital EMR systems.
 
 - Open Source Repository: [github.com/suharvest/rehab-posture-analysis](https://github.com/suharvest/rehab-posture-analysis)
@@ -116,9 +123,9 @@ Only an all-in-one smart camera or an existing camera with an edge accelerator i
 
 This solution is integrated with the official Seeed automation framework. The primary recommended method uses **`solution-cli` (or AI Solution Assistant)** for automated precheck and deployment, with GUI options also supported:
 
-<div class="get_one_now_container" style={{textAlign: 'center'}}>
-    <a class="get_one_now_item" href="https://www.seeed.cc/solutions/reference-designs/rehab_posture_analysis/deploy" target="_blank">
-        <strong><span><font color={'FFFFFF'} size={"4"}>Open Reference Design Deployment Guide 🖱️</font></span></strong>
+<div class="get_one_now_container" style="text-align: center; margin: 24px 0;">
+    <a class="get_one_now_item" href="https://www.seeed.cc/solutions/reference-designs/rehab_posture_analysis/deploy" target="_blank" style="display: inline-flex; align-items: center; justify-content: center; background: #8fc31f; color: #ffffff !important; padding: 12px 28px; border-radius: 6px; font-weight: bold; text-decoration: none; font-size: 15px; box-shadow: 0 4px 12px rgba(143,195,31,0.35); line-height: 1.4;">
+        <span style="color: #ffffff !important;">View Field Deployment Guide 🖱️</span>
     </a>
 </div><br />
 

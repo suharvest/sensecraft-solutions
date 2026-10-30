@@ -32,6 +32,13 @@ generated_from: sensecraft-solutions@rehab_posture_analysis
 
 ## 这套方案是干什么的
 
+### 系统架构与数据流图
+
+![边缘 AI 康复姿态与动作分析系统架构图](https://files.seeedstudio.com/ReferenceDesign/landpage_asset/rehab_posture_analysis/architecture-zh-ff3afdf1.png)
+
+方案在端侧将深度学习姿态感知与临床生物力学评估解耦为四个功能域：端侧智能相机负责视觉采集与 33 点关键点推理；时相迟滞状态机负责 ROM 关节活动度度量与代偿防抖判定；结构化数据通过 WebSocket 与 RTSP 直出到现场交互大屏，同时支持 MQTT/Webhook 接入医院 EMR 系统；视频裸流不出摄像头，保障患者隐私。
+
+
 在门诊康复室、养老活动中心或居家训练场景中，患者在做肩外展或深蹲康复训练时，**边缘一体化相机在本地实时推断全身 33 个骨骼关键点**。当患者由于肌肉力量不足出现耸肩、躯干侧倾或膝内扣等代偿动作时，**屏幕 HUD 在 50ms 内亮起红色预警并语音纠正**，同时将客观活动度（ROM）与有效计数汇总至医院康复系统。
 
 - 开源实现：[github.com/suharvest/rehab-posture-analysis](https://github.com/suharvest/rehab-posture-analysis)
@@ -116,9 +123,9 @@ generated_from: sensecraft-solutions@rehab_posture_analysis
 
 本方案纳入 Seeed 方案自动化部署体系，官方首选使用 **`solution-cli`（或 AI 方案助手）** 执行自动化选型校验与端侧下发，同时兼容控制台 GUI 操作：
 
-<div class="get_one_now_container" style={{textAlign: 'center'}}>
-    <a class="get_one_now_item" href="https://www.seeedstudio.com.cn/solutions/reference-designs/rehab_posture_analysis/deploy" target="_blank">
-        <strong><span><font color={'FFFFFF'} size={"4"}>查看现场选型与部署指南（Reference Design Deploy） 🖱️</font></span></strong>
+<div class="get_one_now_container" style="text-align: center; margin: 24px 0;">
+    <a class="get_one_now_item" href="https://www.seeedstudio.com.cn/solutions/reference-designs/rehab_posture_analysis/deploy" target="_blank" style="display: inline-flex; align-items: center; justify-content: center; background: #8fc31f; color: #ffffff !important; padding: 12px 28px; border-radius: 6px; font-weight: bold; text-decoration: none; font-size: 15px; box-shadow: 0 4px 12px rgba(143,195,31,0.35); line-height: 1.4;">
+        <span style="color: #ffffff !important;">查看现场选型与部署指南 🖱️</span>
     </a>
 </div><br />
 
