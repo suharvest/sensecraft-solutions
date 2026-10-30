@@ -32,53 +32,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
-      - name: Compose filenames must be recognised by the mirror rewrite
+      - name: Run unified solution validation (offline)
         run: |
           uv sync
-          uv run python scripts/check_compose_naming.py
-      # Product families get written by hand in a dozen places per solution, so
-      # a wrong one ("reComputer J", a bench board named as the delivery device,
-      # J40 paired with Orin Nano) used to be caught only by whoever reviewed
-      # the copy. Rules live in scripts/ci/product-names.json, which is mirrored
-      # in seeed-solutions-hub at scripts/lib/product-names.json.
-      - name: Product names must be real product families
+          uv run python scripts/check.py --scope full
+      - name: Check dead URLs across all solutions
         run: |
-          uv sync
-          uv run --with pytest pytest tests/test_product_name_lint.py -q
-          uv run python scripts/ci/lint_product_names.py
-      # Customer-facing copy states what was measured and what the reader can
-      # use. A sentence whose whole content is "this was not tested" gives the
-      # reader nothing to act on, so it is deleted or rewritten as the action
-      # they should take.
-      - name: Customer-facing copy must not carry untested-wording
-        run: |
-          uv sync
-          uv run --with pytest pytest tests/test_untested_wording_lint.py -q
-          uv run python scripts/ci/lint_untested_wording.py
-      # Customer-facing solution content must follow standard 4-part structure,
-      # clean markdown formatting, and never carry internal engineering postmortems,
-      # draft tags, or PR blocker notes.
-      - name: Customer-facing solution content must follow standard structure and guidelines
-        run: |
-          uv sync
-          uv run --with pytest pytest tests/test_solution_content_lint.py -q
-          uv run python scripts/ci/lint_solution_content.py
-      - name: Mode and Docker deploy target orthogonality must be respected
-        run: |
-          uv sync
-          uv run --with pytest pytest tests/test_target_mode_exclusivity.py -q
-      - name: Validate all solutions against the contract
-        run: |
-          uv sync
-          uv run python scripts/ci/validate_product_families.py
-          rc=0
-          for s in solutions/*/; do
-            id=$(basename "$s")
-            # solutionctl validate auto-skips non-solution dirs (e.g. _shared)
-            # that have no solution.yaml.
-            # --check-urls flags dead (4xx) http(s) references; transient /
-            # 5xx / network errors are tolerated by design, so this is safe to
-            # run in CI without flakiness.
-            uv run --package sensecraft-solutionctl solutionctl validate "$s" --spec-dir spec --check-urls || rc=1
-          done
-          exit $rc
+          uv run python scripts/check.py --check solutionctl-network

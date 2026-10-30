@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Pre-commit hook: runs fast offline checks before committing.
+set -e
+
+# Only trigger if files are staged
+STAGED_FILES=$(git diff --cached --name-only --diff-filter=ACM)
+
+if [ -z "$STAGED_FILES" ]; then
+    exit 0
+fi
+
+# Check if relevant solution or tooling files changed
+if echo "$STAGED_FILES" | grep -E '^(solutions/|spec/|scripts/|pyproject.toml)' >/dev/null; then
+    echo "🔍 [pre-commit] Staged changes detected in solutions/tooling. Running fast offline checks..."
+    if ! uv run python scripts/check.py --scope fast; then
+        echo ""
+        echo "❌ [pre-commit] Checks failed. Please fix the violations above before committing."
+        echo "💡 Tip: Run 'uv run python scripts/check.py --scope fast' to test locally."
+        exit 1
+    fi
+fi

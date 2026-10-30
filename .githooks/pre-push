@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Pre-push hook: runs full offline checks before pushing to remote.
+set -e
+
+echo "🛡️  [pre-push] Running full offline checks before pushing..."
+if ! uv run python scripts/check.py --scope full; then
+    echo ""
+    echo "❌ [pre-push] Full checks failed. Push rejected."
+    echo "💡 Tip: Run 'uv run python scripts/check.py --scope full' to see and fix all failures."
+    exit 1
+fi

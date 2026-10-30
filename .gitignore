@@ -6,6 +6,9 @@ build/
 *.egg-info/
 .DS_Store
 uv.lock
+*.zip
+bundled_hashes.json
+manifest.json
 
 # Local scratch: deleted solutions parked before removal, and
 # playwright-cli run logs. Neither is repository content.
