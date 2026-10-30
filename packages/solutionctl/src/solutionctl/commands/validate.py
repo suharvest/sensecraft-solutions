@@ -1154,6 +1154,67 @@ def _check_action_image_refs(dev_data, label: str) -> list[str]:
     return errors
 
 
+def _check_no_console_infrastructure_in_apps(
+    sol_id: str, sol_path: Path, sol_data: dict | None, parsed_guides: dict | list
+) -> list[str]:
+    """Application solutions must not bundle or declare console infrastructure steps.
+
+    Only the meta-solution 'recamera_ecosystem' is permitted to manage the platform console.
+    """
+    if sol_id == "recamera_ecosystem":
+        return []
+
+    import yaml
+
+    errors: list[str] = []
+
+    # Check if devices/ has recamera_console.yaml or any device yaml declaring id: recamera_console
+    has_bundle = False
+    devices_dir = sol_path / "devices"
+    if devices_dir.is_dir():
+        if (devices_dir / "recamera_console.yaml").is_file():
+            has_bundle = True
+        else:
+            for dev_file in devices_dir.glob("*.yaml"):
+                try:
+                    dev_data = yaml.safe_load(dev_file.read_text(encoding="utf-8"))
+                    if isinstance(dev_data, dict) and dev_data.get("id") == "recamera_console":
+                        has_bundle = True
+                        break
+                except Exception:
+                    pass
+
+    # Check if parsed guides have steps with id in ("update_console", "deploy_console")
+    # or config_file ending with recamera_console.yaml
+    guides = parsed_guides.values() if isinstance(parsed_guides, dict) else parsed_guides
+    offending_step_ids: list[str] = []
+    for result in guides:
+        for preset in getattr(result, "presets", []) or []:
+            for step in getattr(preset, "steps", []) or []:
+                cfg = getattr(step, "config_file", "") or ""
+                if step.id in ("update_console", "deploy_console") or cfg.endswith("recamera_console.yaml"):
+                    if step.id not in offending_step_ids:
+                        offending_step_ids.append(step.id)
+
+    if offending_step_ids:
+        for step_id in offending_step_ids:
+            errors.append(
+                f"Anti-pattern: Application solution '{sol_id}' must not declare console "
+                f"infrastructure step '{step_id}' or bundle 'recamera_console.yaml'. "
+                f"Supervisor/console is platform runtime infrastructure managed by the "
+                f"deployment engine and solution-cli."
+            )
+    elif has_bundle:
+        errors.append(
+            f"Anti-pattern: Application solution '{sol_id}' must not declare console "
+            f"infrastructure step 'recamera_console' or bundle 'recamera_console.yaml'. "
+            f"Supervisor/console is platform runtime infrastructure managed by the "
+            f"deployment engine and solution-cli."
+        )
+
+    return errors
+
+
 def _find_spec_dir(solution_path: Path, explicit: str | None) -> Path | None:
     """Locate the ``spec/`` directory holding ``solution.schema.json``.
 
@@ -1396,6 +1457,13 @@ def run(
                     sol_yaml.read_text(encoding="utf-8") if sol_yaml.is_file() else "",
                 )
             )
+
+        # --- 4e. anti-console infrastructure check (ERROR) -------------------
+        errors.extend(
+            _check_no_console_infrastructure_in_apps(
+                sol_id, sol_path, sol_data, parsed
+            )
+        )
 
     # --- 5. shared engine-free static checks (referenced files, i18n, dup ids,
     #        device-ref integrity) + semantics (compose/flow parseability) -----

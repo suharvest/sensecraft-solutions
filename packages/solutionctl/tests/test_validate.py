@@ -839,3 +839,46 @@ def test_inherit_host_from_later_step_device_id_not_counted(tmp_path):
     )
     assert any("inherit_host_from 'onvif_stack'" in e for e in errors)
     assert any("{{deploy.host}}" in e for e in errors)
+
+
+def test_anti_console_infrastructure_recamera_ecosystem_allowed(capsys):
+    """The recamera_ecosystem platform solution is explicitly permitted to bundle and declare console steps."""
+    sol = REPO_ROOT / "solutions" / "recamera_ecosystem"
+    rc = validate.run(str(sol), spec_dir=str(SPEC_DIR))
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "recamera_ecosystem valid" in out
+
+
+def test_anti_console_infrastructure_app_declaring_console_fails(tmp_path, capsys):
+    """An application solution declaring update_console or bundling recamera_console.yaml fails validation."""
+    base = tmp_path / "sample_app"
+    _write_solution(
+        base,
+        guide_en=(
+            "## Preset: Default {#default}\n\n"
+            "## Step 1: Update Console {#update_console type=recamera_cpp required=false config=devices/recamera_console.yaml}\n\nUpdate.\n\n"
+            "## Step 2: Dashboard {#dash type=web_dashboard required=true config=devices/dash.yaml}\n\nDash.\n"
+        ),
+    )
+    devices = base / "devices"
+    devices.mkdir(exist_ok=True)
+    (devices / "recamera_console.yaml").write_text(
+        'version: "1.0"\nid: recamera_console\nname: Console\ntype: recamera_cpp\n'
+        'device_class: recamera\nuser_inputs: []\n',
+        encoding="utf-8",
+    )
+    (devices / "dash.yaml").write_text(
+        'version: "1.0"\nid: dash\nname: Dash\ntype: web_dashboard\n'
+        'web_dashboard:\n  url: "http://192.168.42.1/"\nuser_inputs: []\n',
+        encoding="utf-8",
+    )
+
+    rc = validate.run(str(base), spec_dir=str(SPEC_DIR))
+    assert rc == 1
+    err = capsys.readouterr().err
+    assert (
+        "Anti-pattern: Application solution 'sample_app' must not declare console "
+        "infrastructure step 'update_console' or bundle 'recamera_console.yaml'"
+    ) in err
+

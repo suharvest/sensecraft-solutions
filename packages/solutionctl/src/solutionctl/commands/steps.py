@@ -152,7 +152,7 @@ def run(solution_path: str, lang: str = "en", spec_dir: str | None = None) -> in
         app_steps = [s for s in preset.steps if not _is_console_infrastructure_step(s)]
 
         if infra_steps:
-            print("  ┌─ 🛠 Runtime Infrastructure (Pre-flight / Auto-provisioned):")
+            print("  ┌─ 🛠 Console Infrastructure Steps (Legacy / Pre-flight):")
             for step in infra_steps:
                 _render_step_item(step, "│  •", sol_path)
             print("  └─ 🚀 Application Deployment Steps:")

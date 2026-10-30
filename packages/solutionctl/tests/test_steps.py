@@ -13,8 +13,8 @@ SPEC_DIR = REPO_ROOT / "spec"
 
 def test_steps_splits_console_into_infrastructure_section():
     """Verify that solutions with recamera_console steps have the console
-    isolated in 'Runtime Infrastructure' and application steps numbered separately."""
-    target_solution = SOLUTIONS_ROOT / "recamera_depth_estimation"
+    isolated in 'Console Infrastructure Steps (Legacy / Pre-flight)' and application steps numbered separately."""
+    target_solution = SOLUTIONS_ROOT / "recamera_ecosystem"
     if not target_solution.is_dir():
         pytest.skip(f"Solution directory not found: {target_solution}")
 
@@ -24,9 +24,9 @@ def test_steps_splits_console_into_infrastructure_section():
 
     assert rc == 0
     out = buf.getvalue()
-    assert "🛠 Runtime Infrastructure (Pre-flight / Auto-provisioned):" in out
+    assert "🛠 Console Infrastructure Steps (Legacy / Pre-flight):" in out
     assert "升级 reCamera 控制台" in out
     assert "{#deploy_console}" in out
     assert "🚀 Application Deployment Steps:" in out
-    # Application step 1 is installing the depth app, not deploy_console
-    assert "1. 安装深度估计应用  {#deploy_depth}" in out
+    # Application step 1 is installing the app, not deploy_console
+    assert "1. 安装目标检测应用  {#obj_install_app}" in out
