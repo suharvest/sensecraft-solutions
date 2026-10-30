@@ -35,8 +35,7 @@ This is an assistive biomechanical assessment tool, not a certified medical diag
 In outpatient clinics, senior rehabilitation centers, or home exercise corners, **the edge AI smart camera estimates a full-body 33-keypoint anatomical skeleton topology in real time**. When patients demonstrate involuntary compensations like shoulder shrugging or medial knee collapse, **the on-screen HUD triggers a red visual alert and auditory cue within 50ms**, reporting objective joint Range of Motion (ROM) and valid repetition metrics to hospital EMR systems.
 
 - Open Source Repository: [github.com/suharvest/rehab-posture-analysis](https://github.com/suharvest/rehab-posture-analysis)
-- Sizing and Deployment: [Reference Design Landing Page](https://www.seeed.cc/solutions/reference-designs/rehab_posture_analysis)
-- Deployment Platform: [SenseCraft Solution Automation Platform](https://www.seeed.cc/solutions/sensecraft-solution)
+- Sizing and Deployment: [Reference Design Deployment Guide](https://www.seeed.cc/solutions/reference-designs/rehab_posture_analysis/deploy)
 
 <div class="info-section">
     <ul class="info-list">
@@ -118,13 +117,13 @@ Only an all-in-one smart camera or an existing camera with an edge accelerator i
 This solution is integrated with the official Seeed automation framework. The primary recommended method uses **`solution-cli` (or AI Solution Assistant)** for automated precheck and deployment, with GUI options also supported:
 
 <div class="get_one_now_container" style={{textAlign: 'center'}}>
-    <a class="get_one_now_item" href="https://www.seeed.cc/solutions/sensecraft-solution" target="_blank">
-        <strong><span><font color={'FFFFFF'} size={"4"}>Explore SenseCraft Solution Platform 🖱️</font></span></strong>
+    <a class="get_one_now_item" href="https://www.seeed.cc/solutions/reference-designs/rehab_posture_analysis/deploy" target="_blank">
+        <strong><span><font color={'FFFFFF'} size={"4"}>Open Reference Design Deployment Guide 🖱️</font></span></strong>
     </a>
 </div><br />
 
 #### Recommended: Automated Deployment with `solution-cli` (CLI Best Practice)
-`solution-cli` is Seeed's unified deployment and sizing toolkit for industrial edge AI solutions ([Documentation](https://www.seeed.cc/solutions/sensecraft-solution)). Deploy with three steps without manually extracting tarballs:
+`solution-cli` is Seeed's unified deployment and sizing toolkit for industrial edge AI solutions (see [Deployment Guide](https://www.seeed.cc/solutions/reference-designs/rehab_posture_analysis/deploy)). Deploy with three steps without manually extracting tarballs:
 
 ```bash
 # 1. Install or run solution-cli (skip if already available)

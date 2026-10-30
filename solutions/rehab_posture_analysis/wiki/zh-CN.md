@@ -35,8 +35,7 @@ generated_from: sensecraft-solutions@rehab_posture_analysis
 在门诊康复室、养老活动中心或居家训练场景中，患者在做肩外展或深蹲康复训练时，**边缘一体化相机在本地实时推断全身 33 个骨骼关键点**。当患者由于肌肉力量不足出现耸肩、躯干侧倾或膝内扣等代偿动作时，**屏幕 HUD 在 50ms 内亮起红色预警并语音纠正**，同时将客观活动度（ROM）与有效计数汇总至医院康复系统。
 
 - 开源实现：[github.com/suharvest/rehab-posture-analysis](https://github.com/suharvest/rehab-posture-analysis)
-- 选型与部署：[可部署方案页](https://www.seeedstudio.com.cn/solutions/reference-designs/rehab_posture_analysis)
-- 方案部署平台：[SenseCraft Solution 部署中枢](https://www.seeedstudio.com.cn/solutions/sensecraft-solution)
+- 选型与部署：[可部署方案页（现场设备选型与部署指南）](https://www.seeedstudio.com.cn/solutions/reference-designs/rehab_posture_analysis/deploy)
 
 <div class="info-section">
     <ul class="info-list">
@@ -118,13 +117,13 @@ generated_from: sensecraft-solutions@rehab_posture_analysis
 本方案纳入 Seeed 方案自动化部署体系，官方首选使用 **`solution-cli`（或 AI 方案助手）** 执行自动化选型校验与端侧下发，同时兼容控制台 GUI 操作：
 
 <div class="get_one_now_container" style={{textAlign: 'center'}}>
-    <a class="get_one_now_item" href="https://www.seeedstudio.com.cn/solutions/sensecraft-solution" target="_blank">
-        <strong><span><font color={'FFFFFF'} size={"4"}>查看 SenseCraft Solution 自动化部署平台 🖱️</font></span></strong>
+    <a class="get_one_now_item" href="https://www.seeedstudio.com.cn/solutions/reference-designs/rehab_posture_analysis/deploy" target="_blank">
+        <strong><span><font color={'FFFFFF'} size={"4"}>查看现场选型与部署指南（Reference Design Deploy） 🖱️</font></span></strong>
     </a>
 </div><br />
 
 #### 推荐途径：使用 `solution-cli` 自动化部署与环境自检（CLI 最佳实践）
-`solution-cli` 是官方面向工业方案与 AI 边缘设备的部署工具包（[官网文档](https://www.seeedstudio.com.cn/solutions/sensecraft-solution)）。无需手动下载编译包，执行三步即可完成端侧自检与下发：
+`solution-cli` 是官方面向工业方案与 AI 边缘设备的部署工具包（见[现场部署指南](https://www.seeedstudio.com.cn/solutions/reference-designs/rehab_posture_analysis/deploy)）。无需手动下载编译包，执行三步即可完成端侧自检与下发：
 
 ```bash
 # 1. 检查并安装 solution-cli（已安装用户可跳过）

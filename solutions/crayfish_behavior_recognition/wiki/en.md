@@ -33,8 +33,7 @@ This is an assistive aquaculture monitoring and early warning system, not a seal
 In high-density recirculating aquaculture systems (RAS) or breeding tanks, Australian freshwater crayfish (*Cherax quadricarinatus*) frequently suffer limb loss or fatal cannibalism during molting periods due to aggressive attacks. **An edge AI smart camera mounted above the tank tracks each crayfish in real time**. When two individuals approach and engage in combat, **the camera confirms aggression within an 8-frame temporal window and publishes an MQTT alert to the farm dashboard**, prompting automated feeding or staff intervention to protect soft-shell individuals.
 
 - Open Source Repository: [github.com/suharvest/crayfish-fight](https://github.com/suharvest/crayfish-fight)
-- Sizing and Deployment: [Reference Design Landing Page](https://www.seeed.cc/solutions/reference-designs/crayfish_behavior_recognition)
-- Deployment Platform: [SenseCraft Solution Automation Platform](https://www.seeed.cc/solutions/sensecraft-solution)
+- Sizing and Deployment: [Reference Design Deployment Guide](https://www.seeed.cc/solutions/reference-designs/crayfish_behavior_recognition/deploy)
 
 <div class="info-section">
     <ul class="info-list">
@@ -110,13 +109,13 @@ Only an all-in-one IP67 smart camera is mounted over the tanks and connected to 
 This solution is integrated with the official Seeed automation framework. The primary recommended method uses **`solution-cli` (or AI Solution Assistant)** for automated precheck and deployment, with GUI options also supported:
 
 <div class="get_one_now_container" style={{textAlign: 'center'}}>
-    <a class="get_one_now_item" href="https://www.seeed.cc/solutions/sensecraft-solution" target="_blank">
-        <strong><span><font color={'FFFFFF'} size={"4"}>Explore SenseCraft Solution Platform 🖱️</font></span></strong>
+    <a class="get_one_now_item" href="https://www.seeed.cc/solutions/reference-designs/crayfish_behavior_recognition/deploy" target="_blank">
+        <strong><span><font color={'FFFFFF'} size={"4"}>Open Reference Design Deployment Guide 🖱️</font></span></strong>
     </a>
 </div><br />
 
 #### Recommended: Automated Deployment with `solution-cli` (CLI Best Practice)
-`solution-cli` is Seeed's unified deployment and sizing toolkit for industrial edge AI solutions ([Documentation](https://www.seeed.cc/solutions/sensecraft-solution)). Deploy with three steps without manually managing containers or tarballs:
+`solution-cli` is Seeed's unified deployment and sizing toolkit for industrial edge AI solutions (see [Deployment Guide](https://www.seeed.cc/solutions/reference-designs/crayfish_behavior_recognition/deploy)). Deploy with three steps without manually managing containers or tarballs:
 
 ```bash
 # 1. Install or run solution-cli (skip if already available)

@@ -33,8 +33,7 @@ generated_from: sensecraft-solutions@crayfish_behavior_recognition
 在工厂化高密度循环水养殖（RAS）或繁育水槽中，澳洲淡水龙虾（红螯螯虾）在蜕壳期极易因同伴打斗造成大螯残缺甚至互相残食。**部署在水槽上方的智能边缘相机在本地实时跟踪每只螯虾**，当两只虾靠近并发生肢体攻击搏斗时，**系统在 8 帧时序内完成确认并通过 MQTT 上报养殖中控大屏**，提醒工人及时分池或投喂诱饵，显著降低断肢率与死淘率。
 
 - 开源实现：[github.com/suharvest/crayfish-fight](https://github.com/suharvest/crayfish-fight)
-- 选型与部署：[可部署方案页](https://www.seeedstudio.com.cn/solutions/reference-designs/crayfish_behavior_recognition)
-- 方案部署平台：[SenseCraft Solution 部署中枢](https://www.seeedstudio.com.cn/solutions/sensecraft-solution)
+- 选型与部署：[可部署方案页（现场设备选型与部署指南）](https://www.seeedstudio.com.cn/solutions/reference-designs/crayfish_behavior_recognition/deploy)
 
 <div class="info-section">
     <ul class="info-list">
@@ -110,13 +109,13 @@ generated_from: sensecraft-solutions@crayfish_behavior_recognition
 本方案纳入 Seeed 方案自动化部署体系，官方首选使用 **`solution-cli`（或 AI 方案助手）** 执行自动化选型校验与端侧下发，同时兼容控制台 GUI 操作：
 
 <div class="get_one_now_container" style={{textAlign: 'center'}}>
-    <a class="get_one_now_item" href="https://www.seeedstudio.com.cn/solutions/sensecraft-solution" target="_blank">
-        <strong><span><font color={'FFFFFF'} size={"4"}>查看 SenseCraft Solution 自动化部署平台 🖱️</font></span></strong>
+    <a class="get_one_now_item" href="https://www.seeedstudio.com.cn/solutions/reference-designs/crayfish_behavior_recognition/deploy" target="_blank">
+        <strong><span><font color={'FFFFFF'} size={"4"}>查看现场选型与部署指南（Reference Design Deploy） 🖱️</font></span></strong>
     </a>
 </div><br />
 
 #### 推荐途径：使用 `solution-cli` 自动化部署与环境自检（CLI 最佳实践）
-`solution-cli` 是官方面向工业方案与 AI 边缘设备的部署工具包（[官网文档](https://www.seeedstudio.com.cn/solutions/sensecraft-solution)）。无需手动管理容器镜像，执行三步即可完成端侧自检与下发：
+`solution-cli` 是官方面向工业方案与 AI 边缘设备的部署工具包（见[现场部署指南](https://www.seeedstudio.com.cn/solutions/reference-designs/crayfish_behavior_recognition/deploy)）。无需手动管理容器镜像，执行三步即可完成端侧自检与下发：
 
 ```bash
 # 1. 检查并安装 solution-cli（已安装用户可跳过）
