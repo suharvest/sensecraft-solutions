@@ -1,34 +1,38 @@
 version: "1.0"
-# Candidate solution: real-frame capture, motion-event, and snapshot verified on hardware.
 enabled: true
 id: recamera_region_motion
 name: reCamera Region Motion Detection
 name_i18n:
   zh: reCamera 选区运动检测
 intro:
-  summary: Detect motion only inside user-drawn camera regions, keep event snapshots, and send webhook alerts from a reCamera.
+  summary: Detect motion inside custom polygon regions, view live debug overlays, and seamlessly trigger Home Assistant automations via MQTT.
   summary_i18n:
-    zh: 在 reCamera 画面中自定义检测区域，只监测指定位置，保存事件抓拍并通过 Webhook 告警。
+    zh: 在 reCamera 画面中自由划定选区多边形，实时叠加调试与告警，通过 MQTT 原生联动 Home Assistant。
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
   cover_image: gallery/cover.svg
   category: vision_video_ai
   solution_type: technical
-  tags: [recamera, motion-detection, camera, rtsp, webhook, home-assistant]
+  tags: [recamera, motion-detection, camera, rtsp, mqtt, home-assistant]
   output_interfaces:
-    - type: http
-      port: 8080
-      endpoint: /api/health
-      description: Health, motion status, events, configuration, and JPEG snapshots over HTTP.
-      description_i18n:
-        zh: 通过 HTTP 提供健康状态、运动状态、事件、配置和 JPEG 抓拍接口。
     - type: rtsp
       port: 8554
       path: /live0
       description: H.264 camera stream.
       description_i18n:
         zh: H.264 摄像头视频流。
+    - type: websocket
+      port: 8001
+      path: /
+      description: H.264 debug stream with ROI polygon and motion overlay.
+      description_i18n:
+        zh: 包含选区多边形与运动告警叠加的 H.264 调试流。
+    - type: mqtt
+      topic: recamera/region-motion/results
+      description: Motion detection results and events.
+      description_i18n:
+        zh: 运动检测状态变化与告警事件。
   input_requirements:
     - type: camera
       description: Built-in reCamera camera module.
@@ -51,9 +55,9 @@ intro:
       name: reCamera 2002
       name_i18n:
         zh: reCamera 2002
-      description: Install the native motion detection service, configure Home Assistant, and verify its HTTP API.
+      description: Install the native region motion service, configure detection zones in console, and integrate with Home Assistant via MQTT.
       description_i18n:
-        zh: 安装原生运动检测服务、接入 Home Assistant 并检查 HTTP API。
+        zh: 安装原生选区运动检测服务，在控制台交互式划定选区，并通过 MQTT 原生接入 Home Assistant。
       device_groups:
         - id: camera
           name: AI Camera
@@ -77,7 +81,7 @@ intro:
     difficulty: intermediate
     estimated_time: 10min
   links:
-    github: https://github.com/yyling0101-a11y/recamera_motion_detection
+    github: https://github.com/Seeed-Studio/sscma-example-sg200x
 deployment:
   guide_file: guide.md
   guide_file_i18n:

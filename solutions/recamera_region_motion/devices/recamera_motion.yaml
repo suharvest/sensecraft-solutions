@@ -20,16 +20,16 @@ ssh:
 
 binary:
   deb_package:
-    path: https://github.com/yyling0101-a11y/recamera_motion_detection/releases/download/v2.1.2/recamera-motion_2.1.2_riscv64.deb
-    name: recamera-motion
+    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_region_motion/packages/region-motion_0.1.0_riscv64.deb
+    name: region-motion
     includes_init_script: true
     checksum:
-      sha256: 3dab55239994156f315557676b1957200378b2e44ef4d10e26ce59711f98428b
-  service_name: recamera-motion
+      sha256: 36a72efd6c13a45e6a1e2e0ab0523b517ea2ae5adf2f251ae455d6d2a348937f
+  service_name: region-motion
   service_priority: 92
   auto_start: true
 
-  # 部署时通过官方机制让出摄像头（VPSS Grp）
+  # 部署时让出摄像头独占 VPSS 通道
   conflict_services:
     stop:
       - S03node-red
@@ -45,37 +45,17 @@ binary:
 
 actions:
   before:
-    - name: Gracefully release camera via official console appMgr
+    - name: Clean up legacy motion package if present
       sudo: true
       name_i18n:
-        zh: 通过官方控制台接口释放摄像头
+        zh: 清理旧版本选区运动检测包
       run: |
-        echo "Releasing camera hardware through official supervisor appMgr..."
-        # 1. 若控制台正在运行，调用官方 appMgr 停止当前活跃应用，保证 VPSS 优雅释放
-        if curl -s -m 3 http://127.0.0.1/api/health >/dev/null 2>&1; then
-          curl -s -m 5 -X POST http://127.0.0.1/api/appMgr/stop || true
+        if [ -x /etc/init.d/K92recamera-motion ]; then
+          /etc/init.d/K92recamera-motion stop 2>/dev/null || true
         fi
-        # 2. 若存在 supervisor 官方运维脚本，调用其 app_stop 统一回收
-        if [ -x /usr/share/supervisor/scripts/main.sh ]; then
-          /usr/share/supervisor/scripts/main.sh app_stop || true
+        if opkg list-installed 2>/dev/null | grep -q '^recamera-motion '; then
+          opkg remove recamera-motion 2>/dev/null || true
         fi
-        sleep 2
-
-  after:
-    - name: Verify camera pipeline acquisition
-      sudo: true
-      name_i18n:
-        zh: 验证摄像头出流与帧捕获
-      run: |
-        sleep 3
-        # 查询运动检测 HTTP 状态接口，验证 frame_count 是否正常递增
-        STATUS=$(curl -s http://127.0.0.1:8080/api/status 2>/dev/null || true)
-        FRAMES=$(echo "$STATUS" | grep -o '"frame_count":[0-9]*' | cut -d: -f2)
-        if [ -z "$FRAMES" ] || [ "$FRAMES" -le 0 ]; then
-          echo "ERROR: Camera is not capturing frames (frame_count=$FRAMES). Video pipeline may be locked." >&2
-          exit 1
-        fi
-        echo "Camera streaming verified: $FRAMES frames captured."
 
 user_inputs:
   - id: host

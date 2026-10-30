@@ -1,15 +1,14 @@
 # reCamera Region Motion Detection
 
-Choose exactly which parts of the camera image should trigger motion alerts. The reCamera runs detection locally, keeps recent event snapshots, and exposes a small HTTP API, an H.264 RTSP stream, and webhook notifications. No cloud service or NPU model is required.
+Choose exactly which parts of the camera image should trigger motion alerts. The reCamera runs detection locally using classical computer vision on CPU, draws polygon ROI overlays live, and seamlessly integrates with Home Assistant via MQTT. No cloud service or NPU model is required.
 
-Use it to monitor a doorway, workstation, or other polygon-shaped area while ignoring moving trees, roads, or other distracting parts of the frame. The Home Assistant integration can edit regions and show the live stream and event snapshots.
+Use it to monitor a doorway, workstation, or other polygon-shaped area while ignoring moving trees, roads, or other distracting parts of the frame. Draw detection polygons directly on the live camera stream inside the reCamera Console.
 
-## What it provides
+## Features
 
-- Include and exclude polygons with normalized image coordinates
-- Motion start/end events with bounding boxes and optional JPEG snapshots
-- HTTP status, configuration, event, and snapshot endpoints on port 8080
-- H.264 RTSP stream on port 8554 at `/live0`
-- Optional webhook delivery to Home Assistant or another HTTP receiver
-
-The camera pipeline is exclusive: the service stops the stock camera services while it is running. Use the Solution app manager to switch back to another camera application.
+- **On-Screen Polygon Drawing:** Configure custom multi-point ROI zones directly on the live video in reCamera Console.
+- **Real-Time Debug Overlay:** Port 8001 WebSocket delivers live H.264 video with ROI polygons, motion bounding boxes, and status cards.
+- **Native Home Assistant Integration:** Uses standard MQTT Auto-Discovery (`binary_sensor.recamera_motion`) — zero custom plugins required on Home Assistant.
+- **H.264 RTSP Streaming:** Port 8554 at `/live0` for NVRs, Home Assistant, and media players.
+- **Live Snapshots:** High-resolution JPEG snapshots on port 8001 at `/snapshot.jpg`.
+- **Lightweight CPU Processing:** Runs efficiently on CPU without TPU/NPU dependencies or model files.

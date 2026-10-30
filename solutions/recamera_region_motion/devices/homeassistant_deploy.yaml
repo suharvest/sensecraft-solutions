@@ -1,0 +1,70 @@
+version: "1.0"
+id: homeassistant_deploy
+name: Home Assistant
+type: docker_deploy
+
+preconditions:
+  - command: "((curl -s -m 2 http://127.0.0.1:8123/api/ || curl -s -m 2 http://localhost:8123/api/) | grep -Eqi 'API running|Unauthorized') && (nc -z 127.0.0.1 1883 2>/dev/null || (echo > /dev/tcp/127.0.0.1/1883) 2>/dev/null || ss -tuln 2>/dev/null | grep -q ':1883 ')"
+    description: "Check if Home Assistant and MQTT Broker are already running on ports 8123 and 1883"
+    satisfied_message: "Home Assistant and MQTT broker are already running on this host, skipping Docker installation."
+    satisfied_message_i18n:
+      zh: "检测到该主机已运行 Home Assistant 和 MQTT Broker，自动跳过 Docker 安装。"
+
+# Single source-of-truth device YAML. Backend derives docker_local and
+# docker_remote views via derive_docker_views(). Pure application-layer
+# Docker stack — no device_class, runs on any Linux/Mac host with Docker.
+
+detection:
+  method: local
+  requirements:
+    - docker_installed
+    - docker_running
+
+docker:
+  compose_file: assets/docker/docker-compose.yml
+  remote_path: /home/{{username}}/recamera-ha
+  options:
+    project_name: recamera-homeassistant
+    remove_orphans: true
+  services:
+    - name: homeassistant
+      port: 8123
+      health_check_endpoint: /api/
+      required: true
+    # The broker the cameras publish to. No health_check_endpoint — MQTT is not
+    # HTTP, so an HTTP probe would score a healthy broker as failed.
+    - name: mosquitto
+      port: 1883
+      required: true
+
+ssh:
+  port: 22
+  default_user: recomputer
+
+pre_checks:
+  - type: docker_version
+    min_version: "20.0"
+    description: Check Docker version
+  - type: port_available
+    ports:
+      - 1883
+    description: Check if port 1883 is available
+
+post_deployment:
+  open_browser: true
+  url: http://localhost:8123
+
+name_i18n:
+  zh: Home Assistant
+
+remote_overrides:
+  compose_dir: assets/docker
+  detection:
+    method: network_scan
+    manual_entry: true
+    requirements:
+      - docker_installed
+      - docker_running
+  post_deployment:
+    open_browser: true
+    url: "http://{{host}}:8123"
