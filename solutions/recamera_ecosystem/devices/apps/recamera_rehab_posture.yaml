@@ -20,11 +20,11 @@ ssh:
 
 binary:
   deb_package:
-    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/yolo-detector_0.6.0_riscv64.deb
+    path: https://sensecraft-statics.seeed.cc/solution-app/rehab_posture_analysis/packages/rehab-posture-analysis_1.0.0_riscv64.deb
     name: rehab-posture-analysis
     includes_init_script: true
     checksum:
-      sha256: 72f9b2ac058e132098990a45cf27a80175adacb0682e842b41eb4304d2547b20
+      sha256: ad1a4566d36f90674618ec3093b02f6730e8d043a6fc33c3e90cc81955ada6dd
 
   models:
     - path: https://sensecraft-statics.seeed.cc/solution-app/rehab_posture_analysis/models/blazepose_33kpt_cv181x_int8.cvimodel

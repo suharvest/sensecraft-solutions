@@ -1,0 +1,7 @@
+Package: crayfish-behavior
+Version: 1.0.0
+Architecture: riscv64
+Maintainer: Seeed Studio <techsupport@seeed.cc>
+Section: devel
+Priority: optional
+Description: Crayfish behavior recognition for reCamera SG2002

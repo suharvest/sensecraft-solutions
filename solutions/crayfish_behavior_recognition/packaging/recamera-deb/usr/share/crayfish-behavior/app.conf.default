@@ -1,0 +1,3 @@
+model=/userdata/local/models/crayfish_det_cv181x_bf16.cvimodel
+rtsp_port=8554
+mqtt_topic=recamera/crayfish-behavior/results

@@ -1,0 +1,29 @@
+{
+  "id": "crayfish-behavior",
+  "name": "Crayfish Behavior Recognition",
+  "name_zh": "水产螯虾打斗与行为识别",
+  "scene": "Aquaculture & Agriculture",
+  "scene_zh": "智慧水产与农业",
+  "description": "Aquaculture crayfish behavior recognition and fighting detection for reCamera SG2002.",
+  "description_zh": "基于 reCamera SG2002 的水产螯虾打斗与行为识别，端侧实时分析打斗骚扰并触发告警。",
+  "type": "native",
+  "init_script": "/etc/init.d/K92crayfish-behavior",
+  "image": "/apps/crayfish-behavior.png",
+  "rtsp_url": "rtsp://{host}:8554/live0",
+  "mqtt_topic": "recamera/crayfish-behavior/results",
+  "debug_ws": {
+    "port": 8001,
+    "video_path": "/",
+    "results_path": "/results"
+  },
+  "models": [
+    {
+      "name": "crayfish-det",
+      "path": "/userdata/local/models/crayfish_det_cv181x_bf16.cvimodel",
+      "task": "detect"
+    }
+  ],
+  "default_model": "crayfish-det",
+  "version": "1.0.0",
+  "author": "Seeed Studio"
+}

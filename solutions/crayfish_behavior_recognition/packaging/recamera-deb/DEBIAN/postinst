@@ -1,0 +1,32 @@
+#!/bin/sh
+set -e
+
+BIN=/usr/local/bin/crayfish-behavior
+INIT=/etc/init.d/K92crayfish-behavior
+SHARE_DIR=/usr/share/crayfish-behavior
+APPS_DIR=/userdata/local/apps
+MODELS_DIR=/userdata/local/models
+
+mkdir -p "$APPS_DIR" "$MODELS_DIR"
+
+chmod +x "$BIN" 2>/dev/null || true
+chmod +x "$INIT" 2>/dev/null || true
+
+# 初始化配置 /usr/share/crayfish-behavior/app.conf
+if [ ! -f "$SHARE_DIR/app.conf" ]; then
+    cp "$SHARE_DIR/app.conf.default" "$SHARE_DIR/app.conf"
+    echo "Config initialized: $SHARE_DIR/app.conf"
+else
+    echo "Config kept: $SHARE_DIR/app.conf"
+fi
+
+# 拷贝 manifest 到 /userdata/local/apps/crayfish-behavior.json
+if [ -f "$SHARE_DIR/crayfish-behavior.json" ]; then
+    cp -f "$SHARE_DIR/crayfish-behavior.json" "$APPS_DIR/crayfish-behavior.json"
+fi
+echo "App manifest installed: $APPS_DIR/crayfish-behavior.json"
+
+# 清理 /etc/init.d/S92crayfish-behavior
+rm -f /etc/init.d/S92crayfish-behavior
+
+exit 0

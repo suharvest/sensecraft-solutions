@@ -1,0 +1,32 @@
+#!/bin/sh
+set -e
+
+BIN=/usr/local/bin/rehab-posture-analysis
+INIT=/etc/init.d/K92rehab-posture-analysis
+SHARE_DIR=/usr/share/rehab-posture-analysis
+APPS_DIR=/userdata/local/apps
+MODELS_DIR=/userdata/local/models
+
+mkdir -p "$APPS_DIR" "$MODELS_DIR"
+
+chmod +x "$BIN" 2>/dev/null || true
+chmod +x "$INIT" 2>/dev/null || true
+
+# 初始化配置 /usr/share/rehab-posture-analysis/app.conf
+if [ ! -f "$SHARE_DIR/app.conf" ]; then
+    cp "$SHARE_DIR/app.conf.default" "$SHARE_DIR/app.conf"
+    echo "Config initialized: $SHARE_DIR/app.conf"
+else
+    echo "Config kept: $SHARE_DIR/app.conf"
+fi
+
+# 拷贝 manifest 到 /userdata/local/apps/rehab-posture-analysis.json
+if [ -f "$SHARE_DIR/rehab-posture-analysis.json" ]; then
+    cp -f "$SHARE_DIR/rehab-posture-analysis.json" "$APPS_DIR/rehab-posture-analysis.json"
+fi
+echo "App manifest installed: $APPS_DIR/rehab-posture-analysis.json"
+
+# 清理 /etc/init.d/S92rehab-posture-analysis
+rm -f /etc/init.d/S92rehab-posture-analysis
+
+exit 0

@@ -20,11 +20,11 @@ ssh:
 
 binary:
   deb_package:
-    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/yolo-detector_0.6.0_riscv64.deb
+    path: https://sensecraft-statics.seeed.cc/solution-app/crayfish_behavior_recognition/packages/crayfish-behavior_1.0.0_riscv64.deb
     name: crayfish-behavior
     includes_init_script: true
     checksum:
-      sha256: 72f9b2ac058e132098990a45cf27a80175adacb0682e842b41eb4304d2547b20
+      sha256: a76ae74f71b8ba60c8191ee3e8f2e8ea0bb38e822cb80a1229ab45d6e56ab936
 
   models:
     - path: https://sensecraft-statics.seeed.cc/solution-app/crayfish_behavior_recognition/models/crayfish_det_cv181x_bf16.cvimodel

@@ -1,0 +1,178 @@
+#!/bin/sh
+
+### BEGIN INIT INFO
+# Provides:          crayfish-behavior
+# Required-Start:    $network $local_fs
+# Required-Stop:     $network $local_fs
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Crayfish behavior recognition for reCamera SG2002
+### END INIT INFO
+
+NAME=crayfish-behavior
+DAEMON=/usr/local/bin/$NAME
+PIDFILE=/var/run/$NAME.pid
+LOGFILE=/var/log/$NAME.log
+
+# CVI SDK runtime libraries
+export LD_LIBRARY_PATH=/mnt/system/lib:/mnt/system/usr/lib:/mnt/system/usr/lib/3rd:/mnt/system/lib/3rd:/lib:/usr/lib
+
+# Defaults
+model=/userdata/local/models/crayfish_det_cv181x_bf16.cvimodel
+rtsp_port=8554
+mqtt_topic=recamera/crayfish-behavior/results
+
+# Load global reCamera configuration
+[ -f /etc/recamera.conf ] && . /etc/recamera.conf
+
+# Load package configuration
+[ -f /usr/share/crayfish-behavior/app.conf ] && . /usr/share/crayfish-behavior/app.conf
+
+# Load local override if provided
+[ -f /etc/crayfish-behavior.conf ] && . /etc/crayfish-behavior.conf
+
+# Check model override from supervisor
+MODEL_OVERRIDE_FILE=/userdata/local/apps/crayfish-behavior.model
+if [ -f "$MODEL_OVERRIDE_FILE" ]; then
+    OVERRIDE=$(head -n 1 "$MODEL_OVERRIDE_FILE" 2>/dev/null)
+    if [ -n "$OVERRIDE" ] && [ -f "$OVERRIDE" ]; then
+        model="$OVERRIDE"
+    fi
+fi
+
+# Build daemon arguments
+DAEMON_OPTS="-v"
+[ -n "$model" ] && DAEMON_OPTS="$DAEMON_OPTS -m $model"
+[ -n "$mqtt_topic" ] && DAEMON_OPTS="$DAEMON_OPTS --mqtt-topic $mqtt_topic"
+[ -n "$MQTT_HOST" ] && DAEMON_OPTS="$DAEMON_OPTS --mqtt-host $MQTT_HOST"
+[ -n "$MQTT_PORT" ] && DAEMON_OPTS="$DAEMON_OPTS --mqtt-port $MQTT_PORT"
+
+start() {
+    echo "Starting $NAME..."
+    if [ -f "$PIDFILE" ]; then
+        PID=$(cat "$PIDFILE" 2>/dev/null)
+        if [ -n "$PID" ] && kill -0 "$PID" 2>/dev/null; then
+            if [ -f "/proc/$PID/cmdline" ] && grep -q "$NAME" "/proc/$PID/cmdline"; then
+                echo "$NAME is already running (PID: $PID)"
+                return 1
+            fi
+        fi
+        rm -f "$PIDFILE"
+    fi
+
+    start-stop-daemon -S -b -m -p "$PIDFILE" -a /bin/sh -- -c "exec $DAEMON $DAEMON_OPTS >> $LOGFILE 2>&1"
+    if [ $? -ne 0 ]; then
+        echo "$NAME failed to start (start-stop-daemon error)"
+        rm -f "$PIDFILE"
+        return 1
+    fi
+
+    # Stability check window
+    sleep 1
+    i=0
+    while [ $i -lt 3 ]; do
+        PID=$(cat "$PIDFILE" 2>/dev/null)
+        if [ -z "$PID" ] || ! kill -0 "$PID" 2>/dev/null; then
+            echo "$NAME exited immediately after start"
+            rm -f "$PIDFILE"
+            return 1
+        fi
+        sleep 0.5
+        i=$((i + 1))
+    done
+    echo "OK"
+    return 0
+}
+
+stop() {
+    echo "Stopping $NAME..."
+    if [ ! -f "$PIDFILE" ]; then
+        echo "$NAME is not running"
+        return 0
+    fi
+    PID=$(cat "$PIDFILE" 2>/dev/null)
+    if [ -z "$PID" ]; then
+        rm -f "$PIDFILE"
+        echo "$NAME is not running"
+        return 0
+    fi
+
+    # PID 进程身份校验，防止误杀
+    if ! kill -0 "$PID" 2>/dev/null; then
+        rm -f "$PIDFILE"
+        echo "$NAME is not running"
+        return 0
+    fi
+
+    if [ ! -f "/proc/$PID/cmdline" ] || ! grep -q "$NAME" "/proc/$PID/cmdline"; then
+        rm -f "$PIDFILE"
+        echo "$NAME is not running (stale PID $PID)"
+        return 0
+    fi
+
+    # 发送 TERM，每 0.5 秒检查一次，最多等待 5 秒
+    kill -TERM "$PID" 2>/dev/null || true
+    i=0
+    while [ $i -lt 10 ]; do
+        if ! kill -0 "$PID" 2>/dev/null; then
+            rm -f "$PIDFILE"
+            echo "OK"
+            return 0
+        fi
+        sleep 0.5
+        i=$((i + 1))
+    done
+
+    # 若超时未退出再发 KILL，等待 1 秒
+    kill -KILL "$PID" 2>/dev/null || true
+    j=0
+    while [ $j -lt 2 ]; do
+        if ! kill -0 "$PID" 2>/dev/null; then
+            rm -f "$PIDFILE"
+            echo "OK"
+            return 0
+        fi
+        sleep 0.5
+        j=$((j + 1))
+    done
+
+    if kill -0 "$PID" 2>/dev/null; then
+        echo "$NAME failed to stop (PID $PID still alive)"
+        return 1
+    fi
+
+    rm -f "$PIDFILE"
+    echo "OK"
+    return 0
+}
+
+restart() {
+    stop
+    sleep 2
+    start
+}
+
+status() {
+    if [ -f "$PIDFILE" ]; then
+        PID=$(cat "$PIDFILE" 2>/dev/null)
+        if [ -n "$PID" ] && kill -0 "$PID" 2>/dev/null; then
+            if [ -f "/proc/$PID/cmdline" ] && grep -q "$NAME" "/proc/$PID/cmdline"; then
+                echo "$NAME is running (PID: $PID)"
+                return 0
+            fi
+        fi
+        rm -f "$PIDFILE"
+    fi
+    echo "$NAME is not running"
+    return 1
+}
+
+case "$1" in
+    start) start; exit $? ;;
+    stop) stop; exit $? ;;
+    restart) restart; exit $? ;;
+    status) status; exit $? ;;
+    *) echo "Usage: $0 {start|stop|restart|status}"; exit 1 ;;
+esac
+
+exit 0

@@ -1,0 +1,11 @@
+#!/bin/sh
+rm -f /userdata/local/apps/rehab-posture-analysis.json 2>/dev/null || true
+
+case "$1" in
+    upgrade|failed-upgrade) ;;
+    *)
+        rm -f /usr/share/rehab-posture-analysis/app.conf 2>/dev/null || true
+        ;;
+esac
+
+exit 0

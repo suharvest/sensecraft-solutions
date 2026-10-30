@@ -1,0 +1,29 @@
+{
+  "id": "rehab-posture-analysis",
+  "name": "Rehab Posture Analysis",
+  "name_zh": "康复姿态动作分析",
+  "scene": "Healthcare & Wellness",
+  "scene_zh": "医疗康复与健康",
+  "description": "Edge posture analysis and rehabilitation motion assessment for reCamera SG2002.",
+  "description_zh": "基于 reCamera SG2002 的端侧康复姿态与动作评估，实时关节度量与代偿分析。",
+  "type": "native",
+  "init_script": "/etc/init.d/K92rehab-posture-analysis",
+  "image": "/apps/rehab-posture-analysis.png",
+  "rtsp_url": "rtsp://{host}:8554/live0",
+  "mqtt_topic": "recamera/rehab-posture-analysis/results",
+  "debug_ws": {
+    "port": 8001,
+    "video_path": "/",
+    "results_path": "/results"
+  },
+  "models": [
+    {
+      "name": "blazepose-33kpt",
+      "path": "/userdata/local/models/blazepose_33kpt_cv181x_int8.cvimodel",
+      "task": "pose"
+    }
+  ],
+  "default_model": "blazepose-33kpt",
+  "version": "1.0.0",
+  "author": "Seeed Studio"
+}

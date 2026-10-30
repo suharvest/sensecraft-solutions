@@ -1,0 +1,7 @@
+Package: rehab-posture-analysis
+Version: 1.0.0
+Architecture: riscv64
+Maintainer: Seeed Studio <techsupport@seeed.cc>
+Section: devel
+Priority: optional
+Description: Rehab posture analysis for reCamera SG2002
