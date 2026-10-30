@@ -56,7 +56,7 @@ def check_compose_naming() -> tuple[int, str]:
 
 
 def check_product_names_test() -> tuple[int, str]:
-    return run_command([sys.executable, "-m", "pytest", "tests/test_product_name_lint.py", "-q"])
+    return run_command(["uv", "run", "--with", "pytest", "pytest", "tests/test_product_name_lint.py", "-q"])
 
 
 def check_product_names_lint() -> tuple[int, str]:
@@ -64,7 +64,7 @@ def check_product_names_lint() -> tuple[int, str]:
 
 
 def check_untested_wording_test() -> tuple[int, str]:
-    return run_command([sys.executable, "-m", "pytest", "tests/test_untested_wording_lint.py", "-q"])
+    return run_command(["uv", "run", "--with", "pytest", "pytest", "tests/test_untested_wording_lint.py", "-q"])
 
 
 def check_untested_wording_lint() -> tuple[int, str]:
@@ -72,7 +72,7 @@ def check_untested_wording_lint() -> tuple[int, str]:
 
 
 def check_solution_content_test() -> tuple[int, str]:
-    return run_command([sys.executable, "-m", "pytest", "tests/test_solution_content_lint.py", "-q"])
+    return run_command(["uv", "run", "--with", "pytest", "pytest", "tests/test_solution_content_lint.py", "-q"])
 
 
 def check_solution_content_lint() -> tuple[int, str]:
@@ -80,7 +80,7 @@ def check_solution_content_lint() -> tuple[int, str]:
 
 
 def check_target_mode_test() -> tuple[int, str]:
-    return run_command([sys.executable, "-m", "pytest", "tests/test_target_mode_exclusivity.py", "-q"])
+    return run_command(["uv", "run", "--with", "pytest", "pytest", "tests/test_target_mode_exclusivity.py", "-q"])
 
 
 def check_validate_product_families() -> tuple[int, str]:
