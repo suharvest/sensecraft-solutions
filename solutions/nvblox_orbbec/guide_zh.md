@@ -1,7 +1,5 @@
 ## 套餐: Jetson NVBlox 部署 {#jetson_nvblox}
 
-![NVBlox Orbbec 仓储场景动画演示](gallery/isaac_sim_nvblox_humans.gif)
-
 通过 SSH 将 Orbbec Gemini2 与 Isaac ROS NVBlox 建图栈部署到 Jetson 设备。
 
 | 设备 | 用途 |

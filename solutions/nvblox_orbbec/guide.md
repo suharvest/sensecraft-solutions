@@ -1,7 +1,5 @@
 ## Preset: Jetson NVBlox Deployment {#jetson_nvblox}
 
-![NVBlox Orbbec warehouse demo](gallery/isaac_sim_nvblox_humans.gif)
-
 Deploy the Orbbec Gemini2 plus Isaac ROS NVBlox mapping stack to a Jetson device over SSH.
 
 | Device | Purpose |
