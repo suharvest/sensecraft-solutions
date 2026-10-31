@@ -417,4 +417,4 @@ Run this once the dashboard works:
 
 
 ### Next Steps
-- [Engineering Wiki](https://wiki.seeedstudio.com/solutions/agri-env-monitor/)
+- [Engineering Wiki](https://wiki.seeedstudio.com/solutions/agri-env-monitoring/)
