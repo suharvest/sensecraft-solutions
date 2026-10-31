@@ -139,7 +139,7 @@ intro:
     difficulty: beginner
     estimated_time: 5min
   links:
-    github: https://github.com/Seeed-Studio/recamera-pro
+    github: https://github.com/Seeed-Studio/recamera-pro-ext-api
 deployment:
   guide_file: guide.md
   guide_file_i18n:
