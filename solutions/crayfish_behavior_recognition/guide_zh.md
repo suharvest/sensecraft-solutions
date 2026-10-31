@@ -22,6 +22,14 @@
 
 输入 reCamera Pro 的网络地址与 Web 登录凭据（默认用户为 `admin`）。安装程序将自动检查并下发应用包（`crayfish-fight-v0.1.2-core.tar.gz`），写入所选参数并激活推理服务。
 
+### 故障排查
+
+| 问题 | 解决方法 |
+|---|---|
+| 登录被拒绝或连接被拒 | 本步骤使用 HTTPS 443 端口的 Web 控制台，账号为 `admin`。请核对设备 IP 与 Web 控制台密码。 |
+| 步骤结束后应用未激活 | 部署器最多等待 90 秒完成激活。请确认电脑能下载应用包（`crayfish-fight-v0.1.2-core.tar.gz`），然后重新运行本步骤。 |
+| 浏览器提示证书警告 | 相机在 443 端口使用自签名证书，继续访问即可。 |
+
 ---
 
 ## 步骤 2：验证推流 {#verify_stream_pro type=video_stream required=true verify=true}
@@ -48,6 +56,14 @@
 1. 通过 USB 将 reCamera 2002 接入电脑，默认 IP 为 `192.168.42.1`。
 2. 默认 SSH 凭据：用户名 `recamera`，密码 `recamera`。
 3. 摄像头互斥保护：系统会自动接管并让出正在占用摄像头的后台视频流。
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|---|---|
+| SSH 连接失败 | USB 连接使用 `192.168.42.1`；Wi-Fi 或有线网络使用路由器上显示的 IP。SSH 用户名为 `recamera`。 |
+| 密码被拒绝 | 尝试表单预填的 `recamera.1` 或 `recamera`；早期固件使用 `recamera.2`。 |
+| 部署后没有画面或检测结果 | 同一时间只运行一个摄像头管线。重启相机后重新运行本步骤。 |
 
 ### 部署目标 {#recamera_2002_device type=remote device_name="reCamera 2002" config=devices/recamera_2002.yaml default=true}
 

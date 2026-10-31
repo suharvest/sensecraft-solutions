@@ -16,6 +16,14 @@
 2. USB 连接默认地址为 `192.168.42.1`；Wi-Fi 请使用路由器分配的 IP。
 3. 默认密码为 `recamera`（早期固件尝试 `recamera.2`）。
 
+### 故障排查
+
+| 问题 | 解决方法 |
+|---|---|
+| SSH 连接失败 | USB 连接使用 `192.168.42.1`；Wi-Fi 或有线网络使用相机 IP。SSH 用户名为 `recamera`，密码为 `recamera`，早期固件为 `recamera.2`。 |
+| 检测服务未启动 | 部署器启动前会停止其他摄像头服务（Node-RED、YOLO 检测、人脸与跌倒检测等应用）。预览仍为空时，重启相机后重新运行本步骤。 |
+| 设备上已有旧版运动检测包 | 本步骤安装前会停止旧版 `recamera-motion` 服务并卸载该包。 |
+
 ### 部署目标 {#camera type=remote device_name="reCamera 2002" config=devices/recamera_motion.yaml default=true}
 
 USB 连接通常使用 `192.168.42.1`。使用 Wi-Fi 或以太网时，请输入摄像头当前的 IP 地址。默认 SSH 用户名为 `recamera`。
@@ -85,14 +93,14 @@ USB 连接通常使用 `192.168.42.1`。使用 Wi-Fi 或以太网时，请输入
 
 检查摄像头出流与实时画面抓拍是否正常。
 
-### 部署完成与操作指南
+### 部署完成
 
 - **reCamera 控制台:** 在浏览器打开 `http://<camera-ip>/`。在实时调试画面下方，可直接用鼠标在视频上划定多边形选区，调整灵敏度与面积阈值。
 - **Home Assistant 自动发现:** 在控制台「集成（Integrations）-> Home Assistant」页面填入 MQTT Broker 地址（主机 IP:1883），HA 将自动发现并生成运动传感器实体（`binary_sensor.recamera_motion`），无需安装任何第三方插件。
 - **RTSP 视频流:** `rtsp://<camera-ip>:8554/live0`
 - **实时快照:** `http://<camera-ip>:8001/snapshot.jpg`
 
-### 常见问题排查
+### 故障排查
 
 | 现象 | 解决方法 |
 |---|---|

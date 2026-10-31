@@ -16,6 +16,14 @@ Provide the camera address and SSH credentials. The deployer transfers and insta
 2. The USB connection defaults to `192.168.42.1`; for Wi-Fi use the IP assigned by your router.
 3. Default password is `recamera` (or `recamera.2` on earlier firmware).
 
+### Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| SSH connection fails | Over USB use `192.168.42.1`; over Wi-Fi or Ethernet use the camera IP. The SSH user is `recamera`; the password is `recamera`, or `recamera.2` on earlier firmware. |
+| Detector does not start | The deployer stops other camera services (Node-RED, YOLO detector, face and fall-detection apps) before starting. If the preview stays empty, reboot the camera and run the step again. |
+| An older motion package is installed | The step stops the legacy `recamera-motion` service and removes the package before installing. |
+
 ### Target {#camera type=remote device_name="reCamera 2002" config=devices/recamera_motion.yaml default=true}
 
 USB connections typically use `192.168.42.1`. When using Wi-Fi or Ethernet, enter the camera's current IP address. The default SSH username is `recamera`.

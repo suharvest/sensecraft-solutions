@@ -37,8 +37,6 @@ The deployer inspects App Center on the device. If the app is missing, it automa
 - **MQTT is optional**: Leave it empty to inspect results on the device web page; provide a host to forward alerts to Home Assistant or IoT brokers.
 - Authentication uses the camera's **web console credentials** (default `admin`/`admin`).
 
-### Target {#recamera_pro_device type=remote device_name="reCamera Pro" config=devices/recamera_pro_eldercare.yaml}
-
 ### Troubleshooting
 
 | Symptom | Action |
@@ -47,9 +45,18 @@ The deployer inspects App Center on the device. If the app is missing, it automa
 | Signature verification error | Verify the presence and integrity of `eldercare-monitor-0.1.5-arm64.tar.gz.sig` |
 | No detections on startup | Check application logs in App Center to ensure the camera sensor is not held by another process |
 
+### Target {#recamera_pro_device type=remote device_name="reCamera Pro" config=devices/recamera_pro_eldercare.yaml}
+
 ## Step 3: View Eldercare Monitor Dashboard {#verify_eldercare type=web_dashboard required=false config=devices/verify_eldercare.yaml}
 
 Open the camera web console to observe skeleton pose overlays and voice recognition logs.
+
+### Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| Page does not open | Use `https://<device-ip>/` and sign in with the web console account. Accept the self-signed certificate warning. |
+| No alert is received over MQTT | MQTT is optional in Step 2; if the broker host was left empty, alerts only appear on the device page. Otherwise check the broker host and port (default 1883). |
 
 ### Deployment Complete
 

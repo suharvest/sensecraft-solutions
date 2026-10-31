@@ -34,6 +34,14 @@
 
 在下拉框中选择要运行的应用并部署到摄像头。
 
+### 故障排查
+
+| 问题 | 解决方法 |
+|---|---|
+| 无法连接相机 | USB 连接使用 `192.168.42.1`；否则使用路由器上显示的 IP。reCamera Pro 通过 HTTPS 443 端口访问。 |
+| 登录被拒绝 | reCamera（SG2002）：`recamera` / `recamera`（早期固件为 `recamera.2`）。reCamera Pro：Web 控制台账号，默认用户 `admin`。 |
+| 部署后应用未启动 | 在控制台 Apps 页面（SG2002）或 App Center（Pro）查看应用状态；文件缺失时重新部署。 |
+
 ### 模式: reCamera (SG2002) {#recamera_sg2002 config=devices/recamera_console_app.yaml default=true}
 
 在应用下拉框中选择 **通用目标检测 (yolo-detector)** 或 **天气识别 (weather-classifier)**，点击**部署**。
@@ -86,6 +94,13 @@
 ## 步骤 3: 打开控制台查看 {#open_console type=web_dashboard required=false config=devices/console_dashboard.yaml}
 
 打开摄像头的控制面板，查看实时推理画面与检测结果。
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|---|---|
+| 页面无法打开 | SG2002 控制台：`http://<camera-ip>/`。reCamera Pro：443 端口的 HTTPS 控制面板，出现自签名证书警告属正常现象。 |
+| 实时画面为黑屏或无法加载 | 当前没有运行中的应用。返回步骤 2 部署或激活应用。 |
 
 ### 模式: reCamera (SG2002) {#recamera_sg2002 config=devices/console_dashboard.yaml default=true}
 
@@ -184,6 +199,13 @@
 ## 步骤 5: 在 Home Assistant 里查看结果（可选） {#ha_dashboard type=web_dashboard required=false config=devices/ha_dashboard.yaml}
 
 在 Home Assistant 仪表盘上查看摄像头的实时画面与检测实体。
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|---|---|
+| 检测实体缺失或不可用 | 相机与 Home Assistant 必须使用步骤 4 中的同一个 MQTT broker（端口 1883），且相机上的应用处于运行状态。 |
+| 卡片中没有视频 | SG2002 在 Picture glance 卡片中使用控制台视频。reCamera Pro 需在 Stream Settings 中启用 RTSP，并以 TCP 传输方式将该 URL 添加为 Generic Camera。 |
 
 ### 模式: reCamera (SG2002) {#recamera_sg2002 config=devices/ha_dashboard.yaml default=true}
 
@@ -271,6 +293,14 @@
 
 在下拉框中选择要运行的人体行为分析应用并部署到摄像头。
 
+### 故障排查
+
+| 问题 | 解决方法 |
+|---|---|
+| 无法连接相机 | USB 连接使用 `192.168.42.1`；否则使用路由器上显示的 IP。reCamera Pro 通过 HTTPS 443 端口访问。 |
+| 登录被拒绝 | reCamera（SG2002）：`recamera` / `recamera`（早期固件为 `recamera.2`）。reCamera Pro：Web 控制台账号，默认用户 `admin`。 |
+| 部署后应用未启动 | 在控制台 Apps 页面（SG2002）或 App Center（Pro）查看应用状态；文件缺失时重新部署。 |
+
 ### 模式: reCamera (SG2002) {#recamera_sg2002 config=devices/recamera_console_app.yaml default=true}
 
 在应用下拉框中选择 **人脸分析 (face-analysis)**、**跌倒检测 (fall-detection)**、**困倦检测 (facemesh-reader)** 或 **健身教练 (fitness-trainer)**，点击**部署**。
@@ -323,6 +353,13 @@
 ## 步骤 3: 打开控制台查看 {#open_console type=web_dashboard required=false config=devices/console_dashboard.yaml}
 
 打开摄像头的控制面板，查看实时推理画面与检测结果。
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|---|---|
+| 页面无法打开 | SG2002 控制台：`http://<camera-ip>/`。reCamera Pro：443 端口的 HTTPS 控制面板，出现自签名证书警告属正常现象。 |
+| 实时画面为黑屏或无法加载 | 当前没有运行中的应用。返回步骤 2 部署或激活应用。 |
 
 ### 模式: reCamera (SG2002) {#recamera_sg2002 config=devices/console_dashboard.yaml default=true}
 
@@ -421,6 +458,13 @@
 ## 步骤 5: 在 Home Assistant 里查看结果（可选） {#ha_dashboard type=web_dashboard required=false config=devices/ha_dashboard.yaml}
 
 在 Home Assistant 仪表盘上查看摄像头的实时画面与检测实体。
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|---|---|
+| 检测实体缺失或不可用 | 相机与 Home Assistant 必须使用步骤 4 中的同一个 MQTT broker（端口 1883），且相机上的应用处于运行状态。 |
+| 卡片中没有视频 | SG2002 在 Picture glance 卡片中使用控制台视频。reCamera Pro 需在 Stream Settings 中启用 RTSP，并以 TCP 传输方式将该 URL 添加为 Generic Camera。 |
 
 ### 模式: reCamera (SG2002) {#recamera_sg2002 config=devices/ha_dashboard.yaml default=true}
 
@@ -508,6 +552,14 @@
 
 在下拉框中选择要运行的文字或符号识别应用并部署到摄像头。
 
+### 故障排查
+
+| 问题 | 解决方法 |
+|---|---|
+| 无法连接相机 | USB 连接使用 `192.168.42.1`；否则使用路由器上显示的 IP。reCamera Pro 通过 HTTPS 443 端口访问。 |
+| 登录被拒绝 | reCamera（SG2002）：`recamera` / `recamera`（早期固件为 `recamera.2`）。reCamera Pro：Web 控制台账号，默认用户 `admin`。 |
+| 部署后应用未启动 | 在控制台 Apps 页面（SG2002）或 App Center（Pro）查看应用状态；文件缺失时重新部署。 |
+
 ### 模式: reCamera (SG2002) {#recamera_sg2002 config=devices/recamera_console_app.yaml default=true}
 
 在应用下拉框中选择 **OCR 文字识别 (ppocr-reader)** 或 **二维码识别 (qrcode-reader)**，点击**部署**。
@@ -560,6 +612,13 @@
 ## 步骤 3: 打开控制台查看 {#open_console type=web_dashboard required=false config=devices/console_dashboard.yaml}
 
 打开摄像头的控制面板，查看实时推理画面与检测结果。
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|---|---|
+| 页面无法打开 | SG2002 控制台：`http://<camera-ip>/`。reCamera Pro：443 端口的 HTTPS 控制面板，出现自签名证书警告属正常现象。 |
+| 实时画面为黑屏或无法加载 | 当前没有运行中的应用。返回步骤 2 部署或激活应用。 |
 
 ### 模式: reCamera (SG2002) {#recamera_sg2002 config=devices/console_dashboard.yaml default=true}
 
@@ -658,6 +717,13 @@
 ## 步骤 5: 在 Home Assistant 里查看结果（可选） {#ha_dashboard type=web_dashboard required=false config=devices/ha_dashboard.yaml}
 
 在 Home Assistant 仪表盘上查看摄像头的实时画面与检测实体。
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|---|---|
+| 检测实体缺失或不可用 | 相机与 Home Assistant 必须使用步骤 4 中的同一个 MQTT broker（端口 1883），且相机上的应用处于运行状态。 |
+| 卡片中没有视频 | SG2002 在 Picture glance 卡片中使用控制台视频。reCamera Pro 需在 Stream Settings 中启用 RTSP，并以 TCP 传输方式将该 URL 添加为 Generic Camera。 |
 
 ### 模式: reCamera (SG2002) {#recamera_sg2002 config=devices/ha_dashboard.yaml default=true}
 
@@ -745,6 +811,14 @@
 
 在下拉框中选择要运行的客流分析应用并部署到摄像头。
 
+### 故障排查
+
+| 问题 | 解决方法 |
+|---|---|
+| 无法连接相机 | USB 连接使用 `192.168.42.1`；否则使用路由器上显示的 IP。reCamera Pro 通过 HTTPS 443 端口访问。 |
+| 登录被拒绝 | reCamera（SG2002）：`recamera` / `recamera`（早期固件为 `recamera.2`）。reCamera Pro：Web 控制台账号，默认用户 `admin`。 |
+| 部署后应用未启动 | 在控制台 Apps 页面（SG2002）或 App Center（Pro）查看应用状态；文件缺失时重新部署。 |
+
 ### 模式: reCamera (SG2002) {#recamera_sg2002 config=devices/recamera_console_app.yaml default=true}
 
 在应用下拉框中选择 **零售人流分析 (retail-vision)**，点击**部署**。
@@ -797,6 +871,13 @@
 ## 步骤 3: 打开控制台查看 {#open_console type=web_dashboard required=false config=devices/console_dashboard.yaml}
 
 打开摄像头的控制面板，查看实时推理画面与检测结果。
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|---|---|
+| 页面无法打开 | SG2002 控制台：`http://<camera-ip>/`。reCamera Pro：443 端口的 HTTPS 控制面板，出现自签名证书警告属正常现象。 |
+| 实时画面为黑屏或无法加载 | 当前没有运行中的应用。返回步骤 2 部署或激活应用。 |
 
 ### 模式: reCamera (SG2002) {#recamera_sg2002 config=devices/console_dashboard.yaml default=true}
 
@@ -895,6 +976,13 @@
 ## 步骤 5: 在 Home Assistant 里查看结果（可选） {#ha_dashboard type=web_dashboard required=false config=devices/ha_dashboard.yaml}
 
 在 Home Assistant 仪表盘上查看摄像头的实时画面与检测实体。
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|---|---|
+| 检测实体缺失或不可用 | 相机与 Home Assistant 必须使用步骤 4 中的同一个 MQTT broker（端口 1883），且相机上的应用处于运行状态。 |
+| 卡片中没有视频 | SG2002 在 Picture glance 卡片中使用控制台视频。reCamera Pro 需在 Stream Settings 中启用 RTSP，并以 TCP 传输方式将该 URL 添加为 Generic Camera。 |
 
 ### 模式: reCamera (SG2002) {#recamera_sg2002 config=devices/ha_dashboard.yaml default=true}
 

@@ -21,11 +21,27 @@
 
 输入 reCamera Pro 的网络地址与 Web 登录凭据（默认用户为 `admin`）。安装程序将自动检查并下发应用包（`rehab-posture-analysis-v0.1.0-core.tar.gz`），写入所选动作配置并激活推理服务。
 
+### 故障排查
+
+| 问题 | 解决方法 |
+|---|---|
+| 登录被拒绝或连接被拒 | 本步骤使用 HTTPS 443 端口的 Web 控制台，账号为 `admin`。请核对设备 IP 与 Web 控制台密码。 |
+| 运行的康复动作不对 | 动作（深蹲、肩外展、肱二头肌弯举、坐姿伸膝）在本步骤中选择；选好目标动作后重新运行本步骤。 |
+| 浏览器提示证书警告 | 相机在 443 端口使用自签名证书，继续访问即可。 |
+
 ---
 
 ## 步骤 2：查看康复分析看板 {#verify_rehab_pro type=web_dashboard required=true config=devices/verify_recamera_pro.yaml}
 
 打开交互式 Result Hub v2 数据看板，实时查看骨架跟踪、关节活动度（ROM）与代偿动作告警。
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|---|---|
+| 页面无法打开 | 访问 `https://<camera-ip>/#/apps/rehab-posture-analysis`，并确认步骤 1 已完成。接受自签名证书警告。 |
+| 33 个关键点未全部跟踪 | 站立或就坐在距相机 2.0–3.5 m 处，使全身处于画面内。 |
+| 没有出现代偿提示 | 确认步骤 1 中选择的动作与实际做的动作一致。 |
 
 ### 部署完成
 
@@ -54,6 +70,14 @@
 2. 默认 SSH 凭据：用户名 `recamera`，密码 `recamera`。
 3. 摄像头互斥保护：系统会自动接管并让出正在占用摄像头的后台视频流。
 
+### 故障排查
+
+| 问题 | 解决方法 |
+|---|---|
+| SSH 连接失败 | USB 连接使用 `192.168.42.1`；Wi-Fi 或有线网络使用路由器上显示的 IP。SSH 用户名为 `recamera`。 |
+| 密码被拒绝 | 尝试表单预填的 `recamera.1` 或 `recamera`。 |
+| 部署后没有画面或指标 | 同一时间只运行一个摄像头管线。重启相机后重新运行本步骤。 |
+
 ### 部署目标 {#camera_2002 type=remote device_name="reCamera 2002" config=devices/recamera_2002.yaml default=true}
 
 通过 SSH 远程部署到 reCamera 2002 设备。
@@ -63,6 +87,13 @@
 ## 步骤 2：验证视频流与 OSD 状态 {#verify_rehab_2002 type=web_dashboard required=true config=devices/verify_recamera_2002.yaml}
 
 验证摄像头画面推流与康复运动学叠加层。
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|---|---|
+| 页面无法打开 | 访问 `http://<camera-ip>/`（HTTP，不是 HTTPS），并确认步骤 1 已完成。 |
+| 骨骼点或重复次数指标缺失 | 保持全身在画面内且光线充足。 |
 
 ### 部署完成
 
