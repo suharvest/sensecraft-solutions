@@ -417,4 +417,4 @@ docker compose up -d bridge
 
 
 ### 后续步骤
-- [查看完整工程 Wiki 与二次开发指南](https://wiki.seeedstudio.com/cn/solutions/agri-env-monitor/)
+- [查看完整工程 Wiki 与二次开发指南](https://wiki.seeedstudio.com/cn/solutions/agri-env-monitoring/)
