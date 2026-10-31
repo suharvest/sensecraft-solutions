@@ -31,7 +31,7 @@ intro:
       caption_i18n:
         zh: 回放 fixture 数据触发的真实阈值自动化——空气温度过高告警
     - type: image
-      src: gallery/agri-env-refresh-local-20260907.gif
+      src: gallery/agri-env-refresh-local-20260907.webp
       caption: Before/after a fixture replay — cards go from unavailable to populated with live values, showing the bridge-to-Home-Assistant pipeline actually refreshing state
       caption_i18n:
         zh: 回放 fixture 数据前后对比——卡片从"不可用"变为实时数值，展示桥接到 Home Assistant 的真实刷新链路

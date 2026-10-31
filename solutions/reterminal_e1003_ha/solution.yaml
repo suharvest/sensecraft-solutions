@@ -11,7 +11,7 @@ intro:
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
-  cover_image: gallery/e1003-keyless-cover.png
+  cover_image: gallery/e1003-keyless-cover.webp
   category: home_building_automation
   solution_type: solution
   tags: [home-assistant, esphome, epaper, smart-home, touch-panel]

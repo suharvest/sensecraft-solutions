@@ -36,7 +36,7 @@ Deployment status: still d870; no container update or UI publication was perform
 ## Evidence artifacts
 
 - Full-page completed-result screenshots (Kev / rkllm / 8192): [ef82-completed-zh.png](./ef82-completed-zh.png), [ef82-completed-en.png](./ef82-completed-en.png)
-- Two-frame completed-result language-switch GIF, non-realtime: [ef82-completed-zh-en.gif](./ef82-completed-zh-en.gif)
+- Two-frame completed-result language-switch GIF, non-realtime: [ef82-completed-zh-en.webp](./ef82-completed-zh-en.webp)
 - Completed response, result text, and history counts: [ef82-completed-zh-runtime.txt](./ef82-completed-zh-runtime.txt), [ef82-completed-en-runtime.txt](./ef82-completed-en-runtime.txt)
 - Raw request payload: [ef82-request-payload.txt](./ef82-request-payload.txt)
 - Console: [ef82-console-latest.log](./ef82-console-latest.log)
@@ -46,5 +46,5 @@ SHA-256:
 ```text
 ef82-completed-zh.png  fc330da7cbb79a1e219a1199551aa2a3f531e2552210c5c26a382e52a082f16b
 ef82-completed-en.png  9ae42e4d7b0ba2390426f47639482426474531003ac5d272d97cd8d8efdee958
-ef82-completed-zh-en.gif  324c79531ad390f01888756aee950ce830fdda186629cda424da516c124e5696
+ef82-completed-zh-en.webp  324c79531ad390f01888756aee950ce830fdda186629cda424da516c124e5696
 ```

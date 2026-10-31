@@ -4,7 +4,7 @@
 
 ![RK3576 上运行的边缘命令路由](gallery/workbench.jpg)
 
-![命令选择步骤](gallery/demo/command-selection.gif)
+![命令选择步骤](gallery/demo/command-selection.webp)
 
 ## 核心价值
 
