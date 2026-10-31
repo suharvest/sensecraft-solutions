@@ -35,6 +35,12 @@ intro:
         zh: 6 秒双路音频采样与端侧 Whisper 离线转写
   category: voice_ai
   solution_type: technical
+  output_interfaces:
+    - type: http
+      url: https://files.seeedstudio.com/Solution/landpage_asset/respeaker-audio-lab/8d0198b8/index.html
+      description: Browser workbench served from the Seeed CDN. It reads the reSpeaker array over WebUSB and WebAudio and shows waveforms, AEC, DOA and Whisper transcription results in the page.
+      description_i18n:
+        zh: 由 Seeed CDN 提供的浏览器工作台。通过 WebUSB 与 WebAudio 读取 reSpeaker 麦克风阵列，并在页面中显示波形、AEC、DOA 与 Whisper 转写结果。
 
   tags:
     - respeaker
