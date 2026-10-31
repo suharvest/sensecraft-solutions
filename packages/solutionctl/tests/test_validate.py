@@ -882,3 +882,33 @@ def test_anti_console_infrastructure_app_declaring_console_fails(tmp_path, capsy
         "infrastructure step 'update_console' or bundle 'recamera_console.yaml'"
     ) in err
 
+
+def test_validate_rejects_local_gifs(tmp_path, capsys):
+    """Validation fails when a solution contains local .gif files or references them."""
+    base = tmp_path / "gif_solution"
+    _write_solution(
+        base,
+        guide_en=(
+            "## Preset: Default {#default}\n\n"
+            "## Step 1: Dash {#dash type=web_dashboard required=true config=devices/dash.yaml}\n\n"
+            "See animation: ![Demo](gallery/demo.gif)\n"
+        ),
+    )
+    gallery = base / "gallery"
+    gallery.mkdir(exist_ok=True)
+    (gallery / "demo.gif").write_bytes(b"GIF89a...")
+    devices = base / "devices"
+    devices.mkdir(exist_ok=True)
+    (devices / "dash.yaml").write_text(
+        'version: "1.0"\nid: dash\nname: Dash\ntype: web_dashboard\n'
+        'web_dashboard:\n  url: "http://192.168.42.1/"\nuser_inputs: []\n',
+        encoding="utf-8",
+    )
+
+    rc = validate.run(str(base), spec_dir=str(SPEC_DIR))
+    assert rc == 1
+    err = capsys.readouterr().err
+    assert "[no_local_gifs] local .gif file found: gallery/demo.gif" in err
+    assert "GIFs are excluded from desktop packaging" in err
+
+

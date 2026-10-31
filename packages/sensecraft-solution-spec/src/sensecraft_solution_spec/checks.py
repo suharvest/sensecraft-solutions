@@ -20,6 +20,7 @@ this package's own parser are allowed.
 from __future__ import annotations
 
 import json
+import re
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -418,6 +419,102 @@ def check_verification_claims(sol_dir: Path, sol_data: dict) -> list[str]:
     return errors
 
 
+# ---------------------------------------------------------------------------
+# Disallowed local media formats (GIFs excluded from desktop packaging)
+# ---------------------------------------------------------------------------
+
+_MARKDOWN_LOCAL_GIF_RE = re.compile(
+    r"!\[.*?\]\((?!https?://)([^)]+\.gif)\)", re.IGNORECASE
+)
+
+
+def check_no_local_gifs(sol_dir: Path, sol_data: dict) -> list[str]:
+    """Local .gif files are not bundled into the desktop installation package
+    (excluded in tauri.conf.json to keep desktop installer under target size).
+
+    Solutions must not include local .gif files on disk or reference local .gif
+    files in solution.yaml or markdown guides. Animated media must either be
+    uploaded to Seeed FTPS CDN (files.seeedstudio.com) or converted to animated
+    WebP (.webp).
+    """
+    errors: list[str] = []
+
+    # 1. On-disk check for *.gif files in solution directory
+    if sol_dir.is_dir():
+        for gif_path in sorted(sol_dir.rglob("*.gif")):
+            if any(part.startswith(".") for part in gif_path.parts):
+                continue
+            rel = gif_path.relative_to(sol_dir)
+            errors.append(
+                f"local .gif file found: {rel} — GIFs are excluded from desktop packaging "
+                "to prevent bloated installers. Upload to Seeed FTPS CDN (files.seeedstudio.com) "
+                "or convert to animated WebP (.webp)."
+            )
+
+    # 2. Check solution.yaml field references
+    intro = sol_data.get("intro") or {}
+    cover = intro.get("cover_image") or ""
+    if cover and not _is_url(cover) and cover.lower().endswith(".gif"):
+        errors.append(
+            f"cover_image references local .gif: {cover} (will not be bundled in desktop app). "
+            "Upload to CDN or convert to WebP."
+        )
+
+    for i, item in enumerate(intro.get("gallery") or []):
+        if not isinstance(item, dict):
+            continue
+        src = item.get("src") or ""
+        if src and not _is_url(src) and src.lower().endswith(".gif"):
+            errors.append(
+                f"gallery[{i}].src references local .gif: {src} (will not be bundled in desktop app). "
+                "Upload to CDN or convert to WebP."
+            )
+        for lang, path in (item.get("src_i18n") or {}).items():
+            if path and not _is_url(path) and path.lower().endswith(".gif"):
+                errors.append(
+                    f"gallery[{i}].src_i18n[{lang}] references local .gif: {path}. "
+                    "Upload to CDN or convert to WebP."
+                )
+
+    for i, preset in enumerate(intro.get("presets") or []):
+        arch = preset.get("architecture_image") or ""
+        if arch and not _is_url(arch) and arch.lower().endswith(".gif"):
+            errors.append(
+                f"presets[{i}].architecture_image references local .gif: {arch}. "
+                "Upload to CDN or convert to WebP."
+            )
+        for lang, path in (preset.get("architecture_image_i18n") or {}).items():
+            if path and not _is_url(path) and path.lower().endswith(".gif"):
+                errors.append(
+                    f"presets[{i}].architecture_image_i18n[{lang}] references local .gif: {path}. "
+                    "Upload to CDN or convert to WebP."
+                )
+
+    for dev_id, dev in (intro.get("device_catalog") or {}).items():
+        if isinstance(dev, dict):
+            img = dev.get("image") or ""
+            if img and not _is_url(img) and img.lower().endswith(".gif"):
+                errors.append(
+                    f"device_catalog.{dev_id}.image references local .gif: {img}. "
+                    "Upload to CDN or convert to WebP."
+                )
+
+    # 3. Check markdown guides for local .gif references
+    if sol_dir.is_dir():
+        for md_file in sorted(sol_dir.glob("*.md")):
+            try:
+                text = md_file.read_text(encoding="utf-8")
+            except OSError:
+                continue
+            for match in _MARKDOWN_LOCAL_GIF_RE.findall(text):
+                errors.append(
+                    f"markdown image references local .gif: {md_file.name} -> {match}. "
+                    "Upload to Seeed FTPS CDN or convert to .webp."
+                )
+
+    return errors
+
+
 def run_static_checks(sol_dir: Path, sol_data: dict) -> list[str]:
     """Run all engine-free static checks and return a flat list of errors,
     each prefixed with the originating check name.
@@ -441,6 +538,7 @@ def run_static_checks(sol_dir: Path, sol_data: dict) -> list[str]:
     errors.extend(
         f"[device_ref_integrity] {e}" for e in check_device_ref_integrity(sol_data)
     )
+    errors.extend(f"[no_local_gifs] {e}" for e in check_no_local_gifs(sol_dir, sol_data))
     return errors
 
 

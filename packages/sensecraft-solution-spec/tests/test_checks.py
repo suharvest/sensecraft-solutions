@@ -438,5 +438,68 @@ def test_urls_gated_4xx_tolerated(tmp_path, monkeypatch):
         assert checks.check_urls_reachable(sol, data) == [], f"{code} should be tolerated"
 
 
+# ---------------------------------------------------------------------------
+# check_no_local_gifs
+# ---------------------------------------------------------------------------
+
+
+def test_no_local_gifs_good(tmp_path):
+    sol = _make_solution(
+        tmp_path / "s",
+        files={
+            "gallery/cover.webp": "fake webp",
+            "guide.md": "![demo](https://files.seeedstudio.com/demo.gif)",
+        },
+    )
+    data = {
+        "intro": {
+            "cover_image": "gallery/cover.webp",
+            "gallery": [
+                {"src": "https://files.seeedstudio.com/live-demo.gif"},
+                {"src": "gallery/demo.webp"},
+            ],
+        }
+    }
+    assert checks.check_no_local_gifs(sol, data) == []
+
+
+def test_no_local_gifs_bad_disk(tmp_path):
+    sol = _make_solution(
+        tmp_path / "s",
+        files={"gallery/animation.gif": "fake gif"},
+    )
+    data = {"intro": {"cover_image": "gallery/cover.png"}}
+    errs = checks.check_no_local_gifs(sol, data)
+    assert len(errs) == 1
+    assert "local .gif file found: gallery/animation.gif" in errs[0]
+
+
+def test_no_local_gifs_bad_yaml(tmp_path):
+    sol = _make_solution(tmp_path / "s")
+    data = {
+        "intro": {
+            "cover_image": "gallery/cover.gif",
+            "gallery": [{"src": "gallery/demo.gif"}],
+            "presets": [{"architecture_image": "arch.gif"}],
+            "device_catalog": {"d1": {"image": "device.gif"}},
+        }
+    }
+    errs = checks.check_no_local_gifs(sol, data)
+    assert any("cover_image references local .gif" in e for e in errs)
+    assert any("gallery[0].src references local .gif" in e for e in errs)
+    assert any("presets[0].architecture_image references local .gif" in e for e in errs)
+    assert any("device_catalog.d1.image references local .gif" in e for e in errs)
+
+
+def test_no_local_gifs_bad_markdown(tmp_path):
+    sol = _make_solution(
+        tmp_path / "s",
+        files={"guide.md": "See demo:\n\n![Demo](gallery/local-preview.gif)\n"},
+    )
+    data = {"intro": {}}
+    errs = checks.check_no_local_gifs(sol, data)
+    assert any("markdown image references local .gif: guide.md -> gallery/local-preview.gif" in e for e in errs)
+
+
 if __name__ == "__main__":
     raise SystemExit(pytest.main([__file__, "-q"]))

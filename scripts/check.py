@@ -79,6 +79,10 @@ def check_solution_content_lint() -> tuple[int, str]:
     return run_command([sys.executable, "scripts/ci/lint_solution_content.py"])
 
 
+def check_no_local_gifs_lint() -> tuple[int, str]:
+    return run_command([sys.executable, "scripts/ci/lint_no_local_gifs.py"])
+
+
 def check_target_mode_test() -> tuple[int, str]:
     return run_command(["uv", "run", "--with", "pytest", "pytest", "tests/test_target_mode_exclusivity.py", "-q"])
 
@@ -148,6 +152,7 @@ CHECKS = [
     ("product-names-lint", "Lint customer-facing product family names", check_product_names_lint, True, True, False, True),
     ("untested-wording-lint", "Lint customer-facing untested disclaimer patterns", check_untested_wording_lint, True, True, False, True),
     ("solution-content-lint", "Lint 4-part structure, headers and forbidden terms", check_solution_content_lint, True, True, False, True),
+    ("no-local-gifs-lint", "Lint solutions to ensure no local GIFs exist or are referenced", check_no_local_gifs_lint, True, True, False, True),
     ("product-names-test", "Unit tests for product name linting rules", check_product_names_test, False, True, False, True),
     ("untested-wording-test", "Unit tests for untested wording rules", check_untested_wording_test, False, True, False, True),
     ("solution-content-test", "Unit tests for solution content rules", check_solution_content_test, False, True, False, True),
