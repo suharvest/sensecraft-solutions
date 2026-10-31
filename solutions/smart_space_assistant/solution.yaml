@@ -59,6 +59,10 @@ intro:
       description: Edge computing device for local MCP services and workstation apps
       description_i18n:
         zh: 边缘计算设备，用于本地 MCP 服务与工作站应用
+    reterminal_d1001:
+      description: 8" touch HMI voice agent with camera (ESP32-P4)
+      description_i18n:
+        zh: 8 寸触控语音终端，带摄像头
 
   stats:
     deployed_count: 0
@@ -158,6 +162,29 @@ intro:
           name_i18n:
             zh: 语音与视觉终端
             ja: 音声・視覚端末
+      links:
+        github: https://github.com/78/xiaozhi-esp32
+
+    - id: d1001_touch_agent
+      name: reTerminal D1001 Touch Agent
+      name_i18n:
+        zh: 8 寸触控大屏智能体
+      badge: Touch Agent
+      badge_i18n:
+        zh: 触控大屏
+      description: "8-inch touch HMI voice agent powered by ESP32-P4: on-screen touch Wi-Fi configuration, proactive visual greeting via onboard camera, Xiaozhi voice agent cloud integration, and local HTTP notification card push."
+      description_i18n:
+        zh: "基于 ESP32-P4 的 8 寸触控大屏语音智能体：支持屏幕直接触控配网、端侧摄像头主动视觉问候、接入小智语音智能体云平台，以及局域网 HTTP 消息卡片推送。"
+      device_groups:
+        - id: voice_terminal
+          name: Touch Voice Terminal
+          type: single
+          required: true
+          options:
+            - device_ref: reterminal_d1001
+          default: reterminal_d1001
+          name_i18n:
+            zh: 触控语音终端
       links:
         github: https://github.com/78/xiaozhi-esp32
 

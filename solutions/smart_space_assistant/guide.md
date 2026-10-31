@@ -114,3 +114,45 @@ Disconnect USB cable; Watcher runs standalone:
    - "Who do you know?": lists enrolled names.
    - "Can you recognise me?": captures live frame and tests recognition.
    - "Enable familiar mode": mutes greetings for known faces (`mode: 3`); only alerts on strangers.
+
+---
+
+## Preset: reTerminal D1001 Touch Agent {#d1001_touch_agent}
+
+Deploy a desktop voice agent on the reTerminal D1001 equipped with an ESP32-P4 processor and an 8-inch capacitive touch screen. Supports on-screen touch Wi-Fi configuration, proactive visual greeting via the onboard camera, and local HTTP notification card push.
+
+- **Hardware:** reTerminal D1001, USB-C data cable, Type-C power supply (5V/3A recommended).
+- **Network:** 2.4 GHz Wi-Fi.
+- **Account:** [Xiaozhi Console](https://xiaozhi.me) or [SenseCraft AI Platform](https://sensecraft.seeed.cc/ai/) (free registration).
+
+## Step 1: Flash D1001 Firmware {#d1001_flash type=esp32_usb required=true config=devices/d1001_esp32.yaml}
+
+Flash the Xiaozhi voice and edge vision firmware onto the reTerminal D1001.
+
+### Wiring and Flashing
+
+1. Connect the reTerminal D1001 to your computer via USB-C cable.
+2. Select the automatically detected serial port (ESP32-P4 native USB-Serial-JTAG: `/dev/cu.usbmodem*` on macOS, `/dev/ttyACM*` on Linux, USB JTAG/serial port on Windows).
+3. Click the flash button to write the multi-partition firmware.
+
+### Troubleshooting
+
+| Symptom | Solution |
+|---|---|
+| Serial port not found | Ensure you are using a data-capable USB-C cable and direct USB port (avoid hubs) |
+| Flashing interrupted or failed | Unplug and reconnect the USB-C cable, then retry flashing |
+
+---
+
+## Step 2: Touch Network Setup & Device Binding {#d1001_touch_setup type=manual required=true verify=true}
+
+1. **On-Screen Touch Wi-Fi Setup**: After flashing, the device restarts. On initial boot without network configuration, the system automatically displays the Wi-Fi list, or tap the network icon in the top-left corner of the screen to open it. Select your 2.4 GHz Wi-Fi network and enter the password using the on-screen soft keyboard to connect.
+2. **Platform Access & Binding**: Once connected, the screen displays a **6-digit pairing code**. Log in to the [Xiaozhi Console](https://xiaozhi.me) or [SenseCraft AI Platform](https://sensecraft.seeed.cc/ai/), enter the 6-digit verification code under device management to complete binding, and start voice conversations.
+3. **Visual Proactive Greeting & Card Push**:
+   - **Mode 1 Edge Vision Greeting**: While the device is idle, the onboard camera detects human presence locally using the esp-dl face detection model and automatically triggers a proactive voice greeting to start a conversation. A cooldown period is included to avoid repeated interruptions within a short window.
+   - **Local Card Push**: Once the device connects to Wi-Fi, its local IP (e.g. `192.168.x.x`) is displayed in the top-left corner of the screen. Supports pushing cards over port 8080 on the same local network. Minimal verification command:
+     ```bash
+     curl -X POST http://<DEVICE_IP>:8080/panel/markdown \
+       -H "Content-Type: application/json" \
+       -d '{"text":"# Hello, D1001\nConnected to LAN!"}'
+     ```

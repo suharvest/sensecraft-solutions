@@ -126,3 +126,45 @@ Watcher 内部由 ESP32-S3（主控兼语音）和 Himax WE2（视觉 AI NPU）�
    - "你认识谁"：列出当前本地人脸库中录入的所有人员名字。
    - "你能认出我吗"：现场拍一张照提取特征并汇报当前匹配姓名与相似度。
    - "打开熟人模式"：开启免打扰（`mode: 3`），熟人经过不再逐个问候，仅在陌生人出现时发声提醒。
+
+---
+
+## 套餐: 8 寸触控大屏智能体 {#d1001_touch_agent}
+
+使用搭载 ESP32-P4 芯片与 8 寸电容触摸屏的 reTerminal D1001 部署桌面语音智能体。支持屏幕触控配网、端侧摄像头主动视觉唤醒打招呼，以及局域网 HTTP 卡片推送。
+
+- **设备：** reTerminal D1001，USB-C 数据线，Type-C 供电电源（建议 5V/3A）。
+- **网络：** 2.4 GHz WiFi。
+- **账号：** [小智官方控制台](https://xiaozhi.me) 或 [SenseCraft AI 平台](https://sensecraft.seeed.cc/ai/)（免费注册）。
+
+## 步骤 1: 烧录 D1001 固件 {#d1001_flash type=esp32_usb required=true config=devices/d1001_esp32.yaml}
+
+将小智语音与端侧视觉固件写入 reTerminal D1001。
+
+### 接线与烧录
+
+1. 用 USB-C 数据线将 reTerminal D1001 连接到电脑的原生 USB 接口
+2. 串口自动识别（ESP32-P4 原生 USB-Serial-JTAG，macOS 显示为 `/dev/cu.usbmodem*`，Linux 显示为 `/dev/ttyACM*`，Windows 显示为 USB JTAG/serial 端口）
+3. 点击烧录按钮完成固件多分区写入
+
+### 故障排查
+
+| 现象 | 处理 |
+|------|------|
+| 找不到串口 | 换用支持数据传输的 USB-C 数据线，直连电脑 USB 接口（避免使用拓展坞） |
+| 烧录中断或失败 | 拔下 USB-C 数据线，重新插入后再次点击烧录 |
+
+---
+
+## 步骤 2: 触控配网与设备绑定 {#d1001_touch_setup type=manual required=true verify=true}
+
+1. **大屏触控配网**：烧录完成后设备自动重启。首次开机未配网时系统会自动弹出 Wi-Fi 列表，或可点击屏幕左上角网络图标进入；选择 2.4 GHz Wi-Fi 后，在屏幕软键盘输入密码连接。
+2. **平台接入与绑定**：配网成功后，屏幕上显示专属的 **6 位设备绑定码**。登录[小智官方控制台](https://xiaozhi.me)或 [SenseCraft AI 平台](https://sensecraft.seeed.cc/ai/)，在设备管理中输入屏幕上显示的 6 位验证码完成绑定，即可开始语音对话。
+3. **视觉主动问候与卡片推送**：
+   - **Mode 1 端侧视觉主动打招呼**：在设备空闲状态下，板载摄像头通过本地 esp-dl 人脸检测模型感知有人出现，自动触发语音主动打招呼；具备冷却时间防止短时间内重复打扰。
+   - **局域网卡片推送**：设备连接 Wi-Fi 后，屏幕左上角可查看局域网 IP（例如 `192.168.x.x`）。支持在同局域网下通过 8080 端口推送卡片，最小可执行验证命令：
+     ```bash
+     curl -X POST http://<设备IP>:8080/panel/markdown \
+       -H "Content-Type: application/json" \
+       -d '{"text":"# 你好，D1001\n已连接到局域网！"}'
+     ```
