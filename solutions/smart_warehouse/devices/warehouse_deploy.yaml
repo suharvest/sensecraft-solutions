@@ -36,6 +36,55 @@ docker:
       health_check_endpoint: /health
       required: true
 
+runtime_interface:
+  protocols:
+    - http
+    - mcp
+  interfaces:
+    - protocol: http
+      port: 2125
+      endpoint: /api
+      openapi_path: /openapi.json
+      health_check: /health
+      description: 仓储管理系统 REST API 与 Web 交互控制台
+    - protocol: mcp
+      port: 2125
+      endpoint: /mcp
+      transport: streamable_http
+      description: Watcher 与语音终端出入库、盘点及库存交互 MCP 接入点
+  controls:
+    - key: INIT_MOCK_DATA
+      label: 初始化模拟数据
+      type: boolean
+      default: false
+      scope: environment
+      description: 是否在首次启动时加载演示用模拟商品与出入库记录
+    - key: FACE_WE2_SIMULATOR_ENABLED
+      label: 人脸识别模拟器
+      type: boolean
+      default: false
+      scope: environment
+      description: 是否启用 WE2 人脸识别模拟器
+    - key: ENABLE_SECURITY_HEADERS
+      label: 安全响应头
+      type: boolean
+      default: true
+      scope: environment
+      description: 启用 HTTP 安全标头保护
+    - key: CORS_ORIGINS
+      label: 跨域来源
+      type: string
+      default: "*"
+      scope: environment
+      description: 允许跨域调用的域名白名单
+    - key: LOW_STOCK_THRESHOLD
+      label: 低库存预警阈值
+      type: number
+      default: 10
+      scope: config
+      description: 库存数量低于该数值时自动触发预警
+
+
 ssh:
   port: 22
   default_user: recomputer

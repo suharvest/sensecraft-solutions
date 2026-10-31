@@ -22,7 +22,7 @@ Container endpoint: direct browser session; no Playwright route replacement and 
 
 - [Kev ZH completed PNG](./03-kev-zh-completed.png)
 - [Kev EN completed PNG](./04-kev-en-completed.png)
-- [Non-realtime ZH→EN GIF](./kev-zh-en-container-review.gif)
+- [Non-realtime ZH→EN GIF](./kev-zh-en-container-review.webp)
 - [Initial snapshot](./01-initial.yaml)
 - [Ready snapshot](./02-ready.yaml)
 - [Kev ZH completed snapshot](./03-kev-zh-completed.yaml)
@@ -43,5 +43,5 @@ SHA-256:
 ```text
 03-kev-zh-completed.png  f675a07a7a3fc629229728579cd66e3211e2c8788709ded9be77446dd6b9067d
 04-kev-en-completed.png  c2e3120949777aaa8bf024b41bcf42c090920d33a610eb71dd1035df1ad6534e
-kev-zh-en-container-review.gif  6591ac8f4224873f6a980e78c47211710101b0baf3503eeb623e57e634905108
+kev-zh-en-container-review.webp  6591ac8f4224873f6a980e78c47211710101b0baf3503eeb623e57e634905108
 ```

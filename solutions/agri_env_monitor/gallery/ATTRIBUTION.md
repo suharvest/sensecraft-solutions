@@ -119,7 +119,7 @@ recovered`) real entities to render.
   value documented in the 2026-09-05 smoke run's manual boundary test) is
   above the 35 °C threshold configured in `automations.yaml`. This is a real
   automation trigger, not a staged notification.
-- `agri-env-refresh-local-20260907.gif` — two frames captured via
+- `agri-env-refresh-local-20260907.webp` — two frames captured via
   `claude-in-chrome`'s `gif_creator`: before frame shows all five 总览 cards
   as "不可用" (bridge's `BRIDGE_UNAVAILABLE_AFTER=60` watchdog had marked the
   fixture devices offline since the previous replay), after frame — taken

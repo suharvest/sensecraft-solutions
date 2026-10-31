@@ -677,15 +677,15 @@ faq:
       metrics, with RTSP video and OSD for direct hospital dashboard and EMR integration.
     ja: 可能です。標準 WebSocket JSON で骨格データと指標を出力し、RTSP 映像と OSD 焼き込みにも対応しているため、既存の電子カルテや管理画面に直接接続できます。
 cover_image_i18n:
-  zh: gallery/cover-zh.png
-  en: gallery/cover.png
-  ja: gallery/cover.png
+  zh: gallery/cover-zh.webp
+  en: gallery/cover.webp
+  ja: gallery/cover.webp
 gallery:
   zh:
   - caption: reCamera Pro 实机运行效果——33 关键点全身骨架拓扑、关节活动度实时度量与达标计数
-    image: gallery/cover-zh.png
+    image: gallery/cover-zh.webp
   - caption: 深蹲康复动作实时评测——膝关节屈曲与内扣代偿变红防抖告警
-    image: gallery/live-demo-zh.gif
+    image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/rehab_posture_analysis/live-demo-zh-734bccc4.gif
   - caption: 端侧系统架构——一体化智能相机直出 WebSocket 图元与 RTSP 视频流，零视频外泄
     image: diagrams/architecture-zh.png
   - caption: reCamera Pro 硬件与临床机位安装（正面 2.0-3.5 米全覆盖）
@@ -695,10 +695,10 @@ gallery:
   en:
   - caption: reCamera Pro live running view — 33-keypoint full-body skeleton, real-time
       ROM angle and repetition counter
-    image: gallery/cover.png
+    image: gallery/cover.webp
   - caption: Real-time squat rehab evaluation — knee flexion ROM and valgus compensation
       alert
-    image: gallery/live-demo.gif
+    image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/rehab_posture_analysis/live-demo-abdc6cbb.gif
   - caption: Edge system architecture — smart camera outputs WebSocket primitives
       and RTSP video with zero leakage
     image: diagrams/architecture-en.png
@@ -708,9 +708,9 @@ gallery:
     image: gallery/recamera-2002-hardware.png
   ja:
   - caption: reCamera Pro 実行画面 —— 33 点骨格トポロジー、関節可動域リアルタイム計測と達成カウント
-    image: gallery/cover.png
+    image: gallery/cover.webp
   - caption: スクワット動作のリアルタイム評価 —— 膝屈曲 ROM と外反代償の赤色アラート
-    image: gallery/live-demo.gif
+    image: https://files.seeedstudio.com/ReferenceDesign/landpage_asset/rehab_posture_analysis/live-demo-abdc6cbb.gif
   - caption: エッジシステム構成 —— スマートカメラから WebSocket 図元と RTSP 映像を直接出力
     image: diagrams/architecture-ja.png
   - caption: reCamera Pro ハードウェアと現場カメラ設置（正面 2.0〜3.5m 視野）

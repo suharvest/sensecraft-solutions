@@ -4,7 +4,7 @@ Edge Command Router gives a local browser a small, focused interface for choosin
 
 ![Edge Command Router running on RK3576](gallery/workbench.jpg)
 
-![Command selection steps](gallery/demo/command-selection.gif)
+![Command selection steps](gallery/demo/command-selection.webp)
 
 ## Core value
 

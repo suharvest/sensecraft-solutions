@@ -18,7 +18,7 @@ The completed-result screenshots and the two-frame language GIF show captured UI
 - [English review record](./interaction-review-ef82-20261011/REVIEW_EN.md)
 - [Completed ZH result](./interaction-review-ef82-20261011/ef82-completed-zh.png)
 - [Completed EN result](./interaction-review-ef82-20261011/ef82-completed-en.png)
-- [Completed ZH → EN montage](./interaction-review-ef82-20261011/ef82-completed-zh-en.gif)
+- [Completed ZH → EN montage](./interaction-review-ef82-20261011/ef82-completed-zh-en.webp)
 
 ## Direct browser ef82 QA review · 2026-10-11
 
@@ -29,7 +29,7 @@ This section records a fresh direct-browser re-test against the QA container at 
 - [Direct browser evidence](./interaction-review-ef82-20261011/direct-browser/REVIEW.md)
 - [Direct Kev ZH completed result](./interaction-review-ef82-20261011/direct-browser/03-kev-zh-completed.png)
 - [Direct Kev EN completed result](./interaction-review-ef82-20261011/direct-browser/04-kev-en-completed.png)
-- [Direct ZH → EN non-realtime montage](./interaction-review-ef82-20261011/direct-browser/kev-zh-en-container-review.gif)
+- [Direct ZH → EN non-realtime montage](./interaction-review-ef82-20261011/direct-browser/kev-zh-en-container-review.webp)
 
 Public copies of the browser review records use RFC 5737 documentation addresses in place of private Fleet addresses. The raw private originals and their SHA-256 manifest are retained outside the repository for authorized review; the public copies are sanitized and are not byte-identical to those originals.
 
