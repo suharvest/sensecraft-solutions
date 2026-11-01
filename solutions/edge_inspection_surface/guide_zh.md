@@ -287,4 +287,4 @@ reComputer R2000 拉取摄像头的 RTSP 流，在 Hailo-8 上做缺陷检测，
 
 
 ### 后续步骤
-- [查看完整工程 Wiki 与二次开发指南](https://wiki.seeedstudio.com/cn/solutions/edge-inspection-surface/)
+- [查看完整工程 Wiki 与二次开发指南](https://wiki.seeedstudio.com/cn/solutions/edge-surface-defect-inspection/)

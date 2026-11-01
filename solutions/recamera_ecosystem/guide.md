@@ -34,6 +34,14 @@ Install console version 0.5.6. Existing 0.5.6 installations will be skipped auto
 
 Select the desired application from the dropdown and deploy it to the camera.
 
+### Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| Camera is not reachable | Over USB use `192.168.42.1`; otherwise use the IP shown by your router. reCamera Pro answers on HTTPS port 443. |
+| Login rejected | reCamera (SG2002): `recamera` / `recamera` (`recamera.2` on earlier firmware). reCamera Pro: the web console account, default user `admin`. |
+| App does not start after deployment | Check the app status on the console Apps page (SG2002) or in App Center (Pro); deploy again if files are missing. |
+
 ### Mode: reCamera (SG2002) {#recamera_sg2002 config=devices/recamera_console_app.yaml default=true}
 
 Select **Object Detection (yolo-detector)** or **Weather Classification (weather-classifier)** from the dropdown and click **Deploy**.
@@ -86,6 +94,13 @@ The object detection app is activated and running on reCamera Pro.
 ## Step 3: Open the Console {#open_console type=web_dashboard required=false config=devices/console_dashboard.yaml}
 
 Open the camera web console to inspect real-time inference and detections.
+
+### Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| Page does not open | SG2002 console: `http://<camera-ip>/`. reCamera Pro: the HTTPS control panel on port 443, where a self-signed certificate warning is expected. |
+| Live video is black or does not load | No app is active. Return to Step 2 and deploy or activate an app. |
 
 ### Mode: reCamera (SG2002) {#recamera_sg2002 config=devices/console_dashboard.yaml default=true}
 
@@ -184,6 +199,13 @@ Deploy to a remote host (e.g. reComputer) on the local network.
 ## Step 5: View Results in Home Assistant (Optional) {#ha_dashboard type=web_dashboard required=false config=devices/ha_dashboard.yaml}
 
 Inspect camera live stream and detection entities on the Home Assistant dashboard.
+
+### Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| Detection entities are missing or unavailable | The camera and Home Assistant must use the same MQTT broker from Step 4 (port 1883), and the app must be running on the camera. |
+| Video is missing in the card | SG2002 uses the console video in a glance card. On reCamera Pro, enable RTSP in Stream Settings and add the URL as a Generic Camera with TCP transport. |
 
 ### Mode: reCamera (SG2002) {#recamera_sg2002 config=devices/ha_dashboard.yaml default=true}
 
@@ -271,6 +293,14 @@ Install console version 0.5.6. Existing 0.5.6 installations will be skipped auto
 
 Select the desired human behavior application from the dropdown and deploy it to the camera.
 
+### Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| Camera is not reachable | Over USB use `192.168.42.1`; otherwise use the IP shown by your router. reCamera Pro answers on HTTPS port 443. |
+| Login rejected | reCamera (SG2002): `recamera` / `recamera` (`recamera.2` on earlier firmware). reCamera Pro: the web console account, default user `admin`. |
+| App does not start after deployment | Check the app status on the console Apps page (SG2002) or in App Center (Pro); deploy again if files are missing. |
+
 ### Mode: reCamera (SG2002) {#recamera_sg2002 config=devices/recamera_console_app.yaml default=true}
 
 Select **Face Analysis (face-analysis)**, **Fall Detection (fall-detection)**, **Drowsiness Detection (facemesh-reader)**, or **Fitness Trainer (fitness-trainer)** from the dropdown and click **Deploy**.
@@ -323,6 +353,13 @@ The fall detection application is activated and running on reCamera Pro.
 ## Step 3: Open the Console {#open_console type=web_dashboard required=false config=devices/console_dashboard.yaml}
 
 Open the camera web console to inspect real-time inference and detections.
+
+### Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| Page does not open | SG2002 console: `http://<camera-ip>/`. reCamera Pro: the HTTPS control panel on port 443, where a self-signed certificate warning is expected. |
+| Live video is black or does not load | No app is active. Return to Step 2 and deploy or activate an app. |
 
 ### Mode: reCamera (SG2002) {#recamera_sg2002 config=devices/console_dashboard.yaml default=true}
 
@@ -421,6 +458,13 @@ Deploy to a remote host (e.g. reComputer) on the local network.
 ## Step 5: View Results in Home Assistant (Optional) {#ha_dashboard type=web_dashboard required=false config=devices/ha_dashboard.yaml}
 
 Inspect camera live stream and detection entities on the Home Assistant dashboard.
+
+### Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| Detection entities are missing or unavailable | The camera and Home Assistant must use the same MQTT broker from Step 4 (port 1883), and the app must be running on the camera. |
+| Video is missing in the card | SG2002 uses the console video in a glance card. On reCamera Pro, enable RTSP in Stream Settings and add the URL as a Generic Camera with TCP transport. |
 
 ### Mode: reCamera (SG2002) {#recamera_sg2002 config=devices/ha_dashboard.yaml default=true}
 
@@ -508,6 +552,14 @@ Install console version 0.5.6. Existing 0.5.6 installations will be skipped auto
 
 Select the desired text or code reading application from the dropdown and deploy it to the camera.
 
+### Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| Camera is not reachable | Over USB use `192.168.42.1`; otherwise use the IP shown by your router. reCamera Pro answers on HTTPS port 443. |
+| Login rejected | reCamera (SG2002): `recamera` / `recamera` (`recamera.2` on earlier firmware). reCamera Pro: the web console account, default user `admin`. |
+| App does not start after deployment | Check the app status on the console Apps page (SG2002) or in App Center (Pro); deploy again if files are missing. |
+
 ### Mode: reCamera (SG2002) {#recamera_sg2002 config=devices/recamera_console_app.yaml default=true}
 
 Select **OCR Text Reader (ppocr-reader)** or **QR Code Reader (qrcode-reader)** from the dropdown and click **Deploy**.
@@ -560,6 +612,13 @@ The text recognition application is activated and running on reCamera Pro.
 ## Step 3: Open the Console {#open_console type=web_dashboard required=false config=devices/console_dashboard.yaml}
 
 Open the camera web console to inspect real-time inference and detections.
+
+### Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| Page does not open | SG2002 console: `http://<camera-ip>/`. reCamera Pro: the HTTPS control panel on port 443, where a self-signed certificate warning is expected. |
+| Live video is black or does not load | No app is active. Return to Step 2 and deploy or activate an app. |
 
 ### Mode: reCamera (SG2002) {#recamera_sg2002 config=devices/console_dashboard.yaml default=true}
 
@@ -658,6 +717,13 @@ Deploy to a remote host (e.g. reComputer) on the local network.
 ## Step 5: View Results in Home Assistant (Optional) {#ha_dashboard type=web_dashboard required=false config=devices/ha_dashboard.yaml}
 
 Inspect camera live stream and detection entities on the Home Assistant dashboard.
+
+### Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| Detection entities are missing or unavailable | The camera and Home Assistant must use the same MQTT broker from Step 4 (port 1883), and the app must be running on the camera. |
+| Video is missing in the card | SG2002 uses the console video in a glance card. On reCamera Pro, enable RTSP in Stream Settings and add the URL as a Generic Camera with TCP transport. |
 
 ### Mode: reCamera (SG2002) {#recamera_sg2002 config=devices/ha_dashboard.yaml default=true}
 
@@ -745,6 +811,14 @@ Install console version 0.5.6. Existing 0.5.6 installations will be skipped auto
 
 Select the desired passenger analytics application from the dropdown and deploy it to the camera.
 
+### Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| Camera is not reachable | Over USB use `192.168.42.1`; otherwise use the IP shown by your router. reCamera Pro answers on HTTPS port 443. |
+| Login rejected | reCamera (SG2002): `recamera` / `recamera` (`recamera.2` on earlier firmware). reCamera Pro: the web console account, default user `admin`. |
+| App does not start after deployment | Check the app status on the console Apps page (SG2002) or in App Center (Pro); deploy again if files are missing. |
+
 ### Mode: reCamera (SG2002) {#recamera_sg2002 config=devices/recamera_console_app.yaml default=true}
 
 Select **Retail People Counting (retail-vision)** from the dropdown and click **Deploy**.
@@ -797,6 +871,13 @@ The retail analytics application is activated and running on reCamera Pro.
 ## Step 3: Open the Console {#open_console type=web_dashboard required=false config=devices/console_dashboard.yaml}
 
 Open the camera web console to inspect real-time inference and detections.
+
+### Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| Page does not open | SG2002 console: `http://<camera-ip>/`. reCamera Pro: the HTTPS control panel on port 443, where a self-signed certificate warning is expected. |
+| Live video is black or does not load | No app is active. Return to Step 2 and deploy or activate an app. |
 
 ### Mode: reCamera (SG2002) {#recamera_sg2002 config=devices/console_dashboard.yaml default=true}
 
@@ -895,6 +976,13 @@ Deploy to a remote host (e.g. reComputer) on the local network.
 ## Step 5: View Results in Home Assistant (Optional) {#ha_dashboard type=web_dashboard required=false config=devices/ha_dashboard.yaml}
 
 Inspect camera live stream and detection entities on the Home Assistant dashboard.
+
+### Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| Detection entities are missing or unavailable | The camera and Home Assistant must use the same MQTT broker from Step 4 (port 1883), and the app must be running on the camera. |
+| Video is missing in the card | SG2002 uses the console video in a glance card. On reCamera Pro, enable RTSP in Stream Settings and add the URL as a Generic Camera with TCP transport. |
 
 ### Mode: reCamera (SG2002) {#recamera_sg2002 config=devices/ha_dashboard.yaml default=true}
 

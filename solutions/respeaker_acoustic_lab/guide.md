@@ -10,13 +10,13 @@ This solution provides a driverless acoustic tuning environment for the reSpeake
 
 Connect directly to hardware via WebUSB and WebAudio interfaces without installing native Python drivers or configuring host compilation tools.
 
-### Prerequisites & Wiring
+### Prerequisites
 
 1. Connect your reSpeaker microphone array (reSpeaker Lite or reSpeaker XVF3800) to your computer using a USB Type-C data cable.
 2. Open the workbench using Google Chrome or Microsoft Edge (Chromium browsers with WebUSB support).
 3. On macOS, ensure browser microphone permissions are enabled in System Settings; on Linux, configure appropriate udev rules if permissions fail.
 
-### Step-by-Step Tuning Workflow
+### Wiring
 
 1. **Connect USB Controller**: Click "Connect Device" at the top right, pick your reSpeaker device from the browser popup dialog, and pair.
 2. **Authorize Microphone Stream**: Click "Start Capture" and allow microphone permissions to begin streaming real-time audio waveforms and dBFS meters.
@@ -26,8 +26,6 @@ Connect directly to hardware via WebUSB and WebAudio interfaces without installi
    - **Direction of Arrival (DOA)**: Observe 360-degree sound source tracking and multi-channel microphone mappings;
    - **Record & Transcribe**: Record short audio clips and run on-device Whisper WASM transcription to verify recognition clarity.
 
-### Target {#audio_lab_target type=local device_name="Local Browser" config=devices/online_audio_lab.yaml}
-
 ### Troubleshooting
 
 | Symptom | Action |
@@ -35,3 +33,5 @@ Connect directly to hardware via WebUSB and WebAudio interfaces without installi
 | Device not shown in connection popup | Verify USB cable supports data transfer; try another USB port |
 | No waveform or audio signal | Check browser address bar permissions to ensure microphone access is allowed |
 | Transcription does not start | Initial run downloads a lightweight WASM model (~40MB); ensure network connectivity |
+
+### Target {#audio_lab_target type=local device_name="Local Browser" config=devices/online_audio_lab.yaml}

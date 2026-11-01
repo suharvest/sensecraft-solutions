@@ -57,6 +57,13 @@ Home Assistant 中添加 ONVIF 集成，填入摄像头 IP、端口 `8000` 与�
 
 在本地或远程 Docker 主机上部署 Home Assistant。如果该主机 8123 端口已运行 Home Assistant，本步骤将自动检测并跳过。
 
+### 故障排查
+
+| 问题 | 解决方法 |
+|---|---|
+| 8123 端口上已有 Home Assistant | 本步骤会检测到已运行的实例并跳过安装，直接进入下一步。 |
+| 在 macOS 或 Windows 上本地安装失败 | 容器使用主机网络模式，Docker Desktop 不提供该模式。请选择远程部署目标（Raspberry Pi、reComputer 等 Linux 主机），或使用已有的 Home Assistant。 |
+
 ### 部署目标 {#ha_local type=local config=devices/ha_host.yaml default=true}
 
 在本地机器上部署 Home Assistant。
@@ -76,3 +83,10 @@ Home Assistant 中添加 ONVIF 集成，填入摄像头 IP、端口 `8000` 与�
 - reCamera 已运行步骤 1 的 ONVIF 服务。
 - Home Assistant 正常运行且网络可达。
 - Home Assistant 管理员用户名与密码。
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|---|---|
+| Home Assistant 登录失败 | 请使用 Home Assistant 管理员账号，并确认本机能访问该实例。 |
+| ONVIF 摄像头未被添加 | 确认步骤 1 的 ONVIF 服务已运行（端口 8000），摄像头账号为 `admin` / `recamera.1`；否则在 Home Assistant 中手动添加 ONVIF 集成。 |

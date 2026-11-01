@@ -50,6 +50,7 @@ actions:
       name_i18n:
         zh: 清理旧版本选区运动检测包
       run: |
+        set -e
         if [ -x /etc/init.d/K92recamera-motion ]; then
           /etc/init.d/K92recamera-motion stop 2>/dev/null || true
         fi

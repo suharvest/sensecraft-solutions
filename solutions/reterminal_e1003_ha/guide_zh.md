@@ -61,6 +61,13 @@
 
 > **宿主平台限制**：Home Assistant 容器依赖 Linux 原生 host 网络（`network_mode: host`）实现 mDNS 与局域网设备自动发现。**本地安装仅支持 Linux 宿主环境**。在 macOS 或 Windows 环境下，Docker Desktop 无法提供原生 host 网络，请**取消勾选本步骤以跳过**，或选择 `ha_remote` 部署到局域网内的独立 Linux 主机（如树莓派、reComputer），也可直接复用局域网中已有的 Home Assistant 实例。
 
+### 故障排查
+
+| 问题 | 解决方法 |
+|---|---|
+| 8123 端口上已有 Home Assistant | 本步骤会检测到已运行的实例并跳过安装，直接进入下一步。 |
+| 在 macOS 或 Windows 上本地安装失败 | 容器使用主机网络模式，Docker Desktop 不提供该模式。请选择远程部署目标（Raspberry Pi、reComputer 等 Linux 主机），或使用已有的 Home Assistant。 |
+
 ### 部署目标 {#ha_local type=local config=devices/ha_host.yaml}
 
 在本地 Linux 机器上部署 Home Assistant（仅支持 Linux host 网络，macOS/Windows 环境请跳过）。
@@ -80,3 +87,10 @@
 - E1003 已开机并接入局域网 Wi-Fi。
 - Home Assistant 正常运行且网络可达。
 - Home Assistant 管理员用户名与密码。
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|---|---|
+| Home Assistant 登录失败 | 请使用 Home Assistant 管理员账号，并确认本机能访问该实例。 |
+| 找不到 E1003 面板 | 面板需已开机并连接到同一局域网的 2.4 GHz Wi-Fi。否则在 Home Assistant 中手动添加 ESPHome 集成并填写面板 IP（Native API 无需密钥）。 |

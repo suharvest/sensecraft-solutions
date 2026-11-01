@@ -109,6 +109,8 @@ actions:
   after:
     - name: Wait for the dashboard to come up
       ignore_error: true
+      # Polling loop: grep/docker failures are expected until the container is up.
+      fail_fast: false
       timeout: 300
       run: |
         echo "Watching the dashboard log for the MQTT connection ..."
@@ -204,6 +206,8 @@ remote_overrides:
     after:
       - name: Wait for the dashboard to come up
         ignore_error: true
+        # Polling loop: grep/docker failures are expected until the container is up.
+        fail_fast: false
         timeout: 300
         run: |
           echo "Watching the dashboard log for the MQTT connection ..."

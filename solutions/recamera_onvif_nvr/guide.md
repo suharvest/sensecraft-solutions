@@ -57,6 +57,13 @@ For Home Assistant, add an ONVIF integration and enter the camera IP, port `8000
 
 Deploy a Home Assistant instance on your local or remote Docker host. If Home Assistant is already running on port 8123, this step automatically detects it and skips.
 
+### Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| Home Assistant is already running on port 8123 | The step detects the running instance and skips installation; continue to the next step. |
+| Local install fails on macOS or Windows | The container uses host networking, which Docker Desktop does not provide. Select the remote target (a Linux host such as a Raspberry Pi or reComputer) or reuse an existing Home Assistant. |
+
 ### Target {#ha_local type=local config=devices/ha_host.yaml default=true}
 
 Deploy Home Assistant on the local machine.
@@ -76,3 +83,10 @@ Automatically add the reCamera ONVIF video and motion stream to Home Assistant u
 - reCamera running the ONVIF service from Step 1.
 - Home Assistant instance running and reachable.
 - Home Assistant administrator username and password.
+
+### Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| Home Assistant login fails | Use a Home Assistant administrator account and confirm the instance is reachable from this computer. |
+| ONVIF camera is not added | Confirm the ONVIF service from Step 1 is running (port 8000) and the camera uses `admin` / `recamera.1`; otherwise add the ONVIF integration manually in Home Assistant. |

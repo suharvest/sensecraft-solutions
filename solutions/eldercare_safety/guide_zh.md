@@ -37,8 +37,6 @@
 - **MQTT 为可选配置**：留空则仅在设备自带 Web 页面展示结果；填写 broker 地址后可将结构化跌倒与求救告警推送到 Home Assistant 或自建报警网关。
 - 登录凭据为设备的 **Web 控制台凭据**（出厂默认用户名 `admin`，密码 `admin`）。
 
-### 部署目标 {#recamera_pro_device type=remote device_name="reCamera Pro" config=devices/recamera_pro_eldercare.yaml}
-
 ### 故障排查
 
 | 现象 | 排查措施 |
@@ -47,9 +45,18 @@
 | 提示签名验证失败 | 确认应用包签名有效，设备出厂已内置对应 Release 验证公钥 |
 | 应用启动后无数据 | 登录设备 Web 控制台查看 App 运行日志，确认摄像头未被其他后台进程占用 |
 
+### 部署目标 {#recamera_pro_device type=remote device_name="reCamera Pro" config=devices/recamera_pro_eldercare.yaml}
+
 ## 步骤 3: 查看居家看护控制台 {#verify_eldercare type=web_dashboard required=false config=devices/verify_eldercare.yaml}
 
 在浏览器中打开设备控制台，验证跌倒骨架姿态渲染与离线语音识别效果。
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|---|---|
+| 页面无法打开 | 访问 `https://<device-ip>/` 并使用 Web 控制台账号登录。接受自签名证书警告。 |
+| MQTT 收不到告警 | 步骤 2 中 MQTT 为可选项；若 broker 地址留空，告警只显示在设备页面。否则请检查 broker 地址与端口（默认 1883）。 |
 
 ### 部署完成
 

@@ -61,6 +61,13 @@ Deploy a Home Assistant instance on your local or remote Docker host. If Home As
 
 > **Platform Constraint**: The Home Assistant container relies on native host networking (`network_mode: host`) for mDNS and LAN device discovery. **Local installation is supported on Linux hosts only**. On macOS or Windows environments, Docker Desktop cannot provide native host networking: please **uncheck this step to skip it**, or select `ha_remote` to deploy to an independent Linux host (such as a Raspberry Pi or reComputer), or reuse an existing Home Assistant instance on your network.
 
+### Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| Home Assistant is already running on port 8123 | The step detects the running instance and skips installation; continue to the next step. |
+| Local install fails on macOS or Windows | The container uses host networking, which Docker Desktop does not provide. Select the remote target (a Linux host such as a Raspberry Pi or reComputer) or reuse an existing Home Assistant. |
+
 ### Target {#ha_local type=local config=devices/ha_host.yaml}
 
 Deploy Home Assistant on a local Linux machine using host network mode (Linux host only; skip on macOS/Windows).
@@ -80,3 +87,10 @@ Automatically add the E1003 ESPHome panel to Home Assistant using the native con
 - E1003 powered on and connected to your Wi-Fi network.
 - Home Assistant instance running and reachable.
 - Home Assistant administrator username and password.
+
+### Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| Home Assistant login fails | Use a Home Assistant administrator account and confirm the instance is reachable from this computer. |
+| E1003 panel is not found | The panel must be powered on and joined to a 2.4 GHz Wi-Fi network on the same LAN. Otherwise add the ESPHome integration manually in Home Assistant with the panel IP (Native API needs no key). |

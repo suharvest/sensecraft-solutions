@@ -60,8 +60,6 @@ intro:
   stats:
     difficulty: beginner
     estimated_time: 5min
-  links:
-    github: https://github.com/yyling0101-a11y/reCamera_2002w_sdk
 deployment:
   guide_file: guide.md
   guide_file_i18n:

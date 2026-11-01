@@ -7,7 +7,7 @@ name_i18n:
 type: web_dashboard
 
 web_dashboard:
-  url: https://sensecraft.seeed.cc/ai
+  url: https://sensecraft.seeed.cc/ai/
   title: SenseCraft AI Studio
   title_i18n:
     zh: SenseCraft AI 工作台

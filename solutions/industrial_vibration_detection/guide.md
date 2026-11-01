@@ -13,7 +13,7 @@ Out-of-the-box Meshtastic experience: T1000-E comes pre-flashed with Meshtastic 
 
 The device comes pre-loaded with Meshtastic firmware; no PC connection or flashing is required. Pair directly from the mobile app upon unboxing.
 
-### Instructions
+### Wiring
 
 1. **Power On**: Press and hold the front button on T1000-E for 3 seconds. The buzzer will beep and the LED will alternate blue and green, indicating the device is powered on and advertising over Bluetooth;
 2. **Download App**: Search for and install the official **Meshtastic** app from the Apple App Store or Google Play / APKPure;
@@ -36,7 +36,7 @@ The device comes pre-loaded with Meshtastic firmware; no PC connection or flashi
 
 Verify ad-hoc packet delivery and node topology with all external connectivity disabled.
 
-### Verification Prerequisites & Instructions
+### Wiring
 
 - **Dual-Node Loop (Recommended)**: If a second Meshtastic node (or a teammate phone paired to a compatible node) is available, verify that both units share the same region and default channel. Confirm incoming text appears on the receiving phone screen in real time.
 - **Single-Node Baseline**: If testing with a single unit, verify proper RF transmission via the on-air checkmark status, node beacon broadcasts, and offline GPS positioning.
@@ -46,6 +46,14 @@ Verify ad-hoc packet delivery and node topology with all external connectivity d
 3. **Confirm Delivery**: A cloud or checkmark icon next to the message confirms the packet was broadcast over the air via the T1000-E LoRa radio; peer nodes (if present) will receive and display it;
 4. **Inspect Node List (Nodes)**: Tap **Nodes** in the navigation bar to inspect neighboring mesh nodes, signal-to-noise ratio (SNR), received signal strength (RSSI), and hop counts;
 5. **Off-Grid Map (Map)**: Tap **Map** to view self and peer node locations on the offline map once GPS lock is achieved outdoors.
+
+### Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| Message shows no delivery checkmark | Both nodes need the same region (Settings -> LoRa) and the same default channel. Check the region is set on the T1000-E. |
+| Node list shows no neighbours | Neighbours appear only when a second node is within radio range; with a single node, verify the beacon and the on-air checkmark instead. |
+| Map shows no position | GPS lock needs a clear view of the sky; test outdoors. |
 
 ### Deployment Complete
 
@@ -69,11 +77,18 @@ Add edge intelligence to mesh communication: mount T1000-E firmly onto rotating 
 
 If your T1000-E has not yet been loaded with vibration anomaly detection (VAD) algorithms, connect with the magnetic USB cable to flash; skip if already installed.
 
-### Instructions
+### Wiring
 
 1. Attach magnetic cable to pins on back of T1000-E and plug into PC USB port;
 2. Select **Meshtastic Off-Grid Broadcast** below (default recommended) and click **Deploy**;
 3. Device reboots automatically upon completion and enters calibration-ready mode.
+
+### Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| Device is not detected over USB | Seat the magnetic cable on the pins on the back of the T1000-E and use a data cable; charge-only cables expose no serial port. |
+| Flashing does not start or is interrupted | Reconnect the cable, select **Meshtastic Off-Grid Broadcast** again and click **Deploy**. This step is optional if the firmware is already installed. |
 
 ---
 
@@ -88,13 +103,20 @@ Vibration anomaly detection relies on rigid mechanical contact and true acoustic
 3. **Mounting Position**: Select a flat radial load surface on the motor, pump, or fan bearing housing free from grease and dirt;
 4. **Orientation**: Press device firmly against the metal surface; connect magnetic cable to maintain power for calibration.
 
+### Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| Alarms trigger on normal operation or never trigger | Soft foam or sponge tape damps high-frequency vibration. Use 3M VHB 4910 or a magnetic base on a clean, grease-free flat surface. |
+| Device was moved after calibration | The baseline is learned at the mounted position; repeat Step 3 after changing the mounting position. |
+
 ---
 
 ## Step 3: Online Baseline Calibration on SenseCraft AI {#vibration_calibration type=web_dashboard required=true config=devices/vibration_calibrator.yaml}
 
 With the device mounted, start the machinery and train the baseline model under steady, healthy operating conditions.
 
-### Instructions
+### Wiring
 
 1. Start the monitored machinery and verify it is running in a steady, healthy operational state;
 2. Click **Open Dashboard** below to open SenseCraft AI Studio in your browser;
@@ -103,18 +125,33 @@ With the device mounted, start the machinery and train the baseline model under 
 5. Upon calibration, model parameters are written back to internal non-volatile memory;
 6. **Critical Step**: Click **Disconnect** in the web studio to release the serial port, then disconnect the magnetic cable to enter autonomous monitoring.
 
+### Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| T1000-E serial port is not listed after clicking Connect | Use a Chromium-based browser, connect the magnetic cable and grant the serial permission when prompted. |
+| Learning does not start | Start the machinery first and wait until the 3-axis waveform is stable, then click **Start Learning / Train Baseline**. |
+| Device cannot be reconnected later or does not enter monitoring | Click **Disconnect** in the web studio before unplugging the magnetic cable so the serial port is released. |
+
 ---
 
 ## Step 4: Verify Off-Grid Alarm Broadcast {#verify_vibration_alert type=manual required=true verify=true}
 
 Verify the off-grid alert propagation loop after unplugging the cable.
 
-### Instructions
+### Wiring
 
 1. **Enter Inspection State**: After removing the cable, T1000-E enters low-power periodic vibration monitoring;
 2. **Simulate Anomaly**: Induce a minor impact or eccentric vibration on the machinery (or lightly tap near the bearing housing);
 3. **Emit Alert**: When the edge model detects deviation exceeding the calibrated baseline, it wakes the radio and encapsulates a vibration alert packet into the Meshtastic mesh;
 4. **Mobile Verification**: On-site maintenance personnel open the Meshtastic app to receive the instant alert notification, device ID, and GPS coordinates.
+
+### Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| No alert reaches the phone | Confirm Step 3 finished, the cable is removed, and the phone is connected to a node on the same region and channel as in the first preset. |
+| Impact does not trigger an alert | The alert fires only when vibration deviates from the calibrated baseline; use a stronger impact or eccentric load, or repeat Step 3. |
 
 ### Deployment Complete
 

@@ -61,7 +61,7 @@ intro:
       description: Real-time fight/harassment state-change events and tracked crayfish coordinates.
       description_i18n:
         zh: 实时打斗/骚扰状态变更事件与跟踪螯虾坐标。
-    - type: ws
+    - type: websocket
       port: 8124
       path: /ws
       description: Event trigger stream with cropped interaction ROI screenshots and metadata.

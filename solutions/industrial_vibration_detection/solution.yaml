@@ -25,6 +25,12 @@ intro:
         zh: 实时机械异常振动报警
   category: industrial_control_automation
   solution_type: technical
+  output_interfaces:
+    - type: serial
+      endpoint: Meshtastic USB serial API (magnetic cable)
+      description: Vibration alerts are broadcast as Meshtastic mesh messages with device ID and GPS position. They are read in the Meshtastic app over Bluetooth, or through the device's USB serial API.
+      description_i18n:
+        zh: 振动告警以 Meshtastic 自组网消息广播，包含设备 ID 与 GPS 位置；可在 Meshtastic App 中通过蓝牙读取，或通过设备的 USB 串口 API 读取。
 
   tags:
     - t1000-e

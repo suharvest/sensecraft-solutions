@@ -287,4 +287,4 @@ Optional. Runs EfficientAD-S on the CPU (`accelerator: "cpu"`; this model has no
 
 
 ### Next Steps
-- [Engineering Wiki](https://wiki.seeedstudio.com/solutions/edge-inspection-surface/)
+- [Engineering Wiki](https://wiki.seeedstudio.com/solutions/edge-surface-defect-inspection/)
