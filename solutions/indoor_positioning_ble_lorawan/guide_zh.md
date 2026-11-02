@@ -125,7 +125,27 @@
 
 ---
 
-## 步骤 4: 配置并激活追踪器 {#tracker type=manual required=true}
+## 步骤 4: 烧录 T1000-E LoRaWAN 上报固件（可选） {#flash_tracker type=nrf52_usb required=false config=devices/t1000e_tracker.yaml}
+
+若你使用的是 SenseCAP 卡片追踪器 T1000-E，且当前刷有 Meshtastic 或其他非 LoRaWAN 固件，可在此一键烧录官方 LoRaWAN 上报固件，使其能够通过 LoRaWAN 周期性上报蓝牙信标扫描结果与 GNSS 经纬度。若设备已预装 LoRaWAN 固件（或使用的是出厂即为 LoRaWAN 固件的 T1000-A/B），可直接跳过此步骤。
+
+### 接线
+
+1. 将专用磁吸数据线吸附在 T1000-E 背面的金属触点上，另一端 USB-A 插入电脑；
+2. 点击 **部署烧录 (Deploy)**；
+3. 等待烧录进度完成，设备将自动重启并以 LoRaWAN 追踪器模式运行。
+
+### 故障排查
+
+| 现象 | 处理 |
+|---|---|
+| 电脑未识别到 USB 串口 | 请务必使用支持数据传输的 4 针磁吸线（非仅充电线），并检查背面触点是否贴合清洁且弹针接触良好。 |
+| 烧录中断或提示超时 | 重新拔插磁吸线，关闭可能占用串口的终端或其它上位机软件后，再次点击部署烧录重试。 |
+| 已是 LoRaWAN 固件 | 若设备此前已能在 SenseCraft App 中通过 LoRaWAN 正常入网，可直接跳过此可选步骤。 |
+
+---
+
+## 步骤 5: 配置并激活追踪器 {#tracker type=manual required=true}
 
 配置追踪器，确认室内和室外两种定位数据都能上报。
 
@@ -152,7 +172,7 @@
 
 ---
 
-## 步骤 5: 平面图配准 {#georeference type=manual required=true verify=true config=devices/georeference_floorplan.yaml}
+## 步骤 6: 平面图配准 {#georeference type=manual required=true verify=true config=devices/georeference_floorplan.yaml}
 
 把平面图对齐到室外地图，让室内外轨迹显示在同一个视图。不需要室内外同屏时可以跳过。
 
@@ -194,7 +214,7 @@
 
 ---
 
-## 步骤 6: 配置地理围栏告警 {#geofence type=manual required=true verify=true config=devices/geofence_setup.yaml}
+## 步骤 7: 配置地理围栏告警 {#geofence type=manual required=true verify=true config=devices/geofence_setup.yaml}
 
 在室外地图上画一个围栏，设备进出时告警。围栏里不需要放信标。
 
@@ -231,7 +251,7 @@
 
 ---
 
-## 步骤 7: 打开定位面板 {#dashboard type=web_dashboard required=true config=devices/dashboard.yaml}
+## 步骤 8: 打开定位面板 {#dashboard type=web_dashboard required=true config=devices/dashboard.yaml}
 
 定位面板已就绪。点击下方在浏览器中打开。
 
@@ -385,7 +405,27 @@
 
 ---
 
-## 步骤 4: 配置并激活追踪器 {#tracker_standard type=manual required=true}
+## 步骤 4: 烧录 T1000-E LoRaWAN 上报固件（可选） {#flash_tracker_standard type=nrf52_usb required=false config=devices/t1000e_tracker.yaml}
+
+若你使用的是 SenseCAP 卡片追踪器 T1000-E，且当前刷有 Meshtastic 或其他非 LoRaWAN 固件，可在此一键烧录官方 LoRaWAN 上报固件，使其能够通过 LoRaWAN 周期性上报蓝牙信标扫描结果与 GNSS 经纬度。若设备已预装 LoRaWAN 固件（或使用的是出厂即为 LoRaWAN 固件的 T1000-A/B），可直接跳过此步骤。
+
+### 接线
+
+1. 将专用磁吸数据线吸附在 T1000-E 背面的金属触点上，另一端 USB-A 插入电脑；
+2. 点击 **部署烧录 (Deploy)**；
+3. 等待烧录进度完成，设备将自动重启并以 LoRaWAN 追踪器模式运行。
+
+### 故障排查
+
+| 现象 | 处理 |
+|---|---|
+| 电脑未识别到 USB 串口 | 请务必使用支持数据传输的 4 针磁吸线（非仅充电线），并检查背面触点是否贴合清洁且弹针接触良好。 |
+| 烧录中断或提示超时 | 重新拔插磁吸线，关闭可能占用串口的终端或其它上位机软件后，再次点击部署烧录重试。 |
+| 已是 LoRaWAN 固件 | 若设备此前已能在 SenseCraft App 中通过 LoRaWAN 正常入网，可直接跳过此可选步骤。 |
+
+---
+
+## 步骤 5: 配置并激活追踪器 {#tracker_standard type=manual required=true}
 
 配置追踪器，确认室内和室外两种定位数据都能上报。
 
@@ -412,7 +452,7 @@
 
 ---
 
-## 步骤 5: 平面图配准 {#georeference_standard type=manual required=true verify=true config=devices/georeference_floorplan.yaml}
+## 步骤 6: 平面图配准 {#georeference_standard type=manual required=true verify=true config=devices/georeference_floorplan.yaml}
 
 把平面图对齐到室外地图，让室内外轨迹显示在同一个视图。不需要室内外同屏时可以跳过。
 
@@ -454,7 +494,7 @@
 
 ---
 
-## 步骤 6: 配置地理围栏告警 {#geofence_standard type=manual required=true verify=true config=devices/geofence_setup.yaml}
+## 步骤 7: 配置地理围栏告警 {#geofence_standard type=manual required=true verify=true config=devices/geofence_setup.yaml}
 
 在室外地图上画一个围栏，设备进出时告警。围栏里不需要放信标。
 
@@ -491,7 +531,7 @@
 
 ---
 
-## 步骤 7: 打开定位面板 {#dashboard_standard type=web_dashboard required=true config=devices/dashboard.yaml}
+## 步骤 8: 打开定位面板 {#dashboard_standard type=web_dashboard required=true config=devices/dashboard.yaml}
 
 定位面板已就绪。点击下方在浏览器中打开。
 
@@ -645,7 +685,27 @@
 
 ---
 
-## 步骤 4: 配置并激活追踪器 {#tracker_enterprise type=manual required=true}
+## 步骤 4: 烧录 T1000-E LoRaWAN 上报固件（可选） {#flash_tracker_enterprise type=nrf52_usb required=false config=devices/t1000e_tracker.yaml}
+
+若你使用的是 SenseCAP 卡片追踪器 T1000-E，且当前刷有 Meshtastic 或其他非 LoRaWAN 固件，可在此一键烧录官方 LoRaWAN 上报固件，使其能够通过 LoRaWAN 周期性上报蓝牙信标扫描结果与 GNSS 经纬度。若设备已预装 LoRaWAN 固件（或使用的是出厂即为 LoRaWAN 固件的 T1000-A/B），可直接跳过此步骤。
+
+### 接线
+
+1. 将专用磁吸数据线吸附在 T1000-E 背面的金属触点上，另一端 USB-A 插入电脑；
+2. 点击 **部署烧录 (Deploy)**；
+3. 等待烧录进度完成，设备将自动重启并以 LoRaWAN 追踪器模式运行。
+
+### 故障排查
+
+| 现象 | 处理 |
+|---|---|
+| 电脑未识别到 USB 串口 | 请务必使用支持数据传输的 4 针磁吸线（非仅充电线），并检查背面触点是否贴合清洁且弹针接触良好。 |
+| 烧录中断或提示超时 | 重新拔插磁吸线，关闭可能占用串口的终端或其它上位机软件后，再次点击部署烧录重试。 |
+| 已是 LoRaWAN 固件 | 若设备此前已能在 SenseCraft App 中通过 LoRaWAN 正常入网，可直接跳过此可选步骤。 |
+
+---
+
+## 步骤 5: 配置并激活追踪器 {#tracker_enterprise type=manual required=true}
 
 配置追踪器，确认室内和室外两种定位数据都能上报。
 
@@ -672,7 +732,7 @@
 
 ---
 
-## 步骤 5: 平面图配准 {#georeference_enterprise type=manual required=true verify=true config=devices/georeference_floorplan.yaml}
+## 步骤 6: 平面图配准 {#georeference_enterprise type=manual required=true verify=true config=devices/georeference_floorplan.yaml}
 
 把平面图对齐到室外地图，让室内外轨迹显示在同一个视图。不需要室内外同屏时可以跳过。
 
@@ -714,7 +774,7 @@
 
 ---
 
-## 步骤 6: 配置地理围栏告警 {#geofence_enterprise type=manual required=true verify=true config=devices/geofence_setup.yaml}
+## 步骤 7: 配置地理围栏告警 {#geofence_enterprise type=manual required=true verify=true config=devices/geofence_setup.yaml}
 
 在室外地图上画一个围栏，设备进出时告警。围栏里不需要放信标。
 
@@ -751,7 +811,7 @@
 
 ---
 
-## 步骤 7: 打开定位面板 {#dashboard_enterprise type=web_dashboard required=true config=devices/dashboard.yaml}
+## 步骤 8: 打开定位面板 {#dashboard_enterprise type=web_dashboard required=true config=devices/dashboard.yaml}
 
 定位面板已就绪。点击下方在浏览器中打开。
 

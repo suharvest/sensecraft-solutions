@@ -86,6 +86,10 @@ intro:
       description: LoRaWAN tracker with BLE scanning, GNSS, motion detection, SOS button
       description_i18n:
         zh: LoRaWAN 追踪器：BLE、GNSS、运动检测、SOS
+    sensecap_t1000e:
+      description: Ultra-thin card tracker with BLE scanning, GNSS, and LoRaWAN / Meshtastic reporting
+      description_i18n:
+        zh: 超薄卡片追踪器：BLE 扫描、GNSS、支持 LoRaWAN / Meshtastic 上报
     external_bc03_beacon:
       name: SenseCAP BC03 Indoor Bluetooth Beacon
       image: https://media-cdn.seeedstudio.com/media/catalog/product/cache/961a49e1875f8c1f40e5990d74e68365/1/-/1-bc03-bluetooth-beacon.jpg

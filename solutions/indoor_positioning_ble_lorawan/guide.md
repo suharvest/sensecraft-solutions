@@ -125,7 +125,27 @@ Deploy the positioning application to a remote server via SSH.
 
 ---
 
-## Step 4: Configure and Activate Tracker {#tracker type=manual required=true}
+## Step 4: Flash LoRaWAN Firmware for T1000-E (Optional) {#flash_tracker type=nrf52_usb required=false config=devices/t1000e_tracker.yaml}
+
+If you are using a SenseCAP Card Tracker T1000-E and it is currently running Meshtastic or other non-LoRaWAN firmware, flash the official LoRaWAN tracking firmware so it can report BLE scans and GNSS positions over LoRaWAN. If your device already runs LoRaWAN firmware (or you are using a factory T1000-A/B tracker), skip this step.
+
+### Wiring
+
+1. Attach the magnetic USB charging/data cable to the pins on the back of the T1000-E, and plug the USB-A end into your computer;
+2. Click **Deploy** to start flashing;
+3. Wait for the flashing progress to reach 100%. The device will automatically reboot with the LoRaWAN tracker firmware.
+
+### Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| Device not detected over USB | Ensure you are using a 4-pin data magnetic cable (not charge-only), and check that the pogo pins make good contact with the gold pads on the back of the T1000-E. |
+| DFU flashing fails or times out | Disconnect and reconnect the magnetic cable, ensure no other software (such as serial terminals) is holding the COM/tty port, and click Deploy again. |
+| Already running LoRaWAN firmware | If the device already connects to LoRaWAN gateways via the SenseCraft App, you can skip this optional step. |
+
+---
+
+## Step 5: Configure and Activate Tracker {#tracker type=manual required=true}
 
 Set up the tracker and confirm both indoor and outdoor positions are reported.
 
@@ -152,7 +172,7 @@ Set up the tracker and confirm both indoor and outdoor positions are reported.
 
 ---
 
-## Step 5: Georeference the Floor Plan {#georeference type=manual required=true verify=true config=devices/georeference_floorplan.yaml}
+## Step 6: Georeference the Floor Plan {#georeference type=manual required=true verify=true config=devices/georeference_floorplan.yaml}
 
 Align the floor plan with the outdoor map so indoor and outdoor trails show in one view. Skip it if you do not need the two together.
 
@@ -194,7 +214,7 @@ Reload the browser, re-enter registration mode and select the same plan: the fou
 
 ---
 
-## Step 6: Set Up a Geofence Alarm {#geofence type=manual required=true verify=true config=devices/geofence_setup.yaml}
+## Step 7: Set Up a Geofence Alarm {#geofence type=manual required=true verify=true config=devices/geofence_setup.yaml}
 
 Draw a fence on the outdoor map and alarm when a tracker enters or leaves it. No beacon is needed inside the fence.
 
@@ -231,7 +251,7 @@ One enter alarm and one exit alarm appear, and loitering on the boundary produce
 
 ---
 
-## Step 7: Open Dashboard {#dashboard type=web_dashboard required=true config=devices/dashboard.yaml}
+## Step 8: Open Dashboard {#dashboard type=web_dashboard required=true config=devices/dashboard.yaml}
 
 The positioning dashboard is live. Click below to open it in your browser.
 
@@ -387,7 +407,27 @@ Deploy the positioning application to a remote server via SSH.
 
 ---
 
-## Step 4: Configure and Activate Tracker {#tracker_standard type=manual required=true}
+## Step 4: Flash LoRaWAN Firmware for T1000-E (Optional) {#flash_tracker_standard type=nrf52_usb required=false config=devices/t1000e_tracker.yaml}
+
+If you are using a SenseCAP Card Tracker T1000-E and it is currently running Meshtastic or other non-LoRaWAN firmware, flash the official LoRaWAN tracking firmware so it can report BLE scans and GNSS positions over LoRaWAN. If your device already runs LoRaWAN firmware (or you are using a factory T1000-A/B tracker), skip this step.
+
+### Wiring
+
+1. Attach the magnetic USB charging/data cable to the pins on the back of the T1000-E, and plug the USB-A end into your computer;
+2. Click **Deploy** to start flashing;
+3. Wait for the flashing progress to reach 100%. The device will automatically reboot with the LoRaWAN tracker firmware.
+
+### Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| Device not detected over USB | Ensure you are using a 4-pin data magnetic cable (not charge-only), and check that the pogo pins make good contact with the gold pads on the back of the T1000-E. |
+| DFU flashing fails or times out | Disconnect and reconnect the magnetic cable, ensure no other software (such as serial terminals) is holding the COM/tty port, and click Deploy again. |
+| Already running LoRaWAN firmware | If the device already connects to LoRaWAN gateways via the SenseCraft App, you can skip this optional step. |
+
+---
+
+## Step 5: Configure and Activate Tracker {#tracker_standard type=manual required=true}
 
 Set up the tracker and confirm both indoor and outdoor positions are reported.
 
@@ -414,7 +454,7 @@ Set up the tracker and confirm both indoor and outdoor positions are reported.
 
 ---
 
-## Step 5: Georeference the Floor Plan {#georeference_standard type=manual required=true verify=true config=devices/georeference_floorplan.yaml}
+## Step 6: Georeference the Floor Plan {#georeference_standard type=manual required=true verify=true config=devices/georeference_floorplan.yaml}
 
 Align the floor plan with the outdoor map so indoor and outdoor trails show in one view. Skip it if you do not need the two together.
 
@@ -456,7 +496,7 @@ Reload the browser, re-enter registration mode and select the same plan: the fou
 
 ---
 
-## Step 6: Set Up a Geofence Alarm {#geofence_standard type=manual required=true verify=true config=devices/geofence_setup.yaml}
+## Step 7: Set Up a Geofence Alarm {#geofence_standard type=manual required=true verify=true config=devices/geofence_setup.yaml}
 
 Draw a fence on the outdoor map and alarm when a tracker enters or leaves it. No beacon is needed inside the fence.
 
@@ -493,7 +533,7 @@ One enter alarm and one exit alarm appear, and loitering on the boundary produce
 
 ---
 
-## Step 7: Open Dashboard {#dashboard_standard type=web_dashboard required=true config=devices/dashboard.yaml}
+## Step 8: Open Dashboard {#dashboard_standard type=web_dashboard required=true config=devices/dashboard.yaml}
 
 The positioning dashboard is live. Click below to open it in your browser.
 
@@ -648,7 +688,27 @@ Deploy the positioning application to a remote server via SSH.
 
 ---
 
-## Step 4: Configure and Activate Tracker {#tracker_enterprise type=manual required=true}
+## Step 4: Flash LoRaWAN Firmware for T1000-E (Optional) {#flash_tracker_enterprise type=nrf52_usb required=false config=devices/t1000e_tracker.yaml}
+
+If you are using a SenseCAP Card Tracker T1000-E and it is currently running Meshtastic or other non-LoRaWAN firmware, flash the official LoRaWAN tracking firmware so it can report BLE scans and GNSS positions over LoRaWAN. If your device already runs LoRaWAN firmware (or you are using a factory T1000-A/B tracker), skip this step.
+
+### Wiring
+
+1. Attach the magnetic USB charging/data cable to the pins on the back of the T1000-E, and plug the USB-A end into your computer;
+2. Click **Deploy** to start flashing;
+3. Wait for the flashing progress to reach 100%. The device will automatically reboot with the LoRaWAN tracker firmware.
+
+### Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| Device not detected over USB | Ensure you are using a 4-pin data magnetic cable (not charge-only), and check that the pogo pins make good contact with the gold pads on the back of the T1000-E. |
+| DFU flashing fails or times out | Disconnect and reconnect the magnetic cable, ensure no other software (such as serial terminals) is holding the COM/tty port, and click Deploy again. |
+| Already running LoRaWAN firmware | If the device already connects to LoRaWAN gateways via the SenseCraft App, you can skip this optional step. |
+
+---
+
+## Step 5: Configure and Activate Tracker {#tracker_enterprise type=manual required=true}
 
 Set up the tracker and confirm both indoor and outdoor positions are reported.
 
@@ -675,7 +735,7 @@ Set up the tracker and confirm both indoor and outdoor positions are reported.
 
 ---
 
-## Step 5: Georeference the Floor Plan {#georeference_enterprise type=manual required=true verify=true config=devices/georeference_floorplan.yaml}
+## Step 6: Georeference the Floor Plan {#georeference_enterprise type=manual required=true verify=true config=devices/georeference_floorplan.yaml}
 
 Align the floor plan with the outdoor map so indoor and outdoor trails show in one view. Skip it if you do not need the two together.
 
@@ -717,7 +777,7 @@ Reload the browser, re-enter registration mode and select the same plan: the fou
 
 ---
 
-## Step 6: Set Up a Geofence Alarm {#geofence_enterprise type=manual required=true verify=true config=devices/geofence_setup.yaml}
+## Step 7: Set Up a Geofence Alarm {#geofence_enterprise type=manual required=true verify=true config=devices/geofence_setup.yaml}
 
 Draw a fence on the outdoor map and alarm when a tracker enters or leaves it. No beacon is needed inside the fence.
 
@@ -754,7 +814,7 @@ One enter alarm and one exit alarm appear, and loitering on the boundary produce
 
 ---
 
-## Step 7: Open Dashboard {#dashboard_enterprise type=web_dashboard required=true config=devices/dashboard.yaml}
+## Step 8: Open Dashboard {#dashboard_enterprise type=web_dashboard required=true config=devices/dashboard.yaml}
 
 The positioning dashboard is live. Click below to open it in your browser.
 

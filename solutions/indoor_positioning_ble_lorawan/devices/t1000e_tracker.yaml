@@ -1,0 +1,17 @@
+version: "1.0"
+id: t1000e_tracker
+name: SenseCAP Card Tracker T1000-E
+name_i18n:
+  zh: SenseCAP 卡片追踪器 T1000-E
+
+type: nrf52_usb
+
+detection:
+  method: usb_serial
+  usb_vendor_id: "0x2886"
+  usb_product_id: "0x0057"
+
+firmware:
+  protocol: adafruit_dfu
+  source:
+    path: https://sensecraft-statics.seeed.cc/solution-app/indoor_positioning_ble_lorawan/assets/firmware/t1000e_lorawan.zip
