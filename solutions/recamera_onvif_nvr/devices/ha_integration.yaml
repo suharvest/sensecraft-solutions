@@ -6,18 +6,18 @@ name_i18n:
 type: ha_integration
 
 ha_integration:
-  domain: onvif
-  restart: false
-  config_flow_data:
-    - name: host
-      value_from: camera_host
-    - name: port
-      value: "8000"
-      type: int
-    - name: username
-      value_from: onvif_username
-    - name: password
-      value_from: onvif_password
+  entries:
+    - domain: onvif
+      data:
+        - name: host
+          value_from: camera_host
+        - name: port
+          value: "8000"
+          type: int
+        - name: username
+          value_from: onvif_username
+        - name: password
+          value_from: onvif_password
 
 user_inputs:
   - id: ha_host

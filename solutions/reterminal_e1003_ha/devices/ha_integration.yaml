@@ -6,16 +6,17 @@ name_i18n:
 type: ha_integration
 
 ha_integration:
-  domain: esphome
-  restart: false
-  config_flow_data:
-    - name: host
-      value_from: e1003_ip
-    - name: port
-      value: "6053"
-      type: int
-    - name: noise_psk
-      value: ""
+  entries:
+    - domain: esphome
+      data:
+        - name: host
+          value_from: e1003_ip
+        - name: port
+          value: "6053"
+          type: int
+        - name: noise_psk
+          value: ""
+          omit_if_empty: true
 
 user_inputs:
   - id: ha_host
