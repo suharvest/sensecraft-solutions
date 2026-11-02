@@ -1,0 +1,30 @@
+version: "1.0"
+id: customize_ha_dashboard
+name: Customize Home Assistant Weather Dashboard
+name_i18n:
+  zh: "定制 Home Assistant 气象看板"
+type: manual
+required: false
+
+steps:
+  - id: copy_prompt
+    name: Copy the AI Agent Prompt and dispatch to your assistant
+    name_i18n:
+      zh: "复制 AI Agent 定制 Prompt 并发送给 AI 助手"
+    description: >-
+      Copy the provided AI Agent Prompt template from the guide and dispatch it to your AI coding assistant (Claude, ChatGPT, or Home Assistant Copilot) along with your desired dashboard styling preferences.
+    description_i18n:
+      zh: >-
+        复制使用指南中提供的完整 AI Agent 提示词模板，并将其发送给你的 AI 助手（如 Claude、ChatGPT 或 Home Assistant Copilot），附上你喜好的看板风格与定制诉求。
+    optional: false
+
+  - id: apply_lovelace_yaml
+    name: Add card and apply Lovelace YAML in Home Assistant
+    name_i18n:
+      zh: "在 Home Assistant 仪表盘中添加卡片并应用 YAML 代码"
+    description: >-
+      In your Home Assistant dashboard, enter Edit Dashboard mode, click "Add Card", choose "Manual" (YAML card), paste the generated Lovelace YAML configuration, and click Save.
+    description_i18n:
+      zh: >-
+        进入 Home Assistant 仪表盘的“编辑仪表盘”模式，点击“添加卡片”，选择“手动”（YAML 模式），粘贴生成的 Lovelace YAML 配置代码并点击保存。
+    optional: false

@@ -1,0 +1,53 @@
+version: "1.0"
+id: wio_weather_station
+name: Wio Terminal Weather Station & Home Assistant Gateway
+name_i18n:
+  zh: "Wio Terminal 气象站与 Home Assistant 传感器网关"
+intro:
+  summary: "Compact self-contained environmental monitoring station and optional Home Assistant IoT gateway powered by Wio Terminal and Grove sensors. Operates standalone with an on-device dark-mode dashboard (4 joystick-switched pages), onboard ambient light and sound sensors, and Grove I2C/digital expansion slots with customizable refresh rates, with optional Home Assistant MQTT telemetry."
+  summary_i18n:
+    zh: "基于 Wio Terminal 与 Grove 传感器的自包含桌面环境监控站及可选 Home Assistant 物联网网关。脱网亦可凭借 2.4 寸 LCD 现代暗色仪表盘（五向摇杆 4 屏平滑切换）、板载声光传感与 Grove 接口独立运行；支持自定义刷新率与传感器扩展插槽，并可按需接入 Wi-Fi 与 Home Assistant MQTT 自动发现。"
+  description_file: description.md
+  description_file_i18n:
+    zh: description_zh.md
+  category: environment
+  solution_type: solution
+  tags:
+    - wio-terminal
+    - grove
+    - weather-station
+    - home-assistant
+    - mqtt
+    - iot
+    - standalone
+  output_interfaces:
+    - type: serial
+      endpoint: "USB CDC"
+      description: "Serial telemetry and debugging"
+      description_i18n:
+        zh: "USB CDC 串口遥测与调试"
+    - type: network
+      description: "MQTT telemetry via Wi-Fi (optional)"
+      description_i18n:
+        zh: "基于 Wi-Fi 的 MQTT 遥测（可选）"
+  input_requirements:
+    - type: network
+      required: false
+      description: "2.4 GHz Wi-Fi and reachable Home Assistant MQTT Broker (optional, required only for Home Assistant integration)"
+      description_i18n:
+        zh: "2.4 GHz Wi-Fi 网络及可达的 Home Assistant MQTT Broker（可选，仅接入 Home Assistant 时需要）"
+  presets:
+    - id: default
+      name: "Wio Weather Station Deployment"
+      name_i18n:
+        zh: "Wio Terminal 气象站一键部署"
+      description: "Deploy weather station firmware to Wio Terminal for standalone desktop monitoring with optional Home Assistant MQTT telemetry and dashboard integration"
+      description_i18n:
+        zh: "将气象站固件烧录至 Wio Terminal，实现自包含桌面环境监控，并支持按需接入 Home Assistant MQTT 遥测与定制仪表盘"
+      verified:
+        - hardware
+deployment:
+  guide_file: guide.md
+  guide_file_i18n:
+    zh: guide_zh.md
+  selection_mode: sequential

@@ -1,0 +1,18 @@
+version: "1.0"
+id: verify_ha
+name: Verify in Home Assistant Dashboard
+name_i18n:
+  zh: "在 Home Assistant 看板中验证数据"
+type: web_dashboard
+required: false
+verify: true
+web_dashboard:
+  inherit_host_from: ha_setup
+  url: "http://{{ha_host}}:{{ha_port}}/wio-weather"
+  url_template: "http://{{ha_host}}:{{ha_port}}/wio-weather"
+  title: "Home Assistant Dashboard"
+  title_i18n:
+    zh: "Home Assistant 仪表盘"
+  description: "Open the Home Assistant web interface to verify automatic MQTT discovery and sensor telemetry."
+  description_i18n:
+    zh: "打开 Home Assistant 网页端，验证 MQTT 自动发现及各传感器实时遥测数据。"

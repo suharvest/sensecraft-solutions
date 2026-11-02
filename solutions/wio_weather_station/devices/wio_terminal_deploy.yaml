@@ -1,0 +1,62 @@
+version: "1.0"
+id: flash_firmware
+name: Flash Wio Weather Firmware
+name_i18n:
+  zh: "烧录 Wio Terminal 气象站固件"
+type: wio_terminal_usb
+firmware:
+  source:
+    path: assets/firmware/wio_weather_station.bin
+  flash_config:
+    offset: "0x4000"
+    verify_cdc: true
+    timeout: 60
+user_inputs:
+  - id: wifi_ssid
+    type: text
+    required: true
+    name: "Wi-Fi SSID"
+    name_i18n:
+      zh: "Wi-Fi 名称"
+    description: "2.4 GHz Wi-Fi network SSID for Wio Terminal."
+    description_i18n:
+      zh: "Wio Terminal 连接的 2.4 GHz Wi-Fi 网络名称。"
+  - id: wifi_password
+    type: password
+    required: true
+    name: "Wi-Fi Password"
+    name_i18n:
+      zh: "Wi-Fi 密码"
+    description: "Password for the Wi-Fi network."
+    description_i18n:
+      zh: "Wi-Fi 网络的连接密码。"
+  - id: mqtt_broker
+    type: text
+    required: true
+    default: "192.168.31.1"
+    name: "MQTT Broker IP"
+    name_i18n:
+      zh: "Home Assistant / MQTT Broker IP 地址"
+    description: "IP address of your Home Assistant instance or MQTT broker."
+    description_i18n:
+      zh: "Home Assistant 实例或 MQTT Broker 的 IP 地址。"
+  - id: mqtt_port
+    type: number
+    required: false
+    default: "1883"
+    name: "MQTT Port"
+    name_i18n:
+      zh: "MQTT 端口"
+    description: "MQTT Broker port number (default: 1883)."
+    description_i18n:
+      zh: "MQTT Broker 端口号（默认：1883）。"
+  - id: port
+    type: serial_port
+    required: true
+    auto_detect: true
+    name: "Serial Port"
+    name_i18n:
+      zh: "串口设备"
+    description: "Serial port of the connected Wio Terminal (USB CDC)."
+    description_i18n:
+      zh: "已连接的 Wio Terminal 串口设备（USB CDC）。"

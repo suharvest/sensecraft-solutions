@@ -1,0 +1,201 @@
+version: "1.0"
+id: ha_setup
+name: Configure Home Assistant & Dashboard
+name_i18n:
+  zh: "配置 Home Assistant 智能网关与气象看板"
+type: ha_integration
+required: false
+
+ha_integration:
+  target_device:
+    device_id: "wio-weather"
+
+  addons:
+    - slug: "core_mosquitto"
+      optional: true
+
+  entries:
+    - id: "mqtt"
+      domain: "mqtt"
+      data:
+        - name: "broker"
+          value_from: "mqtt_broker"
+        - name: "port"
+          value_from: "mqtt_port"
+          type: "int"
+        - name: "username"
+          value_from: "mqtt_username"
+          omit_if_empty: true
+        - name: "password"
+          value_from: "mqtt_password"
+          omit_if_empty: true
+
+  automations:
+    - id: "wio_weather_high_temp"
+      alias: "High Temperature Warning"
+      alias_i18n:
+        zh: "高温告警通知"
+      trigger:
+        - platform: "numeric_state"
+          entity_id: "{{entities.temperature}}"
+          above: 35
+      action:
+        - service: "persistent_notification.create"
+          data:
+            title: "High Temperature Warning"
+            message: "Ambient temperature exceeded 35°C (Current: {{ states('{{entities.temperature}}') }}°C)"
+
+  dashboards:
+    - url_path: "wio-weather"
+      title: "Wio Weather Station"
+      title_i18n:
+        zh: "Wio Terminal 气象站"
+      icon: "mdi:weather-partly-cloudy"
+      views:
+        - title: "Overview"
+          path: "overview"
+          cards:
+            - type: "horizontal-stack"
+              cards:
+                - type: "gauge"
+                  entity: "{{entities.temperature}}"
+                  name: "Temperature"
+                  min: -10
+                  max: 50
+                  needle: true
+                  severity:
+                    green: 18
+                    yellow: 26
+                    red: 32
+                - type: "gauge"
+                  entity: "{{entities.humidity}}"
+                  name: "Humidity"
+                  min: 0
+                  max: 100
+                  needle: true
+                  severity:
+                    red: 20
+                    green: 40
+                    yellow: 70
+            - type: "horizontal-stack"
+              cards:
+                - type: "gauge"
+                  entity: "{{entities.pressure}}"
+                  name: "Barometric Pressure"
+                  min: 900
+                  max: 1100
+                  needle: true
+                - type: "gauge"
+                  entity: "{{entities.ambient_noise}}"
+                  name: "Ambient Noise"
+                  min: 30
+                  max: 100
+                  needle: true
+                  severity:
+                    green: 30
+                    yellow: 55
+                    red: 70
+            - type: "entities"
+              title: "Lighting & Connectivity"
+              show_header_toggle: false
+              entities:
+                - entity: "{{entities.illuminance}}"
+                  name: "Ambient Illuminance"
+                  icon: "mdi:white-balance-sunny"
+                - entity: "{{entities.wifi_rssi}}"
+                  name: "Wi-Fi Signal Strength"
+                  icon: "mdi:wifi"
+            - type: "history-graph"
+              title: "24h Environmental Trends"
+              hours_to_show: 24
+              refresh_interval: 60
+              entities:
+                - entity: "{{entities.temperature}}"
+                  name: "Temperature (°C)"
+                - entity: "{{entities.humidity}}"
+                  name: "Humidity (%)"
+                - entity: "{{entities.pressure}}"
+                  name: "Pressure (hPa)"
+
+user_inputs:
+  - id: ha_host
+    type: text
+    required: true
+    name: "Home Assistant Host"
+    name_i18n:
+      zh: "Home Assistant 主机地址"
+    description: "IP address or hostname of your Home Assistant instance."
+    description_i18n:
+      zh: "Home Assistant 实例的 IP 地址或主机名。"
+
+  - id: ha_port
+    type: number
+    required: true
+    default: 8123
+    name: "Home Assistant Port"
+    name_i18n:
+      zh: "Home Assistant 端口"
+    description: "Port number for Home Assistant (default: 8123)."
+    description_i18n:
+      zh: "Home Assistant 服务端口号（默认：8123）。"
+
+  - id: ha_username
+    type: text
+    required: true
+    name: "Home Assistant Username"
+    name_i18n:
+      zh: "Home Assistant 用户名"
+    description: "Administrator username for Home Assistant."
+    description_i18n:
+      zh: "Home Assistant 管理员账号用户名。"
+
+  - id: ha_password
+    type: password
+    required: true
+    name: "Home Assistant Password"
+    name_i18n:
+      zh: "Home Assistant 密码"
+    description: "Password for the Home Assistant administrator account."
+    description_i18n:
+      zh: "Home Assistant 管理员账号密码。"
+
+  - id: mqtt_broker
+    type: text
+    required: true
+    name: "MQTT Broker Host"
+    name_i18n:
+      zh: "MQTT Broker 主机地址"
+    description: "IP address or hostname of your MQTT Broker."
+    description_i18n:
+      zh: "MQTT Broker 的 IP 地址或主机名。"
+
+  - id: mqtt_port
+    type: number
+    required: true
+    default: 1883
+    name: "MQTT Port"
+    name_i18n:
+      zh: "MQTT 端口"
+    description: "Port number for the MQTT Broker (default: 1883)."
+    description_i18n:
+      zh: "MQTT Broker 端口号（默认：1883）。"
+
+  - id: mqtt_username
+    type: text
+    required: false
+    name: "MQTT Username"
+    name_i18n:
+      zh: "MQTT 用户名"
+    description: "Username for MQTT broker authentication (leave blank if not required)."
+    description_i18n:
+      zh: "MQTT Broker 认证用户名（若不需要可留空）。"
+
+  - id: mqtt_password
+    type: password
+    required: false
+    name: "MQTT Password"
+    name_i18n:
+      zh: "MQTT 密码"
+    description: "Password for MQTT broker authentication (leave blank if not required)."
+    description_i18n:
+      zh: "MQTT Broker 认证密码（若不需要可留空）。"
