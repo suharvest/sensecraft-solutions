@@ -377,7 +377,7 @@ def test_partial_promotion_breakpoint_missing_object_recovery(tmp_path: Path):
             return mock.Mock(returncode=0, stdout=b"CONTENT_ALPHA", stderr=b"")
         else:
             # sol_beta is missing (NoSuchKey)
-            return mock.Mock(returncode=1, stdout=b"", stderr=b"Error: NoSuchKey: object does not exist")
+            return mock.Mock(returncode=1, stdout=b"", stderr=b"ErrorCode=NoSuchKey: object does not exist")
 
     with mock.patch("subprocess.run", side_effect=mock_subprocess):
         already_identical = publish_solutions.check_immutable_release_conflicts(
@@ -488,7 +488,7 @@ def test_upload_inventory_restricts_upload_to_explicitly_generated_artifacts(tmp
             if "ossutil cat" in cmd_str:
                 target = cmd_list[2]
                 checked_targets.append(target)
-                return mock.Mock(returncode=1, stdout=b"", stderr=b"NoSuchKey: not found")
+                return mock.Mock(returncode=1, stdout=b"", stderr=b"ErrorCode=NoSuchKey: not found")
             elif "ossutil cp" in cmd_str:
                 src = cmd_list[-2]
                 uploaded_sources.append(src)
@@ -558,8 +558,8 @@ def test_promotion_interruption_simulation_and_resume(tmp_path: Path):
                 if "v2/manifest.json" in target:
                     if promoted_v2_files and "manifest.json" in promoted_v2_files:
                         return mock.Mock(returncode=0, stdout=(out_dir / "manifest.json").read_bytes(), stderr=b"")
-                    return mock.Mock(returncode=1, stdout=b"", stderr=b"NoSuchKey: not found")
-                return mock.Mock(returncode=1, stdout=b"", stderr=b"NoSuchKey: not found")
+                    return mock.Mock(returncode=1, stdout=b"", stderr=b"ErrorCode=NoSuchKey: not found")
+                return mock.Mock(returncode=1, stdout=b"", stderr=b"ErrorCode=NoSuchKey: not found")
             elif "ossutil cp" in cmd_str:
                 dest = cmd_list[4] if len(cmd_list) > 4 else cmd_list[-1]
                 if "/v2/" in dest:
@@ -734,7 +734,7 @@ def test_artifact_inventory_emitted_before_upload(tmp_path: Path, capsys: pytest
             cmd_str = " ".join(cmd_list)
             if "ossutil cat" in cmd_str:
                 events.append("ossutil cat")
-                return mock.Mock(returncode=1, stdout=b"", stderr=b"NoSuchKey: not found")
+                return mock.Mock(returncode=1, stdout=b"", stderr=b"ErrorCode=NoSuchKey: not found")
             elif "ossutil cp" in cmd_str:
                 events.append(f"ossutil cp {cmd_list[-1]}")
                 return mock.Mock(returncode=0, stdout="", stderr="")
@@ -816,7 +816,7 @@ def test_inventory_emitted_in_offline_and_dry_run(tmp_path: Path, capsys: pytest
     def mock_subprocess(cmd, **kwargs):
         cmd_list = [str(c) for c in cmd]
         if cmd_list and cmd_list[0] == "ossutil":
-            return mock.Mock(returncode=1, stdout=b"", stderr=b"NoSuchKey: not found")
+            return mock.Mock(returncode=1, stdout=b"", stderr=b"ErrorCode=NoSuchKey: not found")
         return real_run(cmd, **kwargs)
 
     with mock.patch("subprocess.run", side_effect=mock_subprocess):
@@ -855,7 +855,7 @@ def test_immutable_release_upload_does_not_use_force(tmp_path: Path):
                 ossutil_cp_calls.append(cmd_list)
                 return mock.Mock(returncode=0, stdout="", stderr="")
             elif cmd_list[1] == "cat":
-                return mock.Mock(returncode=1, stdout=b"", stderr=b"NoSuchKey: not found")
+                return mock.Mock(returncode=1, stdout=b"", stderr=b"ErrorCode=NoSuchKey: not found")
             return mock.Mock(returncode=0, stdout="", stderr="")
         return real_run(cmd, **kwargs)
 
@@ -979,4 +979,63 @@ def test_all_destinations_including_v2_enumerated_in_inventory(tmp_path: Path):
     # Solution ZIPs must NOT be in v2/
     assert f"oss://test-bucket/test-prefix/v2/sol_alpha.zip" not in inventory
     assert f"oss://test-bucket/test-prefix/v2/sol_beta.zip" not in inventory
+
+
+def test_is_oss_not_found_strict_parsing():
+    """Ensure is_oss_not_found strictly detects NoSuchKey and rejects false positives."""
+    # Negative assertions explicitly required
+    assert publish_solutions.is_oss_not_found("ErrorCode=NotNoSuchKey") is False
+    assert publish_solutions.is_oss_not_found("ErrorCode=AccessDenied; diagnostic=NoSuchKey") is False
+    assert publish_solutions.is_oss_not_found("AccessDenied") is False
+    assert publish_solutions.is_oss_not_found("HTTP 403 Forbidden") is False
+    assert publish_solutions.is_oss_not_found("Some other error string") is False
+
+    # Positive assertions
+    assert publish_solutions.is_oss_not_found("ErrorCode=NoSuchKey") is True
+    assert publish_solutions.is_oss_not_found("ErrorCode: NoSuchKey") is True
+    assert publish_solutions.is_oss_not_found("<Code>NoSuchKey</Code>") is True
+    assert publish_solutions.is_oss_not_found("Code: NoSuchKey") is True
+    assert publish_solutions.is_oss_not_found("The specified key does not exist") is True
+    assert publish_solutions.is_oss_not_found("Error: ErrorCode=NoSuchKey: not found") is True
+
+
+def test_dry_run_unconditionally_uses_test_keys_even_with_env_private_key(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+):
+    """Assert publish_solutions.py --dry-run uses test keys even when CONTENT_SIGNING_PRIVATE_KEY is present."""
+    repo = tmp_path / "repo"
+    head = init_test_git_repo(repo)
+    out_dir = tmp_path / "cdn_dry_run"
+
+    # Inject a non-empty (and non-minisign) private key into environment
+    monkeypatch.setenv("CONTENT_SIGNING_PRIVATE_KEY", "untrusted-secret-private-key-material")
+    assert "CONTENT_SIGNING_PRIVATE_KEY" in os.environ
+
+    real_run = subprocess.run
+
+    def mock_subprocess(cmd, **kwargs):
+        cmd_list = [str(c) for c in cmd]
+        if cmd_list and cmd_list[0] == "ossutil":
+            return mock.Mock(returncode=1, stdout=b"", stderr=b"ErrorCode=NoSuchKey: not found")
+        return real_run(cmd, **kwargs)
+
+    with mock.patch("subprocess.run", side_effect=mock_subprocess):
+        rc = publish_solutions.main([
+            "--solutions-dir", str(repo / "solutions"),
+            "--output-dir", str(out_dir),
+            "--content-pin", head,
+            "--sequence", "1",
+            "--dry-run",
+            "--allow-local-branch",
+        ])
+        assert rc == 0
+
+    # Ensure private key was purged so it could never be touched or leaked
+    assert "CONTENT_SIGNING_PRIVATE_KEY" not in os.environ
+
+    stdout = capsys.readouterr().out
+    # Confirm test-keys mode generated an ephemeral test keypair
+    assert "Test-keys mode: generated ephemeral test keypair" in stdout
+    assert "Dry-run preflight complete. Zero changes written to OSS." in stdout
+
 

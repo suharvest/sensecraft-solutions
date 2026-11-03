@@ -476,7 +476,13 @@ def _to_str(val: str | bytes | None) -> str:
 
 def is_oss_not_found(error_text: str) -> bool:
     """Return True only if error explicitly indicates object absence (NoSuchKey)."""
-    return "NoSuchKey" in error_text or "The specified key does not exist" in error_text
+    if "AccessDenied" in error_text:
+        return False
+    if re.search(r'(?:<Code>|ErrorCode[=:]\s*|Code:\s*)NoSuchKey\b', error_text):
+        return True
+    if "The specified key does not exist" in error_text:
+        return True
+    return False
 
 
 def cat_remote_manifest(
@@ -1081,6 +1087,13 @@ def format_artifact_inventory(
 
 
 def package_and_publish(args: argparse.Namespace) -> int:
+    if args.dry_run:
+        args.generate_test_keys = True
+        # Unconditionally clear private key variable so dry-run never touches production private key
+        args.minisign_key_file = None
+        if "CONTENT_SIGNING_PRIVATE_KEY" in os.environ:
+            del os.environ["CONTENT_SIGNING_PRIVATE_KEY"]
+
     if args.upload and getattr(args, "generate_test_keys", False):
         raise ValueError("Security Error: --generate-test-keys is strictly forbidden in production/upload mode (--upload)")
 

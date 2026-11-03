@@ -76,6 +76,15 @@ jobs:
       - name: Run unit test suite
         run: uv run pytest tests/test_publish_solutions.py
 
+      - name: Validate solutions with Solution CLI
+        run: |
+          npm install -g @seeed-studio/solution-cli
+          for sol in solutions/*; do
+            if [ -d "$sol" ] && [ -f "$sol/solution.yaml" ]; then
+              solution-cli validate "$sol"
+            fi
+          done
+
       - name: Package, Test-Sign, and Preflight (dry-run)
         env:
           SEQUENCE: ${{ inputs.sequence }}
@@ -140,6 +149,15 @@ jobs:
 
       - name: Run unit test suite
         run: uv run pytest tests/test_publish_solutions.py
+
+      - name: Validate solutions with Solution CLI
+        run: |
+          npm install -g @seeed-studio/solution-cli
+          for sol in solutions/*; do
+            if [ -d "$sol" ] && [ -f "$sol/solution.yaml" ]; then
+              solution-cli validate "$sol"
+            fi
+          done
 
       - name: Configure ossutil credentials
         env:
