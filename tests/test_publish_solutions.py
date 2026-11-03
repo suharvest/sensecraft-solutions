@@ -389,6 +389,7 @@ def test_partial_promotion_breakpoint_missing_object_recovery(tmp_path: Path):
 def test_ephemeral_key_rejected_in_upload_mode_when_private_key_missing(tmp_path: Path):
     repo = tmp_path / "repo"
     head = init_test_git_repo(repo)
+    subprocess.run(["git", "-C", str(repo), "branch", "origin/main"], check=True, capture_output=True)
     out_dir = tmp_path / "cdn_out"
 
     with mock.patch.dict(os.environ, {}, clear=True):
@@ -402,7 +403,6 @@ def test_ephemeral_key_rejected_in_upload_mode_when_private_key_missing(tmp_path
                     "--sequence", "1",
                     "--sign",
                     "--upload",
-                    "--allow-local-branch",
                 ])
             )
 
@@ -417,7 +417,6 @@ def test_ephemeral_key_rejected_in_upload_mode_when_private_key_missing(tmp_path
                     "--sign",
                     "--upload",
                     "--generate-test-keys",
-                    "--allow-local-branch",
                 ])
             )
 
@@ -469,6 +468,7 @@ def test_solution_discovery_rejects_duplicate_solution_ids(tmp_path: Path):
 def test_upload_inventory_restricts_upload_to_explicitly_generated_artifacts(tmp_path: Path):
     repo = tmp_path / "repo"
     head = init_test_git_repo(repo)
+    subprocess.run(["git", "-C", str(repo), "branch", "origin/main"], check=True, capture_output=True)
     sec_key, pubkey = generate_test_minisign_keypair(tmp_path)
     out_dir = tmp_path / "cdn_out"
 
@@ -490,7 +490,7 @@ def test_upload_inventory_restricts_upload_to_explicitly_generated_artifacts(tmp
                 checked_targets.append(target)
                 return mock.Mock(returncode=1, stdout=b"", stderr=b"NoSuchKey: not found")
             elif "ossutil cp" in cmd_str:
-                src = cmd_list[3]
+                src = cmd_list[-2]
                 uploaded_sources.append(src)
                 return mock.Mock(returncode=0, stdout="", stderr="")
             return mock.Mock(returncode=0, stdout="", stderr="")
@@ -507,7 +507,6 @@ def test_upload_inventory_restricts_upload_to_explicitly_generated_artifacts(tmp
                 "--upload",
                 "--minisign-key-file", str(sec_key),
                 "--minisign-pubkey", pubkey,
-                "--allow-local-branch",
             ])
         )
         assert rc == 0
@@ -542,6 +541,7 @@ def test_non_nosuchkey_oss_errors_fail_closed(tmp_path: Path):
 def test_promotion_interruption_simulation_and_resume(tmp_path: Path):
     repo = tmp_path / "repo"
     head = init_test_git_repo(repo)
+    subprocess.run(["git", "-C", str(repo), "branch", "origin/main"], check=True, capture_output=True)
     sec_key, pubkey = generate_test_minisign_keypair(tmp_path)
     out_dir = tmp_path / "cdn_out"
 
@@ -580,7 +580,6 @@ def test_promotion_interruption_simulation_and_resume(tmp_path: Path):
         "--upload",
         "--minisign-key-file", str(sec_key),
         "--minisign-pubkey", pubkey,
-        "--allow-local-branch",
     ]
 
     # Run 1: Fails during promotion right before manifest.json completes
@@ -634,3 +633,251 @@ def test_authoritative_ancestry_failure_fails_closed_when_not_offline(tmp_path: 
     # 4. With offline=True, it succeeds by verifying against HEAD
     pin_offline = publish_solutions.check_head_and_pin(repo, head, offline=True, allow_local_branch=False)
     assert pin_offline == head
+
+
+def test_allow_local_branch_rejected_when_combined_with_upload(tmp_path: Path):
+    repo = tmp_path / "repo"
+    head = init_test_git_repo(repo)
+    out_dir = tmp_path / "cdn_out"
+
+    # In package_and_publish
+    args = publish_solutions.parse_args([
+        "--solutions-dir", str(repo / "solutions"),
+        "--output-dir", str(out_dir),
+        "--content-pin", head,
+        "--sequence", "1",
+        "--sign",
+        "--upload",
+        "--allow-local-branch",
+    ])
+    with pytest.raises(ValueError, match="--allow-local-branch is forbidden in --upload mode"):
+        publish_solutions.package_and_publish(args)
+
+    # In check_head_and_pin directly with upload=True
+    with pytest.raises(ValueError, match="--allow-local-branch is forbidden in --upload mode"):
+        publish_solutions.check_head_and_pin(
+            repo, head, offline=False, allow_local_branch=True, upload=True
+        )
+
+    # Also verify that upload mode strictly requires ancestry check from origin/main
+    with pytest.raises(ValueError, match="Authoritative ancestry check failed: cannot resolve origin/main"):
+        publish_solutions.check_head_and_pin(
+            repo, head, offline=False, allow_local_branch=False, upload=True
+        )
+
+
+def test_solutions_index_bound_in_manifest(tmp_path: Path):
+    repo = tmp_path / "repo"
+    head = init_test_git_repo(repo)
+    out_dir = tmp_path / "cdn_out"
+
+    rc = publish_solutions.main([
+        "--solutions-dir", str(repo / "solutions"),
+        "--output-dir", str(out_dir),
+        "--content-pin", head,
+        "--sequence", "1",
+        "--sign",
+        "--offline",
+    ])
+    assert rc == 0
+
+    manifest_file = out_dir / "manifest.json"
+    index_file = out_dir / "solutions_index.json"
+    hashes_file = out_dir / "bundled_hashes.json"
+
+    assert manifest_file.is_file()
+    assert index_file.is_file()
+    assert hashes_file.is_file()
+
+    manifest_data = json.loads(manifest_file.read_text(encoding="utf-8"))
+    index_bytes = index_file.read_bytes()
+    expected_index_sha = hashlib.sha256(index_bytes).hexdigest()
+    expected_index_size = len(index_bytes)
+
+    bundled_bytes = hashes_file.read_bytes()
+    expected_bundled_sha = hashlib.sha256(bundled_bytes).hexdigest()
+    expected_bundled_size = len(bundled_bytes)
+
+    # Verify solutions_index is bound directly in manifest
+    assert "solutions_index" in manifest_data
+    assert manifest_data["solutions_index"]["sha256"] == expected_index_sha
+    assert manifest_data["solutions_index"]["size"] == expected_index_size
+
+    # Verify bundled_hashes is bound directly in manifest
+    assert "bundled_hashes" in manifest_data
+    assert manifest_data["bundled_hashes"]["sha256"] == expected_bundled_sha
+    assert manifest_data["bundled_hashes"]["size"] == expected_bundled_size
+
+    # Verify auxiliary_files binds both solutions_index.json and bundled_hashes.json
+    assert "auxiliary_files" in manifest_data
+    assert "solutions_index.json" in manifest_data["auxiliary_files"]
+    assert manifest_data["auxiliary_files"]["solutions_index.json"]["sha256"] == expected_index_sha
+    assert manifest_data["auxiliary_files"]["solutions_index.json"]["size"] == expected_index_size
+    assert "bundled_hashes.json" in manifest_data["auxiliary_files"]
+    assert manifest_data["auxiliary_files"]["bundled_hashes.json"]["sha256"] == expected_bundled_sha
+    assert manifest_data["auxiliary_files"]["bundled_hashes.json"]["size"] == expected_bundled_size
+
+
+def test_artifact_inventory_emitted_before_upload(tmp_path: Path, capsys: pytest.CaptureFixture):
+    repo = tmp_path / "repo"
+    head = init_test_git_repo(repo)
+    subprocess.run(["git", "-C", str(repo), "branch", "origin/main"], check=True, capture_output=True)
+    sec_key, pubkey = generate_test_minisign_keypair(tmp_path)
+    out_dir = tmp_path / "cdn_out"
+
+    events: list[str] = []
+    real_run = subprocess.run
+
+    def mock_subprocess(cmd, **kwargs):
+        cmd_list = [str(c) for c in cmd]
+        if cmd_list and cmd_list[0] == "ossutil":
+            cmd_str = " ".join(cmd_list)
+            if "ossutil cat" in cmd_str:
+                events.append("ossutil cat")
+                return mock.Mock(returncode=1, stdout=b"", stderr=b"NoSuchKey: not found")
+            elif "ossutil cp" in cmd_str:
+                events.append(f"ossutil cp {cmd_list[-1]}")
+                return mock.Mock(returncode=0, stdout="", stderr="")
+            return mock.Mock(returncode=0, stdout="", stderr="")
+        return real_run(cmd, **kwargs)
+
+    with mock.patch("subprocess.run", side_effect=mock_subprocess):
+        rc = publish_solutions.main([
+            "--solutions-dir", str(repo / "solutions"),
+            "--output-dir", str(out_dir),
+            "--content-pin", head,
+            "--sequence", "1",
+            "--sign",
+            "--upload",
+            "--minisign-key-file", str(sec_key),
+            "--minisign-pubkey", pubkey,
+        ])
+        assert rc == 0
+
+    captured = capsys.readouterr()
+    stdout = captured.out
+
+    # Verify complete inventory is present in stdout
+    assert "COMPLETE ARTIFACT INVENTORY" in stdout
+    assert "Total count: 8" in stdout
+    assert "sol_alpha.zip" in stdout
+    assert "sol_beta.zip" in stdout
+    assert "manifest.json" in stdout
+    assert "solutions_index.json" in stdout
+    assert "bundled_hashes.json" in stdout
+
+    # Verify un-truncated 64-hex sha256 is emitted for artifacts
+    sol_alpha_sha = hashlib.sha256((out_dir / "sol_alpha.zip").read_bytes()).hexdigest()
+    assert sol_alpha_sha in stdout
+
+    # Verify destination path on OSS is printed
+    assert f"oss://sensecraft-statics/solution-app/solutions/releases/{head}/sol_alpha.zip" in stdout
+
+    # Verify inventory was printed strictly BEFORE upload began
+    idx_inventory = stdout.find("COMPLETE ARTIFACT INVENTORY")
+    idx_upload_start = stdout.find("Uploading immutable release objects to OSS...")
+    assert idx_inventory != -1
+    assert idx_upload_start != -1
+    assert idx_inventory < idx_upload_start
+
+    # Verify ossutil cp was executed
+    assert any("ossutil cp" in ev for ev in events)
+
+
+def test_inventory_emitted_in_offline_and_dry_run(tmp_path: Path, capsys: pytest.CaptureFixture):
+    repo = tmp_path / "repo"
+    head = init_test_git_repo(repo)
+    out_dir_offline = tmp_path / "cdn_offline"
+    out_dir_dry_run = tmp_path / "cdn_dry_run"
+
+    # 1. Offline mode
+    rc_offline = publish_solutions.main([
+        "--solutions-dir", str(repo / "solutions"),
+        "--output-dir", str(out_dir_offline),
+        "--content-pin", head,
+        "--sequence", "1",
+        "--sign",
+        "--offline",
+    ])
+    assert rc_offline == 0
+    stdout_offline = capsys.readouterr().out
+    assert "COMPLETE ARTIFACT INVENTORY" in stdout_offline
+    assert "Total count: 8" in stdout_offline
+
+    # 2. Dry-run mode
+    real_run = subprocess.run
+
+    def mock_subprocess(cmd, **kwargs):
+        cmd_list = [str(c) for c in cmd]
+        if cmd_list and cmd_list[0] == "ossutil":
+            return mock.Mock(returncode=1, stdout=b"", stderr=b"NoSuchKey: not found")
+        return real_run(cmd, **kwargs)
+
+    with mock.patch("subprocess.run", side_effect=mock_subprocess):
+        rc_dry_run = publish_solutions.main([
+            "--solutions-dir", str(repo / "solutions"),
+            "--output-dir", str(out_dir_dry_run),
+            "--content-pin", head,
+            "--sequence", "1",
+            "--sign",
+            "--generate-test-keys",
+            "--dry-run",
+            "--allow-local-branch",
+        ])
+        assert rc_dry_run == 0
+
+    stdout_dry = capsys.readouterr().out
+    assert "COMPLETE ARTIFACT INVENTORY" in stdout_dry
+    assert "Total count: 8" in stdout_dry
+    assert "Dry-run preflight complete. Zero changes written to OSS." in stdout_dry
+
+
+def test_immutable_release_upload_does_not_use_force(tmp_path: Path):
+    repo = tmp_path / "repo"
+    head = init_test_git_repo(repo)
+    subprocess.run(["git", "-C", str(repo), "branch", "origin/main"], check=True, capture_output=True)
+    sec_key, pubkey = generate_test_minisign_keypair(tmp_path)
+    out_dir = tmp_path / "cdn_out"
+
+    ossutil_cp_calls: list[list[str]] = []
+    real_run = subprocess.run
+
+    def mock_subprocess(cmd, **kwargs):
+        cmd_list = [str(c) for c in cmd]
+        if cmd_list and cmd_list[0] == "ossutil":
+            if cmd_list[1] == "cp":
+                ossutil_cp_calls.append(cmd_list)
+                return mock.Mock(returncode=0, stdout="", stderr="")
+            elif cmd_list[1] == "cat":
+                return mock.Mock(returncode=1, stdout=b"", stderr=b"NoSuchKey: not found")
+            return mock.Mock(returncode=0, stdout="", stderr="")
+        return real_run(cmd, **kwargs)
+
+    with mock.patch("subprocess.run", side_effect=mock_subprocess):
+        rc = publish_solutions.main([
+            "--solutions-dir", str(repo / "solutions"),
+            "--output-dir", str(out_dir),
+            "--content-pin", head,
+            "--sequence", "1",
+            "--sign",
+            "--upload",
+            "--minisign-key-file", str(sec_key),
+            "--minisign-pubkey", pubkey,
+        ])
+        assert rc == 0
+
+    # Separate immutable releases/<pin>/ uploads from mutable v2/ promotions
+    immutable_calls = [c for c in ossutil_cp_calls if f"/releases/{head}/" in " ".join(c)]
+    v2_calls = [c for c in ossutil_cp_calls if "/v2/" in " ".join(c)]
+
+    assert len(immutable_calls) > 0
+    assert len(v2_calls) > 0
+
+    # Immutable releases upload must NOT contain -f
+    for call in immutable_calls:
+        assert "-f" not in call, f"Forbidden -f flag found in immutable release upload: {call}"
+
+    # Mutable v2 promotion may contain -f
+    for call in v2_calls:
+        assert "-f" in call, f"Expected -f flag in v2 promotion: {call}"
+

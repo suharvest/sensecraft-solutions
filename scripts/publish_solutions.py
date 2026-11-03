@@ -213,8 +213,12 @@ def check_head_and_pin(
     requested_pin: str,
     offline: bool = False,
     allow_local_branch: bool = False,
+    upload: bool = False,
 ) -> str:
     """Bind HEAD to content-pin and verify ancestry."""
+    if upload and allow_local_branch:
+        raise ValueError("--allow-local-branch is forbidden in --upload mode")
+
     res = subprocess.run(
         ["git", "-C", str(repo_root), "rev-parse", "HEAD"],
         capture_output=True,
@@ -235,7 +239,7 @@ def check_head_and_pin(
         pin = head_commit
 
     # Reachability check: git merge-base --is-ancestor "$CONTENT_PIN" origin/main
-    if not offline and not allow_local_branch:
+    if upload or (not offline and not allow_local_branch):
         verify_origin = subprocess.run(
             ["git", "-C", str(repo_root), "rev-parse", "--verify", "origin/main"],
             capture_output=True,
@@ -934,9 +938,84 @@ def verify_solution_packages(
                 verify_deb_archive_strictly(deb_bytes, expected_sha256=expected_sha256)
 
 
+def generate_manifest_dict(
+    sequence: int,
+    content_pin: str,
+    generated_at: str,
+    base_url: str,
+    manifest_solutions: dict[str, Any],
+    solutions_index_sha256: str | None = None,
+    solutions_index_size: int | None = None,
+    bundled_hashes_sha256: str | None = None,
+    bundled_hashes_size: int | None = None,
+) -> dict[str, Any]:
+    """Generate manifest dictionary binding solutions and auxiliary files."""
+    manifest_payload: dict[str, Any] = {
+        "version": 2,
+        "sequence": sequence,
+        "content_pin": content_pin,
+        "generated_at": generated_at,
+        "base_url": base_url,
+        "deprecated": [],
+        "solutions": manifest_solutions,
+    }
+    auxiliary_files: dict[str, Any] = {}
+    if solutions_index_sha256 is not None:
+        idx_info = {
+            "sha256": solutions_index_sha256,
+            "size": solutions_index_size,
+        }
+        manifest_payload["solutions_index"] = idx_info
+        auxiliary_files["solutions_index.json"] = idx_info
+
+    if bundled_hashes_sha256 is not None:
+        hashes_info = {
+            "sha256": bundled_hashes_sha256,
+            "size": bundled_hashes_size,
+        }
+        manifest_payload["bundled_hashes"] = hashes_info
+        auxiliary_files["bundled_hashes.json"] = hashes_info
+
+    if auxiliary_files:
+        manifest_payload["auxiliary_files"] = auxiliary_files
+
+    return manifest_payload
+
+
+def format_artifact_inventory(
+    artifacts: list[Path],
+    bucket: str,
+    prefix: str,
+    content_pin: str,
+) -> str:
+    """Format complete artifact inventory with un-truncated sha256, size, dest, and count."""
+    valid_artifacts = [p for p in sorted(artifacts) if p.is_file()]
+    lines = [
+        "=" * 80,
+        f"COMPLETE ARTIFACT INVENTORY (Total: {len(valid_artifacts)})",
+        "=" * 80,
+    ]
+    for p in valid_artifacts:
+        raw = p.read_bytes()
+        sha = hashlib.sha256(raw).hexdigest()
+        size = len(raw)
+        dest_path = f"oss://{bucket}/{prefix}/releases/{content_pin}/{p.name}"
+        lines.append(f"Artifact: {p.name}")
+        lines.append(f"  Destination: {dest_path}")
+        lines.append(f"  Size:        {size} bytes")
+        lines.append(f"  SHA-256:     {sha}")
+    lines.append("=" * 80)
+    lines.append(f"Total count: {len(valid_artifacts)}")
+    lines.append("=" * 80)
+    return "\n".join(lines)
+
+
 def package_and_publish(args: argparse.Namespace) -> int:
     if args.upload and getattr(args, "generate_test_keys", False):
         raise ValueError("Security Error: --generate-test-keys is strictly forbidden in production/upload mode (--upload)")
+
+    if args.upload and getattr(args, "allow_local_branch", False):
+        raise ValueError("--allow-local-branch is forbidden in --upload mode")
 
     if args.upload and not args.dry_run and not args.sign:
         raise ValueError("--upload requires --sign")
@@ -960,8 +1039,12 @@ def package_and_publish(args: argparse.Namespace) -> int:
         args.content_pin,
         offline=args.offline,
         allow_local_branch=getattr(args, "allow_local_branch", False),
+        upload=getattr(args, "upload", False),
     )
     sequence = resolve_sequence(args.sequence, args.dry_run, args.offline)
+
+    bucket = args.oss_bucket.strip()
+    prefix = args.oss_prefix.strip().strip("/")
 
     base_url = args.base_url.strip().rstrip("/")
     if not base_url:
@@ -1069,6 +1152,9 @@ def package_and_publish(args: argparse.Namespace) -> int:
     bundled_hashes_path = output_dir / "bundled_hashes.json"
     bundled_hashes_path.write_text(json.dumps(bundled_hashes, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     generated_artifacts.append(bundled_hashes_path)
+    bundled_bytes = bundled_hashes_path.read_bytes()
+    bundled_sha = hashlib.sha256(bundled_bytes).hexdigest()
+    bundled_size = len(bundled_bytes)
 
     # Generate solutions_index.json
     solutions_index_path = output_dir / "solutions_index.json"
@@ -1079,18 +1165,23 @@ def package_and_publish(args: argparse.Namespace) -> int:
     }
     solutions_index_path.write_text(json.dumps(index_payload, indent=2) + "\n", encoding="utf-8")
     generated_artifacts.append(solutions_index_path)
+    index_bytes = solutions_index_path.read_bytes()
+    index_sha = hashlib.sha256(index_bytes).hexdigest()
+    index_size = len(index_bytes)
 
-    # Generate manifest.json (v2 format with sequence)
+    # Generate manifest.json (v2 format with sequence, bound solutions_index and auxiliary_files)
     manifest_path = output_dir / "manifest.json"
-    manifest_payload = {
-        "version": 2,
-        "sequence": sequence,
-        "content_pin": content_pin,
-        "generated_at": now_iso,
-        "base_url": base_url,
-        "deprecated": [],
-        "solutions": manifest_solutions,
-    }
+    manifest_payload = generate_manifest_dict(
+        sequence=sequence,
+        content_pin=content_pin,
+        generated_at=now_iso,
+        base_url=base_url,
+        manifest_solutions=manifest_solutions,
+        solutions_index_sha256=index_sha,
+        solutions_index_size=index_size,
+        bundled_hashes_sha256=bundled_sha,
+        bundled_hashes_size=bundled_size,
+    )
     manifest_path.write_text(json.dumps(manifest_payload, indent=2) + "\n", encoding="utf-8")
     generated_artifacts.append(manifest_path)
     print("[*] Generated core manifest files successfully.")
@@ -1173,11 +1264,12 @@ def package_and_publish(args: argparse.Namespace) -> int:
             if temp_key_dir and os.path.exists(temp_key_dir):
                 shutil.rmtree(temp_key_dir, ignore_errors=True)
 
+    # Emit complete artifact inventory BEFORE performing any upload, write, or preflight
+    inventory_output = format_artifact_inventory(generated_artifacts, bucket, prefix, content_pin)
+    print(f"\n{inventory_output}\n")
+
     # OSS Preflight and Upload Phase
     if not args.offline and (args.upload or args.dry_run):
-        bucket = args.oss_bucket.strip()
-        prefix = args.oss_prefix.strip().strip("/")
-
         # Freeze Guard check
         frozen_root_manifest = f"oss://{bucket}/solution-app/solutions/manifest.json"
         pin_dest = f"oss://{bucket}/{prefix}/releases/{content_pin}/"
@@ -1209,7 +1301,7 @@ def package_and_publish(args: argparse.Namespace) -> int:
             if dest_obj == frozen_root_manifest:
                 raise ValueError("Security Error: direct overwrite of frozen v1 root manifest is forbidden!")
             print(f"  [upload] {fname} -> {dest_obj}")
-            res = subprocess.run(["ossutil", "cp", "-f", str(local_p), dest_obj], capture_output=True, text=True)
+            res = subprocess.run(["ossutil", "cp", str(local_p), dest_obj], capture_output=True, text=True)
             if res.returncode != 0:
                 raise RuntimeError(f"Error uploading {fname} to {dest_obj}: {res.stderr}")
 

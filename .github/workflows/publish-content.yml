@@ -28,8 +28,9 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  publish:
-    name: Package, Sign, and Publish Solutions
+  dry-run:
+    name: Dry-Run Solutions Package and Preflight
+    if: ${{ inputs.dry_run }}
     runs-on: ubuntu-latest
     environment: cdn-publish
     steps:
@@ -37,6 +38,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -64,6 +70,116 @@ jobs:
           chmod +x ossutil-tmp/*/ossutil && sudo mv ossutil-tmp/*/ossutil /usr/local/bin/
           rm -rf ossutil.zip ossutil-tmp
           ossutil version
+
+      - name: Install solution-cli
+        run: npm install -g @seeed-studio/solution-cli
+
+      - name: Run solution-cli full validation gate
+        run: |
+          set -euo pipefail
+          for sol_yaml in solutions/*/solution.yaml; do
+            sol_dir="$(dirname "$sol_yaml")"
+            echo "Validating $sol_dir..."
+            solution-cli validate "$sol_dir" --require-full
+          done
+
+      - name: Run public repo guard
+        run: sh scripts/public-repo-guard.sh
+
+      - name: Run full solutions checks
+        run: |
+          uv sync
+          uv run python scripts/check.py --scope full
+
+      - name: Run unit test suite
+        run: uv run pytest tests/test_publish_solutions.py
+
+      - name: Configure ossutil credentials
+        env:
+          OSS_ACCESS_KEY_ID: ${{ secrets.OSS_ACCESS_KEY_ID }}
+          OSS_ACCESS_KEY_SECRET: ${{ secrets.OSS_ACCESS_KEY_SECRET }}
+          OSS_REGION: us-east-1
+        run: |
+          set -euo pipefail
+          [ -n "$OSS_ACCESS_KEY_ID" ] || { echo "::error::OSS_ACCESS_KEY_ID secret is required"; exit 1; }
+          [ -n "$OSS_ACCESS_KEY_SECRET" ] || { echo "::error::OSS_ACCESS_KEY_SECRET secret is required"; exit 1; }
+          oss_home="$(mktemp -d "$RUNNER_TEMP/oss-home.XXXXXX")"
+          config="$oss_home/ossutilconfig"
+          printf '[default]\naccessKeyID=%s\naccessKeySecret=%s\nregion=%s\n' \
+            "$OSS_ACCESS_KEY_ID" "$OSS_ACCESS_KEY_SECRET" "$OSS_REGION" > "$config"
+          chmod 0600 "$config"
+          echo "OSSUTIL_CONFIG_FILE=$config" >> "$GITHUB_ENV"
+
+      - name: Package, Test-Sign, and Preflight (dry-run)
+        env:
+          SEQUENCE: ${{ inputs.sequence }}
+          CONTENT_PIN: ${{ inputs.content_pin }}
+        run: |
+          set -euo pipefail
+          pin="${CONTENT_PIN:-$(git rev-parse HEAD)}"
+          python3 scripts/publish_solutions.py \
+            --solutions-dir solutions \
+            --output-dir content-cdn \
+            --content-pin "$pin" \
+            --sequence "$SEQUENCE" \
+            --sign \
+            --generate-test-keys \
+            --dry-run
+
+  publish:
+    name: Package, Sign, and Publish Solutions
+    if: github.ref == 'refs/heads/main' && !inputs.dry_run
+    runs-on: ubuntu-latest
+    environment: cdn-publish
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Install Minisign
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq minisign
+          minisign -v
+
+      - name: Install ossutil v2
+        env:
+          OSSUTIL_SHA256: fbf1026bd383a5d9bee051cd64a6226c730357ba569491f7c7b91af66560ef1d
+        run: |
+          set -euo pipefail
+          curl -fSL -o ossutil.zip https://gosspublic.alicdn.com/ossutil/v2/2.2.1/ossutil-2.2.1-linux-amd64.zip
+          echo "${OSSUTIL_SHA256}  ossutil.zip" | sha256sum -c -
+          unzip -q ossutil.zip -d ossutil-tmp
+          chmod +x ossutil-tmp/*/ossutil && sudo mv ossutil-tmp/*/ossutil /usr/local/bin/
+          rm -rf ossutil.zip ossutil-tmp
+          ossutil version
+
+      - name: Install solution-cli
+        run: npm install -g @seeed-studio/solution-cli
+
+      - name: Run solution-cli full validation gate
+        run: |
+          set -euo pipefail
+          for sol_yaml in solutions/*/solution.yaml; do
+            sol_dir="$(dirname "$sol_yaml")"
+            echo "Validating $sol_dir..."
+            solution-cli validate "$sol_dir" --require-full
+          done
 
       - name: Run public repo guard
         run: sh scripts/public-repo-guard.sh
@@ -97,23 +213,15 @@ jobs:
           CONTENT_SIGNING_PRIVATE_KEY: ${{ secrets.CONTENT_SIGNING_PRIVATE_KEY }}
           CONTENT_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.CONTENT_SIGNING_PRIVATE_KEY_PASSWORD }}
           CONTENT_MINISIGN_PUBLIC_KEY: ${{ vars.CONTENT_MINISIGN_PUBLIC_KEY }}
-          DRY_RUN: ${{ inputs.dry_run }}
           SEQUENCE: ${{ inputs.sequence }}
           CONTENT_PIN: ${{ inputs.content_pin }}
         run: |
           set -euo pipefail
           pin="${CONTENT_PIN:-$(git rev-parse HEAD)}"
-          cmd=(python3 scripts/publish_solutions.py \
+          python3 scripts/publish_solutions.py \
             --solutions-dir solutions \
             --output-dir content-cdn \
             --content-pin "$pin" \
             --sequence "$SEQUENCE" \
-            --sign)
-
-          if [ "$DRY_RUN" = "true" ]; then
-            cmd+=(--dry-run)
-          else
-            cmd+=(--upload)
-          fi
-
-          "${cmd[@]}"
+            --sign \
+            --upload
