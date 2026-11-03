@@ -384,3 +384,253 @@ def test_partial_promotion_breakpoint_missing_object_recovery(tmp_path: Path):
             "bucket", "prefix", "pin12345", out_dir
         )
         assert already_identical == {"sol_alpha.zip"}
+
+
+def test_ephemeral_key_rejected_in_upload_mode_when_private_key_missing(tmp_path: Path):
+    repo = tmp_path / "repo"
+    head = init_test_git_repo(repo)
+    out_dir = tmp_path / "cdn_out"
+
+    with mock.patch.dict(os.environ, {}, clear=True):
+        # 1. --upload with missing private key must fail closed (raise ValueError)
+        with pytest.raises(ValueError, match="In upload mode, CONTENT_SIGNING_PRIVATE_KEY"):
+            publish_solutions.package_and_publish(
+                publish_solutions.parse_args([
+                    "--solutions-dir", str(repo / "solutions"),
+                    "--output-dir", str(out_dir),
+                    "--content-pin", head,
+                    "--sequence", "1",
+                    "--sign",
+                    "--upload",
+                    "--allow-local-branch",
+                ])
+            )
+
+        # 2. --upload with --generate-test-keys must also be strictly rejected
+        with pytest.raises(ValueError, match="--generate-test-keys is strictly forbidden in production/upload mode"):
+            publish_solutions.package_and_publish(
+                publish_solutions.parse_args([
+                    "--solutions-dir", str(repo / "solutions"),
+                    "--output-dir", str(out_dir),
+                    "--content-pin", head,
+                    "--sequence", "1",
+                    "--sign",
+                    "--upload",
+                    "--generate-test-keys",
+                    "--allow-local-branch",
+                ])
+            )
+
+
+def test_solution_discovery_ignores_untracked_ignored_folders(tmp_path: Path):
+    repo = tmp_path / "repo"
+    head = init_test_git_repo(repo)
+
+    # Add an untracked directory with a solution.yaml
+    untracked_sol = repo / "solutions" / "sol_untracked"
+    untracked_sol.mkdir()
+    (untracked_sol / "solution.yaml").write_text("id: sol_untracked\nname: Untracked\n", encoding="utf-8")
+
+    # Add an ignored directory with a solution.yaml
+    with open(repo / ".gitignore", "a", encoding="utf-8") as f:
+        f.write("solutions/sol_ignored/\n")
+    ignored_sol = repo / "solutions" / "sol_ignored"
+    ignored_sol.mkdir()
+    (ignored_sol / "solution.yaml").write_text("id: sol_ignored\nname: Ignored\n", encoding="utf-8")
+
+    tracked_files = publish_solutions.get_git_tracked_files(repo, head, "solutions")
+    entries = publish_solutions.discover_solutions_from_git(repo, repo / "solutions", head, tracked_files)
+
+    discovered_ids = {entry[0] for entry in entries}
+    assert discovered_ids == {"sol_alpha", "sol_beta"}
+    assert "sol_untracked" not in discovered_ids
+    assert "sol_ignored" not in discovered_ids
+
+
+def test_solution_discovery_rejects_duplicate_solution_ids(tmp_path: Path):
+    repo = tmp_path / "repo"
+    init_test_git_repo(repo)
+
+    # Add sol_gamma that duplicates sol_alpha id
+    sol_gamma = repo / "solutions" / "sol_gamma"
+    sol_gamma.mkdir()
+    (sol_gamma / "solution.yaml").write_text("id: sol_alpha\nname: Duplicate Alpha\n", encoding="utf-8")
+    subprocess.run(["git", "-C", str(repo), "add", "."], check=True, capture_output=True)
+    subprocess.run(["git", "-C", str(repo), "commit", "-m", "Add duplicate id"], check=True, capture_output=True)
+    head = subprocess.run(
+        ["git", "-C", str(repo), "rev-parse", "HEAD"], check=True, capture_output=True, text=True
+    ).stdout.strip()
+
+    tracked_files = publish_solutions.get_git_tracked_files(repo, head, "solutions")
+    with pytest.raises(ValueError, match="Duplicate solution id detected"):
+        publish_solutions.discover_solutions_from_git(repo, repo / "solutions", head, tracked_files)
+
+
+def test_upload_inventory_restricts_upload_to_explicitly_generated_artifacts(tmp_path: Path):
+    repo = tmp_path / "repo"
+    head = init_test_git_repo(repo)
+    sec_key, pubkey = generate_test_minisign_keypair(tmp_path)
+    out_dir = tmp_path / "cdn_out"
+
+    # Put a rogue file in output directory
+    out_dir.mkdir(parents=True)
+    rogue_file = out_dir / "rogue_unrelated_file.txt"
+    rogue_file.write_text("should not be checked or uploaded", encoding="utf-8")
+
+    checked_targets: list[str] = []
+    uploaded_sources: list[str] = []
+    real_run = subprocess.run
+
+    def mock_subprocess(cmd, **kwargs):
+        cmd_list = [str(c) for c in cmd]
+        if cmd_list and cmd_list[0] == "ossutil":
+            cmd_str = " ".join(cmd_list)
+            if "ossutil cat" in cmd_str:
+                target = cmd_list[2]
+                checked_targets.append(target)
+                return mock.Mock(returncode=1, stdout=b"", stderr=b"NoSuchKey: not found")
+            elif "ossutil cp" in cmd_str:
+                src = cmd_list[3]
+                uploaded_sources.append(src)
+                return mock.Mock(returncode=0, stdout="", stderr="")
+            return mock.Mock(returncode=0, stdout="", stderr="")
+        return real_run(cmd, **kwargs)
+
+    with mock.patch("subprocess.run", side_effect=mock_subprocess):
+        rc = publish_solutions.package_and_publish(
+            publish_solutions.parse_args([
+                "--solutions-dir", str(repo / "solutions"),
+                "--output-dir", str(out_dir),
+                "--content-pin", head,
+                "--sequence", "1",
+                "--sign",
+                "--upload",
+                "--minisign-key-file", str(sec_key),
+                "--minisign-pubkey", pubkey,
+                "--allow-local-branch",
+            ])
+        )
+        assert rc == 0
+
+    # Ensure rogue_unrelated_file was NEVER checked on OSS or uploaded
+    for target in checked_targets:
+        assert "rogue_unrelated_file" not in target
+    for src in uploaded_sources:
+        assert "rogue_unrelated_file" not in src
+
+
+def test_non_nosuchkey_oss_errors_fail_closed(tmp_path: Path):
+    out_dir = tmp_path / "out"
+    out_dir.mkdir()
+    (out_dir / "manifest.json").write_text('{"sequence": 1}', encoding="utf-8")
+
+    for err_msg in [
+        "HTTP 403 Forbidden: Access denied",
+        "404 Not Found (reverse proxy gateway error)",
+        "Connection reset by peer",
+        "Request timeout",
+    ]:
+        mock_res = mock.Mock(returncode=1, stdout=b"", stderr=err_msg.encode("utf-8"))
+        with mock.patch("subprocess.run", return_value=mock_res):
+            with pytest.raises(RuntimeError, match="Failed to query remote authoritative manifest from OSS"):
+                publish_solutions.check_remote_sequence("bucket", "prefix", 1, out_dir)
+
+            with pytest.raises(RuntimeError, match="Failed to check object status on OSS"):
+                publish_solutions.oss_object_exists("oss://bucket/prefix/file.zip")
+
+
+def test_promotion_interruption_simulation_and_resume(tmp_path: Path):
+    repo = tmp_path / "repo"
+    head = init_test_git_repo(repo)
+    sec_key, pubkey = generate_test_minisign_keypair(tmp_path)
+    out_dir = tmp_path / "cdn_out"
+
+    promoted_v2_files: list[str] = []
+    should_interrupt = True
+    real_run = subprocess.run
+
+    def mock_subprocess(cmd, **kwargs):
+        cmd_list = [str(c) for c in cmd]
+        if cmd_list and cmd_list[0] == "ossutil":
+            cmd_str = " ".join(cmd_list)
+            if "ossutil cat" in cmd_str:
+                target = cmd_list[2]
+                if "v2/manifest.json" in target:
+                    if promoted_v2_files and "manifest.json" in promoted_v2_files:
+                        return mock.Mock(returncode=0, stdout=(out_dir / "manifest.json").read_bytes(), stderr=b"")
+                    return mock.Mock(returncode=1, stdout=b"", stderr=b"NoSuchKey: not found")
+                return mock.Mock(returncode=1, stdout=b"", stderr=b"NoSuchKey: not found")
+            elif "ossutil cp" in cmd_str:
+                dest = cmd_list[4] if len(cmd_list) > 4 else cmd_list[-1]
+                if "/v2/" in dest:
+                    filename = dest.split("/v2/")[-1]
+                    if should_interrupt and filename == "manifest.json":
+                        raise RuntimeError("Simulated network drop before manifest promotion")
+                    promoted_v2_files.append(filename)
+                return mock.Mock(returncode=0, stdout="", stderr="")
+            return mock.Mock(returncode=0, stdout="", stderr="")
+        return real_run(cmd, **kwargs)
+
+    args = [
+        "--solutions-dir", str(repo / "solutions"),
+        "--output-dir", str(out_dir),
+        "--content-pin", head,
+        "--sequence", "1",
+        "--sign",
+        "--upload",
+        "--minisign-key-file", str(sec_key),
+        "--minisign-pubkey", pubkey,
+        "--allow-local-branch",
+    ]
+
+    # Run 1: Fails during promotion right before manifest.json completes
+    with mock.patch("subprocess.run", side_effect=mock_subprocess):
+        with pytest.raises(RuntimeError, match="Simulated network drop"):
+            publish_solutions.package_and_publish(publish_solutions.parse_args(args))
+
+    # Verify auxiliary files were promoted before manifest.json
+    assert "bundled_hashes.json" in promoted_v2_files
+    assert "solutions_index.json" in promoted_v2_files
+    assert "manifest.json" not in promoted_v2_files
+
+    # Run 2: Resume with identical sequence completes cleanly
+    should_interrupt = False
+    promoted_v2_files.clear()
+    with mock.patch("subprocess.run", side_effect=mock_subprocess):
+        rc = publish_solutions.package_and_publish(publish_solutions.parse_args(args))
+        assert rc == 0
+        idx_aux = max(
+            promoted_v2_files.index("bundled_hashes.json"),
+            promoted_v2_files.index("solutions_index.json"),
+        )
+        idx_entry = promoted_v2_files.index("manifest.json")
+        assert idx_aux < idx_entry
+
+
+def test_authoritative_ancestry_failure_fails_closed_when_not_offline(tmp_path: Path):
+    repo = tmp_path / "repo"
+    head = init_test_git_repo(repo)
+
+    # 1. In online mode (offline=False, allow_local_branch=False), missing origin/main must fail closed
+    with pytest.raises(ValueError, match="Authoritative ancestry check failed: cannot resolve origin/main"):
+        publish_solutions.check_head_and_pin(repo, head, offline=False, allow_local_branch=False)
+
+    # 2. If origin/main exists but head is NOT an ancestor, must fail closed
+    # Create origin/main pointing to an earlier orphan commit
+    subprocess.run(["git", "-C", str(repo), "checkout", "--orphan", "other_branch"], check=True, capture_output=True)
+    (repo / "dummy.txt").write_text("orphan", encoding="utf-8")
+    subprocess.run(["git", "-C", str(repo), "add", "dummy.txt"], check=True, capture_output=True)
+    subprocess.run(["git", "-C", str(repo), "commit", "-m", "Orphan commit"], check=True, capture_output=True)
+    subprocess.run(["git", "-C", str(repo), "branch", "-f", "origin/main"], check=True, capture_output=True)
+    subprocess.run(["git", "-C", str(repo), "checkout", "main"], check=True, capture_output=True)
+
+    with pytest.raises(ValueError, match="is not an ancestor of origin/main"):
+        publish_solutions.check_head_and_pin(repo, head, offline=False, allow_local_branch=False)
+
+    # 3. With allow_local_branch=True, it succeeds by verifying against HEAD
+    pin = publish_solutions.check_head_and_pin(repo, head, offline=False, allow_local_branch=True)
+    assert pin == head
+
+    # 4. With offline=True, it succeeds by verifying against HEAD
+    pin_offline = publish_solutions.check_head_and_pin(repo, head, offline=True, allow_local_branch=False)
+    assert pin_offline == head

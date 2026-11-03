@@ -167,6 +167,16 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default="solution-app/solutions",
         help="Target OSS path prefix.",
     )
+    parser.add_argument(
+        "--generate-test-keys",
+        action="store_true",
+        help="Allow generating ephemeral test keypair for signing (strictly disallowed with --upload).",
+    )
+    parser.add_argument(
+        "--allow-local-branch",
+        action="store_true",
+        help="Allow publishing from a local branch without verifying origin/main reachability (testing only).",
+    )
     return parser.parse_args(argv)
 
 
@@ -198,7 +208,12 @@ def check_repo_boundaries(solutions_dir: Path, repo_root: Path | None = None) ->
     return target_root
 
 
-def check_head_and_pin(repo_root: Path, requested_pin: str, offline: bool = False) -> str:
+def check_head_and_pin(
+    repo_root: Path,
+    requested_pin: str,
+    offline: bool = False,
+    allow_local_branch: bool = False,
+) -> str:
     """Bind HEAD to content-pin and verify ancestry."""
     res = subprocess.run(
         ["git", "-C", str(repo_root), "rev-parse", "HEAD"],
@@ -220,23 +235,30 @@ def check_head_and_pin(repo_root: Path, requested_pin: str, offline: bool = Fals
         pin = head_commit
 
     # Reachability check: git merge-base --is-ancestor "$CONTENT_PIN" origin/main
-    # If origin/main is not present (offline/test checkout), fallback to HEAD
-    has_origin_main = subprocess.run(
-        ["git", "-C", str(repo_root), "rev-parse", "--verify", "origin/main"],
-        capture_output=True,
-        text=True,
-    ).returncode == 0
+    if not offline and not allow_local_branch:
+        verify_origin = subprocess.run(
+            ["git", "-C", str(repo_root), "rev-parse", "--verify", "origin/main"],
+            capture_output=True,
+            text=True,
+        )
+        if verify_origin.returncode != 0:
+            raise ValueError(
+                f"Authoritative ancestry check failed: cannot resolve origin/main in {repo_root}. "
+                "In online mode, origin/main reachability is required. "
+                "Use --allow-local-branch or --offline to bypass for local testing."
+            )
 
-    if has_origin_main and not offline:
         check_ancestor = subprocess.run(
             ["git", "-C", str(repo_root), "merge-base", "--is-ancestor", pin, "origin/main"],
             capture_output=True,
             text=True,
         )
         if check_ancestor.returncode != 0:
-            raise ValueError(f"content-pin {pin} is not an ancestor of origin/main")
+            raise ValueError(
+                f"Authoritative ancestry check failed: content-pin {pin} is not an ancestor of origin/main"
+            )
     else:
-        # Fallback to verifying against HEAD
+        # Fallback to verifying against HEAD when offline or --allow-local-branch is specified
         fb = subprocess.run(
             ["git", "-C", str(repo_root), "merge-base", "--is-ancestor", pin, "HEAD"],
             capture_output=True,
@@ -288,19 +310,17 @@ def check_lfs_pointers(repo_root: Path, tracked_files: list[str]) -> None:
 
 
 def resolve_commit_time(repo_root: Path, content_pin: str) -> int:
-    """Return commit timestamp as integer unix epoch."""
-    if "SOURCE_DATE_EPOCH" in os.environ:
-        try:
-            return int(os.environ["SOURCE_DATE_EPOCH"])
-        except ValueError:
-            pass
+    """Return commit timestamp as integer unix epoch from authoritative git log."""
     res = subprocess.run(
-        ["git", "-C", str(repo_root), "show", "-s", "--format=%ct", content_pin],
+        ["git", "-C", str(repo_root), "log", "-1", "--format=%ct", content_pin],
         capture_output=True,
         text=True,
     )
     if res.returncode == 0 and res.stdout.strip():
-        return int(res.stdout.strip())
+        try:
+            return int(res.stdout.strip())
+        except ValueError:
+            pass
     raise ValueError(f"Could not determine git commit timestamp for pin '{content_pin}' in {repo_root}")
 
 
@@ -434,6 +454,73 @@ def run_minisign_verify(file_to_verify: Path, sig_file: Path, pubkey_str: str) -
         raise RuntimeError(f"minisign verification failed for {file_to_verify}: {res.stderr}")
 
 
+def _to_bytes(val: str | bytes | None) -> bytes:
+    if val is None:
+        return b""
+    if isinstance(val, bytes):
+        return val
+    return val.encode("utf-8")
+
+
+def _to_str(val: str | bytes | None) -> str:
+    if val is None:
+        return ""
+    if isinstance(val, str):
+        return val
+    return val.decode("utf-8", errors="replace")
+
+
+def is_oss_not_found(error_text: str) -> bool:
+    """Return True only if error explicitly indicates object absence (NoSuchKey)."""
+    return "NoSuchKey" in error_text or "The specified key does not exist" in error_text
+
+
+def cat_remote_manifest(
+    bucket: str,
+    prefix: str,
+    ossutil_bin: str = "ossutil",
+) -> tuple[dict[str, Any] | None, bytes | None]:
+    """Retrieve remote manifest from OSS; return (manifest_dict, raw_bytes) or (None, None) if NoSuchKey.
+
+    Fails closed on any error other than NoSuchKey.
+    """
+    remote_target = f"oss://{bucket}/{prefix}/v2/manifest.json"
+    res = subprocess.run([ossutil_bin, "cat", remote_target], capture_output=True)
+    if res.returncode == 0:
+        raw_bytes = _to_bytes(res.stdout)
+        try:
+            data = json.loads(raw_bytes.decode("utf-8"))
+        except Exception as e:
+            raise RuntimeError(f"Failed to parse remote v2 manifest as JSON: {e}")
+        return data, raw_bytes
+
+    err = _to_str(res.stderr) + _to_str(res.stdout)
+    if is_oss_not_found(err):
+        return None, None
+
+    raise RuntimeError(f"Failed to query remote authoritative manifest from OSS ({remote_target}):\n{err}")
+
+
+def oss_object_exists(
+    oss_target: str,
+    ossutil_bin: str = "ossutil",
+) -> tuple[bool, bytes | None]:
+    """Check if an object exists on OSS; return (exists, raw_bytes).
+
+    If object is absent with NoSuchKey, returns (False, None).
+    Fails closed on any error other than NoSuchKey.
+    """
+    res = subprocess.run([ossutil_bin, "cat", oss_target], capture_output=True)
+    if res.returncode == 0:
+        return True, _to_bytes(res.stdout)
+
+    err = _to_str(res.stderr) + _to_str(res.stdout)
+    if is_oss_not_found(err):
+        return False, None
+
+    raise RuntimeError(f"Failed to check object status on OSS ({oss_target}):\n{err}")
+
+
 def check_remote_sequence(
     bucket: str,
     prefix: str,
@@ -441,22 +528,12 @@ def check_remote_sequence(
     output_dir: Path,
     ossutil_bin: str = "ossutil",
 ) -> None:
-    """Retrieve remote manifest via ossutil cat and enforce sequence monotonicity."""
+    """Retrieve remote manifest via cat_remote_manifest and enforce sequence monotonicity."""
     remote_target = f"oss://{bucket}/{prefix}/v2/manifest.json"
-    res = subprocess.run([ossutil_bin, "cat", remote_target], capture_output=True, text=True)
-    if res.returncode != 0:
-        err = res.stderr + res.stdout
-        # Genuine 404 / NoSuchKey
-        if "NoSuchKey" in err or "404" in err or "The specified key does not exist" in err:
-            print(f"[*] Remote v2 manifest not found ({remote_target}); initial publishing at sequence {sequence}.")
-            return
-        # Fail closed on any network, auth, or bucket error
-        raise RuntimeError(f"Failed to query remote authoritative manifest from OSS ({remote_target}):\n{err}")
-
-    try:
-        remote_data = json.loads(res.stdout)
-    except Exception as e:
-        raise RuntimeError(f"Failed to parse remote v2 manifest as JSON: {e}")
+    remote_data, remote_bytes = cat_remote_manifest(bucket, prefix, ossutil_bin=ossutil_bin)
+    if remote_data is None:
+        print(f"[*] Remote v2 manifest not found ({remote_target}); initial publishing at sequence {sequence}.")
+        return
 
     remote_seq = remote_data.get("sequence", 0)
 
@@ -467,8 +544,7 @@ def check_remote_sequence(
     elif sequence == remote_seq:
         local_bytes = (output_dir / "manifest.json").read_bytes()
         local_sha = hashlib.sha256(local_bytes).hexdigest()
-        remote_bytes = res.stdout.encode("utf-8")
-        remote_sha = hashlib.sha256(remote_bytes).hexdigest()
+        remote_sha = hashlib.sha256(remote_bytes or b"").hexdigest()
         if local_sha != remote_sha:
             raise ValueError(
                 f"Publishing rejected: sequence {sequence} already exists on OSS with different manifest SHA-256 "
@@ -483,24 +559,27 @@ def check_immutable_release_conflicts(
     bucket: str,
     prefix: str,
     content_pin: str,
-    output_dir: Path,
+    artifacts: list[Path] | Path,
     ossutil_bin: str = "ossutil",
 ) -> set[str]:
-    """Check all release objects against oss://{bucket}/{prefix}/releases/{content_pin}/.
+    """Check release objects against oss://{bucket}/{prefix}/releases/{content_pin}/.
 
     Returns set of filenames that already exist identically on OSS (to skip uploading).
     Raises ValueError if an object exists with different sha256 (conflict).
     Raises RuntimeError if OSS query fails unexpectedly (fail-closed).
     """
     already_identical: set[str] = set()
-    files_to_check = sorted(p for p in output_dir.iterdir() if p.is_file())
+    files_to_check = (
+        sorted(artifacts)
+        if isinstance(artifacts, list)
+        else sorted(p for p in artifacts.iterdir() if p.is_file())
+    )
 
     for local_p in files_to_check:
         fname = local_p.name
         oss_target = f"oss://{bucket}/{prefix}/releases/{content_pin}/{fname}"
-        res = subprocess.run([ossutil_bin, "cat", oss_target], capture_output=True)
-        if res.returncode == 0:
-            remote_bytes = res.stdout
+        exists, remote_bytes = oss_object_exists(oss_target, ossutil_bin=ossutil_bin)
+        if exists and remote_bytes is not None:
             local_bytes = local_p.read_bytes()
             remote_sha = hashlib.sha256(remote_bytes).hexdigest()
             local_sha = hashlib.sha256(local_bytes).hexdigest()
@@ -511,13 +590,6 @@ def check_immutable_release_conflicts(
                     f"Immutable release conflict: object {oss_target} already exists on OSS with differing sha256 "
                     f"({remote_sha} remote vs {local_sha} local). Overwriting immutable release objects is forbidden!"
                 )
-        else:
-            err = res.stderr.decode("utf-8", errors="replace") + res.stdout.decode("utf-8", errors="replace")
-            if "NoSuchKey" in err or "404" in err or "The specified key does not exist" in err:
-                # Missing object on OSS: allowed (breakpoint resume)
-                pass
-            else:
-                raise RuntimeError(f"Failed to check object status on OSS ({oss_target}):\n{err}")
 
     return already_identical
 
@@ -673,21 +745,87 @@ def verify_deb_archive_strictly(deb_data: bytes, expected_sha256: str | None = N
         raise ValueError(f"Deb archive must contain exactly one data.tar.* member (found {data_count})")
 
 
-def verify_solution_packages(solutions_dir: Path, offline: bool = False) -> None:
-    """Verify deb packages referenced by solutions targeting reCamera/SG2002/riscv64."""
-    if not solutions_dir.is_dir():
-        return
+def discover_solutions_from_git(
+    repo_root: Path,
+    solutions_dir: Path,
+    content_pin: str,
+    tracked_files: list[str],
+) -> list[tuple[str, Path, dict[str, Any]]]:
+    """Discover solution entries exclusively from git-tracked files.
 
+    Identifies solution directories by finding tracked solution.yaml files.
+    Ignores untracked/ignored folders and rejects duplicate solution IDs.
+    """
+    canonical_solutions_dir = solutions_dir.resolve()
+    rel_solutions_dir = canonical_solutions_dir.relative_to(repo_root.resolve()).as_posix()
+    if not rel_solutions_dir.endswith("/"):
+        prefix = rel_solutions_dir + "/"
+    else:
+        prefix = rel_solutions_dir
+
+    tracked_sol_yamls = [
+        f for f in tracked_files
+        if f.startswith(prefix) and f.endswith("/solution.yaml")
+    ]
+
+    solution_entries: list[tuple[str, Path, dict[str, Any]]] = []
+    seen_ids: dict[str, Path] = {}
+
+    for rel_yaml_path in sorted(tracked_sol_yamls):
+        full_yaml_path = repo_root / rel_yaml_path
+        if not full_yaml_path.is_file():
+            continue
+        sol_dir = full_yaml_path.parent
+        if sol_dir.is_symlink():
+            continue
+
+        # Check if directory or file is ignored by git
+        res_ignore = subprocess.run(
+            ["git", "-C", str(repo_root), "check-ignore", "-q", "--", rel_yaml_path],
+            capture_output=True,
+        )
+        if res_ignore.returncode == 0:
+            # Explicitly ignored by gitignore
+            continue
+
+        meta = simple_yaml_load(full_yaml_path)
+        sol_id = str(meta.get("id") or sol_dir.name).strip()
+        if not re.fullmatch(r"^[a-zA-Z0-9_-]+$", sol_id):
+            raise ValueError(f"Invalid solution id '{sol_id}' in {rel_yaml_path}: must match ^[a-zA-Z0-9_-]+$")
+
+        if sol_id in seen_ids:
+            raise ValueError(
+                f"Duplicate solution id detected: '{sol_id}' in {sol_dir} (already defined in {seen_ids[sol_id]})"
+            )
+        seen_ids[sol_id] = sol_dir
+        solution_entries.append((sol_id, sol_dir, meta))
+
+    return solution_entries
+
+
+def verify_solution_packages(
+    solutions: Path | list[tuple[str, Path, dict[str, Any]]],
+    offline: bool = False,
+) -> None:
+    """Verify deb packages referenced by solutions targeting reCamera/SG2002/riscv64."""
     cache_dir = Path(os.environ.get("SC_DEB_CACHE_DIR", Path.home() / ".cache" / "sensecraft_debs"))
 
-    for sol_dir in sorted(solutions_dir.iterdir()):
-        if sol_dir.is_symlink() or not sol_dir.is_dir():
-            continue
-        sol_yaml_file = sol_dir / "solution.yaml"
-        if not sol_yaml_file.is_file():
-            continue
-        sol_meta = simple_yaml_load(sol_yaml_file)
+    if isinstance(solutions, Path):
+        if not solutions.is_dir():
+            return
+        solution_items: list[tuple[Path, dict[str, Any]]] = []
+        for sol_dir in sorted(solutions.iterdir()):
+            if sol_dir.is_symlink() or not sol_dir.is_dir():
+                continue
+            sol_yaml_file = sol_dir / "solution.yaml"
+            if not sol_yaml_file.is_file():
+                continue
+            sol_meta = simple_yaml_load(sol_yaml_file)
+            solution_items.append((sol_dir, sol_meta))
+    else:
+        solution_items = [(entry[1], entry[2]) for entry in solutions]
 
+    for sol_dir, sol_meta in solution_items:
         devices_dir = sol_dir / "devices"
         if not devices_dir.is_dir():
             continue
@@ -797,6 +935,9 @@ def verify_solution_packages(solutions_dir: Path, offline: bool = False) -> None
 
 
 def package_and_publish(args: argparse.Namespace) -> int:
+    if args.upload and getattr(args, "generate_test_keys", False):
+        raise ValueError("Security Error: --generate-test-keys is strictly forbidden in production/upload mode (--upload)")
+
     if args.upload and not args.dry_run and not args.sign:
         raise ValueError("--upload requires --sign")
 
@@ -814,7 +955,12 @@ def package_and_publish(args: argparse.Namespace) -> int:
     check_clean_tree(repo_root)
 
     # HEAD and Pin binding
-    content_pin = check_head_and_pin(repo_root, args.content_pin, offline=args.offline)
+    content_pin = check_head_and_pin(
+        repo_root,
+        args.content_pin,
+        offline=args.offline,
+        allow_local_branch=getattr(args, "allow_local_branch", False),
+    )
     sequence = resolve_sequence(args.sequence, args.dry_run, args.offline)
 
     base_url = args.base_url.strip().rstrip("/")
@@ -828,8 +974,16 @@ def package_and_publish(args: argparse.Namespace) -> int:
     # Check for Git LFS pointers among tracked files
     check_lfs_pointers(repo_root, tracked_files)
 
+    # Discover valid solution folders from git-tracked files
+    solution_entries = discover_solutions_from_git(
+        repo_root, solutions_dir, content_pin, tracked_files
+    )
+    if not solution_entries:
+        print(f"Error: no valid solutions containing solution.yaml found in {solutions_dir}", file=sys.stderr)
+        return 1
+
     # Verify deb packages
-    verify_solution_packages(solutions_dir, offline=args.offline)
+    verify_solution_packages(solution_entries, offline=args.offline)
 
     output_dir.mkdir(parents=True, exist_ok=True)
     for pattern in ("*.zip", "manifest.json*", "bundled_hashes.json*", "solutions_index.json*"):
@@ -847,23 +1001,7 @@ def package_and_publish(args: argparse.Namespace) -> int:
     commit_time = resolve_commit_time(repo_root, content_pin)
     now_iso = resolve_iso_time(repo_root, content_pin)
 
-    # Discover valid solution folders
-    solution_entries: list[tuple[str, Path, dict[str, Any]]] = []
-    for child in sorted(solutions_dir.iterdir()):
-        if child.is_symlink() or not child.is_dir():
-            continue
-        yaml_path = child / "solution.yaml"
-        if yaml_path.is_file():
-            meta = simple_yaml_load(yaml_path)
-            sol_id = meta.get("id") or child.name
-            if not re.fullmatch(r"^[a-zA-Z0-9_-]+$", sol_id):
-                raise ValueError(f"Invalid solution id '{sol_id}': must match ^[a-zA-Z0-9_-]+$")
-            solution_entries.append((sol_id, child, meta))
-
-    if not solution_entries:
-        print(f"Error: no valid solutions containing solution.yaml found in {solutions_dir}", file=sys.stderr)
-        return 1
-
+    generated_artifacts: list[Path] = []
     manifest_solutions: dict[str, Any] = {}
     bundled_hashes: dict[str, str] = {}
     index_solutions: list[dict[str, Any]] = []
@@ -874,6 +1012,7 @@ def package_and_publish(args: argparse.Namespace) -> int:
             raise ValueError(f"Path traversal detected: {zip_path} escapes output directory {output_dir}")
 
         digest, size = create_solution_zip(repo_root, sol_dir, tracked_files, zip_path)
+        generated_artifacts.append(zip_path)
         sha_str = f"sha256:{digest}"
         bundled_hashes[sol_id] = sha_str
 
@@ -929,6 +1068,7 @@ def package_and_publish(args: argparse.Namespace) -> int:
     # Generate bundled_hashes.json
     bundled_hashes_path = output_dir / "bundled_hashes.json"
     bundled_hashes_path.write_text(json.dumps(bundled_hashes, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    generated_artifacts.append(bundled_hashes_path)
 
     # Generate solutions_index.json
     solutions_index_path = output_dir / "solutions_index.json"
@@ -938,6 +1078,7 @@ def package_and_publish(args: argparse.Namespace) -> int:
         "solutions": index_solutions,
     }
     solutions_index_path.write_text(json.dumps(index_payload, indent=2) + "\n", encoding="utf-8")
+    generated_artifacts.append(solutions_index_path)
 
     # Generate manifest.json (v2 format with sequence)
     manifest_path = output_dir / "manifest.json"
@@ -951,6 +1092,7 @@ def package_and_publish(args: argparse.Namespace) -> int:
         "solutions": manifest_solutions,
     }
     manifest_path.write_text(json.dumps(manifest_payload, indent=2) + "\n", encoding="utf-8")
+    generated_artifacts.append(manifest_path)
     print("[*] Generated core manifest files successfully.")
 
     # Signing phase
@@ -965,10 +1107,27 @@ def package_and_publish(args: argparse.Namespace) -> int:
         password = os.environ.get("CONTENT_SIGNING_PRIVATE_KEY_PASSWORD")
         temp_key_dir: str | None = None
 
-        has_env_key = "CONTENT_SIGNING_PRIVATE_KEY" in os.environ
-        has_file_key = sec_file and Path(sec_file).is_file()
+        has_env_key = bool(os.environ.get("CONTENT_SIGNING_PRIVATE_KEY"))
+        has_file_key = bool(sec_file and Path(sec_file).is_file())
 
-        if args.dry_run or ((args.offline or not (has_env_key or has_file_key)) and not has_file_key and not has_env_key):
+        if args.upload:
+            if not (has_env_key or has_file_key):
+                raise ValueError(
+                    "In upload mode, CONTENT_SIGNING_PRIVATE_KEY (env or --minisign-key-file) is strictly required. "
+                    "Ephemeral test keys are forbidden in production/upload mode."
+                )
+
+        use_ephemeral = False
+        if not (has_env_key or has_file_key):
+            if args.offline or getattr(args, "generate_test_keys", False):
+                use_ephemeral = True
+            else:
+                raise ValueError(
+                    "Signing key missing: CONTENT_SIGNING_PRIVATE_KEY env var or --minisign-key-file is required. "
+                    "Ephemeral test keys are only permitted if --offline or --generate-test-keys is passed."
+                )
+
+        if use_ephemeral:
             temp_key_dir = tempfile.mkdtemp(prefix="minisign-ephemeral-")
             sec_file = Path(temp_key_dir) / "test.key"
             pub_file = Path(temp_key_dir) / "test.pub"
@@ -980,16 +1139,14 @@ def package_and_publish(args: argparse.Namespace) -> int:
             pub_lines = pub_file.read_text(encoding="utf-8").strip().splitlines()
             pubkey = pub_lines[1]
             password = None
-            mode_name = "Dry-run" if args.dry_run else "Offline"
+            mode_name = "Offline" if args.offline else "Test-keys"
             print(f"[*] {mode_name} mode: generated ephemeral test keypair (pubkey: {pubkey})")
         else:
             pubkey = getattr(args, "minisign_pubkey", None) or os.environ.get("CONTENT_MINISIGN_PUBLIC_KEY")
             if not pubkey:
-                print(
-                    "Error: --minisign-pubkey or CONTENT_MINISIGN_PUBLIC_KEY environment variable is required when signing",
-                    file=sys.stderr,
+                raise ValueError(
+                    "--minisign-pubkey or CONTENT_MINISIGN_PUBLIC_KEY environment variable is required when signing with a private key"
                 )
-                return 1
 
             if not sec_file and has_env_key:
                 temp_key_dir = tempfile.mkdtemp(prefix="minisign-env-")
@@ -998,8 +1155,7 @@ def package_and_publish(args: argparse.Namespace) -> int:
                 sec_file.chmod(0o600)
 
         if not sec_file or not Path(sec_file).is_file():
-            print("Error: --sign specified but no secret key provided", file=sys.stderr)
-            return 1
+            raise ValueError("Error: --sign specified but no secret key provided")
 
         try:
             for target_path, target_version in targets_to_sign:
@@ -1011,6 +1167,7 @@ def package_and_publish(args: argparse.Namespace) -> int:
                     password=password,
                 )
                 run_minisign_verify(target_path, sig, pubkey)
+                generated_artifacts.append(sig)
                 print(f"  ✔ Signed & verified: {sig.name}")
         finally:
             if temp_key_dir and os.path.exists(temp_key_dir):
@@ -1035,7 +1192,7 @@ def package_and_publish(args: argparse.Namespace) -> int:
         check_remote_sequence(bucket, prefix, sequence, output_dir)
 
         # 2. Immutable release conflict check
-        already_identical = check_immutable_release_conflicts(bucket, prefix, content_pin, output_dir)
+        already_identical = check_immutable_release_conflicts(bucket, prefix, content_pin, generated_artifacts)
 
         if args.dry_run:
             print("[*] Dry-run preflight complete. Zero changes written to OSS.")
@@ -1043,8 +1200,7 @@ def package_and_publish(args: argparse.Namespace) -> int:
 
         # Upload phase
         print("[*] Uploading immutable release objects to OSS...")
-        files_to_upload = sorted(p for p in output_dir.iterdir() if p.is_file())
-        for local_p in files_to_upload:
+        for local_p in sorted(generated_artifacts):
             fname = local_p.name
             if fname in already_identical:
                 print(f"  [skip] {fname} (already identical on OSS)")
@@ -1065,34 +1221,37 @@ def package_and_publish(args: argparse.Namespace) -> int:
             "solutions_index.json",
             "solutions_index.json.minisig",
         ]
+        gen_names = {p.name for p in generated_artifacts}
         for fname in aux_files:
-            local_p = output_dir / fname
-            if local_p.is_file():
-                dest_obj = f"{v2_dest}{fname}"
-                print(f"  [v2 aux] {fname} -> {dest_obj}")
-                res = subprocess.run(["ossutil", "cp", "-f", str(local_p), dest_obj], capture_output=True, text=True)
-                if res.returncode != 0:
-                    raise RuntimeError(f"Error promoting {fname} to {v2_dest}: {res.stderr}")
+            if fname in gen_names:
+                local_p = output_dir / fname
+                if local_p.is_file():
+                    dest_obj = f"{v2_dest}{fname}"
+                    print(f"  [v2 aux] {fname} -> {dest_obj}")
+                    res = subprocess.run(["ossutil", "cp", "-f", str(local_p), dest_obj], capture_output=True, text=True)
+                    if res.returncode != 0:
+                        raise RuntimeError(f"Error promoting {fname} to {v2_dest}: {res.stderr}")
 
         entry_files = [
             "manifest.json",
             "manifest.json.minisig",
         ]
         for fname in entry_files:
-            local_p = output_dir / fname
-            if local_p.is_file():
-                dest_obj = f"{v2_dest}{fname}"
-                print(f"  [v2 entry] {fname} -> {dest_obj}")
-                res = subprocess.run(["ossutil", "cp", "-f", str(local_p), dest_obj], capture_output=True, text=True)
-                if res.returncode != 0:
-                    raise RuntimeError(f"Error promoting {fname} to {v2_dest}: {res.stderr}")
+            if fname in gen_names:
+                local_p = output_dir / fname
+                if local_p.is_file():
+                    dest_obj = f"{v2_dest}{fname}"
+                    print(f"  [v2 entry] {fname} -> {dest_obj}")
+                    res = subprocess.run(["ossutil", "cp", "-f", str(local_p), dest_obj], capture_output=True, text=True)
+                    if res.returncode != 0:
+                        raise RuntimeError(f"Error promoting {fname} to {v2_dest}: {res.stderr}")
 
         print("✔ CDN publishing completed successfully!")
 
     print("\n" + "=" * 60)
     print("PUBLISH INVENTORY SUMMARY")
     print("=" * 60)
-    for p in sorted(output_dir.iterdir()):
+    for p in sorted(generated_artifacts):
         if p.is_file():
             h = hashlib.sha256(p.read_bytes()).hexdigest()
             print(f"{p.name:<32} {p.stat().st_size:>9} bytes  sha256:{h[:16]}...")
