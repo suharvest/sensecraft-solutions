@@ -1,66 +1,73 @@
-version: "1.0"
+version: '1.0'
 id: wio_weather_station
 name: Compact Weather Station & Environmental Monitoring
 name_i18n:
-  zh: "小型气象站与环境监测方案"
+  zh: 小型气象站与环境监测方案
 intro:
-  summary: "Professional meteorological and environmental sensing anchored on industrial all-in-one stations and SenseCAP PaaS. The solution provides standard industrial deployments with SenseCAP ONE sensors, alongside a self-contained Wio Terminal desktop starter kit for zero-barrier prototyping and local evaluation before field rollout."
+  summary: Standard meteorological and environmental monitoring solution anchored on the SenseCAP ONE industrial sensor series
+    (exemplified by the S700 7-in-1 solid-state station with ultrasonic wind, optical rain, and ambient metrics) and SenseCAP
+    PaaS. Utilizing Sensor Hub 4G loggers for wire-free transmission and offline caching, telemetry feeds directly into cloud
+    dashboards, Open APIs, and automated control outputs across agriculture, solar parks, and industrial sites.
   summary_i18n:
-    zh: "面向微气象观测与环境监测的标准方案，基于 SenseCAP ONE 工业级传感器与 SenseCAP 气象云平台。针对现场尚未采购或处于前期评估阶段的开发者，方案配套提供基于 Wio Terminal 的自包含桌面入门体验套件，支持 4 屏 LCD 仪表盘与 Home Assistant 局域网接入，无缝跑通全链路数据流。"
+    zh: 面向微气象观测与环境监测的标准方案，基于 SenseCAP ONE 工业级多要素气象传感器系列（本方案以集成超声波风速风向、光学雨量的 S700 7合1 传感器为例）与 SenseCAP 气象云平台。通过 Sensor Hub
+      4G 记录仪实现免布线回传与断网续传，数据汇聚至云端大屏并提供开放 API 与自动化联动接口，适应智慧农业、光伏电站与工业园区等全天候野外场景。
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
   category: environmental_sensing
   solution_type: solution
   tags:
-    - compact-weather
-    - weather-station
-    - sensecap
-    - s700
-    - wio-terminal
-    - home-assistant
-    - mqtt
-    - starter-kit
+  - compact-weather
+  - weather-station
+  - sensecap
+  - s700
+  - wio-terminal
+  - home-assistant
+  - mqtt
+  - starter-kit
   gallery:
-    - type: image
-      src: gallery/sensecap-portal-dashboard.png
-      caption: SenseCAP Meteorological Portal — 7-in-1 real-time telemetry, 24-hour wind/rain trend charts, and unified device asset health management
-      caption_i18n:
-        zh: SenseCAP 气象云平台看板——7合1 实时气象要素遥测、24 小时风速风向走势与设备资产运行监控
-    - type: image
-      src: gallery/sensor-hub-telemetry.png
-      caption: Sensor Hub 4G Telemetry Monitor — RS485 bus acquisition, offline buffer status, and cellular MQTT transmission
-      caption_i18n:
-        zh: Sensor Hub 4G 采集与链路监控——RS485 总线轮询、断网离线缓存队列与蜂窝 MQTT 实时报文流
+  - type: image
+    src: gallery/sensecap-portal-dashboard.png
+    caption: SenseCAP Meteorological Portal — 7-in-1 real-time telemetry, 24-hour wind/rain trend charts, and unified device
+      asset health management
+    caption_i18n:
+      zh: SenseCAP 气象云平台看板——7合1 实时气象要素遥测、24 小时风速风向走势与设备资产运行监控
+  - type: image
+    src: gallery/sensor-hub-telemetry.png
+    caption: Sensor Hub 4G Telemetry Monitor — RS485 bus acquisition, offline buffer status, and cellular MQTT transmission
+    caption_i18n:
+      zh: Sensor Hub 4G 采集与链路监控——RS485 总线轮询、断网离线缓存队列与蜂窝 MQTT 实时报文流
   output_interfaces:
-    - type: serial
-      endpoint: "USB CDC"
-      description: "Serial telemetry and debugging"
-      description_i18n:
-        zh: "USB CDC 串口遥测与调试"
-    - type: network
-      description: "MQTT telemetry via Wi-Fi and SenseCAP PaaS data forwarding (optional)"
-      description_i18n:
-        zh: "基于 Wi-Fi 的 MQTT 遥测及 SenseCAP 平台数据上报（可选）"
+  - type: serial
+    endpoint: USB CDC
+    description: Serial telemetry and debugging
+    description_i18n:
+      zh: USB CDC 串口遥测与调试
+  - type: network
+    description: MQTT telemetry via Wi-Fi and SenseCAP PaaS data forwarding (optional)
+    description_i18n:
+      zh: 基于 Wi-Fi 的 MQTT 遥测及 SenseCAP 平台数据上报（可选）
   input_requirements:
-    - type: network
-      required: false
-      description: "2.4 GHz Wi-Fi and reachable Home Assistant MQTT Broker (optional, required only for Home Assistant and cloud integration)"
-      description_i18n:
-        zh: "2.4 GHz Wi-Fi 网络及可达的 Home Assistant MQTT Broker（可选，仅接入 Home Assistant 及云端时需要）"
+  - type: network
+    required: false
+    description: 2.4 GHz Wi-Fi and reachable Home Assistant MQTT Broker (optional, required only for Home Assistant and cloud
+      integration)
+    description_i18n:
+      zh: 2.4 GHz Wi-Fi 网络及可达的 Home Assistant MQTT Broker（可选，仅接入 Home Assistant 及云端时需要）
   presets:
-    - id: default
-      name: "Compact Weather Station Standard Deployment"
-      name_i18n:
-        zh: "小型气象站与环境监测标准方案"
-      badge: "Industrial Standard"
-      badge_i18n:
-        zh: "工业标准"
-      description: "Deploy SenseCAP ONE S700 7-in-1 compact weather sensor and industrial data logger, connecting directly to SenseCAP PaaS for high-precision outdoor meteorological monitoring."
-      description_i18n:
-        zh: "基于 SenseCAP ONE S700 7合1 紧凑型气象传感器与工业采集网关，直连 SenseCAP 气象云平台，提供高精度户外气象要素监测。"
-      verified:
-        - hardware
+  - id: default
+    name: Compact Weather Station Standard Deployment
+    name_i18n:
+      zh: 小型气象站与环境监测标准方案
+    badge: Industrial Standard
+    badge_i18n:
+      zh: 工业标准
+    description: Deploy SenseCAP ONE S700 7-in-1 compact weather sensor and industrial data logger, connecting directly to
+      SenseCAP PaaS for high-precision outdoor meteorological monitoring.
+    description_i18n:
+      zh: 基于 SenseCAP ONE S700 7合1 紧凑型气象传感器与工业采集网关，直连 SenseCAP 气象云平台，提供高精度户外气象要素监测。
+    verified:
+    - hardware
 deployment:
   guide_file: guide.md
   guide_file_i18n:
