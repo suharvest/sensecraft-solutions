@@ -845,14 +845,14 @@ def test_immutable_release_upload_does_not_use_force(tmp_path: Path):
     sec_key, pubkey = generate_test_minisign_keypair(tmp_path)
     out_dir = tmp_path / "cdn_out"
 
-    ossutil_cp_calls: list[list[str]] = []
+    ossutil_calls: list[list[str]] = []
     real_run = subprocess.run
 
     def mock_subprocess(cmd, **kwargs):
         cmd_list = [str(c) for c in cmd]
         if cmd_list and cmd_list[0] == "ossutil":
-            if cmd_list[1] == "cp":
-                ossutil_cp_calls.append(cmd_list)
+            if cmd_list[1] in ("cp", "api"):
+                ossutil_calls.append(cmd_list)
                 return mock.Mock(returncode=0, stdout="", stderr="")
             elif cmd_list[1] == "cat":
                 return mock.Mock(returncode=1, stdout=b"", stderr=b"ErrorCode=NoSuchKey: not found")
@@ -873,22 +873,28 @@ def test_immutable_release_upload_does_not_use_force(tmp_path: Path):
         assert rc == 0
 
     # Separate immutable releases/<pin>/ uploads from mutable v2/ promotions
-    immutable_calls = [c for c in ossutil_cp_calls if f"/releases/{head}/" in " ".join(c)]
-    v2_calls = [c for c in ossutil_cp_calls if "/v2/" in " ".join(c)]
+    immutable_calls = [c for c in ossutil_calls if "put-object" in c]
+    v2_calls = [c for c in ossutil_calls if "cp" in c and "/v2/" in " ".join(c)]
 
     assert len(immutable_calls) > 0
     assert len(v2_calls) > 0
 
-    # Immutable releases upload must NOT contain -f, and MUST pass --meta x-oss-forbid-overwrite:true
+    # Immutable releases upload must use ossutil api put-object with --forbid-overwrite true
     for call in immutable_calls:
         assert "-f" not in call, f"Forbidden -f flag found in immutable release upload: {call}"
+        assert "put-object" in call, f"Expected put-object in immutable upload: {call}"
+        assert "--bucket" in call
+        assert "--key" in call
+        assert "--body" in call
         call_str = " ".join(call)
-        assert "x-oss-forbid-overwrite:true" in call_str, f"Missing forbid-overwrite meta in immutable upload: {call}"
+        assert "--forbid-overwrite true" in call_str or ("--forbid-overwrite" in call and "true" in call), f"Missing forbid-overwrite in immutable upload: {call}"
+        key_idx = call.index("--key")
+        assert f"solution-app/solutions/releases/{head}/" in call[key_idx + 1]
 
     # Mutable v2 promotion may contain -f and must NOT forbid overwrite
     for call in v2_calls:
         assert "-f" in call, f"Expected -f flag in v2 promotion: {call}"
-        assert "x-oss-forbid-overwrite:true" not in " ".join(call)
+        assert "--forbid-overwrite" not in call
 
 
 def test_forbidden_or_mismatched_base_url_rejected(tmp_path: Path):
@@ -1037,5 +1043,192 @@ def test_dry_run_unconditionally_uses_test_keys_even_with_env_private_key(
     # Confirm test-keys mode generated an ephemeral test keypair
     assert "Test-keys mode: generated ephemeral test keypair" in stdout
     assert "Dry-run preflight complete. Zero changes written to OSS." in stdout
+
+
+def test_sequence_less_than_one_rejected(tmp_path: Path):
+    repo = tmp_path / "repo"
+    head = init_test_git_repo(repo)
+    out_dir = tmp_path / "cdn_out"
+
+    # Reject sequence = 0 in CLI / package_and_publish
+    with pytest.raises(ValueError, match=r"sequence must be >= 1 \(floor is 1\), got 0"):
+        publish_solutions.package_and_publish(
+            publish_solutions.parse_args([
+                "--solutions-dir", str(repo / "solutions"),
+                "--output-dir", str(out_dir),
+                "--content-pin", head,
+                "--sequence", "0",
+                "--offline",
+            ])
+        )
+
+    # Reject sequence = 0 directly in resolve_sequence
+    with pytest.raises(ValueError, match=r"sequence must be >= 1 \(floor is 1\), got 0"):
+        publish_solutions.resolve_sequence(0, dry_run=False, offline=False)
+
+    # Reject negative sequence in resolve_sequence
+    with pytest.raises(ValueError, match=r"sequence must be >= 1 \(floor is 1\), got -1"):
+        publish_solutions.resolve_sequence(-1, dry_run=False, offline=False)
+
+
+def test_dry_run_existing_release_with_test_keys_verifies_production_signature(tmp_path: Path):
+    repo = tmp_path / "repo"
+    head = init_test_git_repo(repo)
+    prod_sec_key, prod_pubkey = generate_test_minisign_keypair(tmp_path / "prod_keys")
+    out_dir_prod = tmp_path / "cdn_prod"
+
+    # Generate real production signed artifacts
+    rc_prod = publish_solutions.package_and_publish(
+        publish_solutions.parse_args([
+            "--solutions-dir", str(repo / "solutions"),
+            "--output-dir", str(out_dir_prod),
+            "--content-pin", head,
+            "--sequence", "1",
+            "--sign",
+            "--offline",
+            "--minisign-key-file", str(prod_sec_key),
+            "--minisign-pubkey", prod_pubkey,
+        ])
+    )
+    assert rc_prod == 0
+
+    # Read the production files into memory to mock remote OSS
+    remote_oss_files: dict[str, bytes] = {
+        p.name: p.read_bytes() for p in out_dir_prod.iterdir() if p.is_file()
+    }
+
+    out_dir_dry = tmp_path / "cdn_dry"
+    real_run = subprocess.run
+
+    def mock_subprocess(cmd, **kwargs):
+        cmd_list = [str(c) for c in cmd]
+        if cmd_list and cmd_list[0] == "ossutil":
+            cmd_str = " ".join(cmd_list)
+            if "ossutil cat" in cmd_str:
+                target = cmd_list[2]
+                fname = target.split("/")[-1]
+                if f"/releases/{head}/" in target and fname in remote_oss_files:
+                    return mock.Mock(returncode=0, stdout=remote_oss_files[fname], stderr=b"")
+                return mock.Mock(returncode=1, stdout=b"", stderr=b"ErrorCode=NoSuchKey: not found")
+            return mock.Mock(returncode=0, stdout="", stderr="")
+        return real_run(cmd, **kwargs)
+
+    # 1. With prod_pubkey provided: dry run verifies remote .minisig against prod_pubkey
+    with mock.patch("subprocess.run", side_effect=mock_subprocess):
+        rc_dry = publish_solutions.package_and_publish(
+            publish_solutions.parse_args([
+                "--solutions-dir", str(repo / "solutions"),
+                "--output-dir", str(out_dir_dry),
+                "--content-pin", head,
+                "--sequence", "1",
+                "--sign",
+                "--dry-run",
+                "--allow-local-branch",
+                "--minisign-pubkey", prod_pubkey,
+            ])
+        )
+        assert rc_dry == 0
+
+    # 2. Without pubkey: dry run skips minisig byte check and succeeds
+    out_dir_dry_nopubkey = tmp_path / "cdn_dry_nopubkey"
+    with mock.patch("subprocess.run", side_effect=mock_subprocess):
+        rc_dry_nopubkey = publish_solutions.package_and_publish(
+            publish_solutions.parse_args([
+                "--solutions-dir", str(repo / "solutions"),
+                "--output-dir", str(out_dir_dry_nopubkey),
+                "--content-pin", head,
+                "--sequence", "1",
+                "--sign",
+                "--dry-run",
+                "--allow-local-branch",
+            ])
+        )
+        assert rc_dry_nopubkey == 0
+
+    # 3. Altered payload content MUST still be rejected in dry-run
+    remote_oss_files["sol_alpha.zip"] = b"tampered-zip-contents"
+    out_dir_dry_tampered = tmp_path / "cdn_dry_tampered"
+    with mock.patch("subprocess.run", side_effect=mock_subprocess):
+        with pytest.raises(ValueError, match="Immutable release conflict.*sol_alpha.zip"):
+            publish_solutions.package_and_publish(
+                publish_solutions.parse_args([
+                    "--solutions-dir", str(repo / "solutions"),
+                    "--output-dir", str(out_dir_dry_tampered),
+                    "--content-pin", head,
+                    "--sequence", "1",
+                    "--sign",
+                    "--dry-run",
+                    "--allow-local-branch",
+                    "--minisign-pubkey", prod_pubkey,
+                ])
+            )
+
+
+def test_check_immutable_release_conflicts_unit(tmp_path: Path):
+    sec_key, pubkey = generate_test_minisign_keypair(tmp_path)
+    test_file = tmp_path / "manifest.json"
+    test_file.write_text('{"version": 2}\n', encoding="utf-8")
+    sig = publish_solutions.run_minisign_sign(test_file, sec_key, commit_time=1700000000, version=2)
+
+    # Ephemeral key signs a copy in a separate directory so it doesn't overwrite sig
+    eph_dir = tmp_path / "eph"
+    eph_dir.mkdir(parents=True, exist_ok=True)
+    eph_sec_key, _ = generate_test_minisign_keypair(eph_dir)
+    test_file_eph = eph_dir / "manifest.json"
+    test_file_eph.write_text('{"version": 2}\n', encoding="utf-8")
+    eph_sig = publish_solutions.run_minisign_sign(test_file_eph, eph_sec_key, commit_time=1700000000, version=2)
+    eph_sig_bytes = eph_sig.read_bytes()
+
+    # If is_test_keys is False, signature mismatch raises conflict
+    real_run = subprocess.run
+
+    def mock_subprocess(cmd, **kwargs):
+        cmd_list = [str(c) for c in cmd]
+        if cmd_list and cmd_list[0] == "ossutil":
+            cmd_str = " ".join(cmd_list)
+            if "ossutil cat" in cmd_str:
+                target = cmd_list[2]
+                if target.endswith("manifest.json"):
+                    return mock.Mock(returncode=0, stdout=test_file.read_bytes(), stderr=b"")
+                elif target.endswith("manifest.json.minisig"):
+                    return mock.Mock(returncode=0, stdout=eph_sig_bytes, stderr=b"")
+            return mock.Mock(returncode=0, stdout="", stderr="")
+        return real_run(cmd, **kwargs)
+
+    with mock.patch("subprocess.run", side_effect=mock_subprocess):
+        # In non-test-keys mode, signature mismatch is a conflict
+        with pytest.raises(ValueError, match="Immutable release conflict.*manifest.json.minisig"):
+            publish_solutions.check_immutable_release_conflicts(
+                bucket="bucket",
+                prefix="prefix",
+                content_pin="pin",
+                artifacts=[test_file, sig],
+                is_test_keys=False,
+            )
+
+        # In test-keys mode with prod_pubkey, remote signature is verified against pubkey
+        # Since eph_sig was signed by eph_sec_key (not pubkey), it correctly detects invalid remote sig
+        with pytest.raises(ValueError, match="remote .* signature is invalid"):
+            publish_solutions.check_immutable_release_conflicts(
+                bucket="bucket",
+                prefix="prefix",
+                content_pin="pin",
+                artifacts=[test_file, sig],
+                is_test_keys=True,
+                prod_pubkey=pubkey,
+            )
+
+        # In test-keys mode without pubkey, minisig byte equality check is skipped
+        identical = publish_solutions.check_immutable_release_conflicts(
+            bucket="bucket",
+            prefix="prefix",
+            content_pin="pin",
+            artifacts=[test_file, sig],
+            is_test_keys=True,
+            prod_pubkey=None,
+        )
+        assert "manifest.json" in identical
+        assert "manifest.json.minisig" in identical
+
 
 

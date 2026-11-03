@@ -337,14 +337,16 @@ def resolve_iso_time(repo_root: Path, content_pin: str) -> str:
 
 def resolve_sequence(seq: int | None, dry_run: bool, offline: bool) -> int:
     if seq is not None:
-        if seq < 0 or seq > JSON_SAFE_INTEGER_MAX:
-            raise ValueError(f"sequence must be between 0 and {JSON_SAFE_INTEGER_MAX} (got {seq})")
+        if seq < 1:
+            raise ValueError(f"sequence must be >= 1 (floor is 1), got {seq}")
+        if seq > JSON_SAFE_INTEGER_MAX:
+            raise ValueError(f"sequence must be between 1 and {JSON_SAFE_INTEGER_MAX} (got {seq})")
         return seq
 
     if dry_run or offline:
         return 1
 
-    raise ValueError("Missing required --sequence (must be non-negative integer <= 9007199254740991)")
+    raise ValueError("Missing required --sequence (must be an integer >= 1 and <= 9007199254740991)")
 
 
 def simple_yaml_load(path: Path) -> dict[str, Any]:
@@ -571,6 +573,8 @@ def check_immutable_release_conflicts(
     content_pin: str,
     artifacts: list[Path] | Path,
     ossutil_bin: str = "ossutil",
+    is_test_keys: bool = False,
+    prod_pubkey: str | None = None,
 ) -> set[str]:
     """Check release objects against oss://{bucket}/{prefix}/releases/{content_pin}/.
 
@@ -594,6 +598,27 @@ def check_immutable_release_conflicts(
             remote_sha = hashlib.sha256(remote_bytes).hexdigest()
             local_sha = hashlib.sha256(local_bytes).hexdigest()
             if remote_sha == local_sha:
+                already_identical.add(fname)
+            elif is_test_keys and fname.endswith(".minisig"):
+                if prod_pubkey:
+                    target_payload = local_p.with_suffix("")
+                    if target_payload.is_file():
+                        with tempfile.NamedTemporaryFile(suffix=".minisig", delete=False) as tmp_sig:
+                            tmp_sig.write(remote_bytes)
+                            tmp_sig_path = Path(tmp_sig.name)
+                        try:
+                            run_minisign_verify(target_payload, tmp_sig_path, prod_pubkey)
+                            print(f"  [*] Remote signature {fname} verified with production public key.")
+                        except Exception as e:
+                            raise ValueError(
+                                f"Immutable release conflict: remote {oss_target} signature is invalid: {e}"
+                            ) from e
+                        finally:
+                            tmp_sig_path.unlink(missing_ok=True)
+                    else:
+                        print(f"  [*] Dry-run with test keys: skipping byte equality check for {fname} (payload missing locally).")
+                else:
+                    print(f"  [*] Dry-run with test keys: skipping byte equality check for {fname}.")
                 already_identical.add(fname)
             else:
                 raise ValueError(
@@ -1087,6 +1112,9 @@ def format_artifact_inventory(
 
 
 def package_and_publish(args: argparse.Namespace) -> int:
+    if args.sequence is not None and args.sequence < 1:
+        raise ValueError(f"sequence must be >= 1 (floor is 1), got {args.sequence}")
+
     if args.dry_run:
         args.generate_test_keys = True
         # Unconditionally clear private key variable so dry-run never touches production private key
@@ -1274,6 +1302,7 @@ def package_and_publish(args: argparse.Namespace) -> int:
         (solutions_index_path, 1),
     ]
 
+    use_ephemeral = False
     if args.sign or args.dry_run:
         sec_file = getattr(args, "minisign_key_file", None)
         password = os.environ.get("CONTENT_SIGNING_PRIVATE_KEY_PASSWORD")
@@ -1365,7 +1394,16 @@ def package_and_publish(args: argparse.Namespace) -> int:
         check_remote_sequence(bucket, prefix, sequence, output_dir)
 
         # 2. Immutable release conflict check
-        already_identical = check_immutable_release_conflicts(bucket, prefix, content_pin, generated_artifacts)
+        use_test_keys = getattr(args, "generate_test_keys", False) or args.dry_run or use_ephemeral
+        prod_pubkey = getattr(args, "minisign_pubkey", None) or os.environ.get("CONTENT_MINISIGN_PUBLIC_KEY")
+        already_identical = check_immutable_release_conflicts(
+            bucket,
+            prefix,
+            content_pin,
+            generated_artifacts,
+            is_test_keys=use_test_keys,
+            prod_pubkey=prod_pubkey,
+        )
 
         if args.dry_run:
             print("[*] Dry-run preflight complete. Zero changes written to OSS.")
@@ -1382,8 +1420,21 @@ def package_and_publish(args: argparse.Namespace) -> int:
             if dest_obj == frozen_root_manifest:
                 raise ValueError("Security Error: direct overwrite of frozen v1 root manifest is forbidden!")
             print(f"  [upload] {fname} -> {dest_obj}")
+            rel_key = f"{prefix}/releases/{content_pin}/{fname}" if prefix else f"releases/{content_pin}/{fname}"
             res = subprocess.run(
-                ["ossutil", "cp", "--meta", "x-oss-forbid-overwrite:true", str(local_p), dest_obj],
+                [
+                    "ossutil",
+                    "api",
+                    "put-object",
+                    "--bucket",
+                    bucket,
+                    "--key",
+                    rel_key,
+                    "--body",
+                    f"file://{local_p.resolve()}",
+                    "--forbid-overwrite",
+                    "true",
+                ],
                 capture_output=True,
                 text=True,
             )
