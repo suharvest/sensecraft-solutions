@@ -24,7 +24,7 @@ intro:
       caption_i18n:
         zh: 实时机械异常振动报警
   category: industrial_control_automation
-  solution_type: technical
+  solution_type: solution
   output_interfaces:
     - type: serial
       endpoint: Meshtastic USB serial API (magnetic cable)
