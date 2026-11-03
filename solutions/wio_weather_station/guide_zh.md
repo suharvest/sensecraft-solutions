@@ -1,4 +1,4 @@
-## 套餐: Wio Terminal 气象站与 SenseCAP 入门体验部署 {#default}
+## 套餐: 小型气象站与环境监测标准方案 {#default}
 
 标准气象监测方案采用 SenseCAP 工业级气象传感器直连 SenseCAP 平台。针对暂无现成户外气象站的用户，本方案提供基于 Wio Terminal 与 Grove 传感器的自包含桌面入门体验套装。即使在完全脱网状态下，设备亦可独立驱动 2.4 寸暗色 LCD 仪表盘（五向摇杆 4 屏平滑切换），并支持按需接入 Home Assistant MQTT 遥测与 SenseCAP 气象云平台。
 

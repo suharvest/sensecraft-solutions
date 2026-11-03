@@ -1,4 +1,4 @@
-## Preset: Wio Weather Station & SenseCAP Starter Kit {#default}
+## Preset: Compact Weather Station Standard Deployment {#default}
 
 Standard meteorological solutions connect industrial sensors directly to SenseCAP cloud platforms. For users and evaluators without immediate access to outdoor industrial weather stations, this self-contained Wio Terminal starter kit provides a plug-and-play desktop evaluation platform. Operates completely standalone with an on-device dark-mode dashboard (4 joystick-navigated pages), with optional MQTT telemetry reporting to Home Assistant and bridging to SenseCAP meteorological services.
 
