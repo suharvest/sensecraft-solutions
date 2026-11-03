@@ -28,10 +28,10 @@ intro:
       caption_i18n:
         zh: SenseCAP 气象云平台看板——7合1 实时气象要素遥测、24 小时风速风向走势与设备资产运行监控
     - type: image
-      src: gallery/wio-ha-dashboard.png
-      caption: Home Assistant /wio-weather dashboard — auto-discovered local entities with gauges for temperature, humidity, noise level, and continuous environmental trends
+      src: gallery/sensor-hub-telemetry.png
+      caption: Sensor Hub 4G Telemetry Monitor — RS485 bus acquisition, offline buffer status, and cellular MQTT transmission
       caption_i18n:
-        zh: Home Assistant /wio-weather 局域网看板——自动发现的温湿度仪表盘、动态环境声级计与昼夜走势
+        zh: Sensor Hub 4G 采集与链路监控——RS485 总线轮询、断网离线缓存队列与蜂窝 MQTT 实时报文流
   output_interfaces:
     - type: serial
       endpoint: "USB CDC"
