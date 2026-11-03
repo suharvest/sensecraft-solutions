@@ -1,26 +1,37 @@
 version: "1.0"
 id: wio_weather_station
-name: Wio Terminal Weather Station & SenseCAP Starter Kit
+name: Compact Weather Station & Environmental Monitoring
 name_i18n:
-  zh: "Wio Terminal 气象站与 SenseCAP 入门体验套装"
+  zh: "小型气象站与环境监测方案"
 intro:
-  summary: "Standard meteorological deployments connect industrial sensors to SenseCAP PaaS. For developers without full outdoor weather stations, this self-contained Wio Terminal and Grove starter kit provides a plug-and-play desktop evaluation platform featuring an on-device dark-mode dashboard (4 joystick-switched pages), onboard sound/light sensing, optional Home Assistant integration, and bridging to the SenseCAP meteorological cloud."
+  summary: "Professional meteorological and environmental sensing anchored on industrial all-in-one stations and SenseCAP PaaS. The solution provides standard industrial deployments with SenseCAP ONE sensors, alongside a self-contained Wio Terminal desktop starter kit for zero-barrier prototyping and local evaluation before field rollout."
   summary_i18n:
-    zh: "气象站标准方案采用工业级传感器直连 SenseCAP 气象云平台；针对暂无专业气象站硬件的用户，本方案提供基于 Wio Terminal 与 Grove 的自包含桌面入门体验套装，支持 2.4 寸 LCD 4 屏暗黑仪表盘（五向摇杆切换）、板载声光传感与扩展插槽，并可按需接入 Home Assistant 与 SenseCAP 平台，低成本跑通全链路体验。"
+    zh: "面向微气象观测与环境监测的标准方案，基于 SenseCAP ONE 工业级传感器与 SenseCAP 气象云平台。针对现场尚未采购或处于前期评估阶段的开发者，方案配套提供基于 Wio Terminal 的自包含桌面入门体验套件，支持 4 屏 LCD 仪表盘与 Home Assistant 局域网接入，无缝跑通全链路数据流。"
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
   category: environmental_sensing
   solution_type: solution
   tags:
-    - wio-terminal
-    - grove
+    - compact-weather
     - weather-station
     - sensecap
+    - s700
+    - wio-terminal
     - home-assistant
     - mqtt
-    - iot
     - starter-kit
+  gallery:
+    - type: image
+      src: gallery/sensecap-portal-dashboard.png
+      caption: SenseCAP Meteorological Portal — 7-in-1 real-time telemetry, 24-hour wind/rain trend charts, and unified device asset health management
+      caption_i18n:
+        zh: SenseCAP 气象云平台看板——7合1 实时气象要素遥测、24 小时风速风向走势与设备资产运行监控
+    - type: image
+      src: gallery/wio-ha-dashboard.png
+      caption: Home Assistant /wio-weather dashboard — auto-discovered local entities with gauges for temperature, humidity, noise level, and continuous environmental trends
+      caption_i18n:
+        zh: Home Assistant /wio-weather 局域网看板——自动发现的温湿度仪表盘、动态环境声级计与昼夜走势
   output_interfaces:
     - type: serial
       endpoint: "USB CDC"
@@ -39,15 +50,15 @@ intro:
         zh: "2.4 GHz Wi-Fi 网络及可达的 Home Assistant MQTT Broker（可选，仅接入 Home Assistant 及云端时需要）"
   presets:
     - id: default
-      name: "Wio Weather Station & SenseCAP Starter Kit"
+      name: "Compact Weather Station Standard Deployment"
       name_i18n:
-        zh: "Wio Terminal 气象站与 SenseCAP 入门体验部署"
-      badge: "Starter Kit"
+        zh: "小型气象站与环境监测标准方案"
+      badge: "Industrial Standard"
       badge_i18n:
-        zh: "入门套装"
-      description: "Deploy weather station starter kit to Wio Terminal for standalone desktop evaluation, Home Assistant integration, and SenseCAP cloud data onboarding without waiting for industrial weather stations."
+        zh: "工业标准"
+      description: "Deploy SenseCAP ONE S700 7-in-1 compact weather sensor and industrial data logger, connecting directly to SenseCAP PaaS for high-precision outdoor meteorological monitoring."
       description_i18n:
-        zh: "将气象站入门套件固件烧录至 Wio Terminal，在暂无工业气象站时快速实现桌面环境监控，并按需打通 Home Assistant 联动与 SenseCAP 气象云平台接入。"
+        zh: "基于 SenseCAP ONE S700 7合1 紧凑型气象传感器与工业采集网关，直连 SenseCAP 气象云平台，提供高精度户外气象要素监测。"
       verified:
         - hardware
 deployment:
