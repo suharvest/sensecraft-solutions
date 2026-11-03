@@ -39,7 +39,7 @@ binary:
     name: supervisor
     includes_init_script: true
     checksum:
-      sha256: d0ccbdce2a9775f4672e476e4266a94c038fda77e076bfdbedfdacd75fb2e6d1
+      sha256: 0c7f9c8d7b46d0fca597f1e31d9e5a904ad1c7b504faf34b778e4f6432dd2b64
 
   # 服务配置
   #
