@@ -1,12 +1,12 @@
 # Single-container application stack. The image carries the FastAPI server and
 # the built Vue frontend; nothing else is needed on the host beyond Docker.
 #
-# Image built from solution-indoor-positioning @ feature/map-overhaul (568c9a4,
-# includes the outdoor features), linux/arm64 + linux/amd64, pushed 2026-09-15.
+# Image built from solution-indoor-positioning @ feature/map-overhaul (8b982d6,
+# includes UX overhaul & fixes), linux/arm64 + linux/amd64, pushed 2026-11-03.
 # Default dashboard login is admin / 12345678; change it after first login.
 services:
   app:
-    image: sensecraft-missionpack.seeed.cn/solution/indoor-positioning:2026-09-15
+    image: sensecraft-missionpack.seeed.cn/solution/indoor-positioning:2026-11-03
     container_name: indoor-positioning
     ports:
       - "5173:5173"

@@ -14,8 +14,8 @@ detection:
     - docker_running
 
 # Image: assets/docker/docker-compose.yml pins
-# sensecraft-missionpack.seeed.cn/solution/indoor-positioning:2026-09-15
-# (solution-indoor-positioning @ feature/map-overhaul 568c9a4, arm64 + amd64).
+# sensecraft-missionpack.seeed.cn/solution/indoor-positioning:2026-11-03
+# (solution-indoor-positioning @ feature/map-overhaul 8b982d6, arm64 + amd64).
 
 docker:
   compose_file: assets/docker/docker-compose.yml
