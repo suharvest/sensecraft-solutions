@@ -147,7 +147,7 @@ def check_referenced_device_assets(sol_dir: Path, sol_data: dict) -> list[str]:
         return []
 
     errors: list[str] = []
-    for dev_file in sorted(devices_dir.glob("*.yaml")):
+    for dev_file in sorted(devices_dir.rglob("*.yaml")):
         try:
             data = yaml.safe_load(dev_file.read_text(encoding="utf-8")) or {}
         except yaml.YAMLError:
@@ -156,6 +156,7 @@ def check_referenced_device_assets(sol_dir: Path, sol_data: dict) -> list[str]:
             continue
         if not isinstance(data, dict):
             continue
+        rel = dev_file.relative_to(sol_dir).as_posix()
         for label, ref in _iter_device_refs(data, ""):
             if not ref or _is_url(ref):
                 continue
@@ -164,7 +165,7 @@ def check_referenced_device_assets(sol_dir: Path, sol_data: dict) -> list[str]:
             if (sol_dir / ref).exists() or (dev_file.parent / ref).exists():
                 continue
             errors.append(
-                f"device asset not found: devices/{dev_file.name}:{label} -> {ref!r}"
+                f"device asset not found: {rel}:{label} -> {ref!r}"
             )
     return errors
 
@@ -517,6 +518,161 @@ def check_no_local_gifs(sol_dir: Path, sol_data: dict) -> list[str]:
     return errors
 
 
+# ---------------------------------------------------------------------------
+# reCamera .deb package format checks
+# ---------------------------------------------------------------------------
+
+
+def _is_recamera_device(data: dict) -> bool:
+    """Return True if device metadata identifies it as a reCamera device."""
+    if not isinstance(data, dict):
+        return False
+    dev_type = str(data.get("type") or "").lower()
+    if dev_type == "recamera_cpp":
+        return True
+    if str(data.get("device_class") or "").lower() == "recamera":
+        return True
+    target = str(data.get("target_platform") or "").lower()
+    if any(k in target for k in ("recamera", "sg2002", "riscv64")):
+        return True
+    binary = data.get("binary")
+    if isinstance(binary, dict) and binary.get("deb_package"):
+        return True
+    return False
+
+
+def _parse_ar_members_from_file(file_path: Path) -> list[str] | None:
+    """Parse ar archive member names from file_path using stdlib.
+
+    An ar archive starts with 8 bytes b"!<arch>\n".
+    Each member has a 60-byte header:
+    - 16 bytes: file identifier (name)
+    - 42 bytes: metadata (timestamp, uid, gid, mode, size)
+    - 2 bytes: trailer (b"`\n")
+    Followed by size bytes of data, and 1 byte newline padding if size is odd.
+
+    Returns None if not a valid ar archive, or list of member names.
+    """
+    try:
+        with open(file_path, "rb") as f:
+            magic = f.read(8)
+            if magic != b"!<arch>\n":
+                return None
+            names: list[str] = []
+            while True:
+                header = f.read(60)
+                if len(header) < 60:
+                    break
+                if header[58:60] != b"`\n":
+                    break
+                raw_name = header[:16].decode("ascii", errors="replace").strip()
+                member_name = raw_name.rstrip("/")
+                names.append(member_name)
+                try:
+                    size = int(header[48:58].decode("ascii", errors="replace").strip())
+                except ValueError:
+                    break
+                skip = size + (size % 2)
+                f.seek(skip, 1)
+            return names
+    except OSError:
+        return None
+
+
+def check_recamera_deb_packages(sol_dir: Path, sol_data: dict) -> list[str]:
+    """Inspect local deb packages referenced by reCamera devices.
+
+    reCamera Linux uses an older dpkg/busybox ar that does not support zstd
+    compression. Packages must be compressed using gzip ('dpkg-deb -Zgzip -b')
+    or xz.
+    """
+    devices_dir = sol_dir / "devices"
+    if not devices_dir.is_dir():
+        return []
+
+    errors: list[str] = []
+    for dev_file in sorted(devices_dir.rglob("*.yaml")):
+        try:
+            data = yaml.safe_load(dev_file.read_text(encoding="utf-8")) or {}
+        except (yaml.YAMLError, OSError):
+            continue
+        if not isinstance(data, dict):
+            continue
+
+        if not _is_recamera_device(data):
+            continue
+
+        rel = dev_file.relative_to(sol_dir).as_posix()
+
+        # Extract deb_package path (can be binary.deb_package.path, binary.deb_package, or deb_package.path/deb_package)
+        deb_pkg = None
+        if isinstance(data.get("binary"), dict):
+            deb_pkg = data["binary"].get("deb_package")
+        if deb_pkg is None:
+            deb_pkg = data.get("deb_package")
+
+        deb_path = None
+        if isinstance(deb_pkg, dict):
+            deb_path = deb_pkg.get("path")
+        elif isinstance(deb_pkg, str):
+            deb_path = deb_pkg
+
+        if not deb_path or not isinstance(deb_path, str) or _is_url(deb_path):
+            continue
+
+        if not deb_path.lower().endswith(".deb"):
+            continue
+
+        # Resolve relative to sol_dir, dev_file.parent, or sol_dir / "packages"
+        candidate = None
+        for base in (sol_dir, dev_file.parent, sol_dir / "packages"):
+            p = base / deb_path
+            if p.is_file():
+                candidate = p
+                break
+
+        if candidate is None:
+            continue
+
+        members = _parse_ar_members_from_file(candidate)
+        if members is None:
+            errors.append(
+                f"incompatible deb package: invalid ar archive: "
+                f"{rel}:binary.deb_package -> {deb_path}"
+            )
+            continue
+
+        zst_member = next((m for m in members if ".zst" in m), None)
+        if zst_member:
+            errors.append(
+                f"incompatible deb package: reCamera does not support zstd compression: "
+                f"{rel}:binary.deb_package -> {zst_member}. "
+                "Use 'dpkg-deb -Zgzip -b' to package with gzip."
+            )
+            continue
+
+        has_control = any(
+            m == "control.tar.gz"
+            or m == "control.tar.xz"
+            or (m.startswith("control.tar.") and (m.endswith(".gz") or m.endswith(".xz")))
+            for m in members
+        )
+        has_data = any(
+            m == "data.tar.gz"
+            or m == "data.tar.xz"
+            or (m.startswith("data.tar.") and (m.endswith(".gz") or m.endswith(".xz")))
+            for m in members
+        )
+        if not (has_control and has_data):
+            errors.append(
+                f"incompatible deb package: reCamera requires gzip or xz compression: "
+                f"{rel}:binary.deb_package (neither .tar.gz nor .tar.xz found for control/data). "
+                "Use 'dpkg-deb -Zgzip -b' to package with gzip."
+            )
+
+    return errors
+
+
 def run_static_checks(sol_dir: Path, sol_data: dict) -> list[str]:
     """Run all engine-free static checks and return a flat list of errors,
     each prefixed with the originating check name.
@@ -541,6 +697,10 @@ def run_static_checks(sol_dir: Path, sol_data: dict) -> list[str]:
         f"[device_ref_integrity] {e}" for e in check_device_ref_integrity(sol_data)
     )
     errors.extend(f"[no_local_gifs] {e}" for e in check_no_local_gifs(sol_dir, sol_data))
+    errors.extend(
+        f"[recamera_deb_format] {e}"
+        for e in check_recamera_deb_packages(sol_dir, sol_data)
+    )
     return errors
 
 
@@ -561,7 +721,7 @@ def check_semantics(sol_dir: Path, sol_data: dict) -> list[str]:
         return []
 
     errors: list[str] = []
-    for dev_file in sorted(devices_dir.glob("*.yaml")):
+    for dev_file in sorted(devices_dir.rglob("*.yaml")):
         try:
             data = yaml.safe_load(dev_file.read_text(encoding="utf-8")) or {}
         except yaml.YAMLError:
@@ -569,6 +729,7 @@ def check_semantics(sol_dir: Path, sol_data: dict) -> list[str]:
         if not isinstance(data, dict):
             continue
 
+        rel = dev_file.relative_to(sol_dir).as_posix()
         for label, ref in _iter_device_refs(data, ""):
             if not ref or _is_url(ref):
                 continue
@@ -587,7 +748,7 @@ def check_semantics(sol_dir: Path, sol_data: dict) -> list[str]:
                 except yaml.YAMLError as exc:
                     errors.append(
                         f"compose_file does not parse as YAML: "
-                        f"devices/{dev_file.name}:{label} -> {ref!r}: {exc}"
+                        f"{rel}:{label} -> {ref!r}: {exc}"
                     )
             elif label.endswith("flow_file"):
                 try:
@@ -595,7 +756,7 @@ def check_semantics(sol_dir: Path, sol_data: dict) -> list[str]:
                 except (json.JSONDecodeError, ValueError) as exc:
                     errors.append(
                         f"flow_file does not parse as JSON: "
-                        f"devices/{dev_file.name}:{label} -> {ref!r}: {exc}"
+                        f"{rel}:{label} -> {ref!r}: {exc}"
                     )
     return errors
 
@@ -633,15 +794,16 @@ def _collect_urls(sol_dir: Path, sol_data: dict) -> list[tuple[str, str]]:
 
     devices_dir = sol_dir / "devices"
     if devices_dir.is_dir():
-        for dev_file in sorted(devices_dir.glob("*.yaml")):
+        for dev_file in sorted(devices_dir.rglob("*.yaml")):
             try:
                 data = yaml.safe_load(dev_file.read_text(encoding="utf-8")) or {}
             except yaml.YAMLError:
                 continue
             if not isinstance(data, dict):
                 continue
+            rel = dev_file.relative_to(sol_dir).as_posix()
             for label, ref in _iter_device_refs(data, ""):
-                add(f"devices/{dev_file.name}:{label}", ref)
+                add(f"{rel}:{label}", ref)
 
     return urls
 
@@ -673,6 +835,38 @@ def _url_status(url: str, timeout: float) -> int | None:
     return None
 
 
+def _is_recamera_url_reference(sol_dir: Path, label: str) -> bool:
+    """Return True if label points to a field in a reCamera device YAML."""
+    if not label.startswith("devices/"):
+        return False
+    dev_rel = label.split(":", 1)[0]
+    dev_file = sol_dir / dev_rel
+    if not dev_file.is_file():
+        return False
+    try:
+        data = yaml.safe_load(dev_file.read_text(encoding="utf-8")) or {}
+    except (yaml.YAMLError, OSError):
+        return False
+    return _is_recamera_device(data)
+
+
+def _check_remote_deb_zstd(url: str, timeout: float) -> bool:
+    """Attempt a lightweight Range: bytes=0-2048 request to read the ar header.
+    Returns True if the response contains control.tar.zst or data.tar.zst.
+    """
+    headers = {
+        "User-Agent": "sensecraft-solution-spec-validator/1.0",
+        "Range": "bytes=0-2048",
+    }
+    req = urllib.request.Request(url, headers=headers)
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            chunk = resp.read(2048)
+            return b"control.tar.zst" in chunk or b"data.tar.zst" in chunk
+    except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, OSError):
+        return False
+
+
 def check_urls_reachable(sol_dir: Path, sol_data: dict, timeout: float = 10) -> list[str]:
     """Check that every ``http(s)://`` reference is reachable.
 
@@ -695,4 +889,13 @@ def check_urls_reachable(sol_dir: Path, sol_data: dict, timeout: float = 10) -> 
         status = _url_status(url, timeout)
         if status is not None and 400 <= status < 500 and status not in _gated:
             errors.append(f"dead URL ({status}): {label} -> {url}")
+            continue
+
+        clean_url = url.split("?")[0].lower()
+        if clean_url.endswith(".deb") and _is_recamera_url_reference(sol_dir, label):
+            if _check_remote_deb_zstd(url, timeout):
+                errors.append(
+                    f"incompatible remote deb package: reCamera does not support zstd compression: "
+                    f"{label} -> {url}. Use 'dpkg-deb -Zgzip -b' to package with gzip."
+                )
     return errors

@@ -121,6 +121,23 @@ def test_referenced_device_assets_url_skipped(tmp_path):
     assert checks.check_referenced_device_assets(sol, {}) == []
 
 
+def test_referenced_device_assets_nested_manifest(tmp_path):
+    sol = _make_solution(
+        tmp_path / "s",
+        files={
+            "devices/apps/app.yaml": (
+                "id: app\n"
+                "docker:\n"
+                "  compose_file: assets/missing.yml\n"
+            ),
+        },
+    )
+    errs = checks.check_referenced_device_assets(sol, {})
+    assert len(errs) == 1
+    assert "devices/apps/app.yaml:docker.compose_file" in errs[0]
+    assert "assets/missing.yml" in errs[0]
+
+
 # ---------------------------------------------------------------------------
 # check_i18n_completeness
 # ---------------------------------------------------------------------------
@@ -499,6 +516,240 @@ def test_no_local_gifs_bad_markdown(tmp_path):
     data = {"intro": {}}
     errs = checks.check_no_local_gifs(sol, data)
     assert any("markdown image references local .gif: guide.md -> gallery/local-preview.gif" in e for e in errs)
+
+
+# ---------------------------------------------------------------------------
+# check_recamera_deb_packages
+# ---------------------------------------------------------------------------
+
+
+def _make_ar_entry(name: str, content: bytes) -> bytes:
+    # 60-byte ar member header:
+    # name (16), mtime (12), uid (6), gid (6), mode (8), size (10), trailer (2)
+    header = (
+        name.ljust(16).encode("ascii")
+        + b"0".ljust(12)
+        + b"0".ljust(6)
+        + b"0".ljust(6)
+        + b"100644".ljust(8)
+        + str(len(content)).encode("ascii").ljust(10)
+        + b"`\n"
+    )
+    padding = b"\n" if len(content) % 2 == 1 else b""
+    return header + content + padding
+
+
+def _craft_deb(*, compression: str = "gz") -> bytes:
+    """Craft a minimal in-memory deb archive with ar header."""
+    archive = b"!<arch>\n"
+    archive += _make_ar_entry("debian-binary", b"2.0\n")
+    archive += _make_ar_entry(f"control.tar.{compression}", b"dummy control")
+    archive += _make_ar_entry(f"data.tar.{compression}", b"dummy data")
+    return archive
+
+
+def test_recamera_deb_format_good(tmp_path):
+    deb_bytes = _craft_deb(compression="gz")
+    sol = _make_solution(
+        tmp_path / "s",
+        files={
+            "devices/recamera.yaml": (
+                "id: recamera\n"
+                "type: recamera_cpp\n"
+                "binary:\n"
+                "  deb_package:\n"
+                "    path: packages/app.deb\n"
+            ),
+            "packages/app.deb": "placeholder",
+        },
+    )
+    (sol / "packages/app.deb").write_bytes(deb_bytes)
+    assert checks.check_recamera_deb_packages(sol, {}) == []
+
+    static_errs = checks.run_static_checks(sol, {})
+    assert not any("[recamera_deb_format]" in e for e in static_errs)
+
+
+def test_recamera_deb_format_zst_rejected(tmp_path):
+    deb_bytes = _craft_deb(compression="zst")
+    sol = _make_solution(
+        tmp_path / "s",
+        files={
+            "devices/recamera.yaml": (
+                "id: recamera\n"
+                "type: recamera_cpp\n"
+                "binary:\n"
+                "  deb_package:\n"
+                "    path: packages/app.deb\n"
+            ),
+            "packages/app.deb": "placeholder",
+        },
+    )
+    (sol / "packages/app.deb").write_bytes(deb_bytes)
+    errs = checks.check_recamera_deb_packages(sol, {})
+    assert len(errs) == 1
+    assert (
+        "incompatible deb package: reCamera does not support zstd compression: "
+        "devices/recamera.yaml:binary.deb_package -> control.tar.zst. "
+        "Use 'dpkg-deb -Zgzip -b' to package with gzip."
+    ) in errs[0]
+
+    static_errs = checks.run_static_checks(sol, {})
+    assert any(
+        "[recamera_deb_format] incompatible deb package: reCamera does not support zstd compression:"
+        in e
+        for e in static_errs
+    )
+
+
+def test_recamera_deb_format_non_recamera_ignored(tmp_path):
+    zst_deb = _craft_deb(compression="zst")
+    # 1. Non-recamera device referencing a zstd deb (e.g. docker_deploy / jetson)
+    sol = _make_solution(
+        tmp_path / "s1",
+        files={
+            "devices/jetson.yaml": (
+                "id: jetson\n"
+                "type: docker_deploy\n"
+                "target_platform: jetson_orin\n"
+                "files:\n"
+                "  - path: packages/app.deb\n"
+            ),
+            "packages/app.deb": "placeholder",
+        },
+    )
+    (sol / "packages/app.deb").write_bytes(zst_deb)
+    assert checks.check_recamera_deb_packages(sol, {}) == []
+
+    # 2. Recamera device referencing a non-deb file
+    sol2 = _make_solution(
+        tmp_path / "s2",
+        files={
+            "devices/recamera.yaml": (
+                "id: recamera\n"
+                "type: recamera_cpp\n"
+                "binary:\n"
+                "  deb_package:\n"
+                "    path: packages/model.bin\n"
+            ),
+            "packages/model.bin": "binary content",
+        },
+    )
+    assert checks.check_recamera_deb_packages(sol2, {}) == []
+
+
+def test_urls_remote_recamera_deb_zst_rejected(tmp_path, monkeypatch):
+    sol = _make_solution(
+        tmp_path / "s",
+        files={
+            "devices/recamera.yaml": (
+                "id: recamera\n"
+                "type: recamera_cpp\n"
+                "binary:\n"
+                "  deb_package:\n"
+                "    path: https://example.com/app.deb\n"
+            ),
+        },
+    )
+    monkeypatch.setattr(checks, "_url_status", lambda url, timeout: 200)
+    monkeypatch.setattr(checks, "_check_remote_deb_zstd", lambda url, timeout: True)
+    errs = checks.check_urls_reachable(sol, {})
+    assert len(errs) == 1
+    assert (
+        "incompatible remote deb package: reCamera does not support zstd compression: "
+        "devices/recamera.yaml:binary.deb_package.path -> https://example.com/app.deb. "
+        "Use 'dpkg-deb -Zgzip -b' to package with gzip."
+    ) in errs[0]
+
+
+def test_urls_remote_recamera_deb_gz_ok(tmp_path, monkeypatch):
+    sol = _make_solution(
+        tmp_path / "s",
+        files={
+            "devices/recamera.yaml": (
+                "id: recamera\n"
+                "type: recamera_cpp\n"
+                "binary:\n"
+                "  deb_package:\n"
+                "    path: https://example.com/app.deb\n"
+            ),
+        },
+    )
+    monkeypatch.setattr(checks, "_url_status", lambda url, timeout: 200)
+    monkeypatch.setattr(checks, "_check_remote_deb_zstd", lambda url, timeout: False)
+    assert checks.check_urls_reachable(sol, {}) == []
+
+
+def test_urls_remote_non_recamera_deb_ignored(tmp_path, monkeypatch):
+    sol = _make_solution(
+        tmp_path / "s",
+        files={
+            "devices/jetson.yaml": (
+                "id: jetson\n"
+                "type: docker_deploy\n"
+                "files:\n"
+                "  - file: https://example.com/app.deb\n"
+            ),
+        },
+    )
+    monkeypatch.setattr(checks, "_url_status", lambda url, timeout: 200)
+    monkeypatch.setattr(checks, "_check_remote_deb_zstd", lambda url, timeout: True)
+    assert checks.check_urls_reachable(sol, {}) == []
+
+
+def test_recamera_deb_format_nested_manifest_zst_rejected(tmp_path):
+    deb_bytes = _craft_deb(compression="zst")
+    sol = _make_solution(
+        tmp_path / "s",
+        files={
+            "devices/apps/recamera_app.yaml": (
+                "id: recamera_app\n"
+                "type: recamera_cpp\n"
+                "binary:\n"
+                "  deb_package:\n"
+                "    path: packages/app.deb\n"
+            ),
+            "packages/app.deb": "placeholder",
+        },
+    )
+    (sol / "packages/app.deb").write_bytes(deb_bytes)
+    errs = checks.check_recamera_deb_packages(sol, {})
+    assert len(errs) == 1
+    assert (
+        "incompatible deb package: reCamera does not support zstd compression: "
+        "devices/apps/recamera_app.yaml:binary.deb_package -> control.tar.zst. "
+        "Use 'dpkg-deb -Zgzip -b' to package with gzip."
+    ) in errs[0]
+
+
+def test_urls_remote_recamera_deb_nested_manifest_zst_rejected(tmp_path, monkeypatch):
+    sol = _make_solution(
+        tmp_path / "s",
+        files={
+            "devices/apps/recamera_app.yaml": (
+                "id: recamera_app\n"
+                "type: recamera_cpp\n"
+                "binary:\n"
+                "  deb_package:\n"
+                "    path: https://example.com/app.deb\n"
+            ),
+        },
+    )
+    collected = checks._collect_urls(sol, {})
+    assert (
+        "devices/apps/recamera_app.yaml:binary.deb_package.path",
+        "https://example.com/app.deb",
+    ) in collected
+
+    monkeypatch.setattr(checks, "_url_status", lambda url, timeout: 200)
+    monkeypatch.setattr(checks, "_check_remote_deb_zstd", lambda url, timeout: True)
+    errs = checks.check_urls_reachable(sol, {})
+    assert len(errs) == 1
+    assert (
+        "incompatible remote deb package: reCamera does not support zstd compression: "
+        "devices/apps/recamera_app.yaml:binary.deb_package.path -> https://example.com/app.deb. "
+        "Use 'dpkg-deb -Zgzip -b' to package with gzip."
+    ) in errs[0]
 
 
 if __name__ == "__main__":

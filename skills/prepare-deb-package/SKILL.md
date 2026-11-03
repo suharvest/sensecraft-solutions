@@ -475,9 +475,11 @@ chmod +x yolo11-detector_0.1.1_riscv64/DEBIAN/postinst
 chmod +x yolo11-detector_0.1.1_riscv64/etc/init.d/K92yolo11-detector
 
 # Build package
-dpkg-deb --build yolo11-detector_0.1.1_riscv64
+dpkg-deb -Zgzip --build yolo11-detector_0.1.1_riscv64
 ```
 
+> **Compression note**: `-Zgzip` is strictly required. Modern host distributions (such as Ubuntu 22.04+) default to zstd compression (`control.tar.zst`, `data.tar.zst`), which the embedded `opkg` on reCamera cannot extract.
+>
 > **macOS note**: `dpkg-deb` is not bundled with macOS. Install it first: `brew install dpkg`.
 
 ## Service Priority Reference
