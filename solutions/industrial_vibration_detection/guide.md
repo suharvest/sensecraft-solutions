@@ -156,3 +156,113 @@ Verify the off-grid alert propagation loop after unplugging the cable.
 ### Deployment Complete
 
 You have completed the full loop from foundational off-grid mesh communications to autonomous edge device intelligence, achieving predictive maintenance alerts in harsh industrial environments without external network infrastructure.
+
+---
+
+## Preset: Mesh to Home Assistant Central Map {#mesh_ha_bridge}
+
+Bridge Meshtastic off-grid mesh communications to Home Assistant via a USB-connected receiver node. Field T1000-E vibration tracker nodes report GPS positions and vibration anomaly alerts over the mesh network without cellular or Wi-Fi infrastructure, aggregated and visualized on a central Home Assistant map.
+
+> **Prerequisites**: The T1000-E used for vibration detection must have the VAD firmware flashed and baseline calibration completed (refer to Preset 2 Steps 1 and 3). If using the factory Meshtastic firmware directly, the device operates as a mobile GPS tracker and triggers an SOS alarm on the vibration sensor entity (`binary_sensor.vibration_<node_id>`) in Home Assistant while reporting position coordinates to the map.
+
+| Device | Purpose |
+|---|---|
+| SenseCAP T1000-E (Gateway Node) | Connected to host via USB data cable to receive mesh packets and forward over serial |
+| SenseCAP T1000-E (Tracker Node) | Mounted on machinery to detect vibration anomalies and broadcast alerts with GPS coordinates |
+| Host Machine | Runs Docker to host the Mesh-MQTT serial bridge container |
+
+---
+
+## Step 1: Deploy Mesh-MQTT Serial Bridge {#deploy_bridge type=docker_deploy required=true config=devices/meshtastic_bridge.yaml}
+
+Bridges Meshtastic mesh packets from the USB receiver node to an MQTT broker, and publishes Home Assistant MQTT Discovery entities for live vibration alerting and GPS map tracking.
+
+### Wiring
+
+1. Connect the receiving Meshtastic node (e.g. T1000-E in receiving mode or USB dongle) to a USB port on the host machine using a data cable;
+2. Verify the serial port device path (typically `/dev/ttyACM0` on Linux);
+3. Enter your MQTT Broker details below and start deployment.
+
+### Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| Serial port `/dev/ttyACM0` not found | Verify USB cable connection and run `ls /dev/ttyACM*` on the host to check the device path. |
+| Container health check failed | Ensure the USB receiver is plugged in and the MQTT broker is reachable. Run `docker logs vibration-mesh-bridge` for details. |
+| Cannot connect to MQTT Broker | Verify broker IP address, port, and authentication credentials. |
+
+### Target {#deploy_bridge_local type=local device_name="Local Host" config=devices/meshtastic_bridge.yaml default=true}
+
+Deploy to this machine running Docker.
+
+### Target {#deploy_bridge_remote type=remote device_name="Linux Host" config=devices/meshtastic_bridge.yaml}
+
+Deploy over SSH to a Linux host with Docker.
+
+---
+
+## Step 2: Connect to Home Assistant (Optional) {#connect_ha type=ha_integration required=false config=devices/ha_integration.yaml}
+
+Automatically configure the MQTT integration on your existing Home Assistant instance via its API. If your Home Assistant instance already has MQTT configured, you can skip this step.
+
+### Wiring
+
+1. Ensure your Home Assistant instance is running and accessible on the local network;
+2. Enter your Home Assistant URL and administrator credentials below;
+3. Provide the MQTT broker address and credentials used by the Mesh-MQTT bridge;
+4. Click **Deploy** to configure the MQTT integration on Home Assistant.
+
+### Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| Authentication failed | Check the Home Assistant administrator username and password. |
+| Cannot reach Home Assistant | Ensure Home Assistant is running and the host and port (default 8123) are correct. |
+| MQTT integration already exists | If MQTT is already configured in Home Assistant, skip this step. |
+
+---
+
+## Step 3: Prepare and Mount T1000-E Vibration Tracker {#mount_tracker type=manual required=true}
+
+Rigidly mount the T1000-E vibration tracker node onto the monitored industrial equipment to detect abnormal vibrations and broadcast alerts over the Meshtastic mesh.
+
+> **Prerequisites**: The T1000-E used for vibration detection must have the VAD firmware flashed and baseline calibration completed (refer to Preset 2 Steps 1 and 3). If using the factory Meshtastic firmware directly, the device operates as a mobile GPS tracker and triggers an SOS alarm on the vibration sensor entity (`binary_sensor.vibration_<node_id>`) in Home Assistant while reporting position coordinates to the map.
+
+### Wiring
+
+1. **Power On**: Press and hold the button on the T1000-E tracker node for 3 seconds until it beeps and powers on;
+2. **Channel Configuration**: Ensure the tracker node is set to the same LoRa frequency region and default channel as the receiving gateway node;
+3. **Rigid Mounting**: Firmly adhere the T1000-E tracker node to a clean, flat surface on the motor, pump, or fan bearing housing using **3M VHB 4910 acrylic tape** or a magnetic mount. Avoid soft foam tapes;
+4. **GPS Visibility**: For physical map tracking, ensure the node has outdoor GPS line-of-sight, or relies on mesh broadcast coordinates.
+
+### Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| Tracker node not broadcasting | Verify power status and confirm the tracker node shares the same LoRa region and channel as the gateway. |
+| Inaccurate or damped vibration readings | Avoid foam tape; use 3M VHB 4910 acrylic double-sided tape on a clean, degreased metallic surface. |
+
+---
+
+## Step 4: View Central Map in Home Assistant {#verify_map type=web_dashboard required=true verify=true config=devices/ha_dashboard.yaml}
+
+Open the Home Assistant map dashboard to monitor physical node positions and verify vibration anomaly alert status in real time.
+
+### Wiring
+
+1. In the input fields below, confirm the Home Assistant host and port (default: `127.0.0.1:8123`);
+2. Click **Open Dashboard** to navigate directly to the Home Assistant Map view (`/map`);
+3. Verify that the tracker node appears as `device_tracker.vibration_<node_id>` on the map with current GPS coordinates;
+4. Tap near the monitored machinery or simulate vibration to trigger an alert, and verify the `binary_sensor.vibration_<node_id>` state changes to `ON` in Home Assistant.
+
+### Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| Tracker entity not appearing on map | Ensure the tracker node has obtained a GPS fix and broadcast at least one position packet. Check bridge logs with `docker logs vibration-mesh-bridge`. |
+| Vibration sensor stays OFF during vibration | Check that the packet contains `VIBRATION_ALERT` or `ALARM`. Verify in the Meshtastic mobile app or bridge container stdout. |
+| Map page does not open | Ensure Home Assistant is running on the specified host and port (default `http://127.0.0.1:8123`). |
+
+### Deployment Complete
+
+The Meshtastic to Home Assistant Central Map monitoring preset is now fully deployed. Edge vibration alerts and GPS locations from field T1000-E nodes are aggregated over the off-grid mesh and visualized centrally on your Home Assistant dashboard.

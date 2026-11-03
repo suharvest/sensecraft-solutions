@@ -1,0 +1,105 @@
+version: "1.0"
+id: ha_integration
+name: Connect to Home Assistant
+name_i18n:
+  zh: 接入 Home Assistant
+type: ha_integration
+
+ha_integration:
+  entries:
+    - id: mqtt
+      domain: mqtt
+      data:
+        - name: broker
+          value_from: mqtt_broker
+        - name: port
+          value_from: mqtt_port
+          type: int
+        - name: username
+          value_from: mqtt_username
+          omit_if_empty: true
+        - name: password
+          value_from: mqtt_password
+          omit_if_empty: true
+
+user_inputs:
+  - id: ha_host
+    name: Home Assistant Host
+    name_i18n:
+      zh: Home Assistant 地址
+    type: text
+    default: "127.0.0.1"
+    required: true
+    description: IP address or hostname of your Home Assistant instance.
+    description_i18n:
+      zh: Home Assistant 实例的 IP 地址或主机名。
+  - id: ha_port
+    name: Home Assistant Port
+    name_i18n:
+      zh: Home Assistant 端口
+    type: text
+    default: "8123"
+    required: true
+    validation:
+      pattern: "^([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$"
+    description: "Port number for Home Assistant (default: 8123)."
+    description_i18n:
+      zh: "Home Assistant 服务端口号（默认：8123）。"
+  - id: ha_username
+    name: Home Assistant Username
+    name_i18n:
+      zh: Home Assistant 用户名
+    type: text
+    required: true
+    description: Administrator username of Home Assistant.
+    description_i18n:
+      zh: Home Assistant 管理员账号用户名。
+  - id: ha_password
+    name: Home Assistant Password
+    name_i18n:
+      zh: Home Assistant 密码
+    type: password
+    required: true
+    description: Administrator password of Home Assistant.
+    description_i18n:
+      zh: Home Assistant 管理员账号密码。
+  - id: mqtt_broker
+    name: MQTT Broker Host
+    name_i18n:
+      zh: MQTT Broker 地址
+    type: text
+    default: "127.0.0.1"
+    required: true
+    description: IP address or hostname of your MQTT Broker.
+    description_i18n:
+      zh: MQTT Broker 的 IP 地址或主机名。
+  - id: mqtt_port
+    name: MQTT Port
+    name_i18n:
+      zh: MQTT 端口
+    type: text
+    default: "1883"
+    required: true
+    validation:
+      pattern: "^([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$"
+    description: "Port number for the MQTT Broker (default: 1883)."
+    description_i18n:
+      zh: MQTT Broker 端口号（默认：1883）。
+  - id: mqtt_username
+    name: MQTT Username
+    name_i18n:
+      zh: MQTT 用户名
+    type: text
+    required: false
+    description: Username for MQTT broker authentication (leave blank if not required).
+    description_i18n:
+      zh: MQTT Broker 认证用户名（若不需要可留空）。
+  - id: mqtt_password
+    name: MQTT Password
+    name_i18n:
+      zh: MQTT 密码
+    type: password
+    required: false
+    description: Password for MQTT broker authentication (leave blank if not required).
+    description_i18n:
+      zh: MQTT Broker 认证密码（若不需要可留空）。

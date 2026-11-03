@@ -6,9 +6,9 @@ SenseCAP S21xx nodes already report to the SenseCAP cloud through a SenseCAP M2 
 - **Account:** A SenseCAP Portal account and an API key pair.
 - **Known limits:** Two cloud MQTT hostnames are in circulation and the deployment offers both; after the first deployment, check the bridge log to confirm it connected.
 
-## Step 1: Deploy Home Assistant and the Broker {#deploy_ha type=docker_deploy required=true config=devices/homeassistant_deploy.yaml}
+## Step 1: Deploy Home Assistant and the Broker (Optional) {#deploy_ha type=docker_deploy required=false config=devices/homeassistant_deploy.yaml}
 
-Starts Home Assistant and a Mosquitto broker on one host. Skip this if you already run both and the bridge can reach your existing broker.
+Starts Home Assistant and a Mosquitto broker on one host. Skip this if you already run both and the bridge can reach your existing broker. If skipped, enter your existing MQTT broker address and credentials in Step 2 (Deploy the Cloud Bridge).
 
 ### Prerequisites
 
@@ -42,7 +42,7 @@ Deploys the bridge that reads the SenseCAP cloud. It lists the devices on your a
 ### Prerequisites
 
 1. A SenseCAP API key pair (Access ID and Access Key) from the SenseCAP Portal under Security → Access API Keys.
-2. The broker address, port, username and password from step 1. If the bridge runs on a different machine, use the LAN IP rather than `127.0.0.1`.
+2. The broker address, port, username and password from step 1 (or your existing MQTT broker credentials if you skipped step 1). If the bridge runs on a different machine, use the LAN IP rather than `127.0.0.1`.
 3. A backfill window: up to three months; a longer window means more requests.
 
 ### Troubleshooting
@@ -176,9 +176,9 @@ Self-hosted LoRaWAN network server (ChirpStack or The Things Stack) for complete
 - **Nodes:** Each node's DevEUI, JoinEUI and AppKey, with the node band matching the gateway.
 - **Known limits:** Local mode takes the M2 off the SenseCAP cloud; whether your firmware can report to both at once has to be confirmed on the unit. Check available memory on the gateway host before starting The Things Stack.
 
-## Step 1: Deploy Home Assistant and the Broker {#deploy_ha_lns type=docker_deploy required=true config=devices/homeassistant_deploy.yaml}
+## Step 1: Deploy Home Assistant and the Broker (Optional) {#deploy_ha_lns type=docker_deploy required=false config=devices/homeassistant_deploy.yaml}
 
-Starts Home Assistant and a Mosquitto broker on one host. Skip this if you already run both and the bridge can reach your existing broker.
+Starts Home Assistant and a Mosquitto broker on one host. Skip this if you already run both and the bridge can reach your existing broker. If skipped, enter your existing MQTT broker address and credentials in Step 5 and Step 6 (Deploy ChirpStack / TTS and the Bridge).
 
 ### Prerequisites
 
@@ -275,7 +275,7 @@ Choose `m2` to start only the bridge, or `local` to start ChirpStack on this hos
 
 1. On the `m2` route: the M2's broker address, port, username and password from step 2.
 2. On the `local` route: at least 8 GB free disk, and a frequency plan matching the gateway and the nodes.
-3. The broker address, port, username and password from step 1.
+3. The broker address, port, username and password from step 1 (or your existing MQTT broker credentials if you skipped step 1).
 4. The application ID; `+` subscribes to every application on that broker.
 
 ### Troubleshooting
@@ -306,7 +306,7 @@ If choosing The Things Stack, starts The Things Stack (with Postgres and Redis),
 1. At least 10 GB free disk.
 2. The host's LAN IP (not `127.0.0.1`, or other machines cannot sign in to the Console).
 3. Ports 1885 (Console) and 1700/udp (packet forwarder) free.
-4. The broker address, port, username and password from step 1.
+4. The broker address, port, username and password from step 1 (or your existing MQTT broker credentials if you skipped step 1).
 5. The application ID and API key are created in step 8: deploy this step, create them in the Console and fill them in, update `TTN_MQTT_PASSWORD` in `.env`, and run `docker compose up -d bridge` to recreate the bridge container.
 
 ### Troubleshooting

@@ -1,0 +1,45 @@
+services:
+  vibration-mesh-bridge:
+    image: python:3.11-slim
+    container_name: vibration-mesh-bridge
+    restart: unless-stopped
+    network_mode: host
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      MQTT_HOST: ${MQTT_HOST:-127.0.0.1}
+      MQTT_PORT: ${MQTT_PORT:-1883}
+      MQTT_USERNAME: ${MQTT_USERNAME:-}
+      MQTT_PASSWORD: ${MQTT_PASSWORD:-}
+      SERIAL_PORT: ${SERIAL_PORT:-/dev/ttyACM0}
+      PYTHONUNBUFFERED: "1"
+      PYTHONPATH: /deps
+    devices:
+      - "${SERIAL_PORT:-/dev/ttyACM0}:${SERIAL_PORT:-/dev/ttyACM0}"
+    volumes:
+      - ./:/app:ro
+      - meshtastic-deps:/deps
+    command:
+      - sh
+      - -c
+      - |
+        [ -f /deps/.ready ] || { pip install -q --target /deps paho-mqtt==2.1.0 meshtastic==2.7.11 && touch /deps/.ready; } || exit 1
+        exec python /app/meshtastic_ha_bridge.py
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import os, time, sys; sys.exit(0 if os.path.exists('/tmp/healthy') and time.time() - os.path.getmtime('/tmp/healthy') < 20 else 1)"
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  meshtastic-deps:

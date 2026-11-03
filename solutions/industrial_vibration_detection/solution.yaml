@@ -94,6 +94,36 @@ intro:
             - device_ref: sensecap_t1000e
           default: sensecap_t1000e
 
+    - id: mesh_ha_bridge
+      name: Mesh to Home Assistant Central Map
+      name_i18n:
+        zh: Mesh 集中监控与地图看板
+      badge: Central Ops
+      badge_i18n:
+        zh: 集中运维
+      description: Bridge Meshtastic off-grid mesh network to Home Assistant via USB serial bridge, tracking equipment vibration alerts and GPS locations on a central map.
+      description_i18n:
+        zh: 通过 USB 串口网关将 Meshtastic 离网自组网桥接至 Home Assistant，在中央地图看板上实时监控各点位设备物理坐标与振动报警。
+      device_groups:
+        - id: gateway_node
+          name: Meshtastic Gateway Node
+          name_i18n:
+            zh: Meshtastic 接收网关节点
+          type: single
+          required: true
+          options:
+            - device_ref: sensecap_t1000e
+          default: sensecap_t1000e
+        - id: tracker_node
+          name: Vibration Tracker Node
+          name_i18n:
+            zh: 振动监测节点
+          type: single
+          required: true
+          options:
+            - device_ref: sensecap_t1000e
+          default: sensecap_t1000e
+
   stats:
     difficulty: beginner
     estimated_time: 15min

@@ -6,9 +6,9 @@ SenseCAP S21xx 节点已通过 SenseCAP M2 网关上报到 SenseCAP 云，射频
 - **账号：** SenseCAP Portal 账号和一对 API 密钥。
 - **已知限制：** 云 MQTT 有两个候选域名，部署时二选一，首次部署后先看桥的日志确认连接成功。
 
-## 步骤 1: 部署 Home Assistant 与 broker {#deploy_ha type=docker_deploy required=true config=devices/homeassistant_deploy.yaml}
+## 步骤 1: 部署 Home Assistant 与 MQTT Broker（可选） {#deploy_ha type=docker_deploy required=false config=devices/homeassistant_deploy.yaml}
 
-在一台主机上启动 Home Assistant 和 Mosquitto broker。已有这两样且桥能连上现有 broker 时可跳过。
+在一台主机上启动 Home Assistant 和 Mosquitto broker。已有这两样且桥能连上现有 broker 时可跳过。若跳过此步骤，请在步骤 2（部署云桥接）中直接填入已有的 MQTT Broker 地址与凭据。
 
 ### 前置条件
 
@@ -42,7 +42,7 @@ SenseCAP S21xx 节点已通过 SenseCAP M2 网关上报到 SenseCAP 云，射频
 ### 前置条件
 
 1. SenseCAP API 密钥（Access ID 与 Access Key），在 SenseCAP Portal「安全 → Access API Keys」获取。
-2. 步骤 1 的 broker 地址、端口、用户名与密码。桥在另一台机器上时，地址填局域网 IP，不要填 `127.0.0.1`。
+2. 步骤 1 的 broker 地址、端口、用户名与密码（若跳过步骤 1 则填入现有 MQTT Broker 凭据）。桥在另一台机器上时，地址填局域网 IP，不要填 `127.0.0.1`。
 3. 回填窗口：最多三个月，窗口越长请求越多。
 
 ### 故障排查
@@ -176,9 +176,9 @@ SenseCAP S21xx 节点已通过 SenseCAP M2 网关上报到 SenseCAP 云，射频
 - **节点：** 每个节点的 DevEUI、JoinEUI 与 AppKey，节点频段与网关一致。
 - **已知限制：** M2 切到本地模式后脱离 SenseCAP 云，固件能否同时上报云端和本地须在实机上确认；启动 The Things Stack 前先确认网关主机可用内存。
 
-## 步骤 1: 部署 Home Assistant 与 broker {#deploy_ha_lns type=docker_deploy required=true config=devices/homeassistant_deploy.yaml}
+## 步骤 1: 部署 Home Assistant 与 MQTT Broker（可选） {#deploy_ha_lns type=docker_deploy required=false config=devices/homeassistant_deploy.yaml}
 
-在一台主机上启动 Home Assistant 和 Mosquitto broker。已有这两样且桥能连上现有 broker 时可跳过。
+在一台主机上启动 Home Assistant 和 Mosquitto broker。已有这两样且桥能连上现有 broker 时可跳过。若跳过此步骤，请在步骤 5 与步骤 6（部署 ChirpStack / TTS 与桥接服务）中直接填入已有的 MQTT Broker 地址与凭据。
 
 ### 前置条件
 
@@ -275,7 +275,7 @@ SenseCAP S21xx 节点已通过 SenseCAP M2 网关上报到 SenseCAP 云，射频
 
 1. `m2` 路线：步骤 2 里 M2 的 broker 地址、端口、用户名与密码。
 2. `local` 路线：至少 8 GB 可用磁盘，频率计划与网关和节点一致。
-3. 步骤 1 的 broker 地址、端口、用户名与密码。
+3. 步骤 1 的 broker 地址、端口、用户名与密码（若跳过步骤 1 则填入现有 MQTT Broker 凭据）。
 4. application ID，填 `+` 订阅该 broker 上的所有 application。
 
 ### 故障排查
@@ -306,7 +306,7 @@ SenseCAP S21xx 节点已通过 SenseCAP M2 网关上报到 SenseCAP 云，射频
 1. 至少 10 GB 可用磁盘。
 2. 主机的局域网 IP（不要填 `127.0.0.1`，否则其他机器无法登录 Console）。
 3. 1885（Console）与 1700/udp（packet forwarder）端口空闲。
-4. 步骤 1 的 broker 地址、端口、用户名与密码。
+4. 步骤 1 的 broker 地址、端口、用户名与密码（若跳过步骤 1 则填入现有 MQTT Broker 凭据）。
 5. application ID 与 API key 在步骤 8 创建：先部署本步骤，在 Console 创建后填入，更新 .env 中的 TTN_MQTT_PASSWORD 后执行 docker compose up -d bridge 重建桥接容器。
 
 ### 故障排查

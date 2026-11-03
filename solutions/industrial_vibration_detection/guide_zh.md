@@ -156,3 +156,113 @@
 ### 部署完成
 
 你已完成了从纯离网自组网通讯到端侧设备智能告警的完整闭环，在完全无外网覆盖的工业现场实现了低成本、长续航的预测性维护预警。
+
+---
+
+## 套餐: Mesh 集中监控与地图看板 {#mesh_ha_bridge}
+
+通过 USB 接收节点将 Meshtastic 离网自组网通讯桥接至 Home Assistant。现场贴合在工业机械上的 T1000-E 振动监测节点在完全无公网和 Wi-Fi 的环境下，通过 Mesh 空口广播 GPS 物理坐标与振动报警报文，并在 Home Assistant 原生地图上实现集中可视化监控。
+
+> **准备工作**：用于振动监测的 T1000-E 需已烧录 VAD 固件并完成基线标定（可参考套餐 2 步骤 1 与 3 准备）；若直接使用出厂 Meshtastic 固件，设备将作为移动 GPS 追踪器并在长按按钮触发 SOS 时向 Home Assistant 报告振动/SOS 报警实体（`binary_sensor.vibration_<node_id>`），同时在地图上呈现 GPS 追踪位置。
+
+| 设备 | 用途 |
+|---|---|
+| SenseCAP T1000-E（网关节点） | 通过 USB 数据线连接主机，作为接收节点接收空口报文并通过串口上报 |
+| SenseCAP T1000-E（监测节点） | 刚性贴合于工业机械表面，检测振动异常并携带 GPS 物理坐标在 Mesh 中广播 |
+| 运行主机 | 运行 Docker 环境，承载 Mesh-MQTT 串口桥接容器 |
+
+---
+
+## 步骤 1: 部署 Mesh-MQTT 串口桥接器 {#deploy_bridge type=docker_deploy required=true config=devices/meshtastic_bridge.yaml}
+
+将 USB 接收节点收到的 Meshtastic Mesh 组网报文桥接至 MQTT Broker，并发布 Home Assistant MQTT Discovery 实体，实现振动报警与 GPS 地图追踪。
+
+### 接线
+
+1. 使用数据线将 Meshtastic 接收节点（如处于接收模式的 T1000-E 或 USB Dongle）插入主机的 USB 端口；
+2. 确认串口设备路径（Linux 下通常为 `/dev/ttyACM0`）；
+3. 在下方配置项中填入 MQTT Broker 连接参数并开始部署。
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|---|---|
+| 找不到串口 `/dev/ttyACM0` | 检查 USB 数据线连接，在主机上执行 `ls /dev/ttyACM*` 确认设备路径。 |
+| 容器健康检查未通过 | 确保 USB 接收节点已插入且 MQTT Broker 网络可达；运行 `docker logs vibration-mesh-bridge` 查看日志。 |
+| 无法连接 MQTT Broker | 检查 Broker IP 地址、端口以及账号密码是否正确。 |
+
+### 部署目标 {#deploy_bridge_local type=local device_name="Local Host" config=devices/meshtastic_bridge.yaml default=true}
+
+部署到当前运行 Docker 的本地机器。
+
+### 部署目标 {#deploy_bridge_remote type=remote device_name="Linux Host" config=devices/meshtastic_bridge.yaml}
+
+通过 SSH 部署到运行 Docker 的 Linux 主机。
+
+---
+
+## 步骤 2: 接入 Home Assistant（可选） {#connect_ha type=ha_integration required=false config=devices/ha_integration.yaml}
+
+通过 API 自动为已有的 Home Assistant 实例配置 MQTT 集成。若你的 Home Assistant 已配置好 MQTT，可直接跳过此步骤。
+
+### 接线
+
+1. 确保 Home Assistant 实例已在局域网内正常运行；
+2. 在下方输入 Home Assistant 实例地址与管理员账号密码；
+3. 填入与 Mesh-MQTT 桥接器一致的 MQTT Broker 地址与认证信息；
+4. 点击 **部署 (Deploy)** 完成 Home Assistant MQTT 集成配置。
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|---|---|
+| 认证失败 | 检查 Home Assistant 管理员用户名与密码是否正确。 |
+| 无法连接 Home Assistant | 确保 Home Assistant 服务正常运行，并检查主机地址与端口（默认 8123）。 |
+| MQTT 集成已存在 | 若 Home Assistant 中已存在生效的 MQTT 集成，直接跳过本步骤即可。 |
+
+---
+
+## 步骤 3: 准备与贴合安装 T1000-E 振动监测节点 {#mount_tracker type=manual required=true}
+
+将 T1000-E 振动监测节点刚性贴合固定在被测工业旋转设备轴承座表面，实时捕捉异常振动并通过 Meshtastic 自组网广播。
+
+> **准备工作**：用于振动监测的 T1000-E 需已烧录 VAD 固件并完成基线标定（可参考套餐 2 步骤 1 与 3 准备）；若直接使用出厂 Meshtastic 固件，设备将作为移动 GPS 追踪器并在长按按钮触发 SOS 时向 Home Assistant 报告振动/SOS 报警实体（`binary_sensor.vibration_<node_id>`），同时在地图上呈现 GPS 追踪位置。
+
+### 接线
+
+1. **开机启动**：长按 T1000-E 监测节点按键 3 秒，蜂鸣器响声后完成开机；
+2. **频道确认**：确保监测节点的 LoRa 频段区域（Region）与主频道参数与接收网关节点保持一致；
+3. **刚性贴合**：使用 **3M VHB 4910 亚克力胶带** 或高强磁吸底座将设备平整贴合在电机或水泵轴承座受力面，严禁使用发泡海绵胶；
+4. **定位确认**：若需在地图上查看精确物理坐标，需确保监测节点在室外有良好的 GPS 信号视野。
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|---|---|
+| 监测节点未发送广播 | 确认设备已开机，并检查其 LoRa 频段与频道是否与接收网关一致。 |
+| 振动感应迟钝或失真 | 切勿使用吸震海绵材料，改用 3M VHB 4910 亚克力双面胶贴合于平整金属表面。 |
+
+---
+
+## 步骤 4: 查看 Home Assistant 集中监控地图 {#verify_map type=web_dashboard required=true verify=true config=devices/ha_dashboard.yaml}
+
+打开 Home Assistant 地图看板，在地图上集中查看各监测节点的物理坐标，并实时接收机械振动异常告警。
+
+### 接线
+
+1. 在下方输入项中确认 Home Assistant 主机与端口（默认 `127.0.0.1:8123`）；
+2. 点击 **打开仪表盘** 进入 Home Assistant 原生地图看板（`/map`）；
+3. 确认地图上已呈现各监测节点对应的 `device_tracker.vibration_<node_id>` 实体与物理坐标；
+4. 轻敲被测设备或模拟振动触发告警，确认 Home Assistant 中的 `binary_sensor.vibration_<node_id>` 状态变为 `ON`。
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|---|---|
+| 地图上未出现设备追踪实体 | 确认 T1000-E 监测节点已完成 GPS 定位并成功广播位置包；运行 `docker logs vibration-mesh-bridge` 查看报文解析日志。 |
+| 发生振动但传感器未显示告警 | 确认接收报文包含 `VIBRATION_ALERT` 或 `ALARM` 关键字；可在手机 Meshtastic App 或网关容器日志中核对消息文本。 |
+| 无法打开地图页面 | 检查 Home Assistant 服务是否正常运行，并核对访问地址与端口（默认 `http://127.0.0.1:8123`）。 |
+
+### 部署完成
+
+基于 Meshtastic 与 Home Assistant 的集中监控地图方案已部署完毕。现场部署的 T1000-E 振动监测节点无需公网，即可通过离网 Mesh 将设备定位与异常告警汇总到中央看板统一呈现。
