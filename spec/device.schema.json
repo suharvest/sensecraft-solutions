@@ -994,7 +994,7 @@
       "type": "object"
     },
     "FirmwareConfig": {
-      "description": "ESP32 firmware configuration",
+      "description": "Firmware configuration",
       "properties": {
         "flash_config": {
           "$ref": "#/$defs/FlashConfig"
@@ -1013,6 +1013,18 @@
           ],
           "default": null,
           "title": "Language Variants"
+        },
+        "protocol": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Protocol"
         },
         "source": {
           "$ref": "#/$defs/FirmwareSource"
@@ -1195,6 +1207,11 @@
           "default": 60,
           "title": "Timeout",
           "type": "integer"
+        },
+        "verify_cdc": {
+          "default": true,
+          "title": "Verify Cdc",
+          "type": "boolean"
         }
       },
       "title": "FlashConfig",
@@ -1258,6 +1275,38 @@
     "HAIntegrationConfig": {
       "description": "Home Assistant integration deployment configuration.\n\nEither installs a custom component (``domain`` + ``components_dir``,\noptional single-step ``config_flow_data``), or only configures HA over\nits API (``entries`` / ``pipeline``), or both.",
       "properties": {
+        "addons": {
+          "anyOf": [
+            {
+              "items": {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Addons"
+        },
+        "automations": {
+          "anyOf": [
+            {
+              "items": {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Automations"
+        },
         "components_dir": {
           "anyOf": [
             {
@@ -1277,6 +1326,22 @@
           },
           "title": "Config Flow Data",
           "type": "array"
+        },
+        "dashboards": {
+          "anyOf": [
+            {
+              "items": {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dashboards"
         },
         "domain": {
           "anyOf": [
@@ -1332,6 +1397,19 @@
           ],
           "default": null,
           "title": "Restart"
+        },
+        "target_device": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target Device"
         }
       },
       "title": "HAIntegrationConfig",
@@ -3984,6 +4062,70 @@
       "title": "UserInputConfig",
       "type": "object"
     },
+    "VibrationCalibratorConfig": {
+      "description": "Configuration for vibration_calibrator verification type.",
+      "properties": {
+        "baud": {
+          "default": 115200,
+          "title": "Baud",
+          "type": "integer"
+        },
+        "impact_test_window_sec": {
+          "default": 10,
+          "maximum": 60,
+          "minimum": 3,
+          "title": "Impact Test Window Sec",
+          "type": "integer"
+        },
+        "max_drift_allowed_g": {
+          "default": 0.2,
+          "exclusiveMinimum": 0.0,
+          "title": "Max Drift Allowed G",
+          "type": "number"
+        },
+        "noise_floor_min_g": {
+          "default": 0.005,
+          "minimum": 0.0001,
+          "title": "Noise Floor Min G",
+          "type": "number"
+        },
+        "port_from_device": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Port From Device"
+        },
+        "sample_duration_sec": {
+          "default": 10,
+          "maximum": 30,
+          "minimum": 5,
+          "title": "Sample Duration Sec",
+          "type": "integer"
+        },
+        "sampling_rate_hz": {
+          "default": 50,
+          "maximum": 200,
+          "minimum": 10,
+          "title": "Sampling Rate Hz",
+          "type": "integer"
+        },
+        "threshold_sigma": {
+          "default": 3.0,
+          "maximum": 10.0,
+          "minimum": 1.0,
+          "title": "Threshold Sigma",
+          "type": "number"
+        }
+      },
+      "title": "VibrationCalibratorConfig",
+      "type": "object"
+    },
     "VoiceDemoConfig": {
       "description": "Voice demo configuration for ASR/TTS interactive steps",
       "properties": {
@@ -4502,6 +4644,17 @@
       "default": "1.0",
       "title": "Version",
       "type": "string"
+    },
+    "vibration_calibrator": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/VibrationCalibratorConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "video": {
       "anyOf": [

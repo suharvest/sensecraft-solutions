@@ -1,11 +1,11 @@
-<!-- contract_version: 5 -->
+<!-- contract_version: 10 -->
 # SenseCraft Solution Contract
 
 > **GENERATED FILE — mechanical sections only.** Regenerate with
 > `uv run python scripts/export_spec.py`. The drift guard is
 > `tests/unit/test_contract_freeze.py`.
 >
-> `contract_version: 5`. Tables below are rendered from the
+> `contract_version: 10`. Tables below are rendered from the
 > committed `spec/*.json` artifacts. The "Derived rules" prose sections are
 > **human-authored** and preserved across regenerations (they live between
 > `<!-- AUTHORED:<key> BEGIN/END -->` sentinels) — the generator never
@@ -83,6 +83,7 @@ provisioning engine and open-source consumers. Authoritative artifacts:
 | `serial_wizard` | SerialWizardConfig \| null | no | None |  |
 | `web_dashboard` | WebDashboardConfig \| null | no | None |  |
 | `robot_inspect` | RobotInspectConfig \| null | no | None |  |
+| `vibration_calibrator` | VibrationCalibratorConfig \| null | no | None |  |
 | `actions` | ActionsConfig \| null | no | None |  |
 | `files` | array<FileUploadConfig> | no | [] |  |
 | `influxdb` | object \| null | no | None |  |
@@ -104,7 +105,7 @@ provisioning engine and open-source consumers. Authoritative artifacts:
 | `docker_local` | `docker`, `docker.compose_file` |
 | `docker_remote` | `docker_remote`, `docker_remote.compose_file` |
 | `esp32_usb` | `firmware`, `firmware.flash_config` |
-| `ha_integration` | `ha_integration`, `ha_integration.domain`, `ha_integration.components_dir` |
+| `ha_integration` | `ha_integration` |
 | `himax_usb` | `firmware`, `firmware.flash_config`, `firmware.source` |
 | `http_debug` | _(none)_ |
 | `image_predict` | _(none)_ |
@@ -112,6 +113,7 @@ provisioning engine and open-source consumers. Authoritative artifacts:
 | `image_text_to_image` | _(none)_ |
 | `manual` | `steps[]` |
 | `network_camera` | `network_camera`, `network_camera.panels[]` |
+| `nrf52_usb` | _(none)_ |
 | `preview` | _(none)_ |
 | `recamera_console_app` | _(none)_ |
 | `recamera_cpp` | `binary` |
@@ -124,10 +126,12 @@ provisioning engine and open-source consumers. Authoritative artifacts:
 | `ssh_deb` | `ssh`, `package` |
 | `text_chat` | _(none)_ |
 | `verify` | _(none)_ |
+| `vibration_calibrator` | `vibration_calibrator` |
 | `video_stream` | _(none)_ |
 | `voice_chat` | _(none)_ |
 | `voice_demo` | _(none)_ |
 | `web_dashboard` | _(none)_ |
+| `wio_terminal_usb` | _(none)_ |
 
 ## guide.md heading keywords
 
@@ -274,12 +278,6 @@ body and associated with the enclosing Step:
   (`MODE_HEADER_PATTERN`, `:289-293`; parsed at `:985-1012`). Mode parsing stops
   when a Target header is reached (`:996-997`), so Modes belong to the Step body
   preceding any Targets.
-
-#### Target vs Mode architectural boundary
-
-- **Target** is strictly for deployment execution target/host variants (e.g. `local` vs `remote` Docker hosts, or hardware compute targets like Jetson vs RK3588 under `docker_deploy`). `docker_deploy` natively carries `targets` and must **not** use `modes`.
-- **Mode** is for hardware model selection (e.g. reCamera SG2002 vs reCamera Pro) or configuration variants on step types that do **not** carry targets (such as `recamera_console_app`, `recamera_pro_app`, `web_dashboard`, `verify`, `manual`). In the frontend UI, Modes render as a clean dropdown selector.
-- A single step must never mix both `targets` and `modes`.
 
 Other recognized `###` sub-sections within a Step — `Prerequisites` (`前置条件`),
 `Wiring` (`接线`), `Troubleshooting` (`故障排查`/`故障排除`), `Deployment Complete`

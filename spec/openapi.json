@@ -317,25 +317,6 @@
         "title": "Body_install_plugin_api_plugins_install_post",
         "type": "object"
       },
-      "Body_post_image_api_editor_solutions__sid__image_post": {
-        "properties": {
-          "file": {
-            "format": "binary",
-            "title": "File",
-            "type": "string"
-          },
-          "target_path": {
-            "title": "Target Path",
-            "type": "string"
-          }
-        },
-        "required": [
-          "file",
-          "target_path"
-        ],
-        "title": "Body_post_image_api_editor_solutions__sid__image_post",
-        "type": "object"
-      },
       "Body_upload_asset_api_solutions__solution_id__assets_post": {
         "properties": {
           "file": {
@@ -497,9 +478,27 @@
             "title": "Host",
             "type": "string"
           },
+          "key_file": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key File"
+          },
           "password": {
-            "title": "Password",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Password"
           },
           "port": {
             "default": 22,
@@ -513,8 +512,7 @@
           }
         },
         "required": [
-          "host",
-          "password"
+          "host"
         ],
         "title": "ConnectDeviceRequest",
         "type": "object"
@@ -911,7 +909,7 @@
         "type": "object"
       },
       "DeployStepInfo": {
-        "description": "Step info for AI-friendly deploy-info endpoint.\n\nWhen has_targets is False, parameters is List[DeployParameter].\nWhen has_targets is True, parameters is Dict[target_id, List[DeployParameter]].",
+        "description": "Step info for AI-friendly deploy-info endpoint.\n\nWhen has_targets and has_modes are False, parameters is List[DeployParameter].\nWhen has_targets is True, parameters is Dict[target_id, List[DeployParameter]].\nWhen has_modes is True, parameters is Dict[mode_id, List[DeployParameter]].",
         "properties": {
           "connection_type": {
             "anyOf": [
@@ -928,10 +926,30 @@
             "title": "Device Id",
             "type": "string"
           },
+          "has_modes": {
+            "default": false,
+            "title": "Has Modes",
+            "type": "boolean"
+          },
           "has_targets": {
             "default": false,
             "title": "Has Targets",
             "type": "boolean"
+          },
+          "modes": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Modes"
           },
           "name": {
             "title": "Name",
@@ -997,6 +1015,28 @@
           "action": {
             "title": "Action",
             "type": "string"
+          },
+          "device_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device Id"
+          },
+          "key_file": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key File"
           },
           "password": {
             "anyOf": [
@@ -1081,6 +1121,18 @@
             "title": "Id",
             "type": "string"
           },
+          "outcome": {
+            "anyOf": [
+              {
+                "const": "starting",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outcome"
+          },
           "solution_id": {
             "title": "Solution Id",
             "type": "string"
@@ -1160,6 +1212,17 @@
             "default": {},
             "title": "Metadata",
             "type": "object"
+          },
+          "outcome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outcome"
           },
           "solution_id": {
             "title": "Solution Id",
@@ -1267,6 +1330,18 @@
             "title": "Id",
             "type": "string"
           },
+          "outcome": {
+            "anyOf": [
+              {
+                "const": "starting",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outcome"
+          },
           "overall_progress": {
             "default": 0,
             "title": "Overall Progress",
@@ -1283,6 +1358,17 @@
           },
           "status": {
             "$ref": "#/components/schemas/DeploymentStatus"
+          },
+          "target_arch": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Arch"
           }
         },
         "required": [
@@ -1541,6 +1627,17 @@
       "DeviceDeploymentStatus": {
         "description": "Device deployment status",
         "properties": {
+          "arch": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Arch"
+          },
           "current_step": {
             "anyOf": [
               {
@@ -1571,10 +1668,55 @@
             "title": "Name",
             "type": "string"
           },
+          "offline_package": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OfflinePackageState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "outcome": {
+            "anyOf": [
+              {
+                "const": "starting",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outcome"
+          },
+          "outcome_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outcome Message"
+          },
           "progress": {
             "default": 0,
             "title": "Progress",
             "type": "integer"
+          },
+          "startup": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Startup"
           },
           "status": {
             "$ref": "#/components/schemas/DeploymentStatus"
@@ -1674,6 +1816,35 @@
           "steps"
         ],
         "title": "DeviceSummaryInfo",
+        "type": "object"
+      },
+      "FirmwarePrefetchRequest": {
+        "description": "Request to prefetch firmware for a device",
+        "properties": {
+          "device": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device"
+          },
+          "device_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device Type"
+          }
+        },
+        "title": "FirmwarePrefetchRequest",
         "type": "object"
       },
       "FirmwareStartRequest": {
@@ -2334,6 +2505,24 @@
         "title": "InstallRemoteResponse",
         "type": "object"
       },
+      "InstallRequest": {
+        "properties": {
+          "agent_id": {
+            "title": "Agent Id",
+            "type": "string"
+          },
+          "replace": {
+            "default": false,
+            "title": "Replace",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "agent_id"
+        ],
+        "title": "InstallRequest",
+        "type": "object"
+      },
       "KioskConfigRequest": {
         "description": "Request to configure Kiosk mode",
         "properties": {
@@ -2348,9 +2537,31 @@
             ],
             "title": "App Url"
           },
+          "device_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device Id"
+          },
           "enabled": {
             "title": "Enabled",
             "type": "boolean"
+          },
+          "key_file": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key File"
           },
           "kiosk_user": {
             "title": "Kiosk User",
@@ -2409,6 +2620,57 @@
         "title": "KioskConfigResponse",
         "type": "object"
       },
+      "KioskRemoveRequest": {
+        "description": "Body of DELETE /{deployment_id}/kiosk (keeps the password out of URLs)",
+        "properties": {
+          "device_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device Id"
+          },
+          "key_file": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key File"
+          },
+          "kiosk_user": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kiosk User"
+          },
+          "password": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Password"
+          }
+        },
+        "title": "KioskRemoveRequest",
+        "type": "object"
+      },
       "KioskStatus": {
         "description": "Current Kiosk mode status for a deployment",
         "properties": {
@@ -2439,6 +2701,17 @@
             "title": "Deployment Id",
             "type": "string"
           },
+          "device_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device Id"
+          },
           "enabled": {
             "default": false,
             "title": "Enabled",
@@ -2465,6 +2738,122 @@
           "deployment_id"
         ],
         "title": "KioskStatus",
+        "type": "object"
+      },
+      "LocalIdentity": {
+        "description": "Hardware identity of the machine running SenseCraft Solution.",
+        "properties": {
+          "accelerators": {
+            "default": [],
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Accelerators",
+            "type": "array"
+          },
+          "arch": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Arch"
+          },
+          "compatible": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Compatible",
+            "type": "array"
+          },
+          "device_classes": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Device Classes",
+            "type": "array"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "os": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Os"
+          },
+          "tegra_release": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tegra Release"
+          }
+        },
+        "title": "LocalIdentity",
+        "type": "object"
+      },
+      "LocationChangeRequest": {
+        "properties": {
+          "move_existing": {
+            "default": true,
+            "title": "Move Existing",
+            "type": "boolean"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "title": "LocationChangeRequest",
+        "type": "object"
+      },
+      "LocationResetRequest": {
+        "properties": {
+          "move_existing": {
+            "default": true,
+            "title": "Move Existing",
+            "type": "boolean"
+          }
+        },
+        "title": "LocationResetRequest",
         "type": "object"
       },
       "MdnsDevice": {
@@ -2675,6 +3064,214 @@
         "title": "NetbirdStatusResponse",
         "type": "object"
       },
+      "OfflineMissingItem": {
+        "properties": {
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "entry",
+              "file",
+              "image",
+              "config",
+              "runtime"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "reason": {
+            "enum": [
+              "not_prepared",
+              "missing",
+              "corrupt",
+              "version_mismatch",
+              "params_mismatch",
+              "verdict_not_full",
+              "arch_unresolved",
+              "runtime_unavailable"
+            ],
+            "title": "Reason",
+            "type": "string"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
+          }
+        },
+        "required": [
+          "kind",
+          "reason",
+          "detail"
+        ],
+        "title": "OfflineMissingItem",
+        "type": "object"
+      },
+      "OfflinePackageState": {
+        "description": "Whether a step deployed from the offline package, or why it could not.",
+        "properties": {
+          "arch": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Arch"
+          },
+          "device_modified": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device Modified"
+          },
+          "entry_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Entry Key"
+          },
+          "missing": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/OfflineMissingItem"
+            },
+            "title": "Missing",
+            "type": "array"
+          },
+          "prepared_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prepared At"
+          },
+          "prepared_targets": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/OfflinePreparedTarget"
+            },
+            "title": "Prepared Targets",
+            "type": "array"
+          },
+          "preset_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preset Id"
+          },
+          "solution_id": {
+            "title": "Solution Id",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "used",
+              "missing"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "step_id": {
+            "title": "Step Id",
+            "type": "string"
+          },
+          "target_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Id"
+          },
+          "verdict": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verdict"
+          }
+        },
+        "required": [
+          "status",
+          "solution_id",
+          "step_id"
+        ],
+        "title": "OfflinePackageState",
+        "type": "object"
+      },
+      "OfflinePreparedTarget": {
+        "description": "A prepared offline entry for a step (what the site could use).",
+        "properties": {
+          "arch": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Arch"
+          },
+          "entry_key": {
+            "title": "Entry Key",
+            "type": "string"
+          },
+          "target_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Id"
+          }
+        },
+        "required": [
+          "entry_key"
+        ],
+        "title": "OfflinePreparedTarget",
+        "type": "object"
+      },
       "PartnerInfo": {
         "description": "Deployment partner information",
         "properties": {
@@ -2829,46 +3426,8 @@
         "title": "PortInfo",
         "type": "object"
       },
-      "PresetScoreItem": {
-        "description": "Score and evidence for one preset.",
-        "properties": {
-          "matched_devices": {
-            "default": [],
-            "items": {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            "title": "Matched Devices",
-            "type": "array"
-          },
-          "preset_id": {
-            "title": "Preset Id",
-            "type": "string"
-          },
-          "reasons": {
-            "default": [],
-            "items": {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            "title": "Reasons",
-            "type": "array"
-          },
-          "score": {
-            "title": "Score",
-            "type": "number"
-          }
-        },
-        "required": [
-          "preset_id",
-          "score"
-        ],
-        "title": "PresetScoreItem",
-        "type": "object"
-      },
-      "PresetSuggestRequest": {
-        "additionalProperties": false,
-        "description": "Scan parameters for POST /api/solutions/{id}/preset-suggest.\n\nCredentials are optional: without them the SSH identity probe is skipped\nand the response says so in the affected preset's reasons.\n\nUnknown fields are rejected rather than ignored: a caller that misspells\n``mdns_timeout`` should hear about it instead of silently getting the\ndefault.",
+      "ProbeDesktopUsersRequest": {
+        "description": "Body of POST /probe-desktop-users (keeps the password out of URLs)",
         "properties": {
           "host": {
             "anyOf": [
@@ -2881,12 +3440,16 @@
             ],
             "title": "Host"
           },
-          "mdns_timeout": {
-            "default": 3.0,
-            "maximum": 10.0,
-            "minimum": 0.5,
-            "title": "Mdns Timeout",
-            "type": "number"
+          "key_file": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key File"
           },
           "password": {
             "anyOf": [
@@ -2902,8 +3465,6 @@
           "port": {
             "anyOf": [
               {
-                "maximum": 65535.0,
-                "minimum": 1.0,
                 "type": "integer"
               },
               {
@@ -2911,24 +3472,6 @@
               }
             ],
             "title": "Port"
-          },
-          "probe_timeout": {
-            "default": 2.0,
-            "maximum": 10.0,
-            "minimum": 0.1,
-            "title": "Probe Timeout",
-            "type": "number"
-          },
-          "ssh_key": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Ssh Key"
           },
           "username": {
             "anyOf": [
@@ -2942,66 +3485,7 @@
             "title": "Username"
           }
         },
-        "title": "PresetSuggestRequest",
-        "type": "object"
-      },
-      "PresetSuggestResponse": {
-        "description": "Preset suggestion derived from a device scan.\n\n``decision`` is \"suggest\" only when one preset is the unique top scorer and\nclears the threshold. A tie, or a positive but sub-threshold top score,\nyields \"ambiguous\" and the frontend must not preselect anything.",
-        "properties": {
-          "candidates": {
-            "default": [],
-            "items": {
-              "type": "string"
-            },
-            "title": "Candidates",
-            "type": "array"
-          },
-          "decision": {
-            "title": "Decision",
-            "type": "string"
-          },
-          "notes": {
-            "default": [],
-            "items": {
-              "type": "string"
-            },
-            "title": "Notes",
-            "type": "array"
-          },
-          "scores": {
-            "default": [],
-            "items": {
-              "$ref": "#/components/schemas/PresetScoreItem"
-            },
-            "title": "Scores",
-            "type": "array"
-          },
-          "solution_id": {
-            "title": "Solution Id",
-            "type": "string"
-          },
-          "suggested_preset_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Suggested Preset Id"
-          },
-          "threshold": {
-            "title": "Threshold",
-            "type": "number"
-          }
-        },
-        "required": [
-          "solution_id",
-          "decision",
-          "threshold"
-        ],
-        "title": "PresetSuggestResponse",
+        "title": "ProbeDesktopUsersRequest",
         "type": "object"
       },
       "ProbeRequest": {
@@ -3172,6 +3656,17 @@
         "title": "RecameraProTestRequest",
         "type": "object"
       },
+      "RefreshCatalogRequest": {
+        "properties": {
+          "force": {
+            "default": false,
+            "title": "Force",
+            "type": "boolean"
+          }
+        },
+        "title": "RefreshCatalogRequest",
+        "type": "object"
+      },
       "RemoteConfigRequest": {
         "description": "Request to get remote app configuration (needs SSH connection)",
         "properties": {
@@ -3179,9 +3674,27 @@
             "title": "Host",
             "type": "string"
           },
+          "key_file": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key File"
+          },
           "password": {
-            "title": "Password",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Password"
           },
           "port": {
             "default": 22,
@@ -3195,8 +3708,7 @@
           }
         },
         "required": [
-          "host",
-          "password"
+          "host"
         ],
         "title": "RemoteConfigRequest",
         "type": "object"
@@ -4295,6 +4807,940 @@
         "title": "SolutionUpdate",
         "type": "object"
       },
+      "StagingChange": {
+        "properties": {
+          "added": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Added",
+            "type": "array"
+          },
+          "changed": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Changed",
+            "type": "array"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "removed": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Removed",
+            "type": "array"
+          },
+          "stale": {
+            "default": false,
+            "title": "Stale",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "key"
+        ],
+        "title": "StagingChange",
+        "type": "object"
+      },
+      "StagingChangesResponse": {
+        "properties": {
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/StagingChange"
+            },
+            "title": "Changes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "changes"
+        ],
+        "title": "StagingChangesResponse",
+        "type": "object"
+      },
+      "StagingDeleteResponse": {
+        "properties": {
+          "deleted": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Deleted",
+            "type": "array"
+          },
+          "freed_bytes": {
+            "default": 0,
+            "title": "Freed Bytes",
+            "type": "integer"
+          },
+          "not_found": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Not Found",
+            "type": "array"
+          }
+        },
+        "title": "StagingDeleteResponse",
+        "type": "object"
+      },
+      "StagingEntriesResponse": {
+        "properties": {
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/StagingEntry"
+            },
+            "title": "Entries",
+            "type": "array"
+          },
+          "files": {
+            "default": 0,
+            "title": "Files",
+            "type": "integer"
+          },
+          "total_bytes": {
+            "default": 0,
+            "title": "Total Bytes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "entries"
+        ],
+        "title": "StagingEntriesResponse",
+        "type": "object"
+      },
+      "StagingEntry": {
+        "description": "One step x target of a preset, with its manifest and verdict.",
+        "properties": {
+          "arch": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Arch"
+          },
+          "arch_required": {
+            "default": false,
+            "title": "Arch Required",
+            "type": "boolean"
+          },
+          "cached_bytes": {
+            "default": 0,
+            "title": "Cached Bytes",
+            "type": "integer"
+          },
+          "config_file": {
+            "title": "Config File",
+            "type": "string"
+          },
+          "download_bytes_estimate": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Download Bytes Estimate"
+          },
+          "errors": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Errors",
+            "type": "array"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/StagingItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "last_used_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Used At"
+          },
+          "missing_inputs": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Missing Inputs",
+            "type": "array"
+          },
+          "params": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Params",
+            "type": "object"
+          },
+          "prepared_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prepared At"
+          },
+          "preset_id": {
+            "title": "Preset Id",
+            "type": "string"
+          },
+          "reasons": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reasons",
+            "type": "array"
+          },
+          "required_inputs": {
+            "items": {
+              "$ref": "#/components/schemas/StagingRequiredInput"
+            },
+            "title": "Required Inputs",
+            "type": "array"
+          },
+          "solution_id": {
+            "title": "Solution Id",
+            "type": "string"
+          },
+          "solution_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Solution Version"
+          },
+          "step_id": {
+            "title": "Step Id",
+            "type": "string"
+          },
+          "target_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Id"
+          },
+          "verdict": {
+            "default": "unknown",
+            "enum": [
+              "full",
+              "partial",
+              "unknown",
+              "error"
+            ],
+            "title": "Verdict",
+            "type": "string"
+          },
+          "view": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "View"
+          }
+        },
+        "required": [
+          "solution_id",
+          "preset_id",
+          "step_id",
+          "config_file"
+        ],
+        "title": "StagingEntry",
+        "type": "object"
+      },
+      "StagingEntryRef": {
+        "description": "Addresses one entry record.",
+        "properties": {
+          "arch": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Arch"
+          },
+          "preset_id": {
+            "title": "Preset Id",
+            "type": "string"
+          },
+          "solution_id": {
+            "title": "Solution Id",
+            "type": "string"
+          },
+          "step_id": {
+            "title": "Step Id",
+            "type": "string"
+          },
+          "target_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Id"
+          }
+        },
+        "required": [
+          "solution_id",
+          "preset_id",
+          "step_id"
+        ],
+        "title": "StagingEntryRef",
+        "type": "object"
+      },
+      "StagingExportRequest": {
+        "description": "Write the named entries (all of them when empty) to ``path``.",
+        "properties": {
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/StagingEntryRef"
+            },
+            "title": "Entries",
+            "type": "array"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "title": "StagingExportRequest",
+        "type": "object"
+      },
+      "StagingExportResponse": {
+        "properties": {
+          "bytes": {
+            "title": "Bytes",
+            "type": "integer"
+          },
+          "entries": {
+            "title": "Entries",
+            "type": "integer"
+          },
+          "files": {
+            "title": "Files",
+            "type": "integer"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "entries",
+          "files",
+          "bytes"
+        ],
+        "title": "StagingExportResponse",
+        "type": "object"
+      },
+      "StagingImportRequest": {
+        "properties": {
+          "path": {
+            "title": "Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "title": "StagingImportRequest",
+        "type": "object"
+      },
+      "StagingImportResponse": {
+        "properties": {
+          "conflicts": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Conflicts",
+            "type": "array"
+          },
+          "entries": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Entries",
+            "type": "array"
+          },
+          "imported": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Imported",
+            "type": "array"
+          },
+          "incomplete": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Incomplete",
+            "type": "array"
+          },
+          "skipped": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Skipped",
+            "type": "array"
+          }
+        },
+        "title": "StagingImportResponse",
+        "type": "object"
+      },
+      "StagingItem": {
+        "description": "One resource an entry needs on site.",
+        "properties": {
+          "arch": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Arch"
+          },
+          "checksum": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checksum"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "digest": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Digest"
+          },
+          "estimated_bytes": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estimated Bytes"
+          },
+          "image_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Image Id"
+          },
+          "kind": {
+            "enum": [
+              "file",
+              "image"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "origin": {
+            "title": "Origin",
+            "type": "string"
+          },
+          "path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Path"
+          },
+          "size_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Size Bytes"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "status": {
+            "default": "unknown",
+            "enum": [
+              "ready",
+              "missing",
+              "corrupt",
+              "unknown"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "source",
+          "origin"
+        ],
+        "title": "StagingItem",
+        "type": "object"
+      },
+      "StagingJob": {
+        "description": "A prepare run: what it is downloading and how far it got.",
+        "properties": {
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/StagingEntry"
+            },
+            "title": "Entries",
+            "type": "array"
+          },
+          "errors": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Errors",
+            "type": "array"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/StagingJobItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "message": {
+            "default": "",
+            "title": "Message",
+            "type": "string"
+          },
+          "progress": {
+            "default": 0,
+            "title": "Progress",
+            "type": "integer"
+          },
+          "started_at": {
+            "title": "Started At",
+            "type": "string"
+          },
+          "status": {
+            "default": "running",
+            "enum": [
+              "running",
+              "completed",
+              "failed",
+              "cancelled"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "started_at"
+        ],
+        "title": "StagingJob",
+        "type": "object"
+      },
+      "StagingJobItem": {
+        "properties": {
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "entry_key": {
+            "title": "Entry Key",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "file",
+              "image"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "status": {
+            "default": "pending",
+            "enum": [
+              "pending",
+              "downloading",
+              "ready",
+              "failed",
+              "skipped"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "entry_key",
+          "source",
+          "kind"
+        ],
+        "title": "StagingJobItem",
+        "type": "object"
+      },
+      "StagingPlanRequest": {
+        "properties": {
+          "arch": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Arch",
+            "type": "object"
+          },
+          "estimate": {
+            "default": false,
+            "title": "Estimate",
+            "type": "boolean"
+          },
+          "lang": {
+            "default": "en",
+            "title": "Lang",
+            "type": "string"
+          },
+          "params": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Params",
+            "type": "object"
+          },
+          "preset_id": {
+            "title": "Preset Id",
+            "type": "string"
+          },
+          "solution_id": {
+            "title": "Solution Id",
+            "type": "string"
+          },
+          "targets": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Targets"
+          },
+          "verify": {
+            "default": true,
+            "title": "Verify",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "solution_id",
+          "preset_id"
+        ],
+        "title": "StagingPlanRequest",
+        "type": "object"
+      },
+      "StagingPlanResponse": {
+        "properties": {
+          "cached_bytes": {
+            "default": 0,
+            "title": "Cached Bytes",
+            "type": "integer"
+          },
+          "download_bytes_estimate": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Download Bytes Estimate"
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/StagingEntry"
+            },
+            "title": "Entries",
+            "type": "array"
+          },
+          "free_disk_bytes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Free Disk Bytes"
+          }
+        },
+        "required": [
+          "entries"
+        ],
+        "title": "StagingPlanResponse",
+        "type": "object"
+      },
+      "StagingPrepareRequest": {
+        "description": "Same selection as a plan, then download what it lists.",
+        "properties": {
+          "arch": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Arch",
+            "type": "object"
+          },
+          "estimate": {
+            "default": false,
+            "title": "Estimate",
+            "type": "boolean"
+          },
+          "lang": {
+            "default": "en",
+            "title": "Lang",
+            "type": "string"
+          },
+          "params": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Params",
+            "type": "object"
+          },
+          "preset_id": {
+            "title": "Preset Id",
+            "type": "string"
+          },
+          "refresh": {
+            "default": false,
+            "title": "Refresh",
+            "type": "boolean"
+          },
+          "solution_id": {
+            "title": "Solution Id",
+            "type": "string"
+          },
+          "targets": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Targets"
+          },
+          "verify": {
+            "default": true,
+            "title": "Verify",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "solution_id",
+          "preset_id"
+        ],
+        "title": "StagingPrepareRequest",
+        "type": "object"
+      },
+      "StagingRequiredInput": {
+        "description": "A user input whose value changes what the entry downloads.",
+        "properties": {
+          "default": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Default"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "name_zh": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name Zh"
+          },
+          "options": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Options"
+          },
+          "required": {
+            "default": false,
+            "title": "Required",
+            "type": "boolean"
+          },
+          "type": {
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "type"
+        ],
+        "title": "StagingRequiredInput",
+        "type": "object"
+      },
       "StartDeploymentRequest": {
         "description": "Request to start a deployment",
         "properties": {
@@ -4624,6 +6070,17 @@
             "title": "Name",
             "type": "string"
           },
+          "outcome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outcome"
+          },
           "started_at": {
             "anyOf": [
               {
@@ -4682,6 +6139,18 @@
           "name": {
             "title": "Name",
             "type": "string"
+          },
+          "outcome": {
+            "anyOf": [
+              {
+                "const": "starting",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outcome"
           },
           "progress": {
             "default": 0,
@@ -4937,6 +6406,19 @@
         "title": "UninstallRemoteRequest",
         "type": "object"
       },
+      "UninstallRequest": {
+        "properties": {
+          "agent_id": {
+            "title": "Agent Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "agent_id"
+        ],
+        "title": "UninstallRequest",
+        "type": "object"
+      },
       "UpdateCheckResult": {
         "description": "Result of checking for available updates",
         "properties": {
@@ -4996,6 +6478,28 @@
       "UpdateRequest": {
         "description": "Request to update a deployed application",
         "properties": {
+          "device_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Device Id"
+          },
+          "key_file": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key File"
+          },
           "password": {
             "anyOf": [
               {
@@ -5014,6 +6518,20 @@
       "UpdateResponse": {
         "description": "Response from application update",
         "properties": {
+          "health_failures": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Health Failures"
+          },
           "message": {
             "title": "Message",
             "type": "string"
@@ -5029,9 +6547,81 @@
             ],
             "title": "New Version"
           },
+          "rollback_failures": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rollback Failures"
+          },
+          "rollback_ok": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rollback Ok"
+          },
+          "rolled_back": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rolled Back"
+          },
+          "running_version": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Running Version"
+          },
+          "starting_services": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Starting Services"
+          },
           "success": {
             "title": "Success",
             "type": "boolean"
+          },
+          "verified": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verified"
           }
         },
         "required": [
@@ -5056,9 +6646,27 @@
             "title": "Host",
             "type": "string"
           },
+          "key_file": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key File"
+          },
           "password": {
-            "title": "Password",
-            "type": "string"
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Password"
           },
           "port": {
             "default": 22,
@@ -5084,7 +6692,6 @@
         },
         "required": [
           "host",
-          "password",
           "container_name",
           "compose_path"
         ],
@@ -5261,10 +6868,110 @@
   "info": {
     "description": "IoT Solution Provisioning Platform for Seeed Studio products.\n\n**Authentication:** Localhost requests are always allowed. Remote requests require an API key via `X-API-Key` header or `Authorization: Bearer <key>`.",
     "title": "Provisioning Station",
-    "version": "0.6.20"
+    "version": "0.8.0"
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/agent-skill": {
+      "get": {
+        "description": "Bundled skill path and per-agent status.\n\n``available`` is false (with ``agents: []``) when this build does not\ninclude the skill.\n\n``agents[]``: ``{id, name, skills_dir, detected, verified, status}`` with\n``status`` one of ``not_installed``, ``installed``, ``outdated`` (an older\ncopy installed by the app) or ``foreign`` (a different skill with the\nsame name). ``verified`` is false when the folder location is not from the\nagent vendor's documentation.",
+        "operationId": "get_agent_skill_api_agent_skill_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Agent Skill",
+        "tags": [
+          "agent-skill"
+        ]
+      }
+    },
+    "/api/agent-skill/install": {
+      "post": {
+        "description": "Copy the bundled skill to ``<skills_dir>/sensecraft`` (409 on a foreign copy).",
+        "operationId": "install_agent_skill_api_agent_skill_install_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InstallRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Install Agent Skill",
+        "tags": [
+          "agent-skill"
+        ]
+      }
+    },
+    "/api/agent-skill/uninstall": {
+      "post": {
+        "description": "Remove a copy the app installed; refuses (400) to remove a foreign one.",
+        "operationId": "uninstall_agent_skill_api_agent_skill_uninstall_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UninstallRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Uninstall Agent Skill",
+        "tags": [
+          "agent-skill"
+        ]
+      }
+    },
     "/api/ai/activity": {
       "get": {
         "description": "Get current page state and recent navigation history.",
@@ -5643,6 +7350,91 @@
         "summary": "Http Proxy",
         "tags": [
           "commands"
+        ]
+      }
+    },
+    "/api/content-updates/catalog": {
+      "get": {
+        "description": "Get dynamic solutions catalog (combines local index with local installed status).",
+        "operationId": "get_catalog_api_content_updates_catalog_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Catalog",
+        "tags": [
+          "content-updates"
+        ]
+      }
+    },
+    "/api/content-updates/catalog/refresh": {
+      "post": {
+        "description": "Trigger background refresh of solutions catalog via Singleflight.",
+        "operationId": "refresh_catalog_api_content_updates_catalog_refresh_post",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "force",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Force"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/RefreshCatalogRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Refresh Catalog",
+        "tags": [
+          "content-updates"
         ]
       }
     },
@@ -6258,32 +8050,48 @@
     },
     "/api/device-management/probe-desktop-users": {
       "post": {
-        "description": "Probe an SSH-reachable host for desktop-capable user accounts.\n\nReturns UID >= 1000 users with a real shell and an existing home directory,\nsuitable for installing `~/.config/autostart/*.desktop`. Used by the frontend\nautostart Advanced panel to populate the user dropdown.",
+        "description": "Probe an SSH-reachable host for desktop-capable user accounts.\n\nReturns UID >= 1000 users with a real shell and an existing home directory,\nsuitable for installing `~/.config/autostart/*.desktop`. Used by the frontend\nautostart Advanced panel to populate the user dropdown.\n\nCredentials are read from the JSON body; the query parameters remain\naccepted for older clients. A body field with a non-null value (an empty\nstring included) wins over the query parameter of the same name, and\nthat query parameter is then ignored entirely -- it is not validated\neither, so a valid body ``port`` with a malformed ``?port=`` is\naccepted. A null or absent body field falls back to the query\nparameter, which is validated only then (``port``: integer 1-65535,\nelse 422).\n\nContract change: the ``port`` query parameter is declared as a\n``string`` in the OpenAPI schema (it was ``integer``, default 22). The\nroute parses it itself, only when the body does not set ``port``, so a\nmalformed query value no longer fails the request when the body\noverrides it. Accepted values are unchanged (an integer 1-65535; absent\nmeans 22). Generated clients that typed the query ``port`` as a number\nmust send it as a string; the body ``port`` stays an integer.",
         "operationId": "probe_desktop_users_api_device_management_probe_desktop_users_post",
         "parameters": [
           {
             "description": "Remote host (IP or hostname)",
             "in": "query",
             "name": "host",
-            "required": true,
+            "required": false,
             "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
               "description": "Remote host (IP or hostname)",
-              "title": "Host",
-              "type": "string"
+              "title": "Host"
             }
           },
           {
             "description": "SSH login user",
             "in": "query",
             "name": "username",
-            "required": true,
+            "required": false,
             "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
               "description": "SSH login user",
-              "title": "Username",
-              "type": "string"
+              "title": "Username"
             }
           },
           {
+            "deprecated": true,
+            "description": "Deprecated: send the password in the JSON body instead",
             "in": "query",
             "name": "password",
             "required": false,
@@ -6296,20 +8104,47 @@
                   "type": "null"
                 }
               ],
+              "deprecated": true,
+              "description": "Deprecated: send the password in the JSON body instead",
               "title": "Password"
             }
           },
           {
+            "description": "SSH port as a string holding an integer 1-65535 (default 22); typed string since the body moved in, it was integer before. Ignored when the JSON body sets port",
             "in": "query",
             "name": "port",
             "required": false,
             "schema": {
-              "default": 22,
-              "title": "Port",
-              "type": "integer"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "SSH port as a string holding an integer 1-65535 (default 22); typed string since the body moved in, it was integer before. Ignored when the JSON body sets port",
+              "title": "Port"
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/ProbeDesktopUsersRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "content": {
@@ -6432,7 +8267,7 @@
     },
     "/api/device-management/{deployment_id}/kiosk": {
       "delete": {
-        "description": "Remove Kiosk mode configuration",
+        "description": "Remove Kiosk mode configuration\n\nFields are read from the JSON body; the query parameters remain accepted\nfor older clients. A body field with a non-null value (an empty string\nincluded) wins over the query parameter of the same name; a null or\nabsent body field falls back to the query parameter.",
         "operationId": "remove_kiosk_api_device_management__deployment_id__kiosk_delete",
         "parameters": [
           {
@@ -6447,13 +8282,22 @@
           {
             "in": "query",
             "name": "kiosk_user",
-            "required": true,
+            "required": false,
             "schema": {
-              "title": "Kiosk User",
-              "type": "string"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Kiosk User"
             }
           },
           {
+            "deprecated": true,
+            "description": "Deprecated: send the password in the JSON body instead",
             "in": "query",
             "name": "password",
             "required": false,
@@ -6466,10 +8310,47 @@
                   "type": "null"
                 }
               ],
+              "deprecated": true,
+              "description": "Deprecated: send the password in the JSON body instead",
               "title": "Password"
+            }
+          },
+          {
+            "description": "Step within the deployment (default: newest docker step)",
+            "in": "query",
+            "name": "device_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Step within the deployment (default: newest docker step)",
+              "title": "Device Id"
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/KioskRemoveRequest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "content": {
@@ -6498,7 +8379,7 @@
         ]
       },
       "get": {
-        "description": "Get Kiosk mode status for a deployment",
+        "description": "Get Kiosk mode status of one step of a deployment",
         "operationId": "get_kiosk_status_api_device_management__deployment_id__kiosk_get",
         "parameters": [
           {
@@ -6508,6 +8389,24 @@
             "schema": {
               "title": "Deployment Id",
               "type": "string"
+            }
+          },
+          {
+            "description": "Step within the deployment (default: newest docker step)",
+            "in": "query",
+            "name": "device_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Step within the deployment (default: newest docker step)",
+              "title": "Device Id"
             }
           }
         ],
@@ -6539,7 +8438,7 @@
         ]
       },
       "post": {
-        "description": "Configure Kiosk mode for a deployment\n\nThis will:\n- For enabled=True: Configure the device to auto-start the app in fullscreen on boot\n- For enabled=False: Remove the auto-start configuration",
+        "description": "Configure Kiosk mode for a deployment\n\nThis will:\n- For enabled=True: Configure the device to auto-start the app in fullscreen on boot\n- For enabled=False: Remove the auto-start configuration\n\nEnabling targets one step (``device_id``, default: newest docker step).\nA step whose deployment did not complete is rejected with 409 CONFLICT;\nremoving auto-start from such a step is still allowed.",
         "operationId": "configure_kiosk_api_device_management__deployment_id__kiosk_post",
         "parameters": [
           {
@@ -6602,6 +8501,24 @@
             "schema": {
               "title": "Deployment Id",
               "type": "string"
+            }
+          },
+          {
+            "description": "Step within the deployment (default: newest docker step)",
+            "in": "query",
+            "name": "device_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Step within the deployment (default: newest docker step)",
+              "title": "Device Id"
             }
           }
         ],
@@ -6814,6 +8731,70 @@
           }
         },
         "summary": "Detect Devices",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/devices/local-identity": {
+      "get": {
+        "description": "Identify the device class of the machine running this app.\n\n``device_classes`` is empty for unrecognised hosts (x86 PC, macOS,\nWindows); this endpoint never fails because of the host type. ``error``\nis set when detection itself failed (timeout, probe error) — then the\nhost is unknown rather than unsupported, and the result is not cached.",
+        "operationId": "get_local_identity_api_devices_local_identity_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "refresh",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Refresh",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocalIdentity"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Local Identity",
+        "tags": [
+          "devices"
+        ]
+      }
+    },
+    "/api/devices/network-interfaces": {
+      "get": {
+        "description": "Return local host OS and active network interfaces with IPv4/IPv6 addresses.",
+        "operationId": "get_network_interfaces_api_devices_network_interfaces_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Network Interfaces",
         "tags": [
           "devices"
         ]
@@ -8050,378 +10031,6 @@
         "summary": "Upgrade Container",
         "tags": [
           "docker-devices"
-        ]
-      }
-    },
-    "/api/editor/solutions/{sid}/discard": {
-      "post": {
-        "description": "Delete the edit overlay for *sid* and reload the SolutionManager.\n\nIdempotent — returns ok=True even if no edit session existed.",
-        "operationId": "discard_api_editor_solutions__sid__discard_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "sid",
-            "required": true,
-            "schema": {
-              "title": "Sid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Discard",
-        "tags": [
-          "editor"
-        ]
-      }
-    },
-    "/api/editor/solutions/{sid}/enter": {
-      "post": {
-        "description": "Seed the edit overlay directory for a solution.\n\nCopies from the effective source (updates overlay if present, else bundled).\nNo-op (seeded: False) if the edit dir already exists.\nTriggers a SolutionManager reload so the overlay becomes active immediately.\nReturns 404 if the source solution is not found.",
-        "operationId": "enter_edit_api_editor_solutions__sid__enter_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "sid",
-            "required": true,
-            "schema": {
-              "title": "Sid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Enter Edit",
-        "tags": [
-          "editor"
-        ]
-      }
-    },
-    "/api/editor/solutions/{sid}/export": {
-      "post": {
-        "description": "Package the edit overlay for *sid* into a zip file and return its path.\n\nArchive entries are named ``{sid}/<relative/path>`` so that unzipping over\nthe git repo's ``solutions/`` directory drops content into the right place.\nReturns 404 if no edit session exists for the given sid.",
-        "operationId": "export_zip_api_editor_solutions__sid__export_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "sid",
-            "required": true,
-            "schema": {
-              "title": "Sid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Export Zip",
-        "tags": [
-          "editor"
-        ]
-      }
-    },
-    "/api/editor/solutions/{sid}/image": {
-      "delete": {
-        "description": "Delete an image from the edit overlay for a solution.\n\nThe ``path`` field must start with ``intro/gallery/`` or ``deploy/sections/``.\nReturns ok=True whether or not the file existed.",
-        "operationId": "delete_image_api_editor_solutions__sid__image_delete",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "sid",
-            "required": true,
-            "schema": {
-              "title": "Sid",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "title": "Body",
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Delete Image",
-        "tags": [
-          "editor"
-        ]
-      },
-      "post": {
-        "description": "Upload an image into the edit overlay for a solution.\n\nConstraints:\n- content_type must be image/png, image/jpeg, or image/webp\n- target_path must end with .png, .jpg, .jpeg, or .webp\n- target_path must start with intro/gallery/ or deploy/sections/\n- file size must be ≤ 5 MB",
-        "operationId": "post_image_api_editor_solutions__sid__image_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "sid",
-            "required": true,
-            "schema": {
-              "title": "Sid",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "$ref": "#/components/schemas/Body_post_image_api_editor_solutions__sid__image_post"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Post Image",
-        "tags": [
-          "editor"
-        ]
-      }
-    },
-    "/api/editor/solutions/{sid}/markdown": {
-      "put": {
-        "description": "Write markdown content to the edit overlay for a solution.\n\nThe ``file`` field must end with ``.md`` and start with ``intro/`` or\n``deploy/``.  Path traversal attempts are rejected.  Parent directories\nare created automatically.",
-        "operationId": "put_markdown_api_editor_solutions__sid__markdown_put",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "sid",
-            "required": true,
-            "schema": {
-              "title": "Sid",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "title": "Body",
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Put Markdown",
-        "tags": [
-          "editor"
-        ]
-      }
-    },
-    "/api/editor/solutions/{sid}/state": {
-      "get": {
-        "description": "Return the current state of the edit overlay directory for a solution.",
-        "operationId": "edit_state_api_editor_solutions__sid__state_get",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "sid",
-            "required": true,
-            "schema": {
-              "title": "Sid",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Edit State",
-        "tags": [
-          "editor"
-        ]
-      }
-    },
-    "/api/editor/solutions/{sid}/yaml": {
-      "put": {
-        "description": "Apply a whitelisted patch to the edit overlay YAML for a solution.\n\nLoads the current edit YAML, applies the patch (silently dropping\ndisallowed fields), validates the result with the Pydantic Solution model,\nthen saves.  On validation failure the file is still saved so the user\ndoesn't lose work, and a 422 is raised with the validation errors.\nReturns 404 if no edit session exists for the given sid.",
-        "operationId": "put_yaml_api_editor_solutions__sid__yaml_put",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "sid",
-            "required": true,
-            "schema": {
-              "title": "Sid",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "title": "Patch",
-                "type": "object"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Put Yaml",
-        "tags": [
-          "editor"
         ]
       }
     },
@@ -10614,6 +12223,191 @@
           }
         },
         "summary": "Get Supported Devices",
+        "tags": [
+          "restore"
+        ]
+      }
+    },
+    "/api/restore/firmware/cache": {
+      "delete": {
+        "description": "Clear all cached factory restore firmware.",
+        "operationId": "clear_firmware_cache_api_restore_firmware_cache_delete",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Clear Firmware Cache",
+        "tags": [
+          "restore"
+        ]
+      }
+    },
+    "/api/restore/firmware/prefetch": {
+      "post": {
+        "description": "Start or return an existing background firmware prefetch job.",
+        "operationId": "prefetch_firmware_api_restore_firmware_prefetch_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FirmwarePrefetchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Prefetch Firmware",
+        "tags": [
+          "restore"
+        ]
+      }
+    },
+    "/api/restore/firmware/prefetch/{job_id}": {
+      "get": {
+        "description": "Get the progress and status of a firmware prefetch job.",
+        "operationId": "get_prefetch_status_api_restore_firmware_prefetch__job_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Prefetch Status",
+        "tags": [
+          "restore"
+        ]
+      }
+    },
+    "/api/restore/firmware/prefetch/{job_id}/cancel": {
+      "post": {
+        "description": "Cancel an active firmware prefetch job.",
+        "operationId": "cancel_prefetch_api_restore_firmware_prefetch__job_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Cancel Prefetch",
+        "tags": [
+          "restore"
+        ]
+      }
+    },
+    "/api/restore/firmware/status": {
+      "get": {
+        "description": "Factory firmware cache state, CDN reachability, and active download for a device.",
+        "operationId": "get_firmware_status_api_restore_firmware_status_get",
+        "parameters": [
+          {
+            "description": "Device type, e.g. sensecap_watcher",
+            "in": "query",
+            "name": "device",
+            "required": true,
+            "schema": {
+              "description": "Device type, e.g. sensecap_watcher",
+              "title": "Device",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Firmware Status",
         "tags": [
           "restore"
         ]
@@ -12972,59 +14766,6 @@
         ]
       }
     },
-    "/api/solutions/{solution_id}/preset-suggest": {
-      "post": {
-        "description": "Score this solution's presets against a device scan.\n\nCollects the evidence the deploy page's scanners already produce (serial\nVID/PID, mDNS SSH records, TCP port probes) plus an optional read-only SSH\nidentity probe, then scores every preset that declares ``preset_match``.\n\nThe response is advisory only. ``decision`` is ``suggest`` when exactly one\npreset tops the ranking and clears the threshold, ``ambiguous`` on a tie or\na sub-threshold top score, and ``none`` when no preset declares rules or\nnothing matched. The frontend never applies a preset without the user\naccepting it.",
-        "operationId": "suggest_preset_api_solutions__solution_id__preset_suggest_post",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "solution_id",
-            "required": true,
-            "schema": {
-              "title": "Solution Id",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PresetSuggestRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PresetSuggestResponse"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Suggest Preset",
-        "tags": [
-          "solutions"
-        ]
-      }
-    },
     "/api/solutions/{solution_id}/preset/{preset_id}/section": {
       "get": {
         "description": "Get preset section content with template variable replacement.\n\nFirst tries to get section from guide.md parsing (preferred),\nthen falls back to solution.yaml section definition.",
@@ -13653,6 +15394,496 @@
         ]
       }
     },
+    "/api/staging/entries": {
+      "get": {
+        "description": "Entry records on this machine, and what they occupy.",
+        "operationId": "list_entries_api_staging_entries_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StagingEntriesResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Entries",
+        "tags": [
+          "staging"
+        ]
+      }
+    },
+    "/api/staging/entries/changes": {
+      "post": {
+        "description": "What has changed for each prepared entry since it was prepared --\nwhich items an update would download, and whether the solution moved on.\nReads solution content only; no network.",
+        "operationId": "entry_changes_api_staging_entries_changes_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StagingChangesResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Entry Changes",
+        "tags": [
+          "staging"
+        ]
+      }
+    },
+    "/api/staging/entries/delete": {
+      "post": {
+        "description": "Remove entries and the files no remaining entry still references.\n\nRefused while a deployment is running: a deploy resolves a cached path\nfirst and uploads it afterwards, so removing the last reference in that\nwindow would take the file out from under it.",
+        "operationId": "delete_entries_api_staging_entries_delete_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "$ref": "#/components/schemas/StagingEntryRef"
+                },
+                "title": "Refs",
+                "type": "array"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StagingDeleteResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Entries",
+        "tags": [
+          "staging"
+        ]
+      }
+    },
+    "/api/staging/export": {
+      "post": {
+        "description": "Write prepared entries and their files to one file, to carry to the\nmachine that will deploy. Omit ``entries`` for everything prepared.",
+        "operationId": "export_package_api_staging_export_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StagingExportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StagingExportResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Export Package",
+        "tags": [
+          "staging"
+        ]
+      }
+    },
+    "/api/staging/import": {
+      "post": {
+        "description": "Read a package written by ``/export`` into this machine's caches.",
+        "operationId": "import_package_api_staging_import_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StagingImportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StagingImportResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Import Package",
+        "tags": [
+          "staging"
+        ]
+      }
+    },
+    "/api/staging/jobs/{job_id}": {
+      "get": {
+        "operationId": "job_status_api_staging_jobs__job_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StagingJob"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Job Status",
+        "tags": [
+          "staging"
+        ]
+      }
+    },
+    "/api/staging/jobs/{job_id}/cancel": {
+      "post": {
+        "operationId": "cancel_job_api_staging_jobs__job_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Cancel Job Api Staging Jobs  Job Id  Cancel Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Cancel Job",
+        "tags": [
+          "staging"
+        ]
+      }
+    },
+    "/api/staging/location": {
+      "get": {
+        "description": "Where offline packages are kept, how much they use, and whether the\nlocation can be changed right now (``busy_reason``).",
+        "operationId": "get_location_api_staging_location_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get Location Api Staging Location Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Location",
+        "tags": [
+          "staging"
+        ]
+      },
+      "post": {
+        "description": "Move offline packages to ``path`` (or start empty there with\n``move_existing: false``). Returns a job to poll.",
+        "operationId": "change_location_api_staging_location_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LocationChangeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Change Location",
+        "tags": [
+          "staging"
+        ]
+      }
+    },
+    "/api/staging/location/jobs/{job_id}": {
+      "get": {
+        "operationId": "location_job_api_staging_location_jobs__job_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Location Job Api Staging Location Jobs  Job Id  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Location Job",
+        "tags": [
+          "staging"
+        ]
+      }
+    },
+    "/api/staging/location/reset": {
+      "post": {
+        "description": "Back to the default location. Returns a job to poll.",
+        "operationId": "reset_location_api_staging_location_reset_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LocationResetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reset Location",
+        "tags": [
+          "staging"
+        ]
+      }
+    },
+    "/api/staging/plan": {
+      "post": {
+        "description": "What each selected step x target needs on site, whether it can be\nfully offline, and (with ``verify``) what is already cached here.\nReads the offline root, so it is refused during a move (409) and while\nthe location is unavailable (503).",
+        "operationId": "plan_api_staging_plan_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StagingPlanRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StagingPlanResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Plan",
+        "tags": [
+          "staging"
+        ]
+      }
+    },
+    "/api/staging/prepare": {
+      "post": {
+        "description": "Download what the plan lists. Returns a job to poll; items already\ncached are skipped unless ``refresh``.",
+        "operationId": "prepare_api_staging_prepare_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StagingPrepareRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StagingJob"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Prepare",
+        "tags": [
+          "staging"
+        ]
+      }
+    },
     "/api/tailscale/install/remote": {
       "post": {
         "operationId": "install_remote_api_tailscale_install_remote_post",
@@ -14206,5 +16437,5 @@
       }
     }
   },
-  "x-contract-version": 5
+  "x-contract-version": 10
 }

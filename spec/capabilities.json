@@ -1,5 +1,5 @@
 {
-  "contract_version": 5,
+  "contract_version": 10,
   "deployers": {
     "docker_deploy": {
       "category": "deploy",
@@ -40,13 +40,6 @@
         "firmware.source"
       ]
     },
-    "nrf52_usb": {
-      "category": "deploy",
-      "required": [
-        "firmware",
-        "firmware.source"
-      ]
-    },
     "http_debug": {
       "category": "verify",
       "required": []
@@ -75,6 +68,10 @@
         "network_camera",
         "network_camera.panels[]"
       ]
+    },
+    "nrf52_usb": {
+      "category": "deploy",
+      "required": []
     },
     "preview": {
       "category": "verify",
@@ -136,6 +133,12 @@
       "category": "verify",
       "required": []
     },
+    "vibration_calibrator": {
+      "category": "verify",
+      "required": [
+        "vibration_calibrator"
+      ]
+    },
     "video_stream": {
       "category": "verify",
       "required": []
@@ -151,9 +154,14 @@
     "web_dashboard": {
       "category": "verify",
       "required": []
+    },
+    "wio_terminal_usb": {
+      "category": "deploy",
+      "required": []
     }
   },
   "device_classes": [
+    "arm64_linux",
     "hailo",
     "jetson",
     "recamera",
