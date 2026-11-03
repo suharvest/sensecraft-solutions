@@ -597,9 +597,7 @@ def check_immutable_release_conflicts(
             local_bytes = local_p.read_bytes()
             remote_sha = hashlib.sha256(remote_bytes).hexdigest()
             local_sha = hashlib.sha256(local_bytes).hexdigest()
-            if remote_sha == local_sha:
-                already_identical.add(fname)
-            elif is_test_keys and fname.endswith(".minisig"):
+            if is_test_keys and fname.endswith(".minisig"):
                 if not prod_pubkey:
                     raise ValueError(
                         "Production public key (--minisign-pubkey or CONTENT_MINISIGN_PUBLIC_KEY) is required to verify remote signatures during dry-run"
@@ -621,6 +619,8 @@ def check_immutable_release_conflicts(
                     ) from e
                 finally:
                     tmp_sig_path.unlink(missing_ok=True)
+                already_identical.add(fname)
+            elif remote_sha == local_sha:
                 already_identical.add(fname)
             else:
                 raise ValueError(

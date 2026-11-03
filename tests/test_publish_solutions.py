@@ -1249,4 +1249,108 @@ def test_check_immutable_release_conflicts_unit(tmp_path: Path):
             )
 
 
+def test_check_immutable_release_conflicts_minisig_identical_sha_test_keys(tmp_path: Path):
+    """Regression test: even if remote_sha == local_sha for a .minisig file,
+    when is_test_keys=True, missing pubkey or missing payload or invalid signature
+    raises ValueError (it does NOT bypass through the equality check)."""
+    _prod_sec_key, prod_pubkey = generate_test_minisign_keypair(tmp_path / "prod")
+    test_sec_key, _ = generate_test_minisign_keypair(tmp_path / "test")
+
+    test_file = tmp_path / "manifest.json"
+    test_file.write_text('{"version": 2}\n', encoding="utf-8")
+    test_sig = publish_solutions.run_minisign_sign(test_file, test_sec_key, commit_time=1700000000, version=2)
+    sig_bytes = test_sig.read_bytes()
+
+    real_run = subprocess.run
+
+    def mock_subprocess(cmd, **kwargs):
+        cmd_list = [str(c) for c in cmd]
+        if cmd_list and cmd_list[0] == "ossutil":
+            cmd_str = " ".join(cmd_list)
+            if "ossutil cat" in cmd_str:
+                target = cmd_list[2]
+                if target.endswith("manifest.json"):
+                    return mock.Mock(returncode=0, stdout=test_file.read_bytes(), stderr=b"")
+                elif target.endswith("manifest.json.minisig") or target.endswith("orphan.minisig"):
+                    # Remote has IDENTICAL sha / bytes to local test_sig
+                    return mock.Mock(returncode=0, stdout=sig_bytes, stderr=b"")
+            return mock.Mock(returncode=0, stdout="", stderr="")
+        return real_run(cmd, **kwargs)
+
+    with mock.patch("subprocess.run", side_effect=mock_subprocess):
+        # 1. Missing pubkey: even if remote_sha == local_sha, must raise ValueError
+        with pytest.raises(
+            ValueError,
+            match=r"Production public key \(--minisign-pubkey or CONTENT_MINISIGN_PUBLIC_KEY\) is required to verify remote signatures during dry-run",
+        ):
+            publish_solutions.check_immutable_release_conflicts(
+                bucket="bucket",
+                prefix="prefix",
+                content_pin="pin",
+                artifacts=[test_file, test_sig],
+                is_test_keys=True,
+                prod_pubkey=None,
+            )
+
+        # 2. Missing payload: even if remote_sha == local_sha, must raise ValueError
+        orphaned_sig = tmp_path / "orphan.minisig"
+        orphaned_sig.write_bytes(sig_bytes)
+        with pytest.raises(
+            ValueError,
+            match=r"Cannot verify remote signature .* local payload .* does not exist",
+        ):
+            publish_solutions.check_immutable_release_conflicts(
+                bucket="bucket",
+                prefix="prefix",
+                content_pin="pin",
+                artifacts=[orphaned_sig],
+                is_test_keys=True,
+                prod_pubkey=prod_pubkey,
+            )
+
+        # 3. Invalid signature: remote_sha == local_sha, but signed with test key (not prod_pubkey)
+        with pytest.raises(
+            ValueError,
+            match=r"remote .* signature is invalid",
+        ):
+            publish_solutions.check_immutable_release_conflicts(
+                bucket="bucket",
+                prefix="prefix",
+                content_pin="pin",
+                artifacts=[test_file, test_sig],
+                is_test_keys=True,
+                prod_pubkey=prod_pubkey,
+            )
+
+    # 4. Valid signature: remote_sha == local_sha, signed with prod_pubkey, verified successfully
+    prod_sig = publish_solutions.run_minisign_sign(test_file, _prod_sec_key, commit_time=1700000000, version=2)
+    prod_sig_bytes = prod_sig.read_bytes()
+
+    def mock_subprocess_valid(cmd, **kwargs):
+        cmd_list = [str(c) for c in cmd]
+        if cmd_list and cmd_list[0] == "ossutil":
+            cmd_str = " ".join(cmd_list)
+            if "ossutil cat" in cmd_str:
+                target = cmd_list[2]
+                if target.endswith("manifest.json"):
+                    return mock.Mock(returncode=0, stdout=test_file.read_bytes(), stderr=b"")
+                elif target.endswith("manifest.json.minisig"):
+                    return mock.Mock(returncode=0, stdout=prod_sig_bytes, stderr=b"")
+            return mock.Mock(returncode=0, stdout="", stderr="")
+        return real_run(cmd, **kwargs)
+
+    with mock.patch("subprocess.run", side_effect=mock_subprocess_valid):
+        identical = publish_solutions.check_immutable_release_conflicts(
+            bucket="bucket",
+            prefix="prefix",
+            content_pin="pin",
+            artifacts=[test_file, prod_sig],
+            is_test_keys=True,
+            prod_pubkey=prod_pubkey,
+        )
+        assert "manifest.json" in identical
+        assert "manifest.json.minisig" in identical
+
+
+
 
