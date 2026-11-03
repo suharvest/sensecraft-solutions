@@ -77,7 +77,6 @@ jobs:
         run: uv run pytest tests/test_publish_solutions.py
 
       - name: Configure ossutil credentials
-        if: ${{ !inputs.dry_run }}
         env:
           OSS_ACCESS_KEY_ID: ${{ secrets.OSS_ACCESS_KEY_ID }}
           OSS_ACCESS_KEY_SECRET: ${{ secrets.OSS_ACCESS_KEY_SECRET }}
