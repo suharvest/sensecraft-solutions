@@ -575,23 +575,30 @@ def check_immutable_release_conflicts(
     ossutil_bin: str = "ossutil",
     is_test_keys: bool = False,
     prod_pubkey: str | None = None,
+    output_dir: Path | None = None,
 ) -> set[str]:
     """Check release objects against oss://{bucket}/{prefix}/releases/{content_pin}/.
 
-    Returns set of filenames that already exist identically on OSS (to skip uploading).
+    Returns set of relative paths that already exist identically on OSS (to skip uploading).
     Raises ValueError if an object exists with different sha256 (conflict).
     Raises RuntimeError if OSS query fails unexpectedly (fail-closed).
     """
     already_identical: set[str] = set()
-    files_to_check = (
-        sorted(artifacts)
-        if isinstance(artifacts, list)
-        else sorted(p for p in artifacts.iterdir() if p.is_file())
-    )
+    if isinstance(artifacts, Path):
+        out_d = artifacts.resolve()
+        files_to_check = sorted(p for p in artifacts.rglob("*") if p.is_file())
+    else:
+        files_to_check = sorted(p for p in artifacts if p.is_file())
+        out_d = _infer_output_dir(files_to_check, output_dir)
 
     for local_p in files_to_check:
-        fname = local_p.name
-        oss_target = f"oss://{bucket}/{prefix}/releases/{content_pin}/{fname}"
+        try:
+            rel_path = local_p.resolve().relative_to(out_d.resolve()).as_posix()
+        except ValueError:
+            target_out = output_dir if output_dir is not None else out_d
+            raise ValueError(f"Security Error: Artifact {local_p} is outside output directory {target_out}")
+        fname = rel_path
+        oss_target = f"oss://{bucket}/{prefix}/releases/{content_pin}/{rel_path}"
         exists, remote_bytes = oss_object_exists(oss_target, ossutil_bin=ossutil_bin)
         if exists and remote_bytes is not None:
             local_bytes = local_p.read_bytes()
@@ -629,6 +636,60 @@ def check_immutable_release_conflicts(
                 )
 
     return already_identical
+
+
+check_immutable_release_conflict = check_immutable_release_conflicts
+
+
+def upload_release_artifacts(
+    bucket: str,
+    prefix: str,
+    content_pin: str,
+    artifacts: list[Path],
+    already_identical: set[str],
+    output_dir: Path,
+    ossutil_bin: str = "ossutil",
+) -> None:
+    """Upload immutable release objects to OSS preserving subdirectories."""
+    frozen_root_manifest = f"oss://{bucket}/solution-app/solutions/manifest.json"
+    pin_dest = f"oss://{bucket}/{prefix}/releases/{content_pin}/"
+    valid_artifacts = [p for p in sorted(artifacts) if p.is_file()]
+
+    for local_p in valid_artifacts:
+        try:
+            rel_path = local_p.resolve().relative_to(output_dir.resolve()).as_posix()
+        except ValueError:
+            raise ValueError(f"Security Error: Artifact {local_p} is outside output directory {output_dir}")
+
+        if rel_path in already_identical:
+            print(f"  [skip] {rel_path} (already identical on OSS)")
+            continue
+
+        dest_obj = f"{pin_dest}{rel_path}"
+        if dest_obj == frozen_root_manifest:
+            raise ValueError("Security Error: direct overwrite of frozen v1 root manifest is forbidden!")
+
+        print(f"  [upload] {rel_path} -> {dest_obj}")
+        rel_key = f"{prefix}/releases/{content_pin}/{rel_path}" if prefix else f"releases/{content_pin}/{rel_path}"
+        res = subprocess.run(
+            [
+                ossutil_bin,
+                "api",
+                "put-object",
+                "--bucket",
+                bucket,
+                "--key",
+                rel_key,
+                "--body",
+                f"file://{local_p.resolve()}",
+                "--forbid-overwrite",
+                "true",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        if res.returncode != 0:
+            raise RuntimeError(f"Error uploading {rel_path} to {dest_obj}: {res.stderr}")
 
 
 def verify_tar_stream_strictly(stream: Any) -> None:
@@ -1052,11 +1113,146 @@ def generate_manifest_dict(
     return manifest_payload
 
 
+def _infer_output_dir(artifacts: list[Path], output_dir: Path | None = None) -> Path:
+    if output_dir is not None:
+        return output_dir.resolve()
+    valid = [p.resolve() for p in artifacts if p.is_file() or p.exists()]
+    if not valid:
+        raise ValueError("Cannot infer output_dir: artifacts list is empty")
+    for p in valid:
+        if p.name == "manifest.json":
+            return p.parent
+    try:
+        common = Path(os.path.commonpath([p.as_posix() for p in valid]))
+        if common.is_file():
+            return common.parent
+        return common
+    except Exception as e:
+        raise ValueError(f"Cannot infer output_dir from artifacts: {e}")
+
+
+def process_solution_cover(
+    sol_id: str,
+    sol_dir: Path,
+    cover_image: str | None,
+    repo_root: Path,
+    tracked_files_set: set[str],
+    output_dir: Path,
+    generated_artifacts: list[Path],
+) -> str:
+    """Safely validate, extract, and rewrite cover image for a solution."""
+    if not cover_image or not isinstance(cover_image, str) or not cover_image.strip():
+        return ""
+    cover_image = cover_image.strip()
+
+    # Absolute URL: keep unchanged
+    if cover_image.startswith(("http://", "https://", "data:")):
+        return cover_image
+
+    # Path traversal validation
+    p = Path(cover_image)
+    if p.is_absolute() or ".." in p.parts:
+        raise ValueError(f"Security Error: Path traversal in cover_image for {sol_id}: {cover_image}")
+
+    # Symlink validation on path components and target file
+    cur = sol_dir
+    for part in p.parts:
+        cur = cur / part
+        if cur.is_symlink():
+            raise ValueError(f"Security Error: Symlink detected in cover_image for {sol_id}: {cover_image}")
+
+    raw_cover_path = sol_dir / cover_image
+    try:
+        resolved_sol_dir = sol_dir.resolve()
+        resolved_cover_path = raw_cover_path.resolve()
+        resolved_cover_path.relative_to(resolved_sol_dir)
+    except ValueError:
+        raise ValueError(f"Security Error: Path traversal in cover_image for {sol_id}: {cover_image}")
+
+    # Sensitive and junk file check
+    junk_lower = {j.lower() for j in JUNK_NAMES}
+    for part in p.parts:
+        part_lower = part.lower()
+        if (
+            is_sensitive_file(part)
+            or part in JUNK_NAMES
+            or part_lower in junk_lower
+            or part_lower.endswith("~")
+            or part_lower.endswith(".tmp")
+        ):
+            raise ValueError(
+                f"Security Error: Sensitive or junk file referenced as cover_image for {sol_id}: {cover_image}"
+            )
+    name_lower = raw_cover_path.name.lower()
+    if (
+        is_sensitive_file(raw_cover_path.name)
+        or raw_cover_path.name in JUNK_NAMES
+        or name_lower in junk_lower
+        or name_lower.endswith("~")
+        or name_lower.endswith(".tmp")
+    ):
+        raise ValueError(
+            f"Security Error: Sensitive or junk file referenced as cover_image for {sol_id}: {cover_image}"
+        )
+
+    # Missing file downgrade
+    if not raw_cover_path.is_file():
+        print(f"[WARNING] Solution {sol_id} cover_image {cover_image} not found, setting to empty")
+        return ""
+
+    # Git-tracked check
+    try:
+        rel_repo_path = raw_cover_path.resolve().relative_to(repo_root.resolve()).as_posix()
+    except ValueError:
+        raise ValueError(f"Security Error: cover_image for {sol_id} escapes repository: {cover_image}")
+
+    if rel_repo_path not in tracked_files_set:
+        raise ValueError(f"Security Error: cover_image for {sol_id} is not tracked by git: {cover_image}")
+
+    # Sanitize filename and prepare isolated output directory covers/{sol_id}/{clean_filename}
+    clean_filename = re.sub(r"[^a-zA-Z0-9_.-]", "_", p.name)
+    if not clean_filename:
+        clean_filename = "cover.png"
+
+    covers_dir = output_dir / "covers"
+    if covers_dir.is_symlink():
+        raise ValueError(f"Security Error: Output covers directory is a symlink: {covers_dir}")
+    covers_dir.mkdir(parents=True, exist_ok=True)
+    if covers_dir.is_symlink():
+        raise ValueError(f"Security Error: Output covers directory is a symlink: {covers_dir}")
+    if not covers_dir.resolve().is_relative_to(output_dir.resolve()):
+        raise ValueError(f"Security Error: Output covers directory escapes output directory: {covers_dir}")
+
+    dest_dir = covers_dir / sol_id
+    if dest_dir.is_symlink():
+        raise ValueError(f"Security Error: Target cover directory is a symlink: {dest_dir}")
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    if dest_dir.is_symlink():
+        raise ValueError(f"Security Error: Target cover directory is a symlink: {dest_dir}")
+    if not dest_dir.resolve().is_relative_to(covers_dir.resolve()):
+        raise ValueError(f"Security Error: Target cover directory escapes covers directory: {dest_dir}")
+
+    dest_cover = dest_dir / clean_filename
+    if dest_cover.is_symlink():
+        raise ValueError(f"Security Error: Target cover file is a symlink: {dest_cover}")
+    if not dest_cover.resolve().is_relative_to(dest_dir.resolve()):
+        raise ValueError(f"Security Error: Target cover path escapes covers directory: {dest_cover}")
+    if dest_cover.parent != dest_dir:
+        raise ValueError(f"Security Error: Target cover path escapes covers directory: {dest_cover}")
+
+    # Copy to destination
+    dest_cover.write_bytes(raw_cover_path.read_bytes())
+    generated_artifacts.append(dest_cover)
+
+    return f"covers/{sol_id}/{clean_filename}"
+
+
 def format_artifact_inventory(
     artifacts: list[Path],
     bucket: str,
     prefix: str,
     content_pin: str,
+    output_dir: Path | None = None,
 ) -> str:
     """Format complete artifact inventory with un-truncated sha256, size, dest, and count.
 
@@ -1065,7 +1261,16 @@ def format_artifact_inventory(
     - Mutable v2 objects (v2/...) for auxiliary and entry manifest files.
     """
     valid_artifacts = [p for p in sorted(artifacts) if p.is_file()]
-    artifact_map = {p.name: p for p in valid_artifacts}
+    out_d = _infer_output_dir(valid_artifacts, output_dir)
+    target_out = output_dir if output_dir is not None else out_d
+
+    for p in valid_artifacts:
+        try:
+            p.resolve().relative_to(out_d.resolve())
+        except ValueError:
+            raise ValueError(f"Security Error: Artifact {p} is outside output directory {target_out}")
+
+    artifact_map = {p.resolve().relative_to(out_d.resolve()).as_posix(): p for p in valid_artifacts}
 
     destinations: list[dict[str, Any]] = []
 
@@ -1074,9 +1279,15 @@ def format_artifact_inventory(
         raw = p.read_bytes()
         sha = hashlib.sha256(raw).hexdigest()
         size = len(raw)
-        dest_path = f"oss://{bucket}/{prefix}/releases/{content_pin}/{p.name}"
+        try:
+            rel_key = p.resolve().relative_to(out_d.resolve()).as_posix()
+        except ValueError:
+            target_out = output_dir if output_dir is not None else out_d
+            raise ValueError(f"Security Error: Artifact {p} is outside output directory {target_out}")
+        dest_path = f"oss://{bucket}/{prefix}/releases/{content_pin}/{rel_key}"
         destinations.append({
-            "name": p.name,
+            "name": rel_key,
+            "dest": rel_key,
             "destination": dest_path,
             "size": size,
             "sha256": sha,
@@ -1092,6 +1303,7 @@ def format_artifact_inventory(
             dest_path = f"oss://{bucket}/{prefix}/v2/{fname}"
             destinations.append({
                 "name": fname,
+                "dest": fname,
                 "destination": dest_path,
                 "size": size,
                 "sha256": sha,
@@ -1184,6 +1396,14 @@ def package_and_publish(args: argparse.Namespace) -> int:
         for f in output_dir.glob(pattern):
             if f.is_file():
                 f.unlink()
+    covers_dir = output_dir / "covers"
+    if covers_dir.is_symlink():
+        raise ValueError(f"Security Error: Output covers directory is a symlink: {covers_dir}")
+    if covers_dir.exists():
+        if not covers_dir.resolve().is_relative_to(output_dir.resolve()):
+            raise ValueError(f"Security Error: Output covers directory escapes output directory: {covers_dir}")
+        if covers_dir.is_dir():
+            shutil.rmtree(covers_dir, ignore_errors=True)
 
     print(f"[*] Packaging solutions from: {solutions_dir}")
     print(f"[*] Target content pin:       {content_pin}")
@@ -1195,6 +1415,7 @@ def package_and_publish(args: argparse.Namespace) -> int:
     commit_time = resolve_commit_time(repo_root, content_pin)
     now_iso = resolve_iso_time(repo_root, content_pin)
 
+    tracked_files_set = set(tracked_files)
     generated_artifacts: list[Path] = []
     manifest_solutions: dict[str, Any] = {}
     bundled_hashes: dict[str, str] = {}
@@ -1210,15 +1431,6 @@ def package_and_publish(args: argparse.Namespace) -> int:
         sha_str = f"sha256:{digest}"
         bundled_hashes[sol_id] = sha_str
 
-        manifest_entry = {
-            "hash": sha_str,
-            "size": size,
-            "updated_at": now_iso,
-            "min_app_version": args.min_app_version,
-            "min_engine_version": args.min_engine_version,
-        }
-        manifest_solutions[sol_id] = manifest_entry
-
         name_zh = (
             (meta.get("name_i18n") or {}).get("zh")
             if isinstance(meta.get("name_i18n"), dict)
@@ -1233,10 +1445,40 @@ def package_and_publish(args: argparse.Namespace) -> int:
             else None
         ) or intro.get("summary_zh") or meta.get("summary_zh") or summary
 
-        cover_image = intro.get("cover_image") or meta.get("cover_image") or ""
+        cover_image_raw = intro.get("cover_image") or meta.get("cover_image") or ""
         category = intro.get("category") or meta.get("category") or "general"
         tags_val = intro.get("tags") or meta.get("tags") or []
         tags = tags_val if isinstance(tags_val, list) else [tags_val]
+        difficulty = meta.get("difficulty") or "intermediate"
+        estimated_time = meta.get("estimated_time") or "30min"
+
+        final_cover = process_solution_cover(
+            sol_id=sol_id,
+            sol_dir=sol_dir,
+            cover_image=cover_image_raw,
+            repo_root=repo_root,
+            tracked_files_set=tracked_files_set,
+            output_dir=output_dir,
+            generated_artifacts=generated_artifacts,
+        )
+
+        manifest_entry = {
+            "hash": sha_str,
+            "size": size,
+            "updated_at": now_iso,
+            "min_app_version": args.min_app_version,
+            "min_engine_version": args.min_engine_version,
+            "name": meta.get("name") or sol_id,
+            "name_zh": name_zh,
+            "summary": summary,
+            "summary_zh": summary_zh,
+            "cover_image": final_cover,
+            "category": category,
+            "tags": tags,
+            "difficulty": difficulty,
+            "estimated_time": estimated_time,
+        }
+        manifest_solutions[sol_id] = manifest_entry
 
         idx_entry = {
             "id": sol_id,
@@ -1244,12 +1486,12 @@ def package_and_publish(args: argparse.Namespace) -> int:
             "name_zh": name_zh,
             "summary": summary,
             "summary_zh": summary_zh,
-            "cover_image": cover_image,
+            "cover_image": final_cover,
             "category": category,
             "tags": tags,
             "solution_type": meta.get("solution_type") or "solution",
-            "difficulty": meta.get("difficulty") or "intermediate",
-            "estimated_time": meta.get("estimated_time") or "30min",
+            "difficulty": difficulty,
+            "estimated_time": estimated_time,
             "deployed_count": 0,
             "device_refs": meta.get("device_refs") if isinstance(meta.get("device_refs"), list) else [],
             "size": size,
@@ -1377,7 +1619,9 @@ def package_and_publish(args: argparse.Namespace) -> int:
                 shutil.rmtree(temp_key_dir, ignore_errors=True)
 
     # Emit complete artifact inventory BEFORE performing any upload, write, or preflight
-    inventory_output = format_artifact_inventory(generated_artifacts, bucket, prefix, content_pin)
+    inventory_output = format_artifact_inventory(
+        generated_artifacts, bucket, prefix, content_pin, output_dir=output_dir
+    )
     print(f"\n{inventory_output}\n")
 
     # OSS Preflight and Upload Phase
@@ -1405,6 +1649,7 @@ def package_and_publish(args: argparse.Namespace) -> int:
             generated_artifacts,
             is_test_keys=use_test_keys,
             prod_pubkey=prod_pubkey,
+            output_dir=output_dir,
         )
 
         if args.dry_run:
@@ -1413,39 +1658,21 @@ def package_and_publish(args: argparse.Namespace) -> int:
 
         # Upload phase
         print("[*] Uploading immutable release objects to OSS...")
-        for local_p in sorted(generated_artifacts):
-            fname = local_p.name
-            if fname in already_identical:
-                print(f"  [skip] {fname} (already identical on OSS)")
-                continue
-            dest_obj = f"{pin_dest}{fname}"
-            if dest_obj == frozen_root_manifest:
-                raise ValueError("Security Error: direct overwrite of frozen v1 root manifest is forbidden!")
-            print(f"  [upload] {fname} -> {dest_obj}")
-            rel_key = f"{prefix}/releases/{content_pin}/{fname}" if prefix else f"releases/{content_pin}/{fname}"
-            res = subprocess.run(
-                [
-                    "ossutil",
-                    "api",
-                    "put-object",
-                    "--bucket",
-                    bucket,
-                    "--key",
-                    rel_key,
-                    "--body",
-                    f"file://{local_p.resolve()}",
-                    "--forbid-overwrite",
-                    "true",
-                ],
-                capture_output=True,
-                text=True,
-            )
-            if res.returncode != 0:
-                raise RuntimeError(f"Error uploading {fname} to {dest_obj}: {res.stderr}")
+        upload_release_artifacts(
+            bucket=bucket,
+            prefix=prefix,
+            content_pin=content_pin,
+            artifacts=generated_artifacts,
+            already_identical=already_identical,
+            output_dir=output_dir,
+        )
 
         # Promotion order to v2/: auxiliary files first, entry manifest last
         print("[*] Promoting to mutable v2 entry...")
-        gen_names = {p.name for p in generated_artifacts}
+        gen_names = {
+            p.resolve().relative_to(output_dir.resolve()).as_posix()
+            for p in generated_artifacts
+        }
         for fname in V2_AUXILIARY_FILES:
             if fname in gen_names:
                 local_p = output_dir / fname
@@ -1473,8 +1700,12 @@ def package_and_publish(args: argparse.Namespace) -> int:
     print("=" * 60)
     for p in sorted(generated_artifacts):
         if p.is_file():
+            try:
+                rel_name = p.resolve().relative_to(output_dir.resolve()).as_posix()
+            except ValueError:
+                rel_name = p.name
             h = hashlib.sha256(p.read_bytes()).hexdigest()
-            print(f"{p.name:<32} {p.stat().st_size:>9} bytes  sha256:{h[:16]}...")
+            print(f"{rel_name:<32} {p.stat().st_size:>9} bytes  sha256:{h[:16]}...")
     print("=" * 60)
     return 0
 

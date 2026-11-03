@@ -1352,5 +1352,568 @@ def test_check_immutable_release_conflicts_minisig_identical_sha_test_keys(tmp_p
         assert "manifest.json.minisig" in identical
 
 
+def init_test_repo_with_covers(repo_dir: Path) -> str:
+    """Initialize a git repository with solutions containing relative, absolute, and missing covers."""
+    subprocess.run(["git", "init", "-b", "main", str(repo_dir)], check=True, capture_output=True)
+    subprocess.run(["git", "-C", str(repo_dir), "config", "user.name", "Test Runner"], check=True)
+    subprocess.run(["git", "-C", str(repo_dir), "config", "user.email", "test@example.com"], check=True)
+    subprocess.run(["git", "-C", str(repo_dir), "config", "commit.gpgsign", "false"], check=True)
+
+    (repo_dir / ".gitignore").write_text("*.zip\n*.tmp\n", encoding="utf-8")
+
+    # 1. sol_alpha with relative cover in gallery/
+    sol_a = repo_dir / "solutions" / "sol_alpha"
+    sol_a.mkdir(parents=True)
+    (sol_a / "gallery").mkdir(parents=True)
+    cover_png = sol_a / "gallery" / "cover.png"
+    cover_png.write_bytes(b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDRFAKEPNGDATA")
+    (sol_a / "solution.yaml").write_text(
+        "id: sol_alpha\n"
+        "name: Solution Alpha\n"
+        "name_zh: 方案 Alpha\n"
+        "version: 1.0.0\n"
+        "intro:\n"
+        "  summary: Alpha Summary\n"
+        "  summary_zh: Alpha 摘要\n"
+        "  cover_image: gallery/cover.png\n"
+        "  category: industrial\n"
+        "  tags: [iot, edge]\n"
+        "difficulty: beginner\n"
+        "estimated_time: 15min\n",
+        encoding="utf-8",
+    )
+    (sol_a / "guide.md").write_text("# Guide Alpha\n", encoding="utf-8")
+
+    # 2. sol_url with absolute HTTP URL cover
+    sol_u = repo_dir / "solutions" / "sol_url"
+    sol_u.mkdir(parents=True)
+    (sol_u / "solution.yaml").write_text(
+        "id: sol_url\n"
+        "name: Solution URL\n"
+        "name_zh: 方案 URL\n"
+        "intro:\n"
+        "  summary: URL Summary\n"
+        "  summary_zh: URL 摘要\n"
+        "  cover_image: https://files.seeedstudio.com/wiki/cover.png\n"
+        "  category: vision\n"
+        "  tags: [ai]\n"
+        "difficulty: advanced\n"
+        "estimated_time: 45min\n",
+        encoding="utf-8",
+    )
+    (sol_u / "guide.md").write_text("# Guide URL\n", encoding="utf-8")
+
+    subprocess.run(["git", "-C", str(repo_dir), "add", "."], check=True, capture_output=True)
+    subprocess.run(["git", "-C", str(repo_dir), "commit", "-m", "Initial commit with covers"], check=True, capture_output=True)
+
+    head = subprocess.run(
+        ["git", "-C", str(repo_dir), "rev-parse", "HEAD"],
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip().lower()
+    return head
+
+
+def test_manifest_inlined_metadata_and_relative_cover_extraction(tmp_path: Path):
+    repo = tmp_path / "repo"
+    head = init_test_repo_with_covers(repo)
+    out_dir = tmp_path / "cdn_out"
+
+    rc = publish_solutions.main([
+        "--solutions-dir", str(repo / "solutions"),
+        "--output-dir", str(out_dir),
+        "--content-pin", head,
+        "--sequence", "1",
+        "--sign",
+        "--offline",
+    ])
+    assert rc == 0
+
+    manifest_file = out_dir / "manifest.json"
+    index_file = out_dir / "solutions_index.json"
+    assert manifest_file.is_file()
+    assert index_file.is_file()
+
+    manifest_data = json.loads(manifest_file.read_text(encoding="utf-8"))
+    index_data = json.loads(index_file.read_text(encoding="utf-8"))
+
+    m_sol = manifest_data["solutions"]
+    assert "sol_alpha" in m_sol
+    assert "sol_url" in m_sol
+
+    # 1. Verify sol_alpha inlined display metadata in manifest.json
+    alpha_m = m_sol["sol_alpha"]
+    assert alpha_m["name"] == "Solution Alpha"
+    assert alpha_m["name_zh"] == "方案 Alpha"
+    assert alpha_m["summary"] == "Alpha Summary"
+    assert alpha_m["summary_zh"] == "Alpha 摘要"
+    assert alpha_m["cover_image"] == "covers/sol_alpha/cover.png"
+    assert alpha_m["category"] == "industrial"
+    assert alpha_m["tags"] == ["iot", "edge"]
+    assert alpha_m["difficulty"] == "beginner"
+    assert alpha_m["estimated_time"] == "15min"
+
+    # Verify solutions_index.json has identical fields
+    idx_map = {item["id"]: item for item in index_data["solutions"]}
+    alpha_idx = idx_map["sol_alpha"]
+    for field in ["name", "name_zh", "summary", "summary_zh", "cover_image", "category", "tags", "difficulty", "estimated_time"]:
+        assert alpha_m[field] == alpha_idx[field]
+
+    # 2. Verify extracted cover image file
+    extracted_cover = out_dir / "covers" / "sol_alpha" / "cover.png"
+    assert extracted_cover.is_file()
+    assert extracted_cover.read_bytes() == b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDRFAKEPNGDATA"
+
+    # 3. Verify sol_url kept its absolute URL unchanged
+    url_m = m_sol["sol_url"]
+    assert url_m["cover_image"] == "https://files.seeedstudio.com/wiki/cover.png"
+    assert idx_map["sol_url"]["cover_image"] == "https://files.seeedstudio.com/wiki/cover.png"
+    assert not (out_dir / "covers" / "sol_url").exists()
+
+
+def test_cover_image_path_traversal_rejected(tmp_path: Path):
+    repo = tmp_path / "repo"
+    head = init_test_git_repo(repo)
+
+    # 1. Traversal using ..
+    bad_sol = repo / "solutions" / "sol_traversal"
+    bad_sol.mkdir()
+    (bad_sol / "guide.md").write_text("# Guide\n", encoding="utf-8")
+    (bad_sol / "solution.yaml").write_text(
+        "id: sol_traversal\nname: Traversal\ncover_image: ../../secret.png\n",
+        encoding="utf-8",
+    )
+    subprocess.run(["git", "-C", str(repo), "add", "."], check=True, capture_output=True)
+    subprocess.run(["git", "-C", str(repo), "commit", "-m", "Add bad traversal solution"], check=True, capture_output=True)
+    new_head = subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"], check=True, capture_output=True, text=True).stdout.strip().lower()
+
+    out_dir = tmp_path / "cdn_out"
+    with pytest.raises(ValueError, match=r"Security Error: Path traversal in cover_image for sol_traversal"):
+        publish_solutions.package_and_publish(
+            publish_solutions.parse_args([
+                "--solutions-dir", str(repo / "solutions"),
+                "--output-dir", str(out_dir),
+                "--content-pin", new_head,
+                "--sequence", "1",
+                "--offline",
+            ])
+        )
+
+    # 2. Absolute path traversal
+    (bad_sol / "solution.yaml").write_text(
+        "id: sol_traversal\nname: Traversal\ncover_image: /etc/passwd\n",
+        encoding="utf-8",
+    )
+    subprocess.run(["git", "-C", str(repo), "add", "."], check=True, capture_output=True)
+    subprocess.run(["git", "-C", str(repo), "commit", "-m", "Add absolute path cover solution"], check=True, capture_output=True)
+    abs_head = subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"], check=True, capture_output=True, text=True).stdout.strip().lower()
+
+    with pytest.raises(ValueError, match=r"Security Error: Path traversal in cover_image for sol_traversal"):
+        publish_solutions.package_and_publish(
+            publish_solutions.parse_args([
+                "--solutions-dir", str(repo / "solutions"),
+                "--output-dir", str(out_dir),
+                "--content-pin", abs_head,
+                "--sequence", "1",
+                "--offline",
+            ])
+        )
+
+
+def test_cover_image_symlink_rejected(tmp_path: Path):
+    repo = tmp_path / "repo"
+    init_test_git_repo(repo)
+
+    sol_sym = repo / "solutions" / "sol_sym"
+    sol_sym.mkdir()
+    (sol_sym / "guide.md").write_text("# Guide\n", encoding="utf-8")
+
+    real_img = repo / "solutions" / "sol_alpha" / "guide.md"
+    symlink_img = sol_sym / "symlink_cover.png"
+    os.symlink(real_img, symlink_img)
+
+    (sol_sym / "solution.yaml").write_text(
+        "id: sol_sym\nname: Symlink Sol\ncover_image: symlink_cover.png\n",
+        encoding="utf-8",
+    )
+    subprocess.run(["git", "-C", str(repo), "add", "."], check=True, capture_output=True)
+    subprocess.run(["git", "-C", str(repo), "commit", "-m", "Add symlink cover solution"], check=True, capture_output=True)
+    head = subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"], check=True, capture_output=True, text=True).stdout.strip().lower()
+
+    out_dir = tmp_path / "cdn_out"
+    with pytest.raises(ValueError, match=r"Security Error: Symlink detected in cover_image for sol_sym"):
+        publish_solutions.package_and_publish(
+            publish_solutions.parse_args([
+                "--solutions-dir", str(repo / "solutions"),
+                "--output-dir", str(out_dir),
+                "--content-pin", head,
+                "--sequence", "1",
+                "--offline",
+            ])
+        )
+
+
+def test_cover_image_missing_downgrades_gracefully(tmp_path: Path, capsys: pytest.CaptureFixture):
+    repo = tmp_path / "repo"
+    init_test_git_repo(repo)
+
+    sol_m = repo / "solutions" / "sol_missing"
+    sol_m.mkdir()
+    (sol_m / "guide.md").write_text("# Guide\n", encoding="utf-8")
+    (sol_m / "solution.yaml").write_text(
+        "id: sol_missing\nname: Missing Cover Sol\ncover_image: gallery/absent.png\n",
+        encoding="utf-8",
+    )
+    subprocess.run(["git", "-C", str(repo), "add", "."], check=True, capture_output=True)
+    subprocess.run(["git", "-C", str(repo), "commit", "-m", "Add missing cover solution"], check=True, capture_output=True)
+    head = subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"], check=True, capture_output=True, text=True).stdout.strip().lower()
+
+    out_dir = tmp_path / "cdn_out"
+    rc = publish_solutions.main([
+        "--solutions-dir", str(repo / "solutions"),
+        "--output-dir", str(out_dir),
+        "--content-pin", head,
+        "--sequence", "1",
+        "--offline",
+    ])
+    assert rc == 0
+
+    captured = capsys.readouterr()
+    assert "[WARNING] Solution sol_missing cover_image gallery/absent.png not found, setting to empty" in captured.out
+
+    manifest_data = json.loads((out_dir / "manifest.json").read_text(encoding="utf-8"))
+    index_data = json.loads((out_dir / "solutions_index.json").read_text(encoding="utf-8"))
+
+    assert manifest_data["solutions"]["sol_missing"]["cover_image"] == ""
+    idx_sol = next(s for s in index_data["solutions"] if s["id"] == "sol_missing")
+    assert idx_sol["cover_image"] == ""
+
+
+def test_cover_image_sensitive_file_rejected(tmp_path: Path):
+    repo = tmp_path / "repo"
+    init_test_git_repo(repo)
+
+    sol_s = repo / "solutions" / "sol_sensitive"
+    sol_s.mkdir()
+    (sol_s / "guide.md").write_text("# Guide\n", encoding="utf-8")
+    (sol_s / "solution.yaml").write_text(
+        "id: sol_sensitive\nname: Sensitive Sol\ncover_image: .env\n",
+        encoding="utf-8",
+    )
+    subprocess.run(["git", "-C", str(repo), "add", "."], check=True, capture_output=True)
+    subprocess.run(["git", "-C", str(repo), "commit", "-m", "Add sensitive cover solution"], check=True, capture_output=True)
+    head = subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"], check=True, capture_output=True, text=True).stdout.strip().lower()
+
+    out_dir = tmp_path / "cdn_out"
+    with pytest.raises(ValueError, match=r"Security Error: Sensitive or junk file referenced as cover_image"):
+        publish_solutions.package_and_publish(
+            publish_solutions.parse_args([
+                "--solutions-dir", str(repo / "solutions"),
+                "--output-dir", str(out_dir),
+                "--content-pin", head,
+                "--sequence", "1",
+                "--offline",
+            ])
+        )
+
+
+def test_cover_image_junk_file_rejected(tmp_path: Path):
+    repo = tmp_path / "repo"
+    init_test_git_repo(repo)
+
+    sol_j = repo / "solutions" / "sol_junk"
+    sol_j.mkdir()
+    (sol_j / "guide.md").write_text("# Guide\n", encoding="utf-8")
+
+    # Case-insensitive DEPLOY_LOG.md
+    (sol_j / "solution.yaml").write_text(
+        "id: sol_junk\nname: Junk Sol\ncover_image: deploy_log.md\n",
+        encoding="utf-8",
+    )
+    subprocess.run(["git", "-C", str(repo), "add", "."], check=True, capture_output=True)
+    subprocess.run(["git", "-C", str(repo), "commit", "-m", "Add junk cover solution"], check=True, capture_output=True)
+    head = subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"], check=True, capture_output=True, text=True).stdout.strip().lower()
+
+    out_dir = tmp_path / "cdn_out"
+    with pytest.raises(ValueError, match=r"Security Error: Sensitive or junk file referenced as cover_image"):
+        publish_solutions.package_and_publish(
+            publish_solutions.parse_args([
+                "--solutions-dir", str(repo / "solutions"),
+                "--output-dir", str(out_dir),
+                "--content-pin", head,
+                "--sequence", "1",
+                "--offline",
+            ])
+        )
+
+    # .DS_Store
+    (sol_j / "solution.yaml").write_text(
+        "id: sol_junk\nname: Junk Sol\ncover_image: .DS_Store\n",
+        encoding="utf-8",
+    )
+    subprocess.run(["git", "-C", str(repo), "add", "."], check=True, capture_output=True)
+    subprocess.run(["git", "-C", str(repo), "commit", "-m", "Add ds_store cover solution"], check=True, capture_output=True)
+    head2 = subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"], check=True, capture_output=True, text=True).stdout.strip().lower()
+
+    with pytest.raises(ValueError, match=r"Security Error: Sensitive or junk file referenced as cover_image"):
+        publish_solutions.package_and_publish(
+            publish_solutions.parse_args([
+                "--solutions-dir", str(repo / "solutions"),
+                "--output-dir", str(out_dir),
+                "--content-pin", head2,
+                "--sequence", "1",
+                "--offline",
+            ])
+        )
+
+
+def test_output_covers_dir_symlink_rejected(tmp_path: Path):
+    repo = tmp_path / "repo"
+    head = init_test_repo_with_covers(repo)
+    out_dir = tmp_path / "cdn_out"
+    out_dir.mkdir()
+
+    # Create covers directory as a symlink pointing to an external directory
+    external_dir = tmp_path / "external_target"
+    external_dir.mkdir()
+    os.symlink(external_dir, out_dir / "covers")
+
+    with pytest.raises(ValueError, match=r"Security Error: Output covers directory is a symlink"):
+        publish_solutions.package_and_publish(
+            publish_solutions.parse_args([
+                "--solutions-dir", str(repo / "solutions"),
+                "--output-dir", str(out_dir),
+                "--content-pin", head,
+                "--sequence", "1",
+                "--offline",
+            ])
+        )
+
+
+def test_target_sol_cover_dir_symlink_rejected(tmp_path: Path):
+    repo = tmp_path / "repo"
+    head = init_test_repo_with_covers(repo)
+    out_dir = tmp_path / "cdn_out"
+    out_dir.mkdir()
+    covers_dir = out_dir / "covers"
+    covers_dir.mkdir()
+
+    # Create target solution cover directory as a symlink pointing to an external directory
+    external_dir = tmp_path / "external_sol_target"
+    external_dir.mkdir()
+    os.symlink(external_dir, covers_dir / "sol_alpha")
+
+    with pytest.raises(ValueError, match=r"Security Error: Target cover directory is a symlink"):
+        publish_solutions.process_solution_cover(
+            sol_id="sol_alpha",
+            sol_dir=repo / "solutions" / "sol_alpha",
+            cover_image="gallery/cover.png",
+            repo_root=repo,
+            tracked_files_set={"solutions/sol_alpha/gallery/cover.png"},
+            output_dir=out_dir,
+            generated_artifacts=[],
+        )
+
+
+def test_cover_image_untracked_rejected(tmp_path: Path):
+    repo = tmp_path / "repo"
+    init_test_git_repo(repo)
+
+    sol_u = repo / "solutions" / "sol_untracked"
+    sol_u.mkdir()
+    (sol_u / "guide.md").write_text("# Guide\n", encoding="utf-8")
+    (sol_u / "solution.yaml").write_text(
+        "id: sol_untracked\nname: Untracked Sol\ncover_image: cover.png\n",
+        encoding="utf-8",
+    )
+    # Ignore cover.png in .gitignore so git working tree remains clean
+    (repo / ".gitignore").write_text("*.zip\n*.tmp\ncover.png\n", encoding="utf-8")
+    subprocess.run(["git", "-C", str(repo), "add", "."], check=True, capture_output=True)
+    subprocess.run(["git", "-C", str(repo), "commit", "-m", "Commit untracked cover solution"], check=True, capture_output=True)
+
+    # Now create cover.png on disk (which is ignored, so working tree is clean)
+    cover_file = sol_u / "cover.png"
+    cover_file.write_bytes(b"UNTRACKED_PNG_DATA")
+
+    head = subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"], check=True, capture_output=True, text=True).stdout.strip().lower()
+    out_dir = tmp_path / "cdn_out"
+
+    with pytest.raises(ValueError, match=r"Security Error: cover_image for sol_untracked is not tracked by git"):
+        publish_solutions.package_and_publish(
+            publish_solutions.parse_args([
+                "--solutions-dir", str(repo / "solutions"),
+                "--output-dir", str(out_dir),
+                "--content-pin", head,
+                "--sequence", "1",
+                "--offline",
+            ])
+        )
+
+
+def test_minisign_digital_signature_verification_with_covers(tmp_path: Path):
+    repo = tmp_path / "repo"
+    head = init_test_repo_with_covers(repo)
+    sec_key, pubkey = generate_test_minisign_keypair(tmp_path)
+    out_dir = tmp_path / "cdn_out"
+
+    rc = publish_solutions.main([
+        "--solutions-dir", str(repo / "solutions"),
+        "--output-dir", str(out_dir),
+        "--content-pin", head,
+        "--sequence", "1",
+        "--sign",
+        "--minisign-key-file", str(sec_key),
+        "--minisign-pubkey", pubkey,
+        "--offline",
+    ])
+    assert rc == 0
+
+    manifest_file = out_dir / "manifest.json"
+    manifest_sig = out_dir / "manifest.json.minisig"
+    index_file = out_dir / "solutions_index.json"
+    index_sig = out_dir / "solutions_index.json.minisig"
+    hashes_file = out_dir / "bundled_hashes.json"
+    hashes_sig = out_dir / "bundled_hashes.json.minisig"
+
+    assert manifest_sig.is_file()
+    assert index_sig.is_file()
+    assert hashes_sig.is_file()
+
+    # Real minisign verification
+    publish_solutions.run_minisign_verify(manifest_file, manifest_sig, pubkey)
+    publish_solutions.run_minisign_verify(index_file, index_sig, pubkey)
+    publish_solutions.run_minisign_verify(hashes_file, hashes_sig, pubkey)
+
+
+def test_artifact_inventory_and_oss_keys_preserve_subdirectories(tmp_path: Path):
+    out_dir = tmp_path / "cdn_out"
+    out_dir.mkdir()
+    covers_sol_dir = out_dir / "covers" / "sol_alpha"
+    covers_sol_dir.mkdir(parents=True)
+
+    manifest = out_dir / "manifest.json"
+    manifest.write_text('{"version": 2}\n', encoding="utf-8")
+    zip_alpha = out_dir / "sol_alpha.zip"
+    zip_alpha.write_bytes(b"ZIP_ALPHA")
+    cover_file = covers_sol_dir / "cover.png"
+    cover_file.write_bytes(b"COVER_BYTES")
+
+    artifacts = [manifest, zip_alpha, cover_file]
+    pin = "1234567890abcdef1234567890abcdef12345678"
+
+    # 1. Verify format_artifact_inventory preserves subdirectories and d["dest"] is relative
+    inventory = publish_solutions.format_artifact_inventory(
+        artifacts,
+        bucket="test-bucket",
+        prefix="test-prefix",
+        content_pin=pin,
+        output_dir=out_dir,
+    )
+
+    assert f"oss://test-bucket/test-prefix/releases/{pin}/covers/sol_alpha/cover.png" in inventory
+    assert f"oss://test-bucket/test-prefix/releases/{pin}/sol_alpha.zip" in inventory
+
+    # 2. Verify check_immutable_release_conflicts preserves subdirectories
+    queried_targets: list[str] = []
+
+    def mock_subprocess(cmd, **kwargs):
+        cmd_list = [str(c) for c in cmd]
+        if cmd_list and cmd_list[0] == "ossutil" and cmd_list[1] == "cat":
+            queried_targets.append(cmd_list[2])
+            if "covers/sol_alpha/cover.png" in cmd_list[2]:
+                return mock.Mock(returncode=0, stdout=b"COVER_BYTES", stderr=b"")
+            return mock.Mock(returncode=1, stdout=b"", stderr=b"ErrorCode=NoSuchKey: not found")
+        return mock.Mock(returncode=0, stdout="", stderr="")
+
+    with mock.patch("subprocess.run", side_effect=mock_subprocess):
+        identical = publish_solutions.check_immutable_release_conflicts(
+            bucket="test-bucket",
+            prefix="test-prefix",
+            content_pin=pin,
+            artifacts=artifacts,
+            output_dir=out_dir,
+        )
+
+    assert any(t.endswith("releases/1234567890abcdef1234567890abcdef12345678/covers/sol_alpha/cover.png") for t in queried_targets)
+    assert "covers/sol_alpha/cover.png" in identical
+
+    # 3. Verify upload_release_artifacts preserves subdirectories in key and dest_obj
+    uploaded_keys: list[str] = []
+
+    def mock_upload(cmd, **kwargs):
+        cmd_list = [str(c) for c in cmd]
+        if cmd_list and cmd_list[0] == "ossutil" and "put-object" in cmd_list:
+            key_idx = cmd_list.index("--key") + 1
+            uploaded_keys.append(cmd_list[key_idx])
+            return mock.Mock(returncode=0, stdout="", stderr="")
+        return mock.Mock(returncode=0, stdout="", stderr="")
+
+    with mock.patch("subprocess.run", side_effect=mock_upload):
+        publish_solutions.upload_release_artifacts(
+            bucket="test-bucket",
+            prefix="test-prefix",
+            content_pin=pin,
+            artifacts=artifacts,
+            already_identical={"covers/sol_alpha/cover.png"},  # Should be skipped
+            output_dir=out_dir,
+        )
+
+    # zip_alpha and manifest should be uploaded, cover should be skipped
+    assert any(k.endswith("sol_alpha.zip") for k in uploaded_keys)
+    assert not any(k.endswith("covers/sol_alpha/cover.png") for k in uploaded_keys)
+
+    # Now test when cover is NOT identical: it MUST upload with key containing covers/
+    with mock.patch("subprocess.run", side_effect=mock_upload):
+        publish_solutions.upload_release_artifacts(
+            bucket="test-bucket",
+            prefix="test-prefix",
+            content_pin=pin,
+            artifacts=[cover_file],
+            already_identical=set(),
+            output_dir=out_dir,
+        )
+    assert any(k == f"test-prefix/releases/{pin}/covers/sol_alpha/cover.png" for k in uploaded_keys)
+
+
+def test_artifact_outside_output_dir_rejected(tmp_path: Path):
+    out_dir = tmp_path / "cdn_out"
+    out_dir.mkdir()
+    outside_file = tmp_path / "outside.txt"
+    outside_file.write_text("outside", encoding="utf-8")
+
+    # 1. format_artifact_inventory must raise ValueError
+    with pytest.raises(ValueError, match=r"Security Error: Artifact .* is outside output directory"):
+        publish_solutions.format_artifact_inventory(
+            [outside_file],
+            bucket="b",
+            prefix="p",
+            content_pin="1234567890abcdef1234567890abcdef12345678",
+            output_dir=out_dir,
+        )
+
+    # 2. check_immutable_release_conflicts must raise ValueError
+    with pytest.raises(ValueError, match=r"Security Error: Artifact .* is outside output directory"):
+        publish_solutions.check_immutable_release_conflicts(
+            bucket="b",
+            prefix="p",
+            content_pin="1234567890abcdef1234567890abcdef12345678",
+            artifacts=[outside_file],
+            output_dir=out_dir,
+        )
+
+    # 3. upload_release_artifacts must raise ValueError
+    with pytest.raises(ValueError, match=r"Security Error: Artifact .* is outside output directory"):
+        publish_solutions.upload_release_artifacts(
+            bucket="b",
+            prefix="p",
+            content_pin="1234567890abcdef1234567890abcdef12345678",
+            artifacts=[outside_file],
+            already_identical=set(),
+            output_dir=out_dir,
+        )
+
+
+
 
 
