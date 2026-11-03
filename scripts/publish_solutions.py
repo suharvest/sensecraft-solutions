@@ -600,25 +600,27 @@ def check_immutable_release_conflicts(
             if remote_sha == local_sha:
                 already_identical.add(fname)
             elif is_test_keys and fname.endswith(".minisig"):
-                if prod_pubkey:
-                    target_payload = local_p.with_suffix("")
-                    if target_payload.is_file():
-                        with tempfile.NamedTemporaryFile(suffix=".minisig", delete=False) as tmp_sig:
-                            tmp_sig.write(remote_bytes)
-                            tmp_sig_path = Path(tmp_sig.name)
-                        try:
-                            run_minisign_verify(target_payload, tmp_sig_path, prod_pubkey)
-                            print(f"  [*] Remote signature {fname} verified with production public key.")
-                        except Exception as e:
-                            raise ValueError(
-                                f"Immutable release conflict: remote {oss_target} signature is invalid: {e}"
-                            ) from e
-                        finally:
-                            tmp_sig_path.unlink(missing_ok=True)
-                    else:
-                        print(f"  [*] Dry-run with test keys: skipping byte equality check for {fname} (payload missing locally).")
-                else:
-                    print(f"  [*] Dry-run with test keys: skipping byte equality check for {fname}.")
+                if not prod_pubkey:
+                    raise ValueError(
+                        "Production public key (--minisign-pubkey or CONTENT_MINISIGN_PUBLIC_KEY) is required to verify remote signatures during dry-run"
+                    )
+                target_payload = local_p.with_suffix("")
+                if not target_payload.is_file():
+                    raise ValueError(
+                        f"Cannot verify remote signature {fname}: local payload {target_payload.name} does not exist"
+                    )
+                with tempfile.NamedTemporaryFile(suffix=".minisig", delete=False) as tmp_sig:
+                    tmp_sig.write(remote_bytes)
+                    tmp_sig_path = Path(tmp_sig.name)
+                try:
+                    run_minisign_verify(target_payload, tmp_sig_path, prod_pubkey)
+                    print(f"  [*] Remote signature {fname} verified with production public key.")
+                except Exception as e:
+                    raise ValueError(
+                        f"Immutable release conflict: remote {oss_target} signature is invalid: {e}"
+                    ) from e
+                finally:
+                    tmp_sig_path.unlink(missing_ok=True)
                 already_identical.add(fname)
             else:
                 raise ValueError(

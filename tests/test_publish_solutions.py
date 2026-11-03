@@ -1129,21 +1129,24 @@ def test_dry_run_existing_release_with_test_keys_verifies_production_signature(t
         )
         assert rc_dry == 0
 
-    # 2. Without pubkey: dry run skips minisig byte check and succeeds
+    # 2. Without pubkey: dry run fails closed when verifying remote signatures
     out_dir_dry_nopubkey = tmp_path / "cdn_dry_nopubkey"
     with mock.patch("subprocess.run", side_effect=mock_subprocess):
-        rc_dry_nopubkey = publish_solutions.package_and_publish(
-            publish_solutions.parse_args([
-                "--solutions-dir", str(repo / "solutions"),
-                "--output-dir", str(out_dir_dry_nopubkey),
-                "--content-pin", head,
-                "--sequence", "1",
-                "--sign",
-                "--dry-run",
-                "--allow-local-branch",
-            ])
-        )
-        assert rc_dry_nopubkey == 0
+        with pytest.raises(
+            ValueError,
+            match=r"Production public key \(--minisign-pubkey or CONTENT_MINISIGN_PUBLIC_KEY\) is required to verify remote signatures during dry-run",
+        ):
+            publish_solutions.package_and_publish(
+                publish_solutions.parse_args([
+                    "--solutions-dir", str(repo / "solutions"),
+                    "--output-dir", str(out_dir_dry_nopubkey),
+                    "--content-pin", head,
+                    "--sequence", "1",
+                    "--sign",
+                    "--dry-run",
+                    "--allow-local-branch",
+                ])
+            )
 
     # 3. Altered payload content MUST still be rejected in dry-run
     remote_oss_files["sol_alpha.zip"] = b"tampered-zip-contents"
@@ -1218,17 +1221,32 @@ def test_check_immutable_release_conflicts_unit(tmp_path: Path):
                 prod_pubkey=pubkey,
             )
 
-        # In test-keys mode without pubkey, minisig byte equality check is skipped
-        identical = publish_solutions.check_immutable_release_conflicts(
-            bucket="bucket",
-            prefix="prefix",
-            content_pin="pin",
-            artifacts=[test_file, sig],
-            is_test_keys=True,
-            prod_pubkey=None,
-        )
-        assert "manifest.json" in identical
-        assert "manifest.json.minisig" in identical
+        # In test-keys mode without pubkey, fail closed
+        with pytest.raises(
+            ValueError,
+            match=r"Production public key \(--minisign-pubkey or CONTENT_MINISIGN_PUBLIC_KEY\) is required to verify remote signatures during dry-run",
+        ):
+            publish_solutions.check_immutable_release_conflicts(
+                bucket="bucket",
+                prefix="prefix",
+                content_pin="pin",
+                artifacts=[test_file, sig],
+                is_test_keys=True,
+                prod_pubkey=None,
+            )
+
+        # In test-keys mode with pubkey but missing local payload, fails closed
+        orphaned_sig = tmp_path / "orphan.minisig"
+        orphaned_sig.write_bytes(sig.read_bytes())
+        with pytest.raises(ValueError, match=r"Cannot verify remote signature .* local payload .* does not exist"):
+            publish_solutions.check_immutable_release_conflicts(
+                bucket="bucket",
+                prefix="prefix",
+                content_pin="pin",
+                artifacts=[orphaned_sig],
+                is_test_keys=True,
+                prod_pubkey=pubkey,
+            )
 
 
 
