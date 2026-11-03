@@ -34,7 +34,7 @@ jobs:
       - uses: astral-sh/setup-uv@v6
       - name: Run unified solution validation (offline)
         run: |
-          uv sync
+          uv sync --all-packages
           uv run python scripts/check.py --scope full
       - name: Run unit tests
         run: |

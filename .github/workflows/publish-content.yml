@@ -70,7 +70,7 @@ jobs:
 
       - name: Run full solutions checks
         run: |
-          uv sync
+          uv sync --all-packages
           uv run python scripts/check.py --scope full
 
       - name: Run unit test suite
@@ -144,7 +144,7 @@ jobs:
 
       - name: Run full solutions checks
         run: |
-          uv sync
+          uv sync --all-packages
           uv run python scripts/check.py --scope full
 
       - name: Run unit test suite

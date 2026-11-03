@@ -21,7 +21,7 @@ jobs:
       - uses: astral-sh/setup-uv@v6
       - name: Sweep all solution URLs
         run: |
-          uv sync
+          uv sync --all-packages
           rc=0
           for s in solutions/*/; do
             uv run --package sensecraft-solutionctl solutionctl validate "$s" \
