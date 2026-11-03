@@ -1,17 +1,19 @@
-## Preset: Wio Weather Station Deployment {#default}
+## Preset: Wio Weather Station & SenseCAP Starter Kit {#default}
 
-Deploy a self-contained environmental weather station on Wio Terminal. Operates completely standalone with an on-device dark-mode dashboard (4 joystick-navigated pages), with optional MQTT telemetry reporting to Home Assistant and AI Agent dashboard customization.
+Standard meteorological solutions connect industrial sensors directly to SenseCAP cloud platforms. For users and evaluators without immediate access to outdoor industrial weather stations, this self-contained Wio Terminal starter kit provides a plug-and-play desktop evaluation platform. Operates completely standalone with an on-device dark-mode dashboard (4 joystick-navigated pages), with optional MQTT telemetry reporting to Home Assistant and bridging to SenseCAP meteorological services.
 
 | Device | Purpose |
 |---|---|
-| Wio Terminal | Collects sensor data, drives the 2.4-inch LCD dashboard, and sends optional MQTT telemetry |
-| Grove Beginner Kit (DHT11 & BMP280) | Environmental temperature, humidity, and barometric pressure sensing |
+| Wio Terminal | Desktop starter host: collects sensor data, drives the 2.4-inch LCD dashboard, and sends telemetry |
+| Grove Beginner Kit (DHT11 & BMP280) | Environmental temperature, humidity, and pressure sensing (low-cost evaluation kit before industrial weather deployment) |
+| SenseCAP Portal | Standard meteorological cloud platform: device asset management, long-term archiving, API alerts, and future SenseCAP ONE integration |
 
 **What you'll get:**
 - Completely standalone on-device dark-mode environmental dashboard on the Wio Terminal 2.4" TFT LCD across 4 interactive pages
 - Optional Home Assistant integration with auto-discovered entities: temperature, humidity, pressure, illuminance, ambient noise, and Wi-Fi RSSI
 - Configurable sensor polling intervals and physical button controls for manual refresh and discovery broadcasts
 - Ready-to-use Lovelace YAML dashboard and AI Agent prompt template for instant UI customization
+- Cloud onboarding path to SenseCAP Portal and seamless future migration path to industrial SenseCAP ONE weather stations
 
 ## Step 1: Flash Wio Weather Firmware {#flash_firmware type=wio_terminal_usb required=true config=devices/wio_terminal_deploy.yaml}
 
@@ -223,3 +225,28 @@ Open the Home Assistant web interface to verify the deployed `/wio-weather` Love
 |---|---|
 | Dashboard shows blank cards | Confirm that Wio Terminal is connected to Wi-Fi and sending MQTT packets; press Button C to re-broadcast discovery |
 | URL unreachable | Check that Home Assistant is running on the specified host and port |
+
+---
+
+## Step 5: Connect to SenseCAP Portal & Industrial Path {#connect_sensecap type=web_dashboard required=false config=devices/connect_sensecap.yaml}
+
+Production meteorological solutions standardly connect industrial weather stations (such as SenseCAP ONE S700 / S1000 compact weather sensors) directly to the SenseCAP platform (SenseCAP PaaS / Portal) for harsh-environment outdoor monitoring, fleet diagnostics, and API automation.
+
+This Wio Terminal starter kit serves as a low-cost desktop evaluation vehicle. Once local telemetry and Home Assistant automation are verified, weather metrics can also be forwarded to SenseCAP Portal via REST API or MQTT bridges to validate cloud telemetry, notifications, and historical archiving ahead of hardware procurement.
+
+### What to do
+
+1. Click **Open Dashboard** below to open [SenseCAP Portal](https://sensecap.seeed.cc/);
+2. Sign in or register a SenseCAP account, and navigate to **Security -> Access API keys** to create your API credentials;
+3. Use a Home Assistant REST integration, MQTT forwarder, or Node-RED flow to sync `sensor.wio_weather_station_*` telemetry into SenseCAP;
+4. Monitor live weather metrics, threshold alerts, and device status in the SenseCAP Portal;
+5. **Industrial Upgrade Path**: When deploying professional outdoor stations (e.g., SenseCAP ONE S700 with ultrasonic wind and optical rain, or S1000 with air quality), bind the devices to the same SenseCAP account for unified operational management without re-architecting your upstream dashboards.
+
+### Troubleshooting
+
+| Issue | Solution |
+|---|---|
+| SenseCAP API authorization fails | Verify that your Access ID and Access Key are active and possess device read/write permissions |
+| Telemetry does not appear in cloud console | Confirm outbound HTTPS/MQTT connectivity and verify port 8883/443 firewall rules |
+| Selecting industrial weather hardware | For compact outdoor micro-climate monitoring, select SenseCAP ONE S700 (7-in-1) or S1000 (10-in-1 with PM2.5/PM10/CO2) |
+

@@ -1,17 +1,19 @@
-## 套餐: Wio Terminal 气象站一键部署 {#default}
+## 套餐: Wio Terminal 气象站与 SenseCAP 入门体验部署 {#default}
 
-将气象站固件烧录至 Wio Terminal，打造自包含的桌面环境气象站。即使在完全脱网状态下，设备亦可独立驱动 2.4 寸暗色 LCD 仪表盘（五向摇杆 4 屏平滑切换），并支持按需接入 Home Assistant MQTT 遥测与 AI Agent 看板定制。
+标准气象监测方案采用 SenseCAP 工业级气象传感器直连 SenseCAP 平台。针对暂无现成户外气象站的用户，本方案提供基于 Wio Terminal 与 Grove 传感器的自包含桌面入门体验套装。即使在完全脱网状态下，设备亦可独立驱动 2.4 寸暗色 LCD 仪表盘（五向摇杆 4 屏平滑切换），并支持按需接入 Home Assistant MQTT 遥测与 SenseCAP 气象云平台。
 
 | 设备 | 作用 |
 |---|---|
-| Wio Terminal | 采集传感器数据、驱动 2.4 寸暗色 LCD 仪表盘、发布可选 MQTT 遥测 |
-| Grove Beginner Kit (DHT11 与 BMP280) | 环境温湿度与大气气压传感采集 |
+| Wio Terminal | 桌面入门主控：采集传感器数据、驱动 2.4 寸暗色 LCD 仪表盘、发布 MQTT 遥测 |
+| Grove Beginner Kit (DHT11 与 BMP280) | 环境温湿度与大气气压传感采集（无工业气象站时的低成本真实体验套件） |
+| SenseCAP 气象平台 (SenseCAP Portal) | 气象站标准云端纳管平台：数据长期归档、API 开放与告警联动（后续可平滑升级接入 SenseCAP ONE 工业气象站） |
 
 **你会得到：**
 - 完全自包含独立运行的 Wio Terminal 2.4 寸 TFT LCD 现代暗色极客风格实时仪表盘（五向摇杆左右切页）
 - 可选接入 Home Assistant 的自动发现实体：温度、湿度、气压、光照度、环境噪声声压级与 Wi-Fi 信号强度
 - 可自定义配置的采样与刷新周期，以及机身物理按键强制刷新与广播控制
 - 开箱即用的 Lovelace YAML 仪表盘与 AI Agent 定制提示词模板，实现极速界面搭建
+- 对接 SenseCAP 气象云平台的上报与管理链路，以及升级至 SenseCAP ONE 工业气象站的标准演进方案
 
 ## 步骤 1: 烧录 Wio Terminal 气象站固件 {#flash_firmware type=wio_terminal_usb required=true config=devices/wio_terminal_deploy.yaml}
 
@@ -223,3 +225,28 @@ cards:
 |---|---|
 | 看板卡片显示空白 | 确认 Wio Terminal 已连接 Wi-Fi 并持续发送 MQTT 数据包；轻按按键 C 重新广播自动发现配置 |
 | 网页无法访问 | 检查 Home Assistant 服务运行状态与主机端口网络连通性 |
+
+---
+
+## 步骤 5: 接入 SenseCAP 平台与工业演进 {#connect_sensecap type=web_dashboard required=false config=devices/connect_sensecap.yaml}
+
+气象站方案标准面向生产环境采用 SenseCAP 工业级气象传感器（如 SenseCAP ONE S700 / S1000 紧凑型气象站）直连 SenseCAP 平台（SenseCAP PaaS / Portal），实现户外恶劣环境下的高可靠气象监测与云端统一资产管理。
+
+本 Wio Terminal 套装作为低成本入门评估工具，在完成桌面采集与 Home Assistant 本地联动后，亦可通过 SenseCAP 开放平台将气象数据上报至云端统一归档，便于提前跑通多端查看、API 告警分发与历史分析链路。
+
+### 操作步骤
+
+1. 点击下方 **打开 SenseCAP 平台** 按钮，访问 [SenseCAP Portal](https://sensecap.seeed.cc/)；
+2. 登录或注册 SenseCAP 账户，进入 **Security -> Access API keys** 获取 API 访问密钥；
+3. 在 Home Assistant 中通过 REST API / MQTT Forwarder 或 Node-RED 流，将 `sensor.wio_weather_station_*` 数据定时同步至 SenseCAP 数据流；
+4. 在 SenseCAP Portal 监控大屏上实时查看环境指标趋势与设备在线心跳；
+5. **工业平滑升级**：当后续采购 SenseCAP ONE 工业级气象站（支持超声波风速风向、光学雨量、高精度气压温湿度等）时，直接扫码添加设备至同一 SenseCAP 账户，原有业务系统与报表无需重新开发。
+
+### 常见问题与排错
+
+| 现象 | 解决方案 |
+|---|---|
+| SenseCAP API 鉴权失败 | 检查输入的 Access ID 与 Access Key 是否具备设备数据读写权限 |
+| 无法在云端看到实时曲线 | 确认本地网络可访问外网 MQTT / HTTPS 端点，检查防火墙 8883/443 端口放行状态 |
+| 工业升级选型建议 | 室外微气象监测推荐 SenseCAP ONE S700（7合1紧凑型）或 S1000（10合1全能型，含 PM2.5/PM10/CO2） |
+

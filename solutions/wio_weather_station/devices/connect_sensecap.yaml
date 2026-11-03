@@ -1,0 +1,11 @@
+version: "1.0"
+id: connect_sensecap
+name: Connect to SenseCAP Portal
+name_i18n:
+  zh: "接入 SenseCAP 气象云平台"
+type: web_dashboard
+web_dashboard:
+  url: https://sensecap.seeed.cc/
+  title: SenseCAP Portal
+  title_i18n:
+    zh: SenseCAP 气象云平台

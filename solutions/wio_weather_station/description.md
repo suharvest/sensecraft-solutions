@@ -1,48 +1,48 @@
-# Wio Terminal Weather Station & Home Assistant Gateway
+# Wio Terminal Weather Station & SenseCAP Starter Kit
 
 ## Overview
 
-The Wio Terminal Weather Station is a self-contained desktop environmental monitoring station and modular IoT gateway. Powered by an ATSAMD51P19A Cortex-M4F core running at 120 MHz with an onboard Realtek RTL8720DN dual-band Wi-Fi module, it operates as a 100% standalone desktop device without requiring an active network connection, external hub, or Home Assistant instance. Local atmospheric and acoustic data are measured and rendered directly onto the integrated 2.4-inch 320x240 TFT LCD in a modern dark-mode geek aesthetic across four interactive pages controlled via the 5-way joystick.
+In professional micro-climate monitoring and environmental sensing, standard deployments connect industrial weather sensors (such as the SenseCAP ONE S700 / S1000 compact weather station series) directly to the SenseCAP platform (SenseCAP PaaS / Portal) for harsh-environment outdoor monitoring, remote telemetry, and fleet management.
 
-When connected to a 2.4 GHz Wi-Fi network, the station optionally functions as an IoT gateway, streaming telemetry to Home Assistant using automatic MQTT Discovery. Users can further personalize their dashboard using an AI coding assistant (Claude, ChatGPT, or Home Assistant Copilot) with the included prompt template.
+However, during initial solution evaluation, prototyping, or desktop space monitoring, users and developers often lack immediate access to dedicated outdoor weather stations. To bridge this gap, this solution provides the **Wio Terminal Weather Station Starter Kit**: a low-cost, self-contained desktop evaluation platform powered by Wio Terminal (120 MHz ATSAMD51P19A + RTL8720DN Wi-Fi) and modular Grove sensors.
+
+The starter kit operates 100% standalone without requiring an active network connection, external hub, or Home Assistant instance. Local atmospheric and acoustic metrics are rendered directly on the integrated 2.4-inch 320x240 TFT LCD in a modern dark-mode geek aesthetic across four interactive pages controlled via the 5-way joystick.
+
+When connected to a 2.4 GHz Wi-Fi network, the station functions as an IoT gateway, streaming telemetry to Home Assistant using automatic MQTT Discovery, and can forward metrics to the SenseCAP meteorological cloud. Evaluators can thoroughly validate data pipelines, alerting thresholds, and UI dashboards before purchasing industrial weather hardware. When ready, upgrading to SenseCAP ONE stations is seamless without rewriting upstream applications.
 
 ### System Architecture
 
 ```
 +-------------------------------------------------------------+
-|                      Wio Terminal                           |
-|       ATSAMD51 (120MHz) + RTL8720DN (2.4GHz Wi-Fi)          |
-|-------------------------------------------------------------|
-|  2.4" TFT LCD Display (320x240) - Standalone Dashboard      |
-|  - Page 0: Environmental Overview                           |
-|  - Page 1: Temperature & Humidity Progression               |
-|  - Page 2: Barometric Pressure & Noise Monitor              |
-|  - Page 3: Wi-Fi RSSI, IP & MQTT Diagnostic                 |
-|-------------------------------------------------------------|
-|  Onboard Sensors:                                           |
-|  - Analog Light Sensor (PD01 / A0)                          |
-|  - Electret Microphone (PD08 / A2)                          |
-|-------------------------------------------------------------|
-|  Grove Expansion Connectors:                                |
-|  - Left Grove (I2C): Grove BMP280 Barometric Sensor         |
-|  - Right Grove (D0/A0): Grove DHT11 Temp & Humidity Sensor  |
+|             Meteorological Architecture & Evolution         |
 +-------------------------------------------------------------+
-          |                                         |
- (Standalone Local Loop)                 (Optional Wi-Fi Uplink)
-          |                                         |
-          v                                         v
- [Real-Time LCD UI]                 +----------------------------+
- [Joystick Navigation]              | Home Assistant MQTT Broker |
- [Local Audio RMS]                  |  - Discovery: retain=true  |
-                                    |  - Telemetry: QoS 0        |
-                                    |  - LWT: Status topic       |
-                                    +----------------------------+
+   [Industrial Standard]                     [Starter / Evaluation Kit]
+    SenseCAP ONE Series                         Wio Terminal Station
+ (S700 / S1000 Weather Sensor)                 (ATSAMD51 + Grove Sensors)
+              |                                            |
+    (RS485 / Modbus / 4G)                    (Offline Local Loop)  (Wi-Fi MQTT)
+              |                                     |                   |
+              |                                     v                   v
+              |                             [2.4" Dark-Mode LCD]  [Home Assistant]
+              |                             [4-Page UI Joystick]  [Lovelace Dash]
+              |                                                         |
+              +-----------------------------+---------------------------+
+                                            |
+                                            v (Cloud Sync & Fleet Management)
+                       +-----------------------------------------+
+                       |    SenseCAP Meteorological Cloud        |
+                       |    (SenseCAP PaaS / Portal)             |
+                       | - Long-term Archiving & Trend Graphs    |
+                       | - Threshold Alerts & Open API Access    |
+                       | - Seamless Upgrade to SenseCAP ONE      |
+                       +-----------------------------------------+
 ```
 
 ## Key Benefits
 
 | Benefit | Details |
 |---|---|
+| Meteorological Standard & Seamless Evolution | Anchored on the SenseCAP cloud ecosystem; low-cost starter kit offers a direct upgrade path to SenseCAP ONE industrial stations |
 | Zero-Network Standalone Operation | Runs completely offline on 5V USB Type-C power; no gateway, cloud account, or Wi-Fi required for local monitoring |
 | Rich Dark-Mode LCD UI | Integrated 2.4-inch 320x240 color display with 4 dedicated screens navigated seamlessly via the 5-way joystick |
 | Modular Grove Expansion | Dual Grove ports (I2C and GPIO/ADC) support plug-and-play sensors with configurable sampling and refresh cadences |
@@ -112,6 +112,7 @@ To build a personalized Home Assistant dashboard, users can provide the included
 
 | Scenario | Description |
 |---|---|
+| Weather Station Evaluation & Prototyping | Serves as a low-cost physical evaluation kit when full outdoor industrial weather stations are not yet available, testing telemetry, UI, and cloud alerts end-to-end |
 | Standalone Desktop Weather & Acoustic Monitor | Workstation or nightstand placement providing immediate local climate and sound-level readings with zero network or server dependencies |
 | Home Assistant Smart Home Sensor Node | Seamless integration with smart home automation to trigger humidifiers, air conditioners, heating, or lighting scenes |
 | Quiet Zone & Acoustic Compliance Monitoring | Real-time dBA noise metering for study areas, home offices, recording spaces, or libraries with multi-level threshold alerts |
