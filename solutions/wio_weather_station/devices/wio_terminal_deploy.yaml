@@ -8,7 +8,7 @@ firmware:
   source:
     path: https://sensecraft-statics.seeed.cc/solution-app/wio_weather_station/assets/firmware/wio_weather_station.bin
     checksum:
-      sha256: 0422ce8f218965f17e08a11547aaa6900be27dce5e328003073cec77e8ae04a7
+      sha256: 636e4d1d063895fadd30b46dba5d42ab0eb4ee9ab1f77f93f3ec18db15fa7d4c
   flash_config:
     offset: "0x4000"
     verify_cdc: true
