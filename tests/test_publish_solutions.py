@@ -759,7 +759,7 @@ def test_artifact_inventory_emitted_before_upload(tmp_path: Path, capsys: pytest
 
     # Verify complete inventory is present in stdout
     assert "COMPLETE ARTIFACT INVENTORY" in stdout
-    assert "Total count: 8" in stdout
+    assert "Total count: 14" in stdout
     assert "sol_alpha.zip" in stdout
     assert "sol_beta.zip" in stdout
     assert "manifest.json" in stdout
@@ -770,8 +770,14 @@ def test_artifact_inventory_emitted_before_upload(tmp_path: Path, capsys: pytest
     sol_alpha_sha = hashlib.sha256((out_dir / "sol_alpha.zip").read_bytes()).hexdigest()
     assert sol_alpha_sha in stdout
 
-    # Verify destination path on OSS is printed
+    # Verify immutable release destination path on OSS is printed
     assert f"oss://sensecraft-statics/solution-app/solutions/releases/{head}/sol_alpha.zip" in stdout
+    assert f"oss://sensecraft-statics/solution-app/solutions/releases/{head}/manifest.json" in stdout
+
+    # Verify mutable v2 destination paths on OSS are printed
+    assert "oss://sensecraft-statics/solution-app/solutions/v2/manifest.json" in stdout
+    assert "oss://sensecraft-statics/solution-app/solutions/v2/solutions_index.json" in stdout
+    assert "oss://sensecraft-statics/solution-app/solutions/v2/bundled_hashes.json" in stdout
 
     # Verify inventory was printed strictly BEFORE upload began
     idx_inventory = stdout.find("COMPLETE ARTIFACT INVENTORY")
@@ -802,7 +808,7 @@ def test_inventory_emitted_in_offline_and_dry_run(tmp_path: Path, capsys: pytest
     assert rc_offline == 0
     stdout_offline = capsys.readouterr().out
     assert "COMPLETE ARTIFACT INVENTORY" in stdout_offline
-    assert "Total count: 8" in stdout_offline
+    assert "Total count: 14" in stdout_offline
 
     # 2. Dry-run mode
     real_run = subprocess.run
@@ -828,7 +834,7 @@ def test_inventory_emitted_in_offline_and_dry_run(tmp_path: Path, capsys: pytest
 
     stdout_dry = capsys.readouterr().out
     assert "COMPLETE ARTIFACT INVENTORY" in stdout_dry
-    assert "Total count: 8" in stdout_dry
+    assert "Total count: 14" in stdout_dry
     assert "Dry-run preflight complete. Zero changes written to OSS." in stdout_dry
 
 
@@ -873,11 +879,104 @@ def test_immutable_release_upload_does_not_use_force(tmp_path: Path):
     assert len(immutable_calls) > 0
     assert len(v2_calls) > 0
 
-    # Immutable releases upload must NOT contain -f
+    # Immutable releases upload must NOT contain -f, and MUST pass --meta x-oss-forbid-overwrite:true
     for call in immutable_calls:
         assert "-f" not in call, f"Forbidden -f flag found in immutable release upload: {call}"
+        call_str = " ".join(call)
+        assert "x-oss-forbid-overwrite:true" in call_str, f"Missing forbid-overwrite meta in immutable upload: {call}"
 
-    # Mutable v2 promotion may contain -f
+    # Mutable v2 promotion may contain -f and must NOT forbid overwrite
     for call in v2_calls:
         assert "-f" in call, f"Expected -f flag in v2 promotion: {call}"
+        assert "x-oss-forbid-overwrite:true" not in " ".join(call)
+
+
+def test_forbidden_or_mismatched_base_url_rejected(tmp_path: Path):
+    repo = tmp_path / "repo"
+    head = init_test_git_repo(repo)
+    expected_url = f"https://sensecraft-statics.seeed.cc/solution-app/solutions/releases/{head}"
+
+    # 1. Matching base URL succeeds
+    validated = publish_solutions.validate_base_url(expected_url, head)
+    assert validated == expected_url
+
+    # 2. Matching base URL with trailing slash succeeds and normalizes
+    validated_slash = publish_solutions.validate_base_url(expected_url + "/", head)
+    assert validated_slash == expected_url
+
+    # 3. Empty base URL defaults to canonical release URL
+    default_url = publish_solutions.validate_base_url("", head)
+    assert default_url == expected_url
+
+    # 4. Mismatched pin in base URL rejected
+    with pytest.raises(ValueError, match="Forbidden or mismatched base-url"):
+        publish_solutions.validate_base_url(
+            "https://sensecraft-statics.seeed.cc/solution-app/solutions/releases/wrongpin00000000000000000000000000000000",
+            head,
+        )
+
+    # 5. Untrusted domain rejected
+    with pytest.raises(ValueError, match="Forbidden or mismatched base-url"):
+        publish_solutions.validate_base_url(
+            f"https://malicious.cdn.example.com/solutions/releases/{head}",
+            head,
+        )
+
+    # 6. Rejection through main() CLI execution
+    out_dir = tmp_path / "cdn_out"
+    rc = publish_solutions.main([
+        "--solutions-dir", str(repo / "solutions"),
+        "--output-dir", str(out_dir),
+        "--content-pin", head,
+        "--base-url", "https://unauthorized-domain.com/releases",
+        "--sequence", "1",
+        "--offline",
+    ])
+    assert rc != 0
+
+
+def test_all_destinations_including_v2_enumerated_in_inventory(tmp_path: Path):
+    files = [
+        tmp_path / "sol_alpha.zip",
+        tmp_path / "sol_beta.zip",
+        tmp_path / "manifest.json",
+        tmp_path / "manifest.json.minisig",
+        tmp_path / "solutions_index.json",
+        tmp_path / "solutions_index.json.minisig",
+        tmp_path / "bundled_hashes.json",
+        tmp_path / "bundled_hashes.json.minisig",
+    ]
+    for f in files:
+        f.write_text(f"content of {f.name}", encoding="utf-8")
+
+    pin = "abcdef1234567890abcdef1234567890abcdef12"
+    inventory = publish_solutions.format_artifact_inventory(
+        files,
+        bucket="test-bucket",
+        prefix="test-prefix",
+        content_pin=pin,
+    )
+
+    # Total destinations = 8 release + 6 v2 = 14
+    assert "Total: 14" in inventory
+    assert "Total count: 14" in inventory
+
+    # Check all 8 release destinations
+    for f in files:
+        assert f"oss://test-bucket/test-prefix/releases/{pin}/{f.name}" in inventory
+
+    # Check all 6 v2 destinations
+    for name in [
+        "bundled_hashes.json",
+        "bundled_hashes.json.minisig",
+        "solutions_index.json",
+        "solutions_index.json.minisig",
+        "manifest.json",
+        "manifest.json.minisig",
+    ]:
+        assert f"oss://test-bucket/test-prefix/v2/{name}" in inventory
+
+    # Solution ZIPs must NOT be in v2/
+    assert f"oss://test-bucket/test-prefix/v2/sol_alpha.zip" not in inventory
+    assert f"oss://test-bucket/test-prefix/v2/sol_beta.zip" not in inventory
 

@@ -938,6 +938,42 @@ def verify_solution_packages(
                 verify_deb_archive_strictly(deb_bytes, expected_sha256=expected_sha256)
 
 
+V2_AUXILIARY_FILES = [
+    "bundled_hashes.json",
+    "bundled_hashes.json.minisig",
+    "solutions_index.json",
+    "solutions_index.json.minisig",
+]
+
+V2_ENTRY_FILES = [
+    "manifest.json",
+    "manifest.json.minisig",
+]
+
+V2_PROMOTED_FILES = V2_AUXILIARY_FILES + V2_ENTRY_FILES
+
+
+def validate_base_url(base_url: str, content_pin: str) -> str:
+    """Validate base_url against immutable releases endpoint schema for content_pin.
+
+    If empty, defaults to canonical releases endpoint:
+        f"https://sensecraft-statics.seeed.cc/solution-app/solutions/releases/{content_pin}"
+    If non-empty, must strictly equal:
+        f"https://sensecraft-statics.seeed.cc/solution-app/solutions/releases/{content_pin}"
+    Any forbidden, mismatched, or altered base-url is rejected (fail-closed).
+    """
+    expected = f"https://sensecraft-statics.seeed.cc/solution-app/solutions/releases/{content_pin}"
+    cleaned = (base_url or "").strip().rstrip("/")
+    if not cleaned:
+        return expected
+    if cleaned != expected:
+        raise ValueError(
+            f"Forbidden or mismatched base-url: '{base_url}'. "
+            f"Base URL must equal '{expected}'"
+        )
+    return cleaned
+
+
 def generate_manifest_dict(
     sequence: int,
     content_pin: str,
@@ -950,12 +986,13 @@ def generate_manifest_dict(
     bundled_hashes_size: int | None = None,
 ) -> dict[str, Any]:
     """Generate manifest dictionary binding solutions and auxiliary files."""
+    canonical_base_url = validate_base_url(base_url, content_pin)
     manifest_payload: dict[str, Any] = {
         "version": 2,
         "sequence": sequence,
         "content_pin": content_pin,
         "generated_at": generated_at,
-        "base_url": base_url,
+        "base_url": canonical_base_url,
         "deprecated": [],
         "solutions": manifest_solutions,
     }
@@ -988,24 +1025,57 @@ def format_artifact_inventory(
     prefix: str,
     content_pin: str,
 ) -> str:
-    """Format complete artifact inventory with un-truncated sha256, size, dest, and count."""
+    """Format complete artifact inventory with un-truncated sha256, size, dest, and count.
+
+    Enumerates ALL destinations that will be written:
+    - Immutable release objects (releases/<pin>/...) for all generated artifacts.
+    - Mutable v2 objects (v2/...) for auxiliary and entry manifest files.
+    """
     valid_artifacts = [p for p in sorted(artifacts) if p.is_file()]
-    lines = [
-        "=" * 80,
-        f"COMPLETE ARTIFACT INVENTORY (Total: {len(valid_artifacts)})",
-        "=" * 80,
-    ]
+    artifact_map = {p.name: p for p in valid_artifacts}
+
+    destinations: list[dict[str, Any]] = []
+
+    # 1. Immutable release destinations for all generated artifacts
     for p in valid_artifacts:
         raw = p.read_bytes()
         sha = hashlib.sha256(raw).hexdigest()
         size = len(raw)
         dest_path = f"oss://{bucket}/{prefix}/releases/{content_pin}/{p.name}"
-        lines.append(f"Artifact: {p.name}")
-        lines.append(f"  Destination: {dest_path}")
-        lines.append(f"  Size:        {size} bytes")
-        lines.append(f"  SHA-256:     {sha}")
+        destinations.append({
+            "name": p.name,
+            "destination": dest_path,
+            "size": size,
+            "sha256": sha,
+        })
+
+    # 2. Mutable v2 auxiliary and entry manifest destinations
+    for fname in V2_PROMOTED_FILES:
+        if fname in artifact_map:
+            p = artifact_map[fname]
+            raw = p.read_bytes()
+            sha = hashlib.sha256(raw).hexdigest()
+            size = len(raw)
+            dest_path = f"oss://{bucket}/{prefix}/v2/{fname}"
+            destinations.append({
+                "name": fname,
+                "destination": dest_path,
+                "size": size,
+                "sha256": sha,
+            })
+
+    lines = [
+        "=" * 80,
+        f"COMPLETE ARTIFACT INVENTORY (Total: {len(destinations)})",
+        "=" * 80,
+    ]
+    for d in destinations:
+        lines.append(f"Artifact: {d['name']}")
+        lines.append(f"  Destination: {d['destination']}")
+        lines.append(f"  Size:        {d['size']} bytes")
+        lines.append(f"  SHA-256:     {d['sha256']}")
     lines.append("=" * 80)
-    lines.append(f"Total count: {len(valid_artifacts)}")
+    lines.append(f"Total count: {len(destinations)}")
     lines.append("=" * 80)
     return "\n".join(lines)
 
@@ -1046,9 +1116,7 @@ def package_and_publish(args: argparse.Namespace) -> int:
     bucket = args.oss_bucket.strip()
     prefix = args.oss_prefix.strip().strip("/")
 
-    base_url = args.base_url.strip().rstrip("/")
-    if not base_url:
-        base_url = f"https://sensecraft-statics.seeed.cc/solution-app/solutions/releases/{content_pin}"
+    base_url = validate_base_url(args.base_url, content_pin)
 
     # Get git tracked files under solutions_dir at content_pin
     rel_solutions_dir = solutions_dir.relative_to(repo_root).as_posix()
@@ -1301,20 +1369,18 @@ def package_and_publish(args: argparse.Namespace) -> int:
             if dest_obj == frozen_root_manifest:
                 raise ValueError("Security Error: direct overwrite of frozen v1 root manifest is forbidden!")
             print(f"  [upload] {fname} -> {dest_obj}")
-            res = subprocess.run(["ossutil", "cp", str(local_p), dest_obj], capture_output=True, text=True)
+            res = subprocess.run(
+                ["ossutil", "cp", "--meta", "x-oss-forbid-overwrite:true", str(local_p), dest_obj],
+                capture_output=True,
+                text=True,
+            )
             if res.returncode != 0:
                 raise RuntimeError(f"Error uploading {fname} to {dest_obj}: {res.stderr}")
 
         # Promotion order to v2/: auxiliary files first, entry manifest last
         print("[*] Promoting to mutable v2 entry...")
-        aux_files = [
-            "bundled_hashes.json",
-            "bundled_hashes.json.minisig",
-            "solutions_index.json",
-            "solutions_index.json.minisig",
-        ]
         gen_names = {p.name for p in generated_artifacts}
-        for fname in aux_files:
+        for fname in V2_AUXILIARY_FILES:
             if fname in gen_names:
                 local_p = output_dir / fname
                 if local_p.is_file():
@@ -1324,11 +1390,7 @@ def package_and_publish(args: argparse.Namespace) -> int:
                     if res.returncode != 0:
                         raise RuntimeError(f"Error promoting {fname} to {v2_dest}: {res.stderr}")
 
-        entry_files = [
-            "manifest.json",
-            "manifest.json.minisig",
-        ]
-        for fname in entry_files:
+        for fname in V2_ENTRY_FILES:
             if fname in gen_names:
                 local_p = output_dir / fname
                 if local_p.is_file():
