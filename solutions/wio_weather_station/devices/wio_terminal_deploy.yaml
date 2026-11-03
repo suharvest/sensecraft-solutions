@@ -6,7 +6,9 @@ name_i18n:
 type: wio_terminal_usb
 firmware:
   source:
-    path: assets/firmware/wio_weather_station.bin
+    path: https://sensecraft-statics.seeed.cc/solution-app/wio_weather_station/assets/firmware/wio_weather_station.bin
+    checksum:
+      sha256: 0422ce8f218965f17e08a11547aaa6900be27dce5e328003073cec77e8ae04a7
   flash_config:
     offset: "0x4000"
     verify_cdc: true

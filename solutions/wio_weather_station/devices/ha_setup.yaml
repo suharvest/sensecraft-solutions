@@ -131,7 +131,7 @@ user_inputs:
   - id: ha_port
     type: number
     required: true
-    default: 8123
+    default: "8123"
     name: "Home Assistant Port"
     name_i18n:
       zh: "Home Assistant 端口"
@@ -172,7 +172,7 @@ user_inputs:
   - id: mqtt_port
     type: number
     required: true
-    default: 1883
+    default: "1883"
     name: "MQTT Port"
     name_i18n:
       zh: "MQTT 端口"

@@ -121,6 +121,8 @@ def _iter_device_refs(node, prefix: str):
     if isinstance(node, dict):
         for key, val in node.items():
             label = f"{prefix}.{key}" if prefix else key
+            if key == "path" and "dashboards" in prefix:
+                continue
             if key in _DEVICE_FLAT_REF_KEYS and isinstance(val, str):
                 yield label, val
             else:

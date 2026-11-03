@@ -7,7 +7,8 @@ type: ha_integration
 
 ha_integration:
   entries:
-    - domain: onvif
+    - id: onvif_camera
+      domain: onvif
       data:
         - name: host
           value_from: camera_host

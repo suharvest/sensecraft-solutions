@@ -7,7 +7,8 @@ type: ha_integration
 
 ha_integration:
   entries:
-    - domain: esphome
+    - id: e1003_esphome
+      domain: esphome
       data:
         - name: host
           value_from: e1003_ip
