@@ -1915,6 +1915,61 @@ def test_artifact_outside_output_dir_rejected(tmp_path: Path):
         )
 
 
+def test_guess_content_type():
+    assert publish_solutions.guess_content_type("cover.svg") == "image/svg+xml"
+    assert publish_solutions.guess_content_type("path/to/UPPER.SVG") == "image/svg+xml"
+    assert publish_solutions.guess_content_type("cover.webp") == "image/webp"
+    assert publish_solutions.guess_content_type("manifest.json") == "application/json"
+    assert publish_solutions.guess_content_type("solution.zip") == "application/zip"
+    assert publish_solutions.guess_content_type("manifest.json.minisig") is None
+
+
+def test_upload_release_artifacts_sets_content_type(tmp_path: Path):
+    out_dir = tmp_path / "cdn_out"
+    out_dir.mkdir()
+    svg_file = out_dir / "cover.svg"
+    svg_file.write_text("<svg></svg>", encoding="utf-8")
+    webp_file = out_dir / "cover.webp"
+    webp_file.write_bytes(b"RIFF....WEBP")
+    json_file = out_dir / "manifest.json"
+    json_file.write_text("{}", encoding="utf-8")
+    minisig_file = out_dir / "manifest.json.minisig"
+    minisig_file.write_text("minisig", encoding="utf-8")
+
+    captured_cmds: list[list[str]] = []
+
+    def mock_run(cmd, **kwargs):
+        captured_cmds.append([str(c) for c in cmd])
+        return mock.Mock(returncode=0, stdout="", stderr="")
+
+    with mock.patch("subprocess.run", side_effect=mock_run):
+        publish_solutions.upload_release_artifacts(
+            bucket="my-bucket",
+            prefix="solution-app/solutions",
+            content_pin="1234567890abcdef1234567890abcdef12345678",
+            artifacts=[svg_file, webp_file, json_file, minisig_file],
+            already_identical=set(),
+            output_dir=out_dir,
+        )
+
+    assert len(captured_cmds) == 4
+    for cmd in captured_cmds:
+        key_idx = cmd.index("--key") + 1
+        key = cmd[key_idx]
+        if key.endswith(".svg"):
+            assert "--content-type" in cmd
+            assert cmd[cmd.index("--content-type") + 1] == "image/svg+xml"
+        elif key.endswith(".webp"):
+            assert "--content-type" in cmd
+            assert cmd[cmd.index("--content-type") + 1] == "image/webp"
+        elif key.endswith(".json"):
+            assert "--content-type" in cmd
+            assert cmd[cmd.index("--content-type") + 1] == "application/json"
+        elif key.endswith(".minisig"):
+            assert "--content-type" not in cmd
+
+
+
 
 
 

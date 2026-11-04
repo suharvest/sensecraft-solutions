@@ -23,6 +23,7 @@ import hashlib
 import io
 import json
 import lzma
+import mimetypes
 import os
 import re
 import shutil
@@ -649,6 +650,16 @@ def check_immutable_release_conflicts(
 check_immutable_release_conflict = check_immutable_release_conflicts
 
 
+def guess_content_type(local_p: Path | str) -> str | None:
+    p_str = str(local_p).lower()
+    if p_str.endswith(".svg"):
+        return "image/svg+xml"
+    if p_str.endswith(".webp"):
+        return "image/webp"
+    ctype, _ = mimetypes.guess_type(str(local_p))
+    return ctype
+
+
 def upload_release_artifacts(
     bucket: str,
     prefix: str,
@@ -679,20 +690,24 @@ def upload_release_artifacts(
 
         print(f"  [upload] {rel_path} -> {dest_obj}")
         rel_key = f"{prefix}/releases/{content_pin}/{rel_path}" if prefix else f"releases/{content_pin}/{rel_path}"
+        cmd = [
+            ossutil_bin,
+            "api",
+            "put-object",
+            "--bucket",
+            bucket,
+            "--key",
+            rel_key,
+            "--body",
+            f"file://{local_p.resolve()}",
+            "--forbid-overwrite",
+            "true",
+        ]
+        ctype = guess_content_type(local_p)
+        if ctype:
+            cmd.extend(["--content-type", ctype])
         res = subprocess.run(
-            [
-                ossutil_bin,
-                "api",
-                "put-object",
-                "--bucket",
-                bucket,
-                "--key",
-                rel_key,
-                "--body",
-                f"file://{local_p.resolve()}",
-                "--forbid-overwrite",
-                "true",
-            ],
+            cmd,
             capture_output=True,
             text=True,
         )
@@ -1693,7 +1708,11 @@ def package_and_publish(args: argparse.Namespace) -> int:
                 if local_p.is_file():
                     dest_obj = f"{v2_dest}{fname}"
                     print(f"  [v2 aux] {fname} -> {dest_obj}")
-                    res = subprocess.run(["ossutil", "cp", "-f", str(local_p), dest_obj], capture_output=True, text=True)
+                    cmd = ["ossutil", "cp", "-f", str(local_p), dest_obj]
+                    ctype = guess_content_type(local_p)
+                    if ctype:
+                        cmd.extend(["--content-type", ctype])
+                    res = subprocess.run(cmd, capture_output=True, text=True)
                     if res.returncode != 0:
                         raise RuntimeError(f"Error promoting {fname} to {v2_dest}: {res.stderr}")
 
@@ -1703,7 +1722,11 @@ def package_and_publish(args: argparse.Namespace) -> int:
                 if local_p.is_file():
                     dest_obj = f"{v2_dest}{fname}"
                     print(f"  [v2 entry] {fname} -> {dest_obj}")
-                    res = subprocess.run(["ossutil", "cp", "-f", str(local_p), dest_obj], capture_output=True, text=True)
+                    cmd = ["ossutil", "cp", "-f", str(local_p), dest_obj]
+                    ctype = guess_content_type(local_p)
+                    if ctype:
+                        cmd.extend(["--content-type", ctype])
+                    res = subprocess.run(cmd, capture_output=True, text=True)
                     if res.returncode != 0:
                         raise RuntimeError(f"Error promoting {fname} to {v2_dest}: {res.stderr}")
 

@@ -14,7 +14,7 @@ intro:
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
-  cover_image: gallery/cover.svg
+  cover_image: gallery/cover.webp
   category: vision_video_ai
   solution_type: solution
   tags:
@@ -28,9 +28,9 @@ intro:
     - animal-husbandry
   gallery:
     - type: image
-      src: gallery/cover.svg
+      src: gallery/cover.webp
       src_i18n:
-        zh: gallery/cover_zh.svg
+        zh: gallery/cover_zh.webp
       caption: Real-time crayfish detection, proximity trigger, and fight classification HUD
       caption_i18n:
         zh: 实时水槽螯虾检测、靠近触发与打斗分类 HUD
