@@ -1,20 +1,20 @@
 version: "1.0"
 id: reterminal_e1003_ha
-name: reTerminal E1003 Smart Home Control Panel
+name: Smart Home Control Panel for Home Assistant
 name_i18n:
-  zh: reTerminal E1003 智能家居控制面板
+  zh: 全屋智能交互屏幕
 enabled: true
 intro:
-  summary: Low-power e-paper wall panel powered by ESPHome and Home Assistant, enabling always-on touch control for lights, scenes, and smart home automation.
+  summary: Always-on smart home interaction screen built on Home Assistant — both an e-paper reTerminal E1003 and a color SenseCAP Indicator connect over the ESPHome native API, with zero cloud dependency.
   summary_i18n:
-    zh: 基于 ESPHome 与 Home Assistant 的低功耗墨水屏智能家居控制面板，提供常显低眩光触控，轻松联动全屋灯光、场景与智能设备。
+    zh: 基于 Home Assistant 的全屋智能交互屏幕：E1003 墨水屏与 Indicator 彩屏均经 ESPHome 原生 API 接入，按需选择，本地直连零云端依赖。
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
   cover_image: gallery/e1003-keyless-cover.webp
   category: home_building_automation
   solution_type: solution
-  tags: [home-assistant, esphome, epaper, smart-home, touch-panel]
+  tags: [home-assistant, esphome, epaper, smart-home, touch-panel, indicator, display-panel]
   output_interfaces:
     - type: serial
       endpoint: UART0
@@ -28,30 +28,54 @@ intro:
         zh: 配置电脑、面板和 Home Assistant 需在同一可达局域网。
   device_catalog:
     reterminal_e_series:
-      description: Runs the fixed E1003 screen and touch interface.
+      description: E-paper touch panel running the fixed E1003 screen and touch interface.
       description_i18n:
-        zh: 运行固定的 E1003 屏幕与触控界面。
+        zh: 墨水屏触控面板，运行固定的 E1003 屏幕与触控界面。
       purchase:
         require:
           model: [e1003]
+    sensecap_indicator:
+      description: Color LCD touch panel running the Indicator HA panel firmware (ESP32-S3).
+      description_i18n:
+        zh: 彩屏触控交互终端，运行 Indicator HA 面板程序（ESP32-S3）。
+      purchase:
+        require:
+          edition: [d1, d1s, d1pro, d1l]
   presets:
     - id: usb_candidate
-      name: Smart Home Wall Panel
+      name: E-paper Smart Home Panel
       name_i18n:
-        zh: 智能家居控制面板
-      description: Flash the factory e-paper firmware to reTerminal E1003 and integrate it seamlessly with Home Assistant.
+        zh: 墨水屏智能家居面板
+      description: Always-on, glare-free e-paper wall panel. Flash the reTerminal E1003 firmware and link it to Home Assistant over the ESPHome native API.
       description_i18n:
-        zh: 为 reTerminal E1003 烧录墨水屏出厂固件，并自动将其接入 Home Assistant 智能家居生态。
+        zh: 常显、低眩光的墨水屏墙面面板。为 reTerminal E1003 烧录固件，经 ESPHome 原生 API 接入 Home Assistant。
       device_groups:
         - id: panel
-          name: Dashboard panel
+          name: Interactive Display Panel
           name_i18n:
-            zh: 控制面板
+            zh: 交互屏幕
           type: single
           required: true
           options:
             - device_ref: reterminal_e_series
           default: reterminal_e_series
+    - id: indicator_panel
+      name: Color Touch Smart Home Panel
+      name_i18n:
+        zh: 彩屏智能家居面板
+      description: Color LCD touch panel for richer interaction. Flash the SenseCAP Indicator HA panel firmware and link it to Home Assistant over the ESPHome native API.
+      description_i18n:
+        zh: 彩屏触控面板，交互更丰富。为 SenseCAP Indicator 烧录 HA 面板程序，经 ESPHome 原生 API 接入 Home Assistant。
+      device_groups:
+        - id: panel
+          name: Interactive Display Panel
+          name_i18n:
+            zh: 交互屏幕
+          type: single
+          required: true
+          options:
+            - device_ref: sensecap_indicator
+          default: sensecap_indicator
 deployment:
   guide_file: guide.md
   guide_file_i18n:

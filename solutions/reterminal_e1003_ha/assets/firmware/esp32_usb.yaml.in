@@ -15,9 +15,9 @@ detection:
     - /dev/ttyUSB*
 firmware:
   source:
-    path: https://sensecraft-statics.seeed.cc/solution-app/reterminal_e1003_ha/assets/firmware/firmware.factory.bin
+    path: https://sensecraft-statics.seeed.cc/solution-app/reterminal_e1003_ha/assets/firmware/3608712/firmware.factory.bin
     checksum:
-      sha256: 472fea16c509b46ecb04d6636a8d8acbc05756ce02157d20fd40eaf483401291
+      sha256: 1aee4b0c4864181ef9b7cf88bd2c6dcf690d9eafd047badcfbbe8bb6959fd927
   flash_config:
     chip: esp32s3
     baud_rate: 115200
@@ -28,7 +28,7 @@ firmware:
     partitions:
       - name: factory
         offset: "0x0"
-        file: https://sensecraft-statics.seeed.cc/solution-app/reterminal_e1003_ha/assets/firmware/firmware.factory.bin
+        file: https://sensecraft-statics.seeed.cc/solution-app/reterminal_e1003_ha/assets/firmware/3608712/firmware.factory.bin
 steps:
   - id: detect
     name: Identify panel
