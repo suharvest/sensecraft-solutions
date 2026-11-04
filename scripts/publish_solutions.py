@@ -487,6 +487,14 @@ def is_oss_not_found(error_text: str) -> bool:
     return False
 
 
+def _clean_ossutil_cat_output(raw_bytes: bytes) -> bytes:
+    """Strip any trailing timing summary added by ossutil, e.g. b'\\n1.234567(s) elapsed\\n'."""
+    match = re.search(rb"\n+[0-9.]+\(s\)\s+elapsed\s*\n*$", raw_bytes)
+    if match:
+        return raw_bytes[:match.start()] + b"\n"
+    return raw_bytes
+
+
 def cat_remote_manifest(
     bucket: str,
     prefix: str,
@@ -497,9 +505,9 @@ def cat_remote_manifest(
     Fails closed on any error other than NoSuchKey.
     """
     remote_target = f"oss://{bucket}/{prefix}/v2/manifest.json"
-    res = subprocess.run([ossutil_bin, "cat", remote_target], capture_output=True)
+    res = subprocess.run([ossutil_bin, "cat", remote_target, "-q"], capture_output=True)
     if res.returncode == 0:
-        raw_bytes = _to_bytes(res.stdout)
+        raw_bytes = _clean_ossutil_cat_output(_to_bytes(res.stdout))
         try:
             data = json.loads(raw_bytes.decode("utf-8"))
         except Exception as e:
@@ -522,9 +530,9 @@ def oss_object_exists(
     If object is absent with NoSuchKey, returns (False, None).
     Fails closed on any error other than NoSuchKey.
     """
-    res = subprocess.run([ossutil_bin, "cat", oss_target], capture_output=True)
+    res = subprocess.run([ossutil_bin, "cat", oss_target, "-q"], capture_output=True)
     if res.returncode == 0:
-        return True, _to_bytes(res.stdout)
+        return True, _clean_ossutil_cat_output(_to_bytes(res.stdout))
 
     err = _to_str(res.stderr) + _to_str(res.stdout)
     if is_oss_not_found(err):
