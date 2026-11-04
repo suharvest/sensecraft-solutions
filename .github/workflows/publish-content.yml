@@ -92,7 +92,7 @@ jobs:
         run: |
           set -euo pipefail
           pin="${CONTENT_PIN:-$(git rev-parse HEAD)}"
-          python3 scripts/publish_solutions.py \
+          uv run python scripts/publish_solutions.py \
             --solutions-dir solutions \
             --output-dir content-cdn \
             --content-pin "$pin" \
@@ -185,7 +185,7 @@ jobs:
         run: |
           set -euo pipefail
           pin="${CONTENT_PIN:-$(git rev-parse HEAD)}"
-          python3 scripts/publish_solutions.py \
+          uv run python scripts/publish_solutions.py \
             --solutions-dir solutions \
             --output-dir content-cdn \
             --content-pin "$pin" \
