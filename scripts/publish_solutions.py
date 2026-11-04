@@ -1462,6 +1462,12 @@ def package_and_publish(args: argparse.Namespace) -> int:
             generated_artifacts=generated_artifacts,
         )
 
+        final_cover_url = (
+            f"{base_url}/{final_cover}"
+            if final_cover and not final_cover.startswith(("http://", "https://", "data:"))
+            else final_cover
+        )
+
         manifest_entry = {
             "hash": sha_str,
             "size": size,
@@ -1472,7 +1478,7 @@ def package_and_publish(args: argparse.Namespace) -> int:
             "name_zh": name_zh,
             "summary": summary,
             "summary_zh": summary_zh,
-            "cover_image": final_cover,
+            "cover_image": final_cover_url,
             "category": category,
             "tags": tags,
             "difficulty": difficulty,
@@ -1486,7 +1492,7 @@ def package_and_publish(args: argparse.Namespace) -> int:
             "name_zh": name_zh,
             "summary": summary,
             "summary_zh": summary_zh,
-            "cover_image": final_cover,
+            "cover_image": final_cover_url,
             "category": category,
             "tags": tags,
             "solution_type": meta.get("solution_type") or "solution",
@@ -1516,7 +1522,7 @@ def package_and_publish(args: argparse.Namespace) -> int:
         "generated_at": now_iso,
         "solutions": index_solutions,
     }
-    solutions_index_path.write_text(json.dumps(index_payload, indent=2) + "\n", encoding="utf-8")
+    solutions_index_path.write_text(json.dumps(index_payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     generated_artifacts.append(solutions_index_path)
     index_bytes = solutions_index_path.read_bytes()
     index_sha = hashlib.sha256(index_bytes).hexdigest()
@@ -1535,7 +1541,7 @@ def package_and_publish(args: argparse.Namespace) -> int:
         bundled_hashes_sha256=bundled_sha,
         bundled_hashes_size=bundled_size,
     )
-    manifest_path.write_text(json.dumps(manifest_payload, indent=2) + "\n", encoding="utf-8")
+    manifest_path.write_text(json.dumps(manifest_payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     generated_artifacts.append(manifest_path)
     print("[*] Generated core manifest files successfully.")
 

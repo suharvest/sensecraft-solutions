@@ -15,6 +15,7 @@ intro:
   description_file_i18n:
     zh: description_zh.md
   category: environmental_sensing
+  cover_image: gallery/sensecap-portal-dashboard.png
   solution_type: solution
   tags:
   - compact-weather

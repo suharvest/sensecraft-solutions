@@ -1448,7 +1448,8 @@ def test_manifest_inlined_metadata_and_relative_cover_extraction(tmp_path: Path)
     assert alpha_m["name_zh"] == "方案 Alpha"
     assert alpha_m["summary"] == "Alpha Summary"
     assert alpha_m["summary_zh"] == "Alpha 摘要"
-    assert alpha_m["cover_image"] == "covers/sol_alpha/cover.png"
+    expected_cover_url = f"https://sensecraft-statics.seeed.cc/solution-app/solutions/releases/{head}/covers/sol_alpha/cover.png"
+    assert alpha_m["cover_image"] == expected_cover_url
     assert alpha_m["category"] == "industrial"
     assert alpha_m["tags"] == ["iot", "edge"]
     assert alpha_m["difficulty"] == "beginner"
