@@ -46,4 +46,4 @@ Built from `sensecap-indicator-ha` branch `indicator-ha-native-api`, commit `dca
 - `partition-table.bin` — offset 0x8000, sha256 `a7dfdccd649702098427a73dbc716db3ff9e51753271738f1d9d1f9ba0a5c67d`
 - `indicator_ha.bin` — offset 0x10000, sha256 `6b99f3baf7fb8d3bcf9787794a4ac0484f82a259c219e180cc7bfb91d49f567a`
 
-Flash settings: 460800 baud, dio / 8MB / 80m, no full-chip erase. Hardware flashing of this build is unverified. The Indicator's USB VID:PID is still unfilled, so the App falls back to manual port selection.
+Flash settings: 460800 baud, dio / 8MB / 80m, no full-chip erase. Hardware flashing of this build is unverified. The ESP32-S3 is flashed through the Indicator's CH340 USB-UART (VID:PID `1a86:7523`, read from a real unit; the RP2040 coprocessor enumerates separately as `2886:0050`).

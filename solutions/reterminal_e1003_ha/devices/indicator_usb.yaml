@@ -9,8 +9,8 @@ type: esp32_usb
 # the Seeed CDN URLs below.
 detection:
   method: usb_serial
-  # TODO(hardware): fill in the Indicator's USB VID:PID once verified on real
-  # hardware. Until then the App falls back to manual port selection.
+  usb_vendor_id: "0x1a86"
+  usb_product_id: "0x7523"
   manual_entry: true
   fallback_ports:
     - /dev/cu.wchusbserial*
