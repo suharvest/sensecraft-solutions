@@ -1,8 +1,8 @@
-## 套餐: 智能家居控制面板 {#usb_candidate}
+## 套餐: 墨水屏智能家居面板 {#usb_candidate}
 
-通过 USB 连接 E1003 面板并接入 Home Assistant。安装器会自动下载并烧录面板出厂固件，部署或连接 Home Assistant，并自动完成面板联动。
+通过 USB 连接 E1003 墨水屏面板并接入 Home Assistant。安装器会自动下载并烧录面板出厂固件，部署或连接 Home Assistant，并自动完成面板联动。
 
-> 注意：请确保通过 USB 连接 reTerminal E1003 面板。烧录步骤将直接从 CDN 下载并安装 0.2.1 固件。
+> 注意：请确保通过 USB 连接 reTerminal E1003 面板。烧录步骤将直接从 CDN 下载并安装固件。
 
 ## 步骤 1: 安装 E1003 面板程序 {#e1003_usb type=esp32_usb required=true verify=true config=devices/e1003_usb.yaml}
 
@@ -21,37 +21,33 @@
 ### 烧录
 
 1. 在串口列表中选择连接的 E1003 设备端口。
-2. 点击 **安装** / 部署。安装器将从 CDN 下载 0.2.1 固件并以 115200 波特率烧录至面板。
+2. 点击 **安装** / 部署。安装器将从 CDN 下载固件并以 115200 波特率烧录至面板。
 3. 保持设备通电，直到烧录与重启校验完成。
 
 <details>
-<summary>技术详情与接入依赖</summary>
-<p>参考固件 0.2.1 固定使用明文 native API，不提供 API 加密选项或密钥导出。</p>
-<p>固件大小 1,337,056 字节，SHA-256 为 <code>472fea16c509b46ecb04d6636a8d8acbc05756ce02157d20fd40eaf483401291</code>。烧录参数为 115200 波特率、偏移量 0x0、不全片擦除并保留 NVS。</p>
-<p>现有构建、软件与 CDN 发布检查均已通过；物理触摸、真实 HA 控灯及屏幕双向同步可在实机上进行体验验证。</p>
+<summary>技术详情</summary>
+<p>固件大小 1,365,696 字节，SHA-256 为 <code>1aee4b0c4864181ef9b7cf88bd2c6dcf690d9eafd047badcfbbe8bb6959fd927</code>。烧录参数为 115200 波特率、偏移量 0x0、不全片擦除并保留 NVS。</p>
 </details>
 
 ### 部署完成
 
-1. **配网引导**：固件烧录完成后，设备可通过 USB 串口以 115200 波特率运行 Improv Serial 协议一键配置 Wi-Fi，或连接面板广播的临时 ESPHome 热点通过 Captive Portal 网页配置 2.4 GHz Wi-Fi（不支持纯 5 GHz 频段）。配网成功后面板将连接局域网并获取 IP 地址。
-2. **设备接入**：若未执行步骤 3 自动接入，打开 Home Assistant，进入“设置 → 设备与服务 → 集成”，添加 ESPHome 设备并填入面板 IP 地址（Native API 无需密钥）。
-3. **配置两步法绑定目标灯（无需创建自动化）**：固件通过 Native API 原生调用 Home Assistant action，由板载配置实体直接指定目标灯具，无需在 HA 中手动创建任何 Automation 规则：
-   - **第一步（开启动作权限）**：在 Home Assistant 的 ESPHome 集成中找到 E1003 设备卡片，点击齿轮或选项，勾选开启 **“允许设备执行 Home Assistant 动作”**（Allow the device to perform Home Assistant actions）；
-   - **第二步（写入目标灯 ID）**：在 E1003 设备的配置实体中找到目标灯实体（`text.e1003_target_light`），填入目标灯具实体 ID（例如 `light.living_room`）。固件将通过 Native API 原生控制该目标灯具。
-4. **物理触控验收**：
-   - 轻触面板开关键（Toggle），确认目标灯具能够实时开关；
-   - 分别按压 25%、50%、75%、100% 亮度区域，确认目标灯平滑切换亮度，完成物理触控闭环。
+1. **Wi-Fi**：连接面板上显示的 `reterminal-e1003-xxxxxx` 热点（无密码），浏览器打开 `192.168.4.1`，选择 2.4 GHz Wi-Fi。面板随后显示 IP 和 `HA WAITING`。
+2. **Home Assistant**：执行步骤 3，或手动添加 **ESPHome** 集成，填面板 IP（端口 `6053`）。面板显示 `HA CONNECTED`。无需 API 密钥或额外权限。
+3. **灯光**：[导入蓝图](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2FLove4yzp%2Fesphome-reterminal-e1003-workspace%2Fblob%2Fmain%2Fha%2Fblueprints%2Fautomation%2Fe1003_light_sync.yaml)并创建自动化，选择要控制的灯，以及这台面板的 `Main light command`、`Main light state`、`Main light value`。在 Home Assistant 里切换一次灯，让屏幕同步。以后换灯，直接在该自动化里改。
 
-> **注意**：面板目前仅定义了这五个触控区域，其他图标为静态常显展示。
+**更换 Wi-Fi**：在屏幕上连续点两次 Wi-Fi 区域（8 秒内），再重复第 1 步。配对信息保留；若 Home Assistant 没有重连，在 ESPHome 条目上用 **重新配置** 填新 IP。
+
+**绿色键**：单击整屏刷新（清除残影）；长按 3 秒重启。
 
 ### 故障排查
 
 | 现象 | 处理方式 |
 | --- | --- |
-| 找不到设备串口 | 点击刷新按钮；检查 USB 数据线是否支持数据传输；退出可能占用串口的其它程序 |
-| 配置或写入失败 | 根据界面上的具体错误信息处理后重试，切勿全片擦除 NVS |
-| 界面提示正在保存或重启 | 保持设备供电，耐心等待读回并显示最终验证状态 |
-| 按键无反应或灯具不响应 | 确认 ESPHome 设备设置中已开启“允许设备执行 Home Assistant 动作”；检查 `text.e1003_target_light` 实体中填写的目标灯 ID 正确且实体存在；确认面板与 HA 处于同一局域网并正常在线 |
+| 找不到设备串口 | 点击刷新；使用支持数据传输的 USB 线；退出占用串口的其它程序 |
+| 写入失败 | 按提示信息处理后重试，切勿擦除 NVS |
+| 一直停在 `HA WAITING` | 让 Home Assistant 与面板处于同一局域网，用屏幕上的 IP 手动添加 ESPHome |
+| 灯不响应 | 确认自动化使用的是该蓝图，且三个实体都选自这台面板 |
+
 
 ---
 
@@ -80,7 +76,7 @@
 
 ## 步骤 3: 将 E1003 接入 Home Assistant（可选） {#connect_ha type=ha_integration required=false config=devices/ha_integration.yaml}
 
-通过 Home Assistant 自动化 Config Flow API 将已配网的 E1003 面板直接接入 Home Assistant。
+通过 Home Assistant 自动化 Config Flow API 将已配网的 E1003 面板直接接入 Home Assistant。随后导入灯光蓝图（步骤 1“部署完成”）。
 
 ### 前置条件
 
@@ -94,3 +90,58 @@
 |---|---|
 | Home Assistant 登录失败 | 请使用 Home Assistant 管理员账号，并确认本机能访问该实例。 |
 | 找不到 E1003 面板 | 面板需已开机并连接到同一局域网的 2.4 GHz Wi-Fi。否则在 Home Assistant 中手动添加 ESPHome 集成并填写面板 IP（Native API 无需密钥）。 |
+
+## 套餐: 彩屏智能家居面板 {#indicator_panel}
+
+通过 USB 烧录 SenseCAP Indicator，并经 ESPHome 集成接入 Home Assistant，无需 MQTT broker。
+
+## 步骤 1: 安装 Indicator 面板程序 {#indicator_usb type=esp32_usb required=true verify=true config=devices/indicator_usb.yaml}
+
+连接 Indicator 的 USB-C 口，选择串口（列表中没有时手动填写），点击 **部署**，保持连接直到校验完成。
+
+### 前置条件
+
+- 一台 SenseCAP Indicator（D1 / D1S / D1Pro / D1L）与一根 USB 数据线。
+- Indicator 与 Home Assistant 处于同一局域网。
+
+### 部署完成
+
+1. 在设备屏幕（Settings）接入 2.4 GHz Wi-Fi，并记下 Settings 中显示的 IP。
+2. 执行步骤 3，或在 Home Assistant 中手动添加 **ESPHome** 集成，填该 IP 和端口 `6053`，加密密钥留空。
+3. 设备页会显示 12 个实体（温度、湿度、CO2、tVOC、6 个开关、2 个数值）。Home Assistant 不会自动生成仪表盘卡片，按需自行添加。
+
+> **注意**：未设置加密密钥时连接为明文，同一局域网内任何人都能读取并控制面板。请在可信网络中使用，或在串口控制台用 `native psk <base64>` 设置密钥，并在 Home Assistant 中填入同一密钥。
+
+MQTT 为可选，沿用 topic `indicator/sensor`、`indicator/switch/set`、`indicator/switch/state`。在 Settings → MQTT broker 填入 broker，或在串口控制台用 `setmqtt` 配置。
+
+### 故障排查
+
+| 现象 | 处理方式 |
+| --- | --- |
+| 找不到设备串口 | 点击刷新或手动填写端口；使用支持数据传输的 USB 线 |
+| Home Assistant 没有发现设备 | 手动添加 ESPHome，填 Indicator 的 IP 和端口 `6053`（自动发现依赖局域网 mDNS） |
+
+---
+
+## 步骤 2: 部署 Home Assistant（可选） {#indicator_deploy_ha type=docker_deploy required=false config=devices/ha_host.yaml}
+
+在 Docker 主机上部署 Home Assistant。8123 端口已运行时自动跳过。本地安装仅支持 Linux；macOS/Windows 请选择远程目标。
+
+### 部署目标 {#indicator_ha_local type=local config=devices/ha_host.yaml}
+
+在本机（Linux）部署。
+
+### 部署目标 {#indicator_ha_remote type=remote config=devices/ha_host.yaml default=true}
+
+在远程主机（如 Raspberry Pi、reComputer）部署。
+
+---
+
+## 步骤 3: 将 Indicator 接入 Home Assistant（可选） {#indicator_connect_ha type=ha_integration required=false config=devices/indicator_ha_integration.yaml}
+
+自动将 Indicator 作为 ESPHome 设备添加到 Home Assistant。
+
+### 前置条件
+
+- Indicator 已接入 Wi-Fi，并已知其 IP。
+- Home Assistant 正常运行且网络可达，并有管理员账号。

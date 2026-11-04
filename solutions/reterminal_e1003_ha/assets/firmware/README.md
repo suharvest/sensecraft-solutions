@@ -1,12 +1,11 @@
-# 0.2.1 plaintext-only factory resource
+# E1003 factory firmware
 
-The reference build at firmware `09b3bbb` compiles out API encryption.
-The solution enables one-click USB installation with firmware downloaded directly from Seeed CDN.
-
-`manifest.json` and `esp32_usb.yaml.in` pin the actual **0.2.1** image:
-1,337,056 bytes, SHA-256
-`472fea16c509b46ecb04d6636a8d8acbc05756ce02157d20fd40eaf483401291`.
-Published to CDN: `https://sensecraft-statics.seeed.cc/solution-app/reterminal_e1003_ha/assets/firmware/firmware.factory.bin`.
+Built from `esphome-reterminal-e1003-workspace` commit `3608712` (`e1003-dashboard.yaml`).
+`manifest.json` and `esp32_usb.yaml.in` pin the image:
+1,365,696 bytes, SHA-256
+`1aee4b0c4864181ef9b7cf88bd2c6dcf690d9eafd047badcfbbe8bb6959fd927`.
+Published to CDN: `https://sensecraft-statics.seeed.cc/solution-app/reterminal_e1003_ha/assets/firmware/3608712/firmware.factory.bin`.
+Each build goes to its own commit-named path; the previous 0.2.1 image stays at the unversioned path.
 
 From the repository root, a maintainer can materialize a **local review copy**:
 
@@ -34,7 +33,17 @@ bootloader/app writes or erase NVS to bypass a migration issue. Different
 builds must use different firmware project.version values and synchronized
 manifest version/size/SHA; changing only content version is insufficient.
 
-Final 0.2.1 hardware upload and device acceptance remain unverified. Packaging
+Hardware upload and device acceptance of this image remain unverified. Packaging
 is only an integrity check of the USB payload; it does not supply native App
 configuration. See the [single integration note](../../../../docs/e1003-ha-usb-candidate.md)
 for current software checks, acceptance limits and release dependencies.
+
+## Indicator panel firmware
+
+Built from `sensecap-indicator-ha` branch `indicator-ha-native-api`, commit `dca0063`, with ESP-IDF 5.5.4. `devices/indicator_usb.yaml` pins the three images (CDN path `.../firmware/indicator/dca0063/`):
+
+- `bootloader.bin` — offset 0x0, sha256 `2cb25580670bb09714d8683ec54dd6e7270e8b8c4fe8fe072738b0771d86bab9`
+- `partition-table.bin` — offset 0x8000, sha256 `a7dfdccd649702098427a73dbc716db3ff9e51753271738f1d9d1f9ba0a5c67d`
+- `indicator_ha.bin` — offset 0x10000, sha256 `6b99f3baf7fb8d3bcf9787794a4ac0484f82a259c219e180cc7bfb91d49f567a`
+
+Flash settings: 460800 baud, dio / 8MB / 80m, no full-chip erase. Hardware flashing of this build is unverified. The ESP32-S3 is flashed through the Indicator's CH340 USB-UART (VID:PID `1a86:7523`, read from a real unit; the RP2040 coprocessor enumerates separately as `2886:0050`).
