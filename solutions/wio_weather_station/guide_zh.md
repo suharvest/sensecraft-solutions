@@ -61,7 +61,7 @@
 3. **自动化规则**: 当检测到环境气温超过 35°C 时自动发送通知。
 4. **独立气象看板**: 自动创建 `/wio-weather` Lovelace 仪表盘，展示气温、湿度、气压、光照度、声压级及 Wi-Fi 信号强度等核心指标。
 
-### 常见问题与排错
+### 故障排查
 
 | 现象 | 解决方案 |
 |---|---|
@@ -219,7 +219,7 @@ cards:
 3. 检查大气气压、环境噪声、环境光照与 Wi-Fi 信号强度卡片显示。
 4. 确认 24 小时环境走势图正常绘制历史数据。
 
-### 常见问题与排错
+### 故障排查
 
 | 现象 | 解决方案 |
 |---|---|
@@ -230,23 +230,20 @@ cards:
 
 ## 步骤 5: 接入 SenseCAP 平台与工业演进 {#connect_sensecap type=web_dashboard required=false config=devices/connect_sensecap.yaml}
 
-气象站方案标准面向生产环境采用 SenseCAP 工业级气象传感器（如 SenseCAP ONE S700 / S1000 紧凑型气象站）直连 SenseCAP 平台（SenseCAP PaaS / Portal），实现户外恶劣环境下的高可靠气象监测与云端统一资产管理。
-
-本 Wio Terminal 套装作为低成本入门评估工具，在完成桌面采集与 Home Assistant 本地联动后，亦可通过 SenseCAP 开放平台将气象数据上报至云端统一归档，便于提前跑通多端查看、API 告警分发与历史分析链路。
+生产环境的气象站（SenseCAP ONE S700 / S1000）直连 SenseCAP 平台。本 Wio Terminal 套装是低成本桌面评估方案：本地采集与 Home Assistant 联动跑通后，可将数据上报至 SenseCAP 平台，提前验证云端看板与告警。
 
 ### 操作步骤
 
-1. 点击下方 **打开 SenseCAP 平台** 按钮，访问 [SenseCAP Portal](https://sensecap.seeed.cc/)；
-2. 登录或注册 SenseCAP 账户，进入 **Security -> Access API keys** 获取 API 访问密钥；
-3. 在 Home Assistant 中通过 REST API / MQTT Forwarder 或 Node-RED 流，将 `sensor.wio_weather_station_*` 数据定时同步至 SenseCAP 数据流；
-4. 在 SenseCAP Portal 监控大屏上实时查看环境指标趋势与设备在线心跳；
-5. **工业平滑升级**：当后续采购 SenseCAP ONE 工业级气象站（支持超声波风速风向、光学雨量、高精度气压温湿度等）时，直接扫码添加设备至同一 SenseCAP 账户，原有业务系统与报表无需重新开发。
+1. 点击下方 **打开 SenseCAP 平台** 按钮，访问 [SenseCAP Portal](https://sensecap.seeed.cc/) 并登录；
+2. 进入 **Security -> Access API keys** 创建 API 访问密钥；
+3. 在 Home Assistant 中通过 REST API / MQTT Forwarder 或 Node-RED 流，将 `sensor.wio_weather_station_*` 数据同步至 SenseCAP；
+4. 在 SenseCAP Portal 查看实时指标、告警与设备在线状态。
 
-### 常见问题与排错
+### 故障排查
 
 | 现象 | 解决方案 |
 |---|---|
 | SenseCAP API 鉴权失败 | 检查输入的 Access ID 与 Access Key 是否具备设备数据读写权限 |
 | 无法在云端看到实时曲线 | 确认本地网络可访问外网 MQTT / HTTPS 端点，检查防火墙 8883/443 端口放行状态 |
-| 工业升级选型建议 | 室外微气象监测推荐 SenseCAP ONE S700（7合1紧凑型）或 S1000（10合1全能型，含 PM2.5/PM10/CO2） |
+| 工业升级选型建议 | 室外微气象监测推荐 SenseCAP ONE S700（7合1紧凑型）或 S1000（10合1全能型，含 PM2.5/PM10/CO2）。工业升级路径：将 S700（超声波风速风向、光学雨量）或 S1000（空气质量）添加至同一 SenseCAP 账户，原有看板与报表无需重新开发 |
 

@@ -44,7 +44,7 @@ intro:
     description: Serial telemetry and debugging
     description_i18n:
       zh: USB CDC 串口遥测与调试
-  - type: network
+  - type: mqtt
     description: MQTT telemetry via Wi-Fi and SenseCAP PaaS data forwarding (optional)
     description_i18n:
       zh: 基于 Wi-Fi 的 MQTT 遥测及 SenseCAP 平台数据上报（可选）
