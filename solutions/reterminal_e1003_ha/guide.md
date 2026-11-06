@@ -10,8 +10,7 @@ Select your serial port, click **Deploy**, and wait for firmware installation an
 
 ### Prerequisites
 
-- A reTerminal E1003 panel and a USB data cable.
-- The computer, E1003 panel, and Home Assistant on the same reachable LAN.
+- A reTerminal E1003 panel and a USB data cable (with data transfer support).
 
 ### Wiring
 
@@ -80,7 +79,7 @@ Automatically add the E1003 ESPHome panel to Home Assistant using the native con
 
 ### Prerequisites
 
-- E1003 powered on and connected to your Wi-Fi network.
+- E1003 powered on and joined to the same LAN as Home Assistant (connected to 2.4 GHz Wi-Fi).
 - Home Assistant instance running and reachable.
 - Home Assistant administrator username and password.
 
@@ -101,8 +100,7 @@ Connect the Indicator's USB-C port, select the serial port (enter it manually if
 
 ### Prerequisites
 
-- A SenseCAP Indicator (D1 / D1S / D1Pro / D1L) and a USB data cable.
-- The Indicator and Home Assistant on the same LAN.
+- A SenseCAP Indicator (D1 / D1S / D1Pro / D1L) and a USB data cable (with data transfer support).
 
 ### After setup
 
@@ -143,5 +141,5 @@ Automatically add the Indicator to Home Assistant as an ESPHome device.
 
 ### Prerequisites
 
-- The Indicator is on your Wi-Fi and you know its IP.
+- The Indicator is powered on and joined to the same LAN as Home Assistant (connected to Wi-Fi), and you know its IP.
 - Home Assistant is running and reachable, with an administrator account.

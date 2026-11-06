@@ -10,8 +10,7 @@
 
 ### 前置条件
 
-- 一台 reTerminal E1003 面板与一根 USB 数据线。
-- 电脑、E1003 面板与 Home Assistant 处于同一局域网。
+- 一台 reTerminal E1003 面板与一根 USB 数据线（支持数据传输）。
 
 ### 接线
 
@@ -80,7 +79,7 @@
 
 ### 前置条件
 
-- E1003 已开机并接入局域网 Wi-Fi。
+- E1003 已开机并与 Home Assistant 处于同一局域网（已连接 2.4 GHz Wi-Fi）。
 - Home Assistant 正常运行且网络可达。
 - Home Assistant 管理员用户名与密码。
 
@@ -101,8 +100,7 @@
 
 ### 前置条件
 
-- 一台 SenseCAP Indicator（D1 / D1S / D1Pro / D1L）与一根 USB 数据线。
-- Indicator 与 Home Assistant 处于同一局域网。
+- 一台 SenseCAP Indicator（D1 / D1S / D1Pro / D1L）与一根 USB 数据线（支持数据传输）。
 
 ### 部署完成
 
@@ -143,5 +141,5 @@ MQTT 为可选，沿用 topic `indicator/sensor`、`indicator/switch/set`、`ind
 
 ### 前置条件
 
-- Indicator 已接入 Wi-Fi，并已知其 IP。
+- Indicator 已开机并与 Home Assistant 处于同一局域网（已连接 Wi-Fi），且已知其 IP。
 - Home Assistant 正常运行且网络可达，并有管理员账号。
