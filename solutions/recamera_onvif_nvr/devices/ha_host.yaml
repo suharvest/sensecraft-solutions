@@ -40,6 +40,308 @@ remote_overrides:
     requirements:
       - docker_installed
       - docker_running
+  actions:
+    before:
+      - name: Ensure Docker storage compatibility on overlayroot systems
+        name_i18n:
+          zh: 检查并适配只读根文件系统环境
+        run: |
+          set -eu
+
+          # 1. Check if running on overlay filesystem
+          check_is_overlay() {
+            local p="$1"
+            local fstype
+            fstype=$(df -T "$p" 2>/dev/null | awk 'NR==2 {print $2}')
+            case "$fstype" in
+              overlay|overlayfs|overlayroot) return 0 ;;
+            esac
+            local stat_type
+            stat_type=$(stat -f -c %T "$p" 2>/dev/null || true)
+            case "$stat_type" in
+              overlay|overlayfs) return 0 ;;
+            esac
+            return 1
+          }
+
+          IS_OVERLAY=0
+          if check_is_overlay /; then
+            IS_OVERLAY=1
+          fi
+          if [ -d /var/lib/docker ] && check_is_overlay /var/lib/docker; then
+            IS_OVERLAY=1
+          fi
+          if [ -d /var/lib/docker ] && ! check_is_overlay /var/lib/docker; then
+            IS_OVERLAY=0
+          fi
+
+          if [ "$IS_OVERLAY" -eq 0 ]; then
+            echo "Filesystem for Docker storage (/ or /var/lib/docker) is not overlay. No adaptation needed."
+            exit 0
+          fi
+
+          echo "Overlayroot environment detected. Initializing adaptation..."
+
+          # 2. Pre-flight checks: tools and privilege self-check before stopping any services
+          if ! command -v python3 >/dev/null 2>&1; then
+            echo "Error: python3 is required for JSON and TOML configuration." >&2
+            exit 1
+          fi
+          if ! command -v awk >/dev/null 2>&1 || ! command -v df >/dev/null 2>&1; then
+            echo "Error: required utilities (awk, df) not found." >&2
+            exit 1
+          fi
+
+          SUDO=""
+          if [ "$(id -u)" -ne 0 ]; then
+            if ! command -v sudo >/dev/null 2>&1; then
+              echo "Error: root privileges or sudo are required to adapt Docker storage." >&2
+              exit 1
+            fi
+            if ! sudo -n true 2>/dev/null; then
+              echo "Error: non-interactive sudo capability is required (passwordless sudo or valid sudo cache)." >&2
+              exit 1
+            fi
+            SUDO="sudo"
+          fi
+
+          # 3. Locate persistent physical writable partition
+          TARGET_PART=""
+          if awk '$2 == "/media/root-rw" && $3 ~ /^(ext4|xfs|btrfs|f2fs)$/ && $4 ~ /(^|,)rw(,|$)/ {found=1; exit} END {exit !found}' /proc/mounts; then
+            TARGET_PART="/media/root-rw"
+          elif awk '$2 == "/userdata" && $3 ~ /^(ext4|xfs|btrfs|f2fs)$/ && $4 ~ /(^|,)rw(,|$)/ {found=1; exit} END {exit !found}' /proc/mounts; then
+            TARGET_PART="/userdata"
+          else
+            TARGET_PART=$(awk '$1 ~ /^\/dev\// && $2 != "/" && $2 !~ /^\/boot(\/|$)/ && $2 !~ /^\/media\/root-ro(\/|$)/ && $3 ~ /^(ext4|xfs|btrfs|f2fs)$/ && $4 ~ /(^|,)rw(,|$)/ {print $2; exit}' /proc/mounts)
+          fi
+
+          if [ -z "$TARGET_PART" ]; then
+            echo "Error: System is running on overlayroot, but no persistent writable partition (ext4/xfs/btrfs/f2fs) was found." >&2
+            echo "系统处于 overlayroot 但无持久化可写分区。" >&2
+            exit 1
+          fi
+
+          echo "Found persistent writable partition at: $TARGET_PART"
+          DOCKER_TARGET="${TARGET_PART%/}/docker"
+          CONTAINERD_TARGET="${TARGET_PART%/}/containerd"
+
+          # 4. Idempotency & completeness check
+          check_already_configured() {
+            python3 - "$DOCKER_TARGET" "$CONTAINERD_TARGET" << 'PY'
+          import json, os, sys
+
+          docker_target = sys.argv[1]
+          containerd_target = sys.argv[2]
+
+          daemon_path = "/etc/docker/daemon.json"
+          if not os.path.exists(daemon_path):
+              sys.exit(1)
+          try:
+              with open(daemon_path, "r", encoding="utf-8") as f:
+                  data = json.load(f)
+              if data.get("data-root") != docker_target:
+                  sys.exit(1)
+          except Exception:
+              sys.exit(1)
+
+          containerd_path = "/etc/containerd/config.toml"
+          if not os.path.exists(containerd_path):
+              sys.exit(1)
+          try:
+              with open(containerd_path, "r", encoding="utf-8") as f:
+                  lines = f.readlines()
+              top_root = None
+              for line in lines:
+                  stripped = line.strip()
+                  if stripped.startswith("["):
+                      break
+                  if stripped.startswith("root") and "=" in stripped:
+                      parts = stripped.split("=", 1)
+                      top_root = parts[1].strip().strip("\"'")
+                      break
+              if top_root != containerd_target:
+                  sys.exit(1)
+          except Exception:
+              sys.exit(1)
+
+          sys.exit(0)
+          PY
+          }
+
+          check_services_active() {
+            if systemctl list-unit-files docker.service >/dev/null 2>&1; then
+              if ! systemctl is-active --quiet docker; then
+                return 1
+              fi
+            fi
+            if systemctl list-unit-files containerd.service >/dev/null 2>&1; then
+              if ! systemctl is-active --quiet containerd; then
+                return 1
+              fi
+            fi
+            return 0
+          }
+
+          if check_already_configured && check_services_active; then
+            echo "Docker and containerd are already configured and active on $TARGET_PART. Nothing to do."
+            exit 0
+          fi
+
+          # 5. Stop services reliably with verification
+          stop_service_with_retry() {
+            local svc="$1"
+            if systemctl list-unit-files "$svc.service" >/dev/null 2>&1; then
+              if systemctl is-active --quiet "$svc" || systemctl is-active --quiet "$svc.socket" 2>/dev/null; then
+                echo "Stopping $svc..."
+                $SUDO systemctl stop "$svc.socket" "$svc.service" 2>/dev/null || $SUDO systemctl stop "$svc"
+                local i=0
+                while [ "$i" -lt 10 ]; do
+                  if ! systemctl is-active --quiet "$svc"; then
+                    echo "$svc stopped successfully."
+                    return 0
+                  fi
+                  sleep 1
+                  i=$((i + 1))
+                done
+                echo "Warning: $svc did not stop cleanly within 10s, sending SIGTERM..." >&2
+                $SUDO systemctl kill -s SIGTERM "$svc" 2>/dev/null || true
+                sleep 2
+                if systemctl is-active --quiet "$svc"; then
+                  echo "Error: failed to stop $svc." >&2
+                  exit 1
+                fi
+              fi
+            fi
+          }
+
+          echo "Stopping Docker and containerd services before storage migration..."
+          stop_service_with_retry docker
+          stop_service_with_retry containerd
+
+          # 6. Prepare directories and migrate existing data with $SUDO and error checking
+          migrate_directory() {
+            local src="$1"
+            local dst="$2"
+            $SUDO mkdir -p "$dst"
+            $SUDO chmod 711 "$dst"
+            if $SUDO test -d "$src"; then
+              local src_content
+              src_content=$($SUDO ls -A "$src" 2>/dev/null || true)
+              if [ -n "$src_content" ]; then
+                local dst_content
+                dst_content=$($SUDO ls -A "$dst" 2>/dev/null || true)
+                if [ -z "$dst_content" ]; then
+                  echo "Migrating data from $src to $dst..."
+                  if ! $SUDO cp -a "$src/." "$dst/"; then
+                    echo "Error: data migration from $src to $dst failed." >&2
+                    exit 1
+                  fi
+                  echo "Data migration from $src to $dst completed successfully."
+                else
+                  echo "Target $dst is not empty, skipping data migration from $src."
+                fi
+              fi
+            fi
+          }
+
+          echo "Preparing storage directories: $DOCKER_TARGET and $CONTAINERD_TARGET..."
+          migrate_directory /var/lib/docker "$DOCKER_TARGET"
+          migrate_directory /var/lib/containerd "$CONTAINERD_TARGET"
+
+          # 7. Atomically update /etc/docker/daemon.json and /etc/containerd/config.toml via Python
+          echo "Updating configuration files atomically..."
+          $SUDO python3 - "$DOCKER_TARGET" "$CONTAINERD_TARGET" << 'PY'
+          import json, os, sys
+
+          docker_target = sys.argv[1]
+          containerd_target = sys.argv[2]
+
+          # --- 1. Update /etc/docker/daemon.json atomically ---
+          daemon_path = "/etc/docker/daemon.json"
+          daemon_dir = os.path.dirname(os.path.abspath(daemon_path))
+          os.makedirs(daemon_dir, exist_ok=True)
+
+          data = {}
+          if os.path.exists(daemon_path):
+              try:
+                  with open(daemon_path, "r", encoding="utf-8") as f:
+                      content = f.read().strip()
+                      if content:
+                          data = json.loads(content)
+              except Exception as e:
+                  print(f"Warning: parsing {daemon_path} failed ({e}), creating fresh configuration")
+                  data = {}
+
+          data["data-root"] = docker_target
+
+          daemon_tmp = os.path.join(daemon_dir, f".daemon.json.tmp.{os.getpid()}")
+          with open(daemon_tmp, "w", encoding="utf-8") as f:
+              json.dump(data, f, indent=2)
+              f.write("\n")
+          os.replace(daemon_tmp, daemon_path)
+          print(f"Configured Docker data-root: {docker_target}")
+
+          # --- 2. Update /etc/containerd/config.toml atomically ---
+          containerd_path = "/etc/containerd/config.toml"
+          containerd_dir = os.path.dirname(os.path.abspath(containerd_path))
+          os.makedirs(containerd_dir, exist_ok=True)
+
+          lines = []
+          if os.path.exists(containerd_path):
+              with open(containerd_path, "r", encoding="utf-8") as f:
+                  lines = f.readlines()
+
+          first_section_idx = -1
+          top_root_idx = -1
+          for i, line in enumerate(lines):
+              stripped = line.strip()
+              if stripped.startswith("[") and first_section_idx == -1:
+                  first_section_idx = i
+              if first_section_idx == -1 and (stripped.startswith("root") or stripped.startswith("#root") or stripped.startswith("# root")) and "=" in stripped:
+                  top_root_idx = i
+
+          new_line = f'root = "{containerd_target}"\n'
+          if top_root_idx != -1:
+              lines[top_root_idx] = new_line
+          elif first_section_idx != -1:
+              lines.insert(first_section_idx, new_line)
+          else:
+              lines.append(new_line)
+
+          containerd_tmp = os.path.join(containerd_dir, f".config.toml.tmp.{os.getpid()}")
+          with open(containerd_tmp, "w", encoding="utf-8") as f:
+              f.writelines(lines)
+          os.replace(containerd_tmp, containerd_path)
+          print(f"Configured containerd root: {containerd_target}")
+          PY
+
+          # 8. Reload systemd, restart services, and verify active status
+          echo "Reloading systemd daemon and starting Docker / containerd..."
+          $SUDO systemctl daemon-reload
+
+          if systemctl list-unit-files containerd.service >/dev/null 2>&1; then
+            echo "Starting containerd..."
+            $SUDO systemctl restart containerd
+            if ! systemctl is-active --quiet containerd; then
+              echo "Error: containerd failed to activate after reconfiguration." >&2
+              $SUDO journalctl -u containerd -n 20 --no-pager >&2 || true
+              exit 1
+            fi
+            echo "containerd is active."
+          fi
+
+          if systemctl list-unit-files docker.service >/dev/null 2>&1; then
+            echo "Starting docker..."
+            $SUDO systemctl restart docker
+            if ! systemctl is-active --quiet docker; then
+              echo "Error: docker failed to activate after reconfiguration." >&2
+              $SUDO journalctl -u docker -n 20 --no-pager >&2 || true
+              exit 1
+            fi
+            echo "docker is active."
+          fi
+
+          echo "Docker storage configuration on overlayroot completed successfully."
   post_deployment:
     open_browser: true
     url: "http://{{host}}:8123"
