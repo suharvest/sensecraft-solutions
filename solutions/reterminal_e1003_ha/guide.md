@@ -125,6 +125,13 @@ MQTT is optional and keeps the topics `indicator/sensor`, `indicator/switch/set`
 
 Deploy Home Assistant on a Docker host. If it is already running on port 8123, this step skips itself. Local install is Linux only; on macOS or Windows choose the remote target.
 
+### Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| Home Assistant is already running on port 8123 | The step detects the running instance and skips installation; continue to the next step. |
+| Local install fails on macOS or Windows | The container uses host networking, which Docker Desktop does not provide. Select the remote target (a Linux host such as a Raspberry Pi or reComputer) or reuse an existing Home Assistant. |
+
 ### Target {#indicator_ha_local type=local config=devices/ha_host.yaml}
 
 Deploy on this Linux machine.
@@ -143,3 +150,10 @@ Automatically add the Indicator to Home Assistant as an ESPHome device.
 
 - The Indicator is powered on and joined to the same LAN as Home Assistant (connected to Wi-Fi), and you know its IP.
 - Home Assistant is running and reachable, with an administrator account.
+
+### Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| Home Assistant login fails | Use a Home Assistant administrator account and confirm the instance is reachable from this computer. |
+| Indicator is not found | The Indicator must be powered on and joined to the same LAN as Home Assistant, and the IP you entered must be correct. Otherwise add the ESPHome integration manually in Home Assistant with the Indicator IP. |
