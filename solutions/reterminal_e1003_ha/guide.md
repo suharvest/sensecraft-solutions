@@ -25,7 +25,7 @@ Select your serial port, click **Deploy**, and wait for firmware installation an
 
 <details>
 <summary>Technical details</summary>
-<p>Factory firmware: 1,365,696 bytes, SHA-256 <code>1aee4b0c4864181ef9b7cf88bd2c6dcf690d9eafd047badcfbbe8bb6959fd927</code>. Flashing uses 115200 baud, offset 0x0, no full-chip erase, and preserves NVS.</p>
+<p>Factory firmware: 1,366,816 bytes, SHA-256 <code>d9b58f0ecec316f8855c4ae609160bc56d7597d4d032fe950c5bf766cc51bdb0</code>. Flashing uses 115200 baud, offset 0x0, no full-chip erase, and preserves NVS.</p>
 </details>
 
 ### After setup

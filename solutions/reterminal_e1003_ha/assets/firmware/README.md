@@ -1,10 +1,10 @@
 # E1003 factory firmware
 
-Built from `esphome-reterminal-e1003-workspace` commit `3608712` (`e1003-dashboard.yaml`).
+Built from `esphome-reterminal-e1003-workspace` commit `8cdaf01` (`e1003-dashboard.yaml`).
 `manifest.json` and `esp32_usb.yaml.in` pin the image:
-1,365,696 bytes, SHA-256
-`1aee4b0c4864181ef9b7cf88bd2c6dcf690d9eafd047badcfbbe8bb6959fd927`.
-Published to CDN: `https://sensecraft-statics.seeed.cc/solution-app/reterminal_e1003_ha/assets/firmware/3608712/firmware.factory.bin`.
+1,366,816 bytes, SHA-256
+`d9b58f0ecec316f8855c4ae609160bc56d7597d4d032fe950c5bf766cc51bdb0`.
+Published to CDN: `https://sensecraft-statics.seeed.cc/solution-app/reterminal_e1003_ha/assets/firmware/8cdaf01/firmware.factory.bin`.
 Each build goes to its own commit-named path; the previous 0.2.1 image stays at the unversioned path.
 
 From the repository root, a maintainer can materialize a **local review copy**:

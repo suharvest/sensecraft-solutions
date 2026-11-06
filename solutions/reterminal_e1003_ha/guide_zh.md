@@ -25,7 +25,7 @@
 
 <details>
 <summary>技术详情</summary>
-<p>固件大小 1,365,696 字节，SHA-256 为 <code>1aee4b0c4864181ef9b7cf88bd2c6dcf690d9eafd047badcfbbe8bb6959fd927</code>。烧录参数为 115200 波特率、偏移量 0x0、不全片擦除并保留 NVS。</p>
+<p>固件大小 1,366,816 字节，SHA-256 为 <code>d9b58f0ecec316f8855c4ae609160bc56d7597d4d032fe950c5bf766cc51bdb0</code>。烧录参数为 115200 波特率、偏移量 0x0、不全片擦除并保留 NVS。</p>
 </details>
 
 ### 部署完成
