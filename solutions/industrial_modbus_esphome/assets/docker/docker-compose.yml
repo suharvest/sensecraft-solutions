@@ -1,0 +1,18 @@
+services:
+  compiler:
+    image: sensecraft-missionpack.seeed.cn/solution/rs485-compiler:latest
+    container_name: rs485_compiler
+    restart: unless-stopped
+    ports:
+      - "${COMPILER_PORT:-6052}:6052"
+    tmpfs:
+      - /tmp:rw,size=1G
+      - /build:rw,size=1G
+    environment:
+      - PORT=6052
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:6052/health')\" || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s

@@ -1,0 +1,100 @@
+version: "1.0"
+id: industrial_modbus_esphome
+name: Turn RS485 Dumb Terminals into Smart Nodes
+name_i18n:
+  zh: 工业 RS485 哑终端变智能对话终端
+enabled: true
+intro:
+  summary: Turn silent, isolated industrial RS485 sensors into communicative smart nodes. Seamlessly connect legacy equipment to Home Assistant with zero code.
+  summary_i18n:
+    zh: 基于 Seeed Studio XIAO 与 ESPHome，将传统工业 RS485 哑终端（温湿度传感器、电表、三色报警灯等）秒变智能节点，免写代码直接与 Home Assistant 对话并实现全屋自动化联动。
+  description_file: description.md
+  description_file_i18n:
+    zh: description_zh.md
+  cover_image: gallery/cover.png
+  category: industrial_control_automation
+  solution_type: solution
+  tags: [esphome, modbus, rs485, home-assistant, xiao, industrial-iot]
+  input_requirements:
+    - type: modbus
+      description: Industrial RS485 sensors or devices (temperature probes, energy meters, tower lights, or custom Modbus hardware).
+      description_i18n:
+        zh: 工业 RS485 传感器或设备（温湿度传感器、电表、三色报警灯或用户自备的任意 Modbus 设备）。
+    - type: network
+      description: Local Wi-Fi network connected to your Home Assistant.
+      description_i18n:
+        zh: 与 Home Assistant 处于同一局域网的 2.4GHz Wi-Fi 网络。
+    - type: usb
+      description: USB Type-C cable for quick one-time flashing.
+      description_i18n:
+        zh: 用于首次写入网关程序的 USB Type-C 数据线。
+  output_interfaces:
+    - type: websocket
+      endpoint: Smart Home Real-time Data
+      description: Automatic discovery and live device card display in Home Assistant.
+      description_i18n:
+        zh: 在 Home Assistant 平台中自动发现并生成实时数据卡片。
+  device_catalog:
+    xiao_esp32c3:
+      description: Ultra-small RISC-V ESP32-C3 development board with Wi-Fi & Bluetooth.
+      description_i18n:
+        zh: 搭载 ESP32-C3 芯片的微型开发板，集成 2.4GHz Wi-Fi 与蓝牙。
+    xiao_esp32s3:
+      description: Powerful dual-core Xtensa LX7 processor with camera and sensing capabilities.
+      description_i18n:
+        zh: 搭载 ESP32-S3 双核高性能芯片的微型核心板。
+    xiao_esp32c6:
+      description: Next-gen connectivity supporting Wi-Fi 6, Zigbee, Thread, and Bluetooth 5.
+      description_i18n:
+        zh: 支持 Wi-Fi 6、Zigbee、Thread 与蓝牙 5 的下一代核心板。
+    industrial_air_th_sensor:
+      description: Standard Modbus RTU RS485 temperature and humidity probe.
+      description_i18n:
+        zh: 工业级 Modbus RTU RS485 温湿度探头，精准采集温湿度指标。
+    recomputer_rk3576:
+      description: RK3576 edge computer running Docker build microservice.
+      description_i18n:
+        zh: 搭载 RK3576 的边缘计算设备，用于运行 Docker 固件编译微服务。
+  presets:
+    - id: modbus_gateway
+      name: Turn RS485 Dumb Terminals into Smart Nodes
+      name_i18n:
+        zh: 工业 RS485 哑终端变智能对话终端
+      description: Connect legacy RS485 devices to Home Assistant in 4 simple steps without coding.
+      description_i18n:
+        zh: 简单 4 步唤醒老旧工业设备，免写代码一键接入现代智能家居与空间控制系统。
+      device_groups:
+        - id: xiao_board
+          name: XIAO Core Board
+          name_i18n:
+            zh: Seeed Studio XIAO 核心板
+          type: single
+          required: true
+          options:
+            - device_ref: xiao_esp32c3
+            - device_ref: xiao_esp32s3
+            - device_ref: xiao_esp32c6
+          default: xiao_esp32c3
+        - id: rs485_sensor
+          name: Industrial RS485 Sensor
+          name_i18n:
+            zh: 工业 RS485 传感器
+          type: single
+          required: true
+          options:
+            - device_ref: industrial_air_th_sensor
+          default: industrial_air_th_sensor
+        - id: build_host
+          name: Edge Build Server
+          name_i18n:
+            zh: 边缘编译服务器
+          type: single
+          required: false
+          options:
+            - device_ref: recomputer_rk3576
+          default: recomputer_rk3576
+deployment:
+  guide_file: guide.md
+  guide_file_i18n:
+    zh: guide_zh.md
+  selection_mode: sequential

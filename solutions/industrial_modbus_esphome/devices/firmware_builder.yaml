@@ -1,0 +1,108 @@
+version: "1.0"
+id: firmware_builder
+name: ESPHome Firmware Builder
+name_i18n:
+  zh: ESPHome 固件构建器
+type: script
+
+script:
+  start_command:
+    linux_macos: |
+      set -euo pipefail
+      TMP_YAML=$(mktemp /tmp/esphome_custom_XXXXXX.yaml)
+      cat <<'EOF' > "$TMP_YAML"
+      {{custom_yaml}}
+      EOF
+      mkdir -p assets/firmware
+      curl -fsSL -X POST -F "file=@$TMP_YAML" "http://{{compiler_ip}}:6052/api/compile" -o assets/firmware/xy_md02_default.bin
+      rm -f "$TMP_YAML"
+      test -s assets/firmware/xy_md02_default.bin
+
+user_inputs:
+  - id: compiler_ip
+    name: Compiler Service IP
+    name_i18n:
+      zh: 编译服务 IP
+    type: text
+    row: 1
+    default: "127.0.0.1"
+    required: true
+    placeholder: "127.0.0.1"
+    description: IP address of the ESPHome compiler service deployed in Step 1.
+    description_i18n:
+      zh: 步骤 1 部署的 ESPHome 编译微服务 IP 地址。
+  - id: custom_yaml
+    name: Custom ESPHome YAML
+    name_i18n:
+      zh: 自定义 ESPHome 配置 YAML
+    type: textarea
+    row: 2
+    required: true
+    default: |
+      esphome:
+        name: xiao-rs485-node
+        friendly_name: Xiao Rs485 Node
+      esp32:
+        board: esp32-c3-devkitm-1
+        framework:
+          type: arduino
+      logger:
+        level: DEBUG
+      api: {}
+      ota:
+        - platform: esphome
+      wifi:
+        ssid: "YourWiFiSSID"
+        password: "YourWiFiPassword"
+        ap:
+          ssid: "xiao-rs485-fallback"
+          password: ""
+      captive_portal: {}
+      uart:
+        - id: uart_bus
+          tx_pin: 6
+          rx_pin: 7
+          baud_rate: 9600
+          stop_bits: 1
+      modbus:
+        id: modbus_bus
+        uart_id: uart_bus
+        flow_control_pin: 4
+      modbus_controller:
+        - id: modbus_device
+          address: 1
+          modbus_id: modbus_bus
+          setup_priority: -10
+      sensor:
+        - platform: modbus_controller
+          modbus_controller_id: modbus_device
+          name: Xiao Rs485 Node Temperature
+          id: xiao_rs485_node_temperature
+          register_type: read
+          address: 1
+          unit_of_measurement: °C
+          device_class: temperature
+          state_class: measurement
+          value_type: S_WORD
+          accuracy_decimals: 1
+          filters:
+            - multiply: 0.1
+        - platform: modbus_controller
+          modbus_controller_id: modbus_device
+          name: Xiao Rs485 Node Humidity
+          id: xiao_rs485_node_humidity
+          register_type: read
+          address: 2
+          unit_of_measurement: '%'
+          device_class: humidity
+          state_class: measurement
+          value_type: U_WORD
+          accuracy_decimals: 1
+          filters:
+            - multiply: 0.1
+    description: Custom ESPHome YAML configuration to compile.
+    description_i18n:
+      zh: 待编译的自定义 ESPHome YAML 配置源码。
+
+post_deployment:
+  open_browser: false

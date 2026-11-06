@@ -1,0 +1,25 @@
+esphome:
+  name: warmup-seed-s3
+
+esp32:
+  board: seeed_xiao_esp32s3
+  framework:
+    type: arduino
+
+uart:
+  - id: uart_bus
+    tx_pin: 5
+    rx_pin: 6
+    baud_rate: 9600
+    stop_bits: 1
+
+modbus:
+  id: modbus_bus
+  uart_id: uart_bus
+  flow_control_pin: 3
+
+modbus_controller:
+  - id: modbus_ctrl
+    address: 0x01
+    modbus_id: modbus_bus
+    setup_priority: -10

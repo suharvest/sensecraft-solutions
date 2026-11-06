@@ -1,0 +1,33 @@
+version: "1.0"
+id: ha_dashboard
+name: Home Assistant Modbus Dashboard
+name_i18n:
+  zh: Home Assistant Modbus 看板
+type: web_dashboard
+
+user_inputs:
+  - id: ha_host
+    name: Home Assistant IP Address
+    name_i18n:
+      zh: Home Assistant IP 地址
+    type: text
+    placeholder: "192.168.1.100"
+    default: "127.0.0.1"
+    description: IP address of your Home Assistant server.
+    description_i18n:
+      zh: Home Assistant 服务器的 IP 地址。
+    required: true
+    validation:
+      pattern: '^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$'
+
+web_dashboard:
+  url: "http://{{ha_host}}:8123"
+  title: Home Assistant Modbus Gateway
+  description: Opens Home Assistant to monitor live telemetry from RS485 Modbus sensors.
+  title_i18n:
+    zh: Home Assistant Modbus 网关
+  description_i18n:
+    zh: 打开 Home Assistant 实时查看 RS485 Modbus 传感器遥测数据。
+
+post_deployment:
+  open_browser: true

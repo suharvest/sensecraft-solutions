@@ -1,0 +1,231 @@
+version: '1.0'
+id: compiler_host
+name: ESPHome Compiler Service
+name_i18n:
+  zh: ESPHome 编译微服务
+type: docker_deploy
+detection:
+  method: local
+  requirements:
+  - docker_installed
+  - docker_running
+docker:
+  compose_file: assets/docker/docker-compose.yml
+  compose_dir: assets/docker
+  remote_path: /home/{{username}}/esphome-compiler
+  options:
+    project_name: esphome_compiler
+    remove_orphans: true
+  services:
+  - name: compiler
+    port: 6052
+    health_check_endpoint: /health
+    health_check_timeout: 60
+    required: true
+ssh:
+  port: 22
+  default_user: recomputer
+  auth_methods:
+  - password
+  connection_timeout: 30
+  command_timeout: 600
+pre_checks:
+- type: disk_space
+  min_gb: 2
+  description: At least 2 GB free disk space for ESPHome build environment
+  description_i18n:
+    zh: 至少预留 2 GB 磁盘空间用于 ESPHome 编译运行环境
+post_deployment:
+  open_browser: false
+remote_overrides:
+  remote_path: /home/{{username}}/esphome-compiler
+  compose_dir: assets/docker
+  detection:
+    method: network_scan
+    manual_entry: true
+    requirements:
+    - docker_installed
+  pre_checks:
+  - type: disk_space
+    min_gb: 2
+    description: At least 2 GB free disk space for ESPHome build environment
+    description_i18n:
+      zh: 至少预留 2 GB 磁盘空间用于 ESPHome 编译运行环境
+  post_deployment:
+    open_browser: false
+  user_inputs:
+  - id: host
+    name: Device IP
+    name_i18n:
+      zh: 设备 IP
+    type: text
+    required: true
+    placeholder: 192.168.1.100
+    description: IP address of the remote ARM64 edge server (e.g. RK3576, RK3588, Raspberry Pi)
+    description_i18n:
+      zh: 远程 ARM64 边缘服务器（如 RK3576、RK3588、树莓派等）的 IP 地址
+  - id: port
+    name: SSH Port
+    name_i18n:
+      zh: SSH 端口
+    type: text
+    default: '22'
+    required: false
+    description: SSH port (default 22)
+    description_i18n:
+      zh: SSH 端口（默认 22）
+  - id: username
+    name: SSH Username
+    name_i18n:
+      zh: SSH 用户名
+    type: text
+    default: recomputer
+    required: true
+    description: SSH login username
+    description_i18n:
+      zh: SSH 登录用户名
+  - id: password
+    name: SSH Password
+    name_i18n:
+      zh: SSH 密码
+    type: password
+    required: true
+    description: SSH login password
+    description_i18n:
+      zh: SSH 登录密码
+  actions:
+    before:
+    - name: Ensure Docker storage compatibility on overlayroot systems
+      name_i18n:
+        zh: 检查并适配只读根文件系统环境
+      run: "set -eu\n\n# 1. Check if running on overlay filesystem\ncheck_is_overlay()\
+        \ {\n  local p=\"$1\"\n  local fstype\n  fstype=$(df -T \"$p\" 2>/dev/null\
+        \ | awk 'NR==2 {print $2}')\n  case \"$fstype\" in\n    overlay|overlayfs|overlayroot)\
+        \ return 0 ;;\n  esac\n  local stat_type\n  stat_type=$(stat -f -c %T \"$p\"\
+        \ 2>/dev/null || true)\n  case \"$stat_type\" in\n    overlay|overlayfs) return\
+        \ 0 ;;\n  esac\n  return 1\n}\n\nIS_OVERLAY=0\nif check_is_overlay /; then\n\
+        \  IS_OVERLAY=1\nfi\nif [ -d /var/lib/docker ] && check_is_overlay /var/lib/docker;\
+        \ then\n  IS_OVERLAY=1\nfi\nif [ -d /var/lib/docker ] && ! check_is_overlay\
+        \ /var/lib/docker; then\n  IS_OVERLAY=0\nfi\n\nif [ \"$IS_OVERLAY\" -eq 0\
+        \ ]; then\n  echo \"Filesystem for Docker storage (/ or /var/lib/docker) is\
+        \ not overlay. No adaptation needed.\"\n  exit 0\nfi\n\necho \"Overlayroot\
+        \ environment detected. Initializing adaptation...\"\n\n# 2. Pre-flight checks:\
+        \ tools and privilege self-check before stopping any services\nif ! command\
+        \ -v python3 >/dev/null 2>&1; then\n  echo \"Error: python3 is required for\
+        \ JSON and TOML configuration.\" >&2\n  exit 1\nfi\nif ! command -v awk >/dev/null\
+        \ 2>&1 || ! command -v df >/dev/null 2>&1; then\n  echo \"Error: required\
+        \ utilities (awk, df) not found.\" >&2\n  exit 1\nfi\n\nSUDO=\"\"\nif [ \"\
+        $(id -u)\" -ne 0 ]; then\n  if ! command -v sudo >/dev/null 2>&1; then\n \
+        \   echo \"Error: root privileges or sudo are required to adapt Docker storage.\"\
+        \ >&2\n    exit 1\n  fi\n  if ! sudo -n true 2>/dev/null; then\n    echo \"\
+        Error: non-interactive sudo capability is required (passwordless sudo or valid\
+        \ sudo cache).\" >&2\n    exit 1\n  fi\n  SUDO=\"sudo\"\nfi\n\n# 3. Locate\
+        \ persistent physical writable partition\nTARGET_PART=\"\"\nif awk '$2 ==\
+        \ \"/media/root-rw\" && $3 ~ /^(ext4|xfs|btrfs|f2fs)$/ && $4 ~ /(^|,)rw(,|$)/\
+        \ {found=1; exit} END {exit !found}' /proc/mounts; then\n  TARGET_PART=\"\
+        /media/root-rw\"\nelif awk '$2 == \"/userdata\" && $3 ~ /^(ext4|xfs|btrfs|f2fs)$/\
+        \ && $4 ~ /(^|,)rw(,|$)/ {found=1; exit} END {exit !found}' /proc/mounts;\
+        \ then\n  TARGET_PART=\"/userdata\"\nelse\n  TARGET_PART=$(awk '$1 ~ /^\\\
+        /dev\\// && $2 != \"/\" && $2 !~ /^\\/boot(\\/|$)/ && $2 !~ /^\\/media\\/root-ro(\\\
+        /|$)/ && $3 ~ /^(ext4|xfs|btrfs|f2fs)$/ && $4 ~ /(^|,)rw(,|$)/ {print $2;\
+        \ exit}' /proc/mounts)\nfi\n\nif [ -z \"$TARGET_PART\" ]; then\n  echo \"\
+        Error: System is running on overlayroot, but no persistent writable partition\
+        \ (ext4/xfs/btrfs/f2fs) was found.\" >&2\n  echo \"系统处于 overlayroot 但无持久化可写分区。\"\
+        \ >&2\n  exit 1\nfi\n\necho \"Found persistent writable partition at: $TARGET_PART\"\
+        \nDOCKER_TARGET=\"${TARGET_PART%/}/docker\"\nCONTAINERD_TARGET=\"${TARGET_PART%/}/containerd\"\
+        \n\n# 4. Idempotency & completeness check\ncheck_already_configured() {\n\
+        \  python3 - \"$DOCKER_TARGET\" \"$CONTAINERD_TARGET\" << 'PY'\nimport json,\
+        \ os, sys\n\ndocker_target = sys.argv[1]\ncontainerd_target = sys.argv[2]\n\
+        \ndaemon_path = \"/etc/docker/daemon.json\"\nif not os.path.exists(daemon_path):\n\
+        \    sys.exit(1)\ntry:\n    with open(daemon_path, \"r\", encoding=\"utf-8\"\
+        ) as f:\n        data = json.load(f)\n    if data.get(\"data-root\") != docker_target:\n\
+        \        sys.exit(1)\nexcept Exception:\n    sys.exit(1)\n\ncontainerd_path\
+        \ = \"/etc/containerd/config.toml\"\nif not os.path.exists(containerd_path):\n\
+        \    sys.exit(1)\ntry:\n    with open(containerd_path, \"r\", encoding=\"\
+        utf-8\") as f:\n        lines = f.readlines()\n    top_root = None\n    for\
+        \ line in lines:\n        stripped = line.strip()\n        if stripped.startswith(\"\
+        [\"):\n            break\n        if stripped.startswith(\"root\") and \"\
+        =\" in stripped:\n            parts = stripped.split(\"=\", 1)\n         \
+        \   top_root = parts[1].strip().strip(\"\\\"'\")\n            break\n    if\
+        \ top_root != containerd_target:\n        sys.exit(1)\nexcept Exception:\n\
+        \    sys.exit(1)\n\nsys.exit(0)\nPY\n}\n\ncheck_services_active() {\n  if\
+        \ systemctl list-unit-files docker.service >/dev/null 2>&1; then\n    if !\
+        \ systemctl is-active --quiet docker; then\n      return 1\n    fi\n  fi\n\
+        \  if systemctl list-unit-files containerd.service >/dev/null 2>&1; then\n\
+        \    if ! systemctl is-active --quiet containerd; then\n      return 1\n \
+        \   fi\n  fi\n  return 0\n}\n\nif check_already_configured && check_services_active;\
+        \ then\n  echo \"Docker and containerd are already configured and active on\
+        \ $TARGET_PART. Nothing to do.\"\n  exit 0\nfi\n\n# 5. Stop services reliably\
+        \ with verification\nstop_service_with_retry() {\n  local svc=\"$1\"\n  if\
+        \ systemctl list-unit-files \"$svc.service\" >/dev/null 2>&1; then\n    if\
+        \ systemctl is-active --quiet \"$svc\" || systemctl is-active --quiet \"$svc.socket\"\
+        \ 2>/dev/null; then\n      echo \"Stopping $svc...\"\n      $SUDO systemctl\
+        \ stop \"$svc.socket\" \"$svc.service\" 2>/dev/null || $SUDO systemctl stop\
+        \ \"$svc\"\n      local i=0\n      while [ \"$i\" -lt 10 ]; do\n        if\
+        \ ! systemctl is-active --quiet \"$svc\"; then\n          echo \"$svc stopped\
+        \ successfully.\"\n          return 0\n        fi\n        sleep 1\n     \
+        \   i=$((i + 1))\n      done\n      echo \"Warning: $svc did not stop cleanly\
+        \ within 10s, sending SIGTERM...\" >&2\n      $SUDO systemctl kill -s SIGTERM\
+        \ \"$svc\" 2>/dev/null || true\n      sleep 2\n      if systemctl is-active\
+        \ --quiet \"$svc\"; then\n        echo \"Error: failed to stop $svc.\" >&2\n\
+        \        exit 1\n      fi\n    fi\n  fi\n}\n\necho \"Stopping Docker and containerd\
+        \ services before storage migration...\"\nstop_service_with_retry docker\n\
+        stop_service_with_retry containerd\n\n# 6. Prepare directories and migrate\
+        \ existing data with $SUDO and error checking\nmigrate_directory() {\n  local\
+        \ src=\"$1\"\n  local dst=\"$2\"\n  $SUDO mkdir -p \"$dst\"\n  $SUDO chmod\
+        \ 711 \"$dst\"\n  if $SUDO test -d \"$src\"; then\n    local src_content\n\
+        \    src_content=$($SUDO ls -A \"$src\" 2>/dev/null || true)\n    if [ -n\
+        \ \"$src_content\" ]; then\n      local dst_content\n      dst_content=$($SUDO\
+        \ ls -A \"$dst\" 2>/dev/null || true)\n      if [ -z \"$dst_content\" ]; then\n\
+        \        echo \"Migrating data from $src to $dst...\"\n        if ! $SUDO\
+        \ cp -a \"$src/.\" \"$dst/\"; then\n          echo \"Error: data migration\
+        \ from $src to $dst failed.\" >&2\n          exit 1\n        fi\n        echo\
+        \ \"Data migration from $src to $dst completed successfully.\"\n      else\n\
+        \        echo \"Target $dst is not empty, skipping data migration from $src.\"\
+        \n      fi\n    fi\n  fi\n}\n\necho \"Preparing storage directories: $DOCKER_TARGET\
+        \ and $CONTAINERD_TARGET...\"\nmigrate_directory /var/lib/docker \"$DOCKER_TARGET\"\
+        \nmigrate_directory /var/lib/containerd \"$CONTAINERD_TARGET\"\n\n# 7. Atomically\
+        \ update /etc/docker/daemon.json and /etc/containerd/config.toml via Python\n\
+        echo \"Updating configuration files atomically...\"\n$SUDO python3 - \"$DOCKER_TARGET\"\
+        \ \"$CONTAINERD_TARGET\" << 'PY'\nimport json, os, sys\n\ndocker_target =\
+        \ sys.argv[1]\ncontainerd_target = sys.argv[2]\n\n# --- 1. Update /etc/docker/daemon.json\
+        \ atomically ---\ndaemon_path = \"/etc/docker/daemon.json\"\ndaemon_dir =\
+        \ os.path.dirname(os.path.abspath(daemon_path))\nos.makedirs(daemon_dir, exist_ok=True)\n\
+        \ndata = {}\nif os.path.exists(daemon_path):\n    try:\n        with open(daemon_path,\
+        \ \"r\", encoding=\"utf-8\") as f:\n            content = f.read().strip()\n\
+        \            if content:\n                data = json.loads(content)\n   \
+        \ except Exception as e:\n        print(f\"Warning: parsing {daemon_path}\
+        \ failed ({e}), creating fresh configuration\")\n        data = {}\n\ndata[\"\
+        data-root\"] = docker_target\n\ndaemon_tmp = os.path.join(daemon_dir, f\"\
+        .daemon.json.tmp.{os.getpid()}\")\nwith open(daemon_tmp, \"w\", encoding=\"\
+        utf-8\") as f:\n    json.dump(data, f, indent=2)\n    f.write(\"\\n\")\nos.replace(daemon_tmp,\
+        \ daemon_path)\nprint(f\"Configured Docker data-root: {docker_target}\")\n\
+        \n# --- 2. Update /etc/containerd/config.toml atomically ---\ncontainerd_path\
+        \ = \"/etc/containerd/config.toml\"\ncontainerd_dir = os.path.dirname(os.path.abspath(containerd_path))\n\
+        os.makedirs(containerd_dir, exist_ok=True)\n\nlines = []\nif os.path.exists(containerd_path):\n\
+        \    with open(containerd_path, \"r\", encoding=\"utf-8\") as f:\n       \
+        \ lines = f.readlines()\n\nfirst_section_idx = -1\ntop_root_idx = -1\nfor\
+        \ i, line in enumerate(lines):\n    stripped = line.strip()\n    if stripped.startswith(\"\
+        [\") and first_section_idx == -1:\n        first_section_idx = i\n    if first_section_idx\
+        \ == -1 and (stripped.startswith(\"root\") or stripped.startswith(\"#root\"\
+        ) or stripped.startswith(\"# root\")) and \"=\" in stripped:\n        top_root_idx\
+        \ = i\n\nnew_line = f'root = \"{containerd_target}\"\\n'\nif top_root_idx\
+        \ != -1:\n    lines[top_root_idx] = new_line\nelif first_section_idx != -1:\n\
+        \    lines.insert(first_section_idx, new_line)\nelse:\n    lines.append(new_line)\n\
+        \ncontainerd_tmp = os.path.join(containerd_dir, f\".config.toml.tmp.{os.getpid()}\"\
+        )\nwith open(containerd_tmp, \"w\", encoding=\"utf-8\") as f:\n    f.writelines(lines)\n\
+        os.replace(containerd_tmp, containerd_path)\nprint(f\"Configured containerd\
+        \ root: {containerd_target}\")\nPY\n\n# 8. Reload systemd, restart services,\
+        \ and verify active status\necho \"Reloading systemd daemon and starting Docker\
+        \ / containerd...\"\n$SUDO systemctl daemon-reload\n\nif systemctl list-unit-files\
+        \ containerd.service >/dev/null 2>&1; then\n  echo \"Starting containerd...\"\
+        \n  $SUDO systemctl restart containerd\n  if ! systemctl is-active --quiet\
+        \ containerd; then\n    echo \"Error: containerd failed to activate after\
+        \ reconfiguration.\" >&2\n    $SUDO journalctl -u containerd -n 20 --no-pager\
+        \ >&2 || true\n    exit 1\n  fi\n  echo \"containerd is active.\"\nfi\n\n\
+        if systemctl list-unit-files docker.service >/dev/null 2>&1; then\n  echo\
+        \ \"Starting docker...\"\n  $SUDO systemctl restart docker\n  if ! systemctl\
+        \ is-active --quiet docker; then\n    echo \"Error: docker failed to activate\
+        \ after reconfiguration.\" >&2\n    $SUDO journalctl -u docker -n 20 --no-pager\
+        \ >&2 || true\n    exit 1\n  fi\n  echo \"docker is active.\"\nfi\n\necho\
+        \ \"Docker storage configuration on overlayroot completed successfully.\"\n"

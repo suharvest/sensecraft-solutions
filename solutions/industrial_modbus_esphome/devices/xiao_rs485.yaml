@@ -1,0 +1,71 @@
+version: "1.0"
+id: xiao_rs485
+name: Flash XIAO ESP32 RS485 Modbus Firmware
+name_i18n:
+  zh: 烧录 XIAO ESP32 RS485 Modbus 固件
+type: esp32_usb
+
+detection:
+  method: usb_serial
+  usb_vendor_id: "0x303a"
+  usb_product_id: "0x1001"
+  manual_entry: true
+  fallback_ports:
+    - /dev/cu.usbmodem*
+    - /dev/ttyACM*
+    - /dev/ttyUSB*
+
+firmware:
+  source:
+    path: assets/firmware/xy_md02_default.bin
+  flash_config:
+    chip: esp32c3
+    baud_rate: 460800
+    flash_mode: dio
+    flash_freq: 80m
+    flash_size: 4MB
+    partitions:
+      - name: factory
+        offset: "0x0"
+        file: assets/firmware/xy_md02_default.bin
+  variants:
+    esp32s3:
+      flash_config:
+        chip: esp32s3
+        flash_size: 8MB
+      partitions:
+        - name: factory
+          offset: "0x0"
+          file: assets/firmware/xy_md02_default.bin
+    esp32c6:
+      flash_config:
+        chip: esp32c6
+        flash_size: 4MB
+      partitions:
+        - name: factory
+          offset: "0x0"
+          file: assets/firmware/xy_md02_default.bin
+
+steps:
+  - id: detect
+    name: Identify XIAO board
+    name_i18n:
+      zh: 识别 XIAO 核心板
+  - id: erase
+    name: Full-chip erase (keep off to retain saved settings)
+    name_i18n:
+      zh: 全片擦除（关闭以保留已有配置）
+    optional: true
+    default: false
+  - id: flash
+    name: Install ESPHome firmware
+    name_i18n:
+      zh: 烧录 ESPHome 固件
+  - id: verify
+    name: Verify firmware write
+    name_i18n:
+      zh: 校验固件写入
+
+post_deployment:
+  reset_device: true
+  wait_for_ready: 10

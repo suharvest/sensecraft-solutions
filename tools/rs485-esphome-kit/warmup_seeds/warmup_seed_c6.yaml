@@ -1,0 +1,25 @@
+esphome:
+  name: warmup-seed-c6
+
+esp32:
+  board: esp32-c6-devkitc-1
+  framework:
+    type: esp-idf
+
+uart:
+  - id: uart_bus
+    tx_pin: 22
+    rx_pin: 23
+    baud_rate: 9600
+    stop_bits: 1
+
+modbus:
+  id: modbus_bus
+  uart_id: uart_bus
+  flow_control_pin: 2
+
+modbus_controller:
+  - id: modbus_ctrl
+    address: 0x01
+    modbus_id: modbus_bus
+    setup_priority: -10
