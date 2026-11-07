@@ -34,14 +34,14 @@ Tested on reComputer R2000 (Hailo-8) with the GMDCSA-24 held-out set of 27 clips
 
 | Output | Content |
 |---|---|
-| MQTT "<device-name>/fall-detection/results" | Per-frame JSON: overall state plus each tracked person's state |
-| MQTT "<device-name>/fall-detection/status" | Device online / offline |
+| MQTT "&lt;device-name&gt;/fall-detection/results" | Per-frame JSON: overall state plus each tracked person's state |
+| MQTT "&lt;device-name&gt;/fall-detection/status" | Device online / offline |
 | MQTT discovery under "homeassistant/" | Fall sensor, state, event ID, person count |
 | RTSP 8554 "/live0" (reCamera) or your IP camera | The scene being analysed |
 | HTTP 8080 "/api/alarms" (alarm panel only) | Alarm list; confirm, dismiss, mark handled |
 | Webhook POST (alarm panel only) | Alarm id, kind, zone, time and operator, no video |
 
-"<device-name>" is set in the deploy step.
+"&lt;device-name&gt;" is set in the deploy step.
 
 ## Deployment Comparison
 
@@ -74,6 +74,7 @@ Off by default. When enabled, an alarm makes the panel ask the room "are you all
 - **Camera placement decides accuracy**: a side or corner view at 2–3 m with shoulders and hips visible; ceiling-down, long-shot and occluded views perform worse.
 
   ![Camera placement: a side or corner view at 2–3 m works; straight-down and long-shot or occluded views do not.](https://files.seeedstudio.com/Solution/landpage_asset/fall-detection/camera-placement-be3fb598.svg)
+
 - The fall must happen on camera; someone already lying down at startup raises no event.
 - The deploy presets configure one camera; stream counts above are separately measured maximum loads, so test with your own cameras before settling on a count.
 - MQTT broker: reCamera 2002 runs its own; reComputer presets start one with the detector; reCamera Pro has none, so point it at an external broker or read results on the camera's own page.

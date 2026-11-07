@@ -51,7 +51,7 @@ EfficientAD-S trains on defect-free reference images only and highlights regions
 |---|---|
 | Modbus TCP 502, coils 0-1 | NG / OK verdict |
 | Modbus TCP 502, HR 0-7 | Defect class, count, primary defect position, heartbeat |
-| MQTT "<device-name>/inspection/<stream-id>/results" | Per-frame verdict, reasons and boxes |
+| MQTT "&lt;device-name&gt;/inspection/&lt;stream-id&gt;/results" | Per-frame verdict, reasons and boxes |
 | HTTP 8080 "/preview.mjpg", "/healthz", "/events", "/snapshot.jpg" | Live view, health counters, recent verdicts |
 
 ## Deployment Comparison
