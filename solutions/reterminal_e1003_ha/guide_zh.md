@@ -25,7 +25,7 @@
 
 <details>
 <summary>技术详情</summary>
-<p>固件大小 1,366,816 字节，SHA-256 为 <code>d9b58f0ecec316f8855c4ae609160bc56d7597d4d032fe950c5bf766cc51bdb0</code>。烧录参数为 115200 波特率、偏移量 0x0、不全片擦除并保留 NVS。</p>
+<p>固件大小 1,325,184 字节，SHA-256 为 <code>fc89d3b3a1091fb883e24a17b4572920fb9e6daeda7e445f81b029d10c9ac17c</code>。烧录参数为 115200 波特率、偏移量 0x0、不全片擦除并保留 NVS。</p>
 </details>
 
 ### 部署完成
@@ -125,6 +125,13 @@ MQTT 为可选，沿用 topic `indicator/sensor`、`indicator/switch/set`、`ind
 
 在 Docker 主机上部署 Home Assistant。8123 端口已运行时自动跳过。本地安装仅支持 Linux；macOS/Windows 请选择远程目标。
 
+### 故障排查
+
+| 问题 | 解决方法 |
+|---|---|
+| 8123 端口上已有 Home Assistant | 本步骤会检测到已运行的实例并跳过安装，直接进入下一步。 |
+| 在 macOS 或 Windows 上本地安装失败 | 容器使用主机网络模式，Docker Desktop 不提供该模式。请选择远程部署目标（Raspberry Pi、reComputer 等 Linux 主机），或使用已有的 Home Assistant。 |
+
 ### 部署目标 {#indicator_ha_local type=local config=devices/ha_host.yaml}
 
 在本机（Linux）部署。
@@ -143,3 +150,10 @@ MQTT 为可选，沿用 topic `indicator/sensor`、`indicator/switch/set`、`ind
 
 - Indicator 已开机并与 Home Assistant 处于同一局域网（已连接 Wi-Fi），且已知其 IP。
 - Home Assistant 正常运行且网络可达，并有管理员账号。
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|---|---|
+| Home Assistant 登录失败 | 请使用 Home Assistant 管理员账号，并确认本机能访问该实例。 |
+| 找不到 Indicator | Indicator 需已开机并与 Home Assistant 处于同一局域网，且填写的 IP 正确。否则在 Home Assistant 中手动添加 ESPHome 集成并填写 Indicator 的 IP。 |
