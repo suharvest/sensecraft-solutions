@@ -1,0 +1,71 @@
+# ESPHome configuration for a XIAO ESP32-C3 RS485 node reading an XY-MD02
+# temperature/humidity sensor over Modbus RTU. Lines marked "CHANGE" are the
+# ones to adapt; give this file to an AI assistant together with your sensor's
+# Modbus register table to get a version for another sensor.
+esphome:
+  name: xiao-rs485-node
+  friendly_name: Xiao Rs485 Node
+esp32:
+  board: esp32-c3-devkitm-1
+  framework:
+    type: arduino
+logger:
+  level: DEBUG
+api: {}
+ota:
+  - platform: esphome
+wifi:
+  # CHANGE: your 2.4 GHz Wi-Fi. With these placeholders the board cannot join
+  # a network and opens the fallback hotspot below instead; connect to it with
+  # a phone to enter the Wi-Fi.
+  ssid: "YourWiFiSSID"
+  password: "YourWiFiPassword"
+  ap:
+    ssid: "xiao-rs485-fallback"
+    password: ""
+captive_portal: {}
+uart:
+  - id: uart_bus
+    tx_pin: 6
+    rx_pin: 7
+    # CHANGE: the sensor's serial settings (XY-MD02 default 9600 8N1)
+    baud_rate: 9600
+    stop_bits: 1
+modbus:
+  id: modbus_bus
+  uart_id: uart_bus
+  flow_control_pin: 4
+modbus_controller:
+  - id: modbus_device
+    # CHANGE: the sensor's Modbus slave address (XY-MD02 default 1)
+    address: 1
+    modbus_id: modbus_bus
+    setup_priority: -10
+# CHANGE: one entry per value to read, from the sensor's register table
+sensor:
+  - platform: modbus_controller
+    modbus_controller_id: modbus_device
+    name: Xiao Rs485 Node Temperature
+    id: xiao_rs485_node_temperature
+    register_type: read
+    address: 1
+    unit_of_measurement: °C
+    device_class: temperature
+    state_class: measurement
+    value_type: S_WORD
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
+  - platform: modbus_controller
+    modbus_controller_id: modbus_device
+    name: Xiao Rs485 Node Humidity
+    id: xiao_rs485_node_humidity
+    register_type: read
+    address: 2
+    unit_of_measurement: '%'
+    device_class: humidity
+    state_class: measurement
+    value_type: U_WORD
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
