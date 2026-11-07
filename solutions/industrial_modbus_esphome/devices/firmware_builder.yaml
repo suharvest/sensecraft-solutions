@@ -97,6 +97,13 @@ script:
       if ($LASTEXITCODE -ne 0) { [Console]::Error.WriteLine("Firmware build failed (curl exit $LASTEXITCODE)"); exit $LASTEXITCODE }
       if ((Get-Item -LiteralPath $out).Length -eq 0) { [Console]::Error.WriteLine('Firmware build returned an empty file'); exit 1 }
       Write-Output ('Firmware built ' + "from $cfg")
+  # The start command is run like a service: without this check the step
+  # would report success even when the build failed. Compiling can take
+  # several minutes on a cold compiler.
+  health_check:
+    type: log_pattern
+    pattern: "Firmware built from"
+    timeout_seconds: 600
 
 user_inputs:
   - id: compiler_ip
