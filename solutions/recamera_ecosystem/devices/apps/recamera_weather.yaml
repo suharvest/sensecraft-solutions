@@ -114,7 +114,15 @@ actions:
       run: |
         for svc in node-red sscma-node; do
           for f in /etc/init.d/S*${svc}*; do
-            [ -f "$f" ] && mv "$f" "$(echo "$f" | sed 's|/S|/K|')" 2>/dev/null
+            # S may be a symlink to the K script: drop the link instead of
+            # moving it over K; never overwrite an existing K.
+            [ -e "$f" ] || [ -L "$f" ] || continue
+            k="${f%/*}/K${f##*/S}"
+            if [ -L "$f" ] && [ -f "$k" ] && [ "$(readlink -f "$f")" = "$(readlink -f "$k")" ]; then
+              rm -f "$f"
+            elif [ ! -e "$k" ] && [ ! -L "$k" ]; then
+              mv "$f" "$k"
+            fi
           done
         done
         true
