@@ -29,13 +29,12 @@
 
 ## 步骤 2: 填入配置并生成固件 {#builder type=script required=true config=devices/firmware_builder.yaml}
 
-填写编译服务 IP、板子要连接的 2.4 GHz Wi-Fi 和传感器的 Modbus 地址后生成固件，默认编译标准 XY-MD02 温湿度配置。接入其他 RS485 传感器时，把自己的 ESPHome YAML 保存在本机并填写文件路径。
+把 ESPHome YAML 发给编译服务生成固件。Wi-Fi、Modbus 地址和寄存器都写在这份 YAML 里。YAML 留空时编译方案自带的 XY-MD02 模板（本方案的 `assets/esphome/xy_md02.yaml`），烧录后板子会开出热点 “xiao-rs485-fallback” 用于配置 Wi-Fi。接入其他传感器时，把这份模板和传感器的 Modbus 寄存器表交给 AI 助手，回答它的问题（型号、地址、寄存器、Wi-Fi），把结果保存为 .yaml 文件并填写路径。
 
 ### 前置条件
 
 - 步骤 1 的编译服务已成功启动并在 6052 端口运行。
-- Wi-Fi 名称和密码（2.4 GHz）。
-- 接入 XY-MD02 以外的传感器时：本机上的 ESPHome YAML 文件。
+- 可选：本机上自己的 ESPHome YAML 文件。
 
 ### 故障排查
 
@@ -43,7 +42,8 @@
 | --- | --- |
 | 无法连接编译服务 | 检查填写的 IP 地址是否正确，并确认目标设备的 6052 端口未被防火墙拦截 |
 | 编译报错提示格式问题 | 检查配置代码中的 YAML 缩进格式（必须用空格缩进，不能用 Tab 键） |
-| 提示 “ESPHome YAML not found” | 检查自定义 YAML 文件路径，或留空使用 XY-MD02 标准配置 |
+| 提示 “ESPHome YAML not found” | 检查 YAML 文件路径，或留空使用自带的 XY-MD02 模板 |
+| 板子连不上 Wi-Fi | 在 YAML 里填写 2.4 GHz Wi-Fi，或用手机连接热点 “xiao-rs485-fallback” 后在网页里设置 |
 
 ## 步骤 3: 烧录固件到网关 {#flasher type=esp32_usb required=true config=devices/xiao_rs485.yaml}
 

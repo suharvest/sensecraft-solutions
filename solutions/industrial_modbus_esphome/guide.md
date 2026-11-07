@@ -28,13 +28,12 @@ Deploy the compilation service remotely to another device over SSH.
 
 ## Step 2: Build Firmware from Source {#builder type=script required=true config=devices/firmware_builder.yaml}
 
-Enter the compiler service IP, the 2.4 GHz Wi-Fi the board should join and the sensor's Modbus address, then build. This compiles the standard XY-MD02 temperature and humidity configuration. For another RS485 sensor, save your own ESPHome YAML on this computer and enter its path.
+Send an ESPHome YAML to the compiler and get the firmware. Wi-Fi, Modbus address and registers are all set in that YAML. Leave the YAML field empty to build the bundled XY-MD02 template (`assets/esphome/xy_md02.yaml` in this solution); the board then opens the hotspot "xiao-rs485-fallback" for Wi-Fi setup. For another sensor, give that template and the sensor's Modbus register table to an AI assistant, answer its questions (model, address, registers, Wi-Fi), save the result as a .yaml file and enter its path.
 
 ### Prerequisites
 
 - Step 1 compilation service is running on port 6052.
-- Wi-Fi name and password (2.4 GHz).
-- For a sensor other than XY-MD02: an ESPHome YAML file on this computer.
+- Optional: your own ESPHome YAML file on this computer.
 
 ### Troubleshooting
 
@@ -42,7 +41,8 @@ Enter the compiler service IP, the 2.4 GHz Wi-Fi the board should join and the s
 | --- | --- |
 | Cannot reach compiler service | Verify the IP address and ensure port 6052 is not blocked by a firewall |
 | Compilation error 400 | Verify indentation in the YAML code (must use 2 spaces, no Tabs) |
-| "ESPHome YAML not found" | Check the custom YAML path, or leave it empty to build the XY-MD02 configuration |
+| "ESPHome YAML not found" | Check the YAML path, or leave it empty to build the bundled XY-MD02 template |
+| Board does not join Wi-Fi | Put your 2.4 GHz Wi-Fi in the YAML, or connect a phone to the "xiao-rs485-fallback" hotspot and enter it there |
 
 ## Step 3: Flash Firmware to Board {#flasher type=esp32_usb required=true config=devices/xiao_rs485.yaml}
 
