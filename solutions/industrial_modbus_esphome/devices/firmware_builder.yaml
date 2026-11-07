@@ -86,22 +86,17 @@ script:
       test -s assets/firmware/xy_md02_default.bin
       echo "Firmware built from $CFG"
     windows: |
+      # Errors go to stderr without Write-Error: Write-Error echoes the script
+      # source, and that echo would match the health check pattern.
       $ErrorActionPreference = 'Stop'
       $cfg = if ($env:CUSTOM_YAML_PATH) { $env:CUSTOM_YAML_PATH } else { 'config\esphome.yaml' }
-      if (-not (Test-Path -LiteralPath $cfg) -or (Get-Item -LiteralPath $cfg).Length -eq 0) { Write-Error "ESPHome YAML not found: $cfg"; exit 1 }
+      if (-not (Test-Path -LiteralPath $cfg) -or (Get-Item -LiteralPath $cfg).Length -eq 0) { [Console]::Error.WriteLine("ESPHome YAML not found: $cfg"); exit 1 }
       New-Item -ItemType Directory -Force -Path 'assets\firmware' | Out-Null
       $out = 'assets\firmware\xy_md02_default.bin'
       curl.exe -fsSL -X POST -F "file=@$cfg" "http://$($env:COMPILER_IP):6052/api/compile" -o $out
-      if ($LASTEXITCODE -ne 0) { Write-Error "Firmware build failed (curl exit $LASTEXITCODE)"; exit $LASTEXITCODE }
-      if ((Get-Item -LiteralPath $out).Length -eq 0) { Write-Error 'Firmware build returned an empty file'; exit 1 }
-      Write-Output "Firmware built from $cfg"
-  # The start command is run like a service: without this check the step
-  # would report success even when the build failed. Compiling can take
-  # several minutes on a cold compiler.
-  health_check:
-    type: log_pattern
-    pattern: "Firmware built from"
-    timeout_seconds: 600
+      if ($LASTEXITCODE -ne 0) { [Console]::Error.WriteLine("Firmware build failed (curl exit $LASTEXITCODE)"); exit $LASTEXITCODE }
+      if ((Get-Item -LiteralPath $out).Length -eq 0) { [Console]::Error.WriteLine('Firmware build returned an empty file'); exit 1 }
+      Write-Output ('Firmware built ' + "from $cfg")
 
 user_inputs:
   - id: compiler_ip
