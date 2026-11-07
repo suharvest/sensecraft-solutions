@@ -5,40 +5,13 @@ name_i18n:
   zh: ESPHome 固件构建器
 type: script
 
+# Inputs reach the scripts only through config_template and start_command.env:
+# the engine substitutes {{...}} there, not in the commands themselves, and
+# single-line inputs cannot carry a multi-line YAML.
 script:
-  start_command:
-    linux_macos: |
-      set -euo pipefail
-      TMP_YAML=$(mktemp /tmp/esphome_custom_XXXXXX.yaml)
-      cat <<'EOF' > "$TMP_YAML"
-      {{custom_yaml}}
-      EOF
-      mkdir -p assets/firmware
-      curl -fsSL -X POST -F "file=@$TMP_YAML" "http://{{compiler_ip}}:6052/api/compile" -o assets/firmware/xy_md02_default.bin
-      rm -f "$TMP_YAML"
-      test -s assets/firmware/xy_md02_default.bin
-
-user_inputs:
-  - id: compiler_ip
-    name: Compiler Service IP
-    name_i18n:
-      zh: 编译服务 IP
-    type: text
-    row: 1
-    default: "127.0.0.1"
-    required: true
-    placeholder: "127.0.0.1"
-    description: IP address of the ESPHome compiler service deployed in Step 1.
-    description_i18n:
-      zh: 步骤 1 部署的 ESPHome 编译微服务 IP 地址。
-  - id: custom_yaml
-    name: Custom ESPHome YAML
-    name_i18n:
-      zh: 自定义 ESPHome 配置 YAML
-    type: textarea
-    row: 2
-    required: true
-    default: |
+  config_template:
+    file: config/esphome.yaml
+    content: |
       esphome:
         name: xiao-rs485-node
         friendly_name: Xiao Rs485 Node
@@ -52,8 +25,8 @@ user_inputs:
       ota:
         - platform: esphome
       wifi:
-        ssid: "YourWiFiSSID"
-        password: "YourWiFiPassword"
+        ssid: "{{wifi_ssid}}"
+        password: "{{wifi_password}}"
         ap:
           ssid: "xiao-rs485-fallback"
           password: ""
@@ -70,7 +43,7 @@ user_inputs:
         flow_control_pin: 4
       modbus_controller:
         - id: modbus_device
-          address: 1
+          address: {{modbus_address}}
           modbus_id: modbus_bus
           setup_priority: -10
       sensor:
@@ -100,9 +73,91 @@ user_inputs:
           accuracy_decimals: 1
           filters:
             - multiply: 0.1
-    description: Custom ESPHome YAML configuration to compile.
+  start_command:
+    env:
+      COMPILER_IP: "{{compiler_ip}}"
+      CUSTOM_YAML_PATH: "{{custom_yaml_path}}"
+    linux_macos: |
+      set -eu
+      CFG="${CUSTOM_YAML_PATH:-config/esphome.yaml}"
+      test -s "$CFG" || { echo "ESPHome YAML not found: $CFG" >&2; exit 1; }
+      mkdir -p assets/firmware
+      curl -fsSL -X POST -F "file=@$CFG" "http://$COMPILER_IP:6052/api/compile" -o assets/firmware/xy_md02_default.bin
+      test -s assets/firmware/xy_md02_default.bin
+      echo "Firmware built from $CFG"
+    windows: |
+      $ErrorActionPreference = 'Stop'
+      $cfg = if ($env:CUSTOM_YAML_PATH) { $env:CUSTOM_YAML_PATH } else { 'config\esphome.yaml' }
+      if (-not (Test-Path -LiteralPath $cfg) -or (Get-Item -LiteralPath $cfg).Length -eq 0) { Write-Error "ESPHome YAML not found: $cfg"; exit 1 }
+      New-Item -ItemType Directory -Force -Path 'assets\firmware' | Out-Null
+      $out = 'assets\firmware\xy_md02_default.bin'
+      curl.exe -fsSL -X POST -F "file=@$cfg" "http://$($env:COMPILER_IP):6052/api/compile" -o $out
+      if ($LASTEXITCODE -ne 0) { Write-Error "Firmware build failed (curl exit $LASTEXITCODE)"; exit $LASTEXITCODE }
+      if ((Get-Item -LiteralPath $out).Length -eq 0) { Write-Error 'Firmware build returned an empty file'; exit 1 }
+      Write-Output "Firmware built from $cfg"
+  # The start command is run like a service: without this check the step
+  # would report success even when the build failed. Compiling can take
+  # several minutes on a cold compiler.
+  health_check:
+    type: log_pattern
+    pattern: "Firmware built from"
+    timeout_seconds: 600
+
+user_inputs:
+  - id: compiler_ip
+    name: Compiler Service IP
+    name_i18n:
+      zh: 编译服务 IP
+    type: text
+    row: 1
+    default: "127.0.0.1"
+    required: true
+    placeholder: "127.0.0.1"
+    description: IP address of the ESPHome compiler service deployed in Step 1.
     description_i18n:
-      zh: 待编译的自定义 ESPHome YAML 配置源码。
+      zh: 步骤 1 部署的 ESPHome 编译微服务 IP 地址。
+  - id: wifi_ssid
+    name: Wi-Fi Name (SSID)
+    name_i18n:
+      zh: Wi-Fi 名称（SSID）
+    type: text
+    row: 2
+    required: true
+    description: 2.4 GHz Wi-Fi the XIAO joins to reach Home Assistant.
+    description_i18n:
+      zh: XIAO 连接的 2.4 GHz Wi-Fi，用于接入 Home Assistant。
+  - id: wifi_password
+    name: Wi-Fi Password
+    name_i18n:
+      zh: Wi-Fi 密码
+    type: password
+    row: 2
+    required: true
+  - id: modbus_address
+    name: Modbus Slave Address
+    name_i18n:
+      zh: Modbus 从站地址
+    type: text
+    row: 3
+    default: "1"
+    required: true
+    validation:
+      pattern: "^(?:[1-9]|[1-9][0-9]|1[0-9][0-9]|2[0-3][0-9]|24[0-7])$"
+      message: "Enter 1-247"
+    description: Address of the XY-MD02 sensor on the RS485 bus (factory default 1).
+    description_i18n:
+      zh: RS485 总线上 XY-MD02 传感器的地址（出厂默认 1）。
+  - id: custom_yaml_path
+    name: Custom ESPHome YAML File (optional)
+    name_i18n:
+      zh: 自定义 ESPHome YAML 文件（可选）
+    type: text
+    row: 4
+    required: false
+    placeholder: "/path/to/my-sensor.yaml"
+    description: Path to your own ESPHome YAML on this computer. Leave empty to build the XY-MD02 configuration above with the Wi-Fi and address you entered.
+    description_i18n:
+      zh: 本机上自己编写的 ESPHome YAML 文件路径。留空则用上面填写的 Wi-Fi 和地址编译 XY-MD02 标准配置。
 
 post_deployment:
   open_browser: false

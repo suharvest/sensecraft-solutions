@@ -28,12 +28,13 @@ Deploy the compilation service remotely to another device over SSH.
 
 ## Step 2: Build Firmware from Source {#builder type=script required=true config=devices/firmware_builder.yaml}
 
-Enter the compiler service IP and paste the AI-generated sensor YAML configuration to compile and retrieve the binary.
+Enter the compiler service IP, the 2.4 GHz Wi-Fi the board should join and the sensor's Modbus address, then build. This compiles the standard XY-MD02 temperature and humidity configuration. For another RS485 sensor, save your own ESPHome YAML on this computer and enter its path.
 
 ### Prerequisites
 
 - Step 1 compilation service is running on port 6052.
-- Prepared sensor YAML configuration (standard XY-MD02 code pre-filled by default).
+- Wi-Fi name and password (2.4 GHz).
+- For a sensor other than XY-MD02: an ESPHome YAML file on this computer.
 
 ### Troubleshooting
 
@@ -41,6 +42,7 @@ Enter the compiler service IP and paste the AI-generated sensor YAML configurati
 | --- | --- |
 | Cannot reach compiler service | Verify the IP address and ensure port 6052 is not blocked by a firewall |
 | Compilation error 400 | Verify indentation in the YAML code (must use 2 spaces, no Tabs) |
+| "ESPHome YAML not found" | Check the custom YAML path, or leave it empty to build the XY-MD02 configuration |
 
 ## Step 3: Flash Firmware to Board {#flasher type=esp32_usb required=true config=devices/xiao_rs485.yaml}
 
