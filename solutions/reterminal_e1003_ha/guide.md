@@ -25,7 +25,7 @@ Select your serial port, click **Deploy**, and wait for firmware installation an
 
 <details>
 <summary>Technical details</summary>
-<p>Factory firmware: 1,366,816 bytes, SHA-256 <code>d9b58f0ecec316f8855c4ae609160bc56d7597d4d032fe950c5bf766cc51bdb0</code>. Flashing uses 115200 baud, offset 0x0, no full-chip erase, and preserves NVS.</p>
+<p>Factory firmware: 1,325,184 bytes, SHA-256 <code>fc89d3b3a1091fb883e24a17b4572920fb9e6daeda7e445f81b029d10c9ac17c</code>. Flashing uses 115200 baud, offset 0x0, no full-chip erase, and preserves NVS.</p>
 </details>
 
 ### After setup
@@ -125,6 +125,13 @@ MQTT is optional and keeps the topics `indicator/sensor`, `indicator/switch/set`
 
 Deploy Home Assistant on a Docker host. If it is already running on port 8123, this step skips itself. Local install is Linux only; on macOS or Windows choose the remote target.
 
+### Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| Home Assistant is already running on port 8123 | The step detects the running instance and skips installation; continue to the next step. |
+| Local install fails on macOS or Windows | The container uses host networking, which Docker Desktop does not provide. Select the remote target (a Linux host such as a Raspberry Pi or reComputer) or reuse an existing Home Assistant. |
+
 ### Target {#indicator_ha_local type=local config=devices/ha_host.yaml}
 
 Deploy on this Linux machine.
@@ -143,3 +150,10 @@ Automatically add the Indicator to Home Assistant as an ESPHome device.
 
 - The Indicator is powered on and joined to the same LAN as Home Assistant (connected to Wi-Fi), and you know its IP.
 - Home Assistant is running and reachable, with an administrator account.
+
+### Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| Home Assistant login fails | Use a Home Assistant administrator account and confirm the instance is reachable from this computer. |
+| Indicator is not found | The Indicator must be powered on and joined to the same LAN as Home Assistant, and the IP you entered must be correct. Otherwise add the ESPHome integration manually in Home Assistant with the Indicator IP. |
