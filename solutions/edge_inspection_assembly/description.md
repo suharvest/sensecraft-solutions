@@ -41,7 +41,7 @@ Test device: reComputer J30 series (J3011, Orin Nano 8GB); dataset: DeepPCB6 val
 
 | Interface | Content |
 |---|---|
-| MQTT "<device-name>/inspection/<stream-id>/results" | Per-frame verdict, reasons, boxes, missing-part and dimension details |
+| MQTT "&lt;device-name&gt;/inspection/&lt;stream-id&gt;/results" | Per-frame verdict, reasons, boxes, missing-part and dimension details |
 | Modbus TCP 502 | Coil 0 NG / coil 1 OK; HR 0–7 defect info, HR 8–11 missing count, extra count, millimetres ×100, tolerance code |
 | HTTP 8080 "/healthz" "/events" "/preview.mjpg" | Health counters, recent events, live view with boxes and slot areas |
 

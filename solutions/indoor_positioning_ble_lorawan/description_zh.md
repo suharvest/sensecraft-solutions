@@ -68,7 +68,7 @@
 
 | 接口 | 地址 | 载荷 |
 |---|---|---|
-| WebSocket | 「ws://<host>:5173/ws」 | 「tracker_update」 的 「position」 为 「{x, y, coordSystem: "metric"}」 或 「{lat, lon, accuracy, coordSystem: "wgs84"}」；「tracker_checkin」 / 「tracker_position_detection」 在围栏进出时额外带一个 「geofence」 段；另有 「tracker_sos」、「tracker_offline」 |
+| WebSocket | 「ws://&lt;host&gt;:5173/ws」 | 「tracker_update」 的 「position」 为 「{x, y, coordSystem: "metric"}」 或 「{lat, lon, accuracy, coordSystem: "wgs84"}」；「tracker_checkin」 / 「tracker_position_detection」 在围栏进出时额外带一个 「geofence」 段；另有 「tracker_sos」、「tracker_offline」 |
 | REST | "GET/PUT /api/configuration/dashboard/maps/{mapName}/registration" | "{origin_lat, origin_lon, rotation_deg, scale}" |
 | REST | 「POST /api/geofences」、「POST /api/events」 | 围栏几何（GeoJSON 多边形，或点加 「radius_m」）与引用它的告警规则 |
 | LoRaWAN 上行 | SenseCAP OpenStream，或 ChirpStack 的 MQTT 主题 | 字段映射见部署指南 |

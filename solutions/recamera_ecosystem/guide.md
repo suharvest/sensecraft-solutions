@@ -183,7 +183,7 @@ Deploy to a remote host (e.g. reComputer) on the local network.
 
 ### Deployment Complete
 
-1. Open **http://<host-ip>:8123** and complete the onboarding wizard.
+1. Open **http://&lt;host-ip&gt;:8123** and complete the onboarding wizard.
 2. MQTT broker runs on port 1883 of the remote host; supply this address in Step 5.
 
 ### Troubleshooting
@@ -442,7 +442,7 @@ Deploy to a remote host (e.g. reComputer) on the local network.
 
 ### Deployment Complete
 
-1. Open **http://<host-ip>:8123** and complete the onboarding wizard.
+1. Open **http://&lt;host-ip&gt;:8123** and complete the onboarding wizard.
 2. MQTT broker runs on port 1883 of the remote host; supply this address in Step 5.
 
 ### Troubleshooting
@@ -701,7 +701,7 @@ Deploy to a remote host (e.g. reComputer) on the local network.
 
 ### Deployment Complete
 
-1. Open **http://<host-ip>:8123** and complete the onboarding wizard.
+1. Open **http://&lt;host-ip&gt;:8123** and complete the onboarding wizard.
 2. MQTT broker runs on port 1883 of the remote host; supply this address in Step 5.
 
 ### Troubleshooting
@@ -960,7 +960,7 @@ Deploy to a remote host (e.g. reComputer) on the local network.
 
 ### Deployment Complete
 
-1. Open **http://<host-ip>:8123** and complete the onboarding wizard.
+1. Open **http://&lt;host-ip&gt;:8123** and complete the onboarding wizard.
 2. MQTT broker runs on port 1883 of the remote host; supply this address in Step 5.
 
 ### Troubleshooting

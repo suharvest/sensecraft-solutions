@@ -74,6 +74,7 @@
 - **机位决定准确率**：2–3 m 侧向或斜角、肩部和髋部可见；垂直俯拍、远景和遮挡会变差。
 
   ![机位示意：2–3 m 的侧向或斜角机位可用；垂直俯拍、远景和被遮挡的机位不可用。](https://files.seeedstudio.com/Solution/landpage_asset/fall-detection/camera-placement-be3fb598.svg)
+
 - 跌倒过程必须发生在画面里，启动时人已躺着不会产生事件。
 - 部署预设为单路摄像头；上表路数为另行测得的最高负载，定路数前用自己的摄像头测一遍。
 - MQTT broker：reCamera 2002 自带；reComputer 套餐随检测器启动；reCamera Pro 不带，需指向外部 broker 或在设备页面查看结果。

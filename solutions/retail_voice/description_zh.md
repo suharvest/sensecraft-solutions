@@ -73,7 +73,7 @@
 |---|---|
 | 设备 「ws://<设备IP>:8621/asr/stream」 | 流式转写：送入 PCM，返回文字 + 标点 + 声纹向量 |
 | 设备 「http://<设备IP>:8090/」 | 本地网页：实时转写、麦克风状态、声纹注册库 |
-| 服务端 WebSocket 8080 「/ws?token=<operator>」 | App 上传 PCM，逐句返回转写 |
+| 服务端 WebSocket 8080 「/ws?token=&lt;operator&gt;」 | App 上传 PCM，逐句返回转写 |
 | 服务端 HTTP 8081 「/api/v1/recordings」 | 转写上报与查询 |
 | 服务端 HTTP 8081 「/api/v1/privacy/erase」、「/api/v1/privacy/export」 | 按主体删除 / 导出（仅 admin） |
 | 服务端 HTTP 3000 「/」 | 管理后台 |

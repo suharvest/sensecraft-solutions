@@ -80,7 +80,7 @@ Known gaps, carried from the implementation notes:
 
 | Interface | Endpoint | Payload |
 |---|---|---|
-| WebSocket | "ws://<host>:5173/ws" | "tracker_update" with a "position" that is either "{x, y, coordSystem: "metric"}" or "{lat, lon, accuracy, coordSystem: "wgs84"}"; "tracker_checkin" / "tracker_position_detection" carry an extra "geofence" block for enter / exit; "tracker_sos"; "tracker_offline" |
+| WebSocket | "ws://&lt;host&gt;:5173/ws" | "tracker_update" with a "position" that is either "{x, y, coordSystem: "metric"}" or "{lat, lon, accuracy, coordSystem: "wgs84"}"; "tracker_checkin" / "tracker_position_detection" carry an extra "geofence" block for enter / exit; "tracker_sos"; "tracker_offline" |
 | REST | "GET/PUT /api/configuration/dashboard/maps/{mapName}/registration" | "{origin_lat, origin_lon, rotation_deg, scale}" |
 | REST | "POST /api/geofences", "POST /api/events" | Fence geometry (GeoJSON polygon, or point plus "radius_m") and the alarm rule that references it |
 | LoRaWAN uplink | SenseCAP OpenStream, or a ChirpStack MQTT topic | Field mapping is in the deployment guide |
