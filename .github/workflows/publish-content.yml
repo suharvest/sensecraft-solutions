@@ -76,12 +76,17 @@ jobs:
       - name: Run unit test suite
         run: uv run pytest tests/test_publish_solutions.py
 
-      - name: Validate solutions with Solution CLI
+      # solution-cli runs `sensecraft-engine package validate`, the checker the
+      # App ships; with no engine on the runner it downloads and verifies the
+      # signed stable engine (same path as `solution-cli install`).
+      # --require-full fails instead of falling back to a basic YAML check.
+      - name: Validate solutions with the engine package rules
         run: |
+          set -euo pipefail
           npm install -g @seeed-studio/solution-cli
           for sol in solutions/*; do
             if [ -d "$sol" ] && [ -f "$sol/solution.yaml" ]; then
-              solution-cli validate "$sol"
+              solution-cli validate --require-full "$sol"
             fi
           done
 
@@ -150,12 +155,17 @@ jobs:
       - name: Run unit test suite
         run: uv run pytest tests/test_publish_solutions.py
 
-      - name: Validate solutions with Solution CLI
+      # solution-cli runs `sensecraft-engine package validate`, the checker the
+      # App ships; with no engine on the runner it downloads and verifies the
+      # signed stable engine (same path as `solution-cli install`).
+      # --require-full fails instead of falling back to a basic YAML check.
+      - name: Validate solutions with the engine package rules
         run: |
+          set -euo pipefail
           npm install -g @seeed-studio/solution-cli
           for sol in solutions/*; do
             if [ -d "$sol" ] && [ -f "$sol/solution.yaml" ]; then
-              solution-cli validate "$sol"
+              solution-cli validate --require-full "$sol"
             fi
           done
 
