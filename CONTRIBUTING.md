@@ -19,6 +19,14 @@ uv run --package sensecraft-solutionctl solutionctl validate solutions/<your_sol
 uv run python scripts/ci/validate_product_families.py
 ```
 
+The `Publish Content to CDN` workflow also runs
+`solution-cli validate --require-full solutions/<id>` on every solution. That
+runs `sensecraft-engine package validate` (the package rules the App ships),
+downloading the signed stable engine when none is installed, and fails if no
+engine with that command can be obtained. To run the same check locally:
+`npm install -g @seeed-studio/solution-cli`, then
+`solution-cli validate --require-full solutions/<your_solution>`.
+
 Read `spec/CONTRACT.md` for the field rules, `docker_deploy` view-derivation,
 path resolution, and `guide.md` Step/Target syntax. Start from
 `skills/solution-copywriting` and the `prepare-*` skills. For product hardware,
