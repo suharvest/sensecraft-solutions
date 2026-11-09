@@ -157,3 +157,67 @@ MQTT 为可选，沿用 topic `indicator/sensor`、`indicator/switch/set`、`ind
 |---|---|
 | Home Assistant 登录失败 | 请使用 Home Assistant 管理员账号，并确认本机能访问该实例。 |
 | 找不到 Indicator | Indicator 需已开机并与 Home Assistant 处于同一局域网，且填写的 IP 正确。否则在 Home Assistant 中手动添加 ESPHome 集成并填写 Indicator 的 IP。 |
+
+---
+
+## 套餐: 旗舰彩屏触控面板（reTerminal D1001） {#d1001_panel}
+
+通过 USB 连接 reTerminal D1001 旗舰触控终端。安装器会自动下载并烧录集成了出厂 HA 控制面板的 PocketJS 固件，支持横竖屏高刷显示与 Home Assistant 灯光、调光滑块、天气与场景联动。
+
+## 步骤 1: 安装 reTerminal D1001 面板程序 {#d1001_usb type=esp32_usb required=true verify=true config=devices/d1001_usb.yaml}
+
+使用 USB-C 数据线连接 reTerminal D1001 至电脑，选择设备串口并点击 **部署**，等待出厂固件安装与重启校验完成。
+
+### 前置条件
+
+- 一台 reTerminal D1001（ESP32-P4 + ESP32-C6，800×1280 MIPI-DSI 屏）与一根支持数据传输的 USB-C 数据线。
+
+### 接线与烧录
+
+1. 将 USB-C 数据线插入 reTerminal D1001 的通信供电接口，另一端插入配置电脑。
+2. 在 App 串口列表中选择识别到的端口（通常为 `/dev/ttyACM*`、`/dev/ttyUSB*` 或 `COM*`）。
+3. 点击 **安装** / 部署。安装器将出厂固件以 460800 波特率烧录至 ESP32-P4 闪存中。
+4. 保持连接直至校验结束并完成自动重启。
+
+<details>
+<summary>技术详情</summary>
+<p>出厂合体固件大小 11,689,192 字节，SHA-256 为 <code>72e25050d1f1c0d0f02dbc11cc249ab93e3ff8a57ef176f681ce8fbf5085950d</code>。烧录参数为 460800 波特率、偏移量 0x0、DIO 80MHz 16MB 布局、不全片擦除并保留 storage 分区。</p>
+</details>
+
+### 部署完成与网络接入
+
+1. **开机与显示**：面板启动后进入 PocketJS 出厂 HA 控制面板，屏幕默认呈现 400×640 视口（物理 800×1280 2x 高清栅格）。设备硬件支持横竖屏自由旋转摆放，出厂界面经过竖屏触控深度优化。
+2. **Wi-Fi 接入**：首次开机进入屏幕上的设置界面（Settings）接入 2.4 GHz Wi-Fi 网络，与 Home Assistant 保持在同一局域网。
+3. **Home Assistant 联动**：
+   - 在面板设置中填入 Home Assistant 的局域网地址（如 `http://192.168.x.x:8123`）与 Long-Lived Access Token。
+   - 配置完成后，面板将自动同步绑定的灯光实体、调光状态，并基于 HA Template API 自动发现展示实时天气卡片。
+4. **板载外设**：面板同时支持板载 RGB 状态指示灯与 GPIO 按键联动，并具备 RTC (PCF8563) 自动网络时间校准（SNTP）。
+
+### 故障排查
+
+| 现象 | 处理方式 |
+| --- | --- |
+| 找不到设备串口 | 点击刷新；确认 USB-C 线具备数据通信功能；检查电脑是否已识别到 Espressif USB-JTAG/Serial 设备 |
+| 烧录中断或校验失败 | 确认供电稳定，重试烧录；切勿勾选全片擦除，以保留底层分区与出厂存储配置 |
+| 屏幕显示未连接 HA | 检查面板 Wi-Fi 连接状态，确保面板与 HA 主机在同一局域网并可相互访问，核对填写的主机 IP 与 Token |
+
+---
+
+## 步骤 2: 部署 Home Assistant（可选） {#d1001_deploy_ha type=docker_deploy required=false config=devices/ha_host.yaml}
+
+在 Docker 主机上部署 Home Assistant。8123 端口已运行时自动检测并跳过。本地安装仅支持 Linux；macOS/Windows 请选择远程目标。
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|---|---|
+| 8123 端口上已有 Home Assistant | 本步骤会检测到已运行的实例并跳过安装，直接进入下一步。 |
+| 在 macOS 或 Windows 上本地安装失败 | 容器使用主机网络模式，Docker Desktop 不提供该模式。请选择远程部署目标（Raspberry Pi、reComputer 等 Linux 主机），或使用已有的 Home Assistant。 |
+
+### 部署目标 {#d1001_ha_local type=local config=devices/ha_host.yaml}
+
+在本机（Linux）部署。
+
+### 部署目标 {#d1001_ha_remote type=remote config=devices/ha_host.yaml default=true}
+
+在远程主机（如 Raspberry Pi、reComputer）部署。
