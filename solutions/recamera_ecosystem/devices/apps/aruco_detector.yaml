@@ -1,0 +1,81 @@
+version: "1.0"
+id: aruco_detector
+name: reCamera ArUco Marker Detector
+type: recamera_cpp
+device_class: recamera
+
+detection:
+  method: network_scan
+  manual_entry: true
+  requirements: []
+
+ssh:
+  port: 22
+  default_user: recamera
+  default_host: 192.168.42.1
+  connection_timeout: 30
+  command_timeout: 300
+
+binary:
+  # .deb package (init script K92aruco-detector)
+  deb_package:
+    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/aruco-detector_0.1.3_riscv64.deb
+    name: aruco-detector
+    includes_init_script: true
+    checksum:
+      sha256: 317d7c4ffafe6d4866b235a02fad9e3008fa3faf3a0e282dbee5f5479ae17e81
+
+  # models: none. Markers are found on the CPU (default dictionary
+  # aruco4x4_50); the app downloads no model file and does not use the TPU.
+
+  service_name: aruco-detector
+  service_priority: 92
+
+  # Same as qrcode-reader: the engine's app scan stops whichever app holds the
+  # camera; sscma-supervisor is not listed so the gallery console keeps running.
+  conflict_services:
+    stop:
+      - S03node-red
+      - S91sscma-node
+
+  auto_start: true
+
+user_inputs:
+  - id: host
+    name: Device IP Address
+    type: text
+    default: "192.168.42.1"
+    placeholder: "192.168.42.1"
+    description: IP address of your reCamera (USB default 192.168.42.1)
+    required: true
+    validation:
+      pattern: "^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$"
+    name_i18n:
+      zh: 设备 IP 地址
+    description_i18n:
+      zh: reCamera 的 IP 地址（USB 默认 192.168.42.1）
+  - id: password
+    name: SSH Password
+    type: password
+    default: "recamera"
+    description: SSH password (try 'recamera' or 'recamera.2')
+    required: true
+    name_i18n:
+      zh: SSH 密码
+    description_i18n:
+      zh: SSH 密码（尝试 'recamera' 或 'recamera.2'）
+
+post_deployment:
+  open_browser: false
+
+name_i18n:
+  zh: reCamera ArUco 标记识别
+
+# --- Console install catalog copy -------------------------------------------
+# Read by scripts/generate_recamera_catalog.py (see recamera_yolo11.yaml).
+catalog_name: "ArUco Marker Detector"
+catalog_name_i18n:
+  zh: "ArUco 标记识别"
+catalog_description: "Find ArUco and AprilTag markers and their 6-DoF pose for robot-arm hand-eye calibration and visual servoing; runs on the CPU, no model download"
+catalog_description_i18n:
+  zh: "识别 ArUco / AprilTag 标记并解算 6 自由度位姿，用于机械臂手眼标定和视觉伺服；在 CPU 上运行，无需下载模型"
