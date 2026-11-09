@@ -1,0 +1,34 @@
+version: "1.0"
+id: cockpit
+name: Open the Arm Cockpit
+type: web_dashboard
+
+# Step id of the teleop install (guide.md {#install_teleop}), not a device id.
+inherit_host_from: install_teleop
+user_inputs:
+  - id: host
+    name: Device IP Address
+    default: "192.168.42.1"
+    default_template: "{{host}}"
+    description: IP address of your reCamera (USB 192.168.42.1; 192.168.16.1 on the arm's own Wi-Fi hotspot)
+    name_i18n:
+      zh: 设备 IP 地址
+    description_i18n:
+      zh: reCamera 的 IP 地址（USB 为 192.168.42.1；连机械臂自带热点时为 192.168.16.1）
+web_dashboard:
+  url: "http://{{host}}:8765/"
+  title: reBot Arm Cockpit
+  description: >-
+    The cockpit shows the link status and joint table. Press and hold the
+    torque switch to enable the arm, then jog J1 a few degrees. With a camera
+    app running the video appears; with ArUco, open Hand-Eye Cal, capture 9 or
+    more poses of the marker on the table, solve and export the JSON.
+  title_i18n:
+    zh: reBot 机械臂控制台
+  description_i18n:
+    zh: >-
+      控制台显示连接状态和关节表。按住力矩开关使能机械臂，再把 J1 点动几度。
+      运行了摄像头应用就能看到画面；选的是 ArUco 时，打开「手眼标定」，对桌上的标记采集
+      9 个以上位姿，求解并导出 JSON。
+name_i18n:
+  zh: 打开机械臂控制台
