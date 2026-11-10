@@ -96,7 +96,7 @@ Register the meter, run predictions in observe mode, trigger each failure path t
 
 
 - The administrator account from Step 2; a view of the meter's own display; someone who operates this plant to review the recommendations.
-- Run `docker inspect -f '{{.Config.Image}}' missionpack_knn` to check the image version. `v1.6.5` does not include the SDM630 template, rollback or alarms; only the observe-mode part can be completed on it.
+- Run `docker inspect -f '{{.Config.Image}}' missionpack_knn` to check the image version. Confirm the tag is `v1.6.8`, which includes the SDM630 template, rollback, alarms, and derived points engine.
 
 ### Turn on write-back verification
 

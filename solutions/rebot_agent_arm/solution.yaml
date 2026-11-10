@@ -1,0 +1,114 @@
+version: "1.0"
+id: rebot_agent_arm
+name: "reBot Arm: Phone Teleop & AI Agent Control"
+name_i18n:
+  zh: reBot 机械臂：手机遥控与 AI 智能体操控
+intro:
+  summary: Drive a reBot B601-DM arm from a phone or tablet browser, let an AI agent on your computer control it through an MCP server, and calibrate the gripper camera with an ArUco marker. One app on a standard reCamera with the B4 CAN base board runs the arm control and the camera vision.
+  summary_i18n:
+    zh: 在手机或平板浏览器里遥控 reBot B601-DM 机械臂，让电脑上的 AI 智能体通过 MCP 服务操控它，并用 ArUco 标记完成夹爪摄像头的手眼标定。装了 B4 CAN 底板的标准版 reCamera 上的一个应用同时运行机械臂控制和摄像头视觉。
+  description_file: description.md
+  description_file_i18n:
+    zh: description_zh.md
+  cover_image: gallery/rebot-teleop-photo.jpg
+  gallery:
+    - type: image
+      src: gallery/rebot-teleop-photo.jpg
+      caption: reBot B601-DM arm driven from the web cockpit on a tablet
+      caption_i18n:
+        zh: 在平板上的网页控制台里遥控 reBot B601-DM 机械臂
+  category: vision_video_ai
+  solution_type: solution
+  tags:
+    - rebot
+    - robot-arm
+    - recamera
+    - teleoperation
+    - mcp
+    - ai-agent
+    - hand-eye-calibration
+    - aruco
+    - yolo
+    - can-bus
+
+  output_interfaces:
+    - type: http
+      port: 8765
+      endpoint: /
+      description: Web cockpit for phones, tablets and desktops (joysticks, Cartesian control, video, detection overlay, hand-eye calibration)
+      schema_type: html
+      description_i18n:
+        zh: 手机、平板和电脑通用的网页控制台（摇杆、笛卡尔控制、视频、检测框、手眼标定）
+    - type: websocket
+      port: 8765
+      endpoint: /api/v1/ws
+      description: Arm control channel (lease, commands, telemetry); the MCP server and the cockpit use it
+      schema_type: json
+      description_i18n:
+        zh: 机械臂控制通道（控制权、指令、遥测），MCP 服务和网页控制台都通过它控制
+    - type: websocket
+      port: 8001
+      endpoint: /
+      description: Camera H.264 stream from rebot-vision, the camera process inside the rebot-teleop app
+      schema_type: binary
+      description_i18n:
+        zh: rebot-teleop 应用内的摄像头进程 rebot-vision 输出的 H.264 视频流
+
+  device_catalog:
+    recamera_2002:
+      description: Runs the arm control, the web cockpit and the camera vision (YOLO, ArUco); needs the B4 CAN base board
+      description_i18n:
+        zh: 运行机械臂控制、网页控制台和摄像头视觉（YOLO、ArUco），需要 B4 CAN 底板
+    rebot_arm_b601:
+      description: 6 joints and a gripper, 7 Damiao motors on the CAN bus
+      description_i18n:
+        zh: 6 个关节加夹爪，7 个达妙电机，CAN 总线连接
+      purchase:
+        require:
+          actuator: [dm]
+
+  presets:
+    - id: default
+      name: reCamera + reBot B601-DM
+      name_i18n:
+        zh: reCamera + reBot B601-DM
+      description: Install the rebot-teleop app on the camera and the AI agent server (MCP) on your computer, then check teleop and run hand-eye calibration in the cockpit.
+      description_i18n:
+        zh: 在摄像头上安装 rebot-teleop 应用，在电脑上安装 AI 智能体服务（MCP），最后在控制台里检查遥控并完成手眼标定。
+      device_groups:
+        - id: camera
+          name: AI Camera
+          name_i18n:
+            zh: AI 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: recamera_2002
+              label: reCamera (SG2002) with B4 CAN board
+              label_i18n:
+                zh: reCamera（SG2002）+ B4 CAN 底板
+          default: recamera_2002
+        - id: arm
+          name: Robotic Arm
+          name_i18n:
+            zh: 机械臂
+          type: single
+          required: true
+          options:
+            - device_ref: rebot_arm_b601
+          default: rebot_arm_b601
+      links:
+        github: https://github.com/Seeed-Solution/rebot-armd
+
+  stats:
+    difficulty: intermediate
+    estimated_time: 30min
+    deployed_count: 0
+    likes_count: 0
+  links:
+    github: https://github.com/Seeed-Solution/rebot-armd
+deployment:
+  guide_file: guide.md
+  guide_file_i18n:
+    zh: guide_zh.md
+  selection_mode: sequential

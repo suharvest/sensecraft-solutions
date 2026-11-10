@@ -90,6 +90,8 @@ Automatically add the E1003 ESPHome panel to Home Assistant using the native con
 | Home Assistant login fails | Use a Home Assistant administrator account and confirm the instance is reachable from this computer. |
 | E1003 panel is not found | The panel must be powered on and joined to a 2.4 GHz Wi-Fi network on the same LAN. Otherwise add the ESPHome integration manually in Home Assistant with the panel IP (Native API needs no key). |
 
+---
+
 ## Preset: Color Touch Smart Home Panel {#indicator_panel}
 
 Flash the SenseCAP Indicator over USB and add it to Home Assistant through the ESPHome integration. No MQTT broker is needed.
@@ -157,3 +159,67 @@ Automatically add the Indicator to Home Assistant as an ESPHome device.
 |---|---|
 | Home Assistant login fails | Use a Home Assistant administrator account and confirm the instance is reachable from this computer. |
 | Indicator is not found | The Indicator must be powered on and joined to the same LAN as Home Assistant, and the IP you entered must be correct. Otherwise add the ESPHome integration manually in Home Assistant with the Indicator IP. |
+
+---
+
+## Preset: Flagship Color Touch Panel (reTerminal D1001) {#d1001_panel}
+
+Connect the reTerminal D1001 flagship touch terminal via USB. The installer automatically downloads and flashes the factory PocketJS firmware, providing portrait and landscape flexibility and seamless Home Assistant control.
+
+## Step 1: Install reTerminal D1001 panel firmware {#d1001_usb type=esp32_usb required=true verify=true config=devices/d1001_usb.yaml}
+
+Connect the reTerminal D1001 USB-C port to your computer, select the serial port, click **Deploy**, and keep connected until firmware writing and reboot verification finish.
+
+### Prerequisites
+
+- A reTerminal D1001 (ESP32-P4 + ESP32-C6, 800x1280 MIPI-DSI display) and a USB-C data cable.
+
+### Wiring and Flashing
+
+1. Connect the USB-C data cable to the reTerminal D1001 port and plug the other end into your computer.
+2. Select the recognized serial port in the App (e.g. `/dev/ttyACM*`, `/dev/ttyUSB*`, or `COM*`).
+3. Click **Install** / Deploy. The installer flashes the factory image to the ESP32-P4 flash at 460800 baud.
+4. Keep the board powered until writing completes and the device automatically reboots.
+
+<details>
+<summary>Technical details</summary>
+<p>Factory merged firmware size: 11,689,192 bytes, SHA-256 <code>72e25050d1f1c0d0f02dbc11cc249ab93e3ff8a57ef176f681ce8fbf5085950d</code>. Flash parameters: 460800 baud, offset 0x0, DIO 80MHz 16MB flash layout, preserves storage partition.</p>
+</details>
+
+### After setup and LAN Connection
+
+1. **Display & Viewport**: The panel boots into the factory PocketJS HA dashboard with a 400x640 logical viewport rendered on the 800x1280 MIPI-DSI panel at density 2. The hardware supports both portrait and landscape mounting orientations, with the factory app calibrated for vertical touch operation.
+2. **Wi-Fi Setup**: Join your 2.4 GHz Wi-Fi from the settings screen, ensuring the panel is on the same local network as your Home Assistant host.
+3. **Home Assistant Link**:
+   - In Settings, enter your local Home Assistant base URL (e.g. `http://192.168.x.x:8123`) and a Long-Lived Access Token.
+   - The panel automatically synchronizes your configured light entity, brightness slider, and discovers live weather via the HA template API.
+4. **Onboard Peripherals**: The panel supports onboard RGB LED indication, hardware side buttons, and RTC (PCF8563) time synchronization via SNTP.
+
+### Troubleshooting
+
+| Issue | Action |
+| --- | --- |
+| Device serial port not found | Click Refresh; verify that the USB-C cable supports data; ensure Espressif USB-JTAG/Serial is detected |
+| Flashing interrupted or verification fails | Ensure adequate USB power and retry; do not erase the full flash to preserve partition configurations and storage |
+| Screen displays HA disconnected | Verify panel Wi-Fi connectivity and confirm the panel and HA host can communicate over LAN; recheck HA Base URL and Token |
+
+---
+
+## Step 2: Deploy Home Assistant (Optional) {#d1001_deploy_ha type=docker_deploy required=false config=devices/ha_host.yaml}
+
+Deploy Home Assistant on a Docker host. If port 8123 is already active, this step skips itself automatically. Local install is Linux only; on macOS or Windows choose the remote target.
+
+### Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| Home Assistant is already running on port 8123 | The step detects the running instance and skips installation; continue to the next step. |
+| Local install fails on macOS or Windows | The container uses host networking, which Docker Desktop does not provide. Select the remote target (a Linux host such as a Raspberry Pi or reComputer) or reuse an existing Home Assistant. |
+
+### Target {#d1001_ha_local type=local config=devices/ha_host.yaml}
+
+Deploy on this Linux machine.
+
+### Target {#d1001_ha_remote type=remote config=devices/ha_host.yaml default=true}
+
+Deploy on a remote host (e.g. Raspberry Pi, reComputer).

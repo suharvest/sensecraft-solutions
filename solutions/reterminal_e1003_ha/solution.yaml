@@ -5,16 +5,16 @@ name_i18n:
   zh: 全屋智能交互屏幕
 enabled: true
 intro:
-  summary: Always-on smart home interaction screen built on Home Assistant — both an e-paper reTerminal E1003 and a color SenseCAP Indicator connect over the ESPHome native API, with zero cloud dependency.
+  summary: Always-on smart home interaction screens built on Home Assistant — choose from the glare-free e-paper reTerminal E1003, the compact SenseCAP Indicator, or the flagship reTerminal D1001 with 800x1280 MIPI-DSI high-performance color touch, all running locally with zero cloud dependency.
   summary_i18n:
-    zh: 基于 Home Assistant 的全屋智能交互屏幕：E1003 墨水屏与 Indicator 彩屏均经 ESPHome 原生 API 接入，按需选择，本地直连零云端依赖。
+    zh: 基于 Home Assistant 的全屋智能交互屏幕：提供护眼墨水屏 E1003、桌面方彩屏 Indicator 与搭载 ESP32-P4 的 800x1280 旗舰高刷彩屏 reTerminal D1001，支持横竖屏呈现与出厂 HA 控制面板，全本地直连零云端依赖。
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
   cover_image: gallery/e1003-keyless-cover.webp
   category: home_building_automation
   solution_type: solution
-  tags: [home-assistant, esphome, epaper, smart-home, touch-panel, indicator, display-panel]
+  tags: [home-assistant, esphome, epaper, smart-home, touch-panel, indicator, display-panel, reterminal-d1001, pocketjs]
   output_interfaces:
     - type: serial
       endpoint: UART0
@@ -41,6 +41,10 @@ intro:
       purchase:
         require:
           edition: [d1, d1s, d1pro, d1l]
+    reterminal_d1001:
+      description: High-performance color touch panel running PocketJS and HA Panel (ESP32-P4 + ESP32-C6). Supports portrait and landscape with 800x1280 MIPI-DSI display.
+      description_i18n:
+        zh: 旗舰高性能彩屏触控面板，搭载 ESP32-P4 与 ESP32-C6，支持横竖屏自由布局与 800x1280 MIPI-DSI 广视宽高刷显示，内置 PocketJS HA 交互面板。
   presets:
     - id: usb_candidate
       name: E-paper Smart Home Panel
@@ -76,6 +80,23 @@ intro:
           options:
             - device_ref: sensecap_indicator
           default: sensecap_indicator
+    - id: d1001_panel
+      name: Flagship Color Touch Panel (reTerminal D1001)
+      name_i18n:
+        zh: 旗舰彩屏触控面板（reTerminal D1001）
+      description: High-performance smart home panel powered by ESP32-P4 and PocketJS. Features an 800x1280 MIPI-DSI color display with portrait and landscape flexibility, running the factory HA panel app for smooth dimming and scene control.
+      description_i18n:
+        zh: 基于 ESP32-P4 与 PocketJS 引擎的高性能旗舰智能家居面板。配备 800x1280 MIPI-DSI 高清彩屏，支持横竖屏呈现，内置出厂 HA 控制面板，提供丝滑触控调光与全屋情景联动体验。
+      device_groups:
+        - id: panel
+          name: Interactive Display Panel
+          name_i18n:
+            zh: 交互屏幕
+          type: single
+          required: true
+          options:
+            - device_ref: reterminal_d1001
+          default: reterminal_d1001
 deployment:
   guide_file: guide.md
   guide_file_i18n:

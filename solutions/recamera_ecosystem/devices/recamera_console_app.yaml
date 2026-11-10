@@ -87,6 +87,10 @@ user_inputs:
         label: Weather Classification
         label_i18n:
           zh: 天气识别
+      - value: rebot-teleop
+        label: reBot Teleoperation & Vision (B4 CAN board)
+        label_i18n:
+          zh: reBot 机械臂遥控与视觉（需 B4 CAN 底板）
     default: yolo-detector
     name_i18n:
       zh: 应用
