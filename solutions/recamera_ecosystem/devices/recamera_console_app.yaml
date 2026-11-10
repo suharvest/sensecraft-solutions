@@ -87,10 +87,6 @@ user_inputs:
         label: Weather Classification
         label_i18n:
           zh: 天气识别
-      - value: aruco-detector
-        label: ArUco Marker Detector
-        label_i18n:
-          zh: ArUco 标记识别
       - value: rebot-teleop
         label: reBot Arm Teleop (B4 CAN board)
         label_i18n:
