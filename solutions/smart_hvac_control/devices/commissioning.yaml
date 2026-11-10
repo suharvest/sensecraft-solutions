@@ -18,17 +18,13 @@ steps:
       zh: 确认运行中的镜像 tag
     description: >-
       Run `docker inspect -f '{{.Config.Image}}' missionpack_knn` on the deployment host and
-      record the tag. The published tag `missionpack-knn:v1.6.5` does not carry the SDM630
-      meter template, the control rollback coordinator or the alarm envelope. The image that
-      does has not been built or pushed and its immutable tag is still to be assigned. On
-      v1.6.5, stop after the observe-mode substeps; the meter, rollback and alarm substeps
-      cannot be completed.
+      record the tag. Tag `missionpack-knn:v1.6.8` carries the SDM630 meter template, the control
+      rollback coordinator, alarm envelope, and custom derived points engine.
     description_i18n:
       zh: >-
         在部署主机上执行 `docker inspect -f '{{.Config.Image}}' missionpack_knn` 并记录 tag。
-        已发布的 `missionpack-knn:v1.6.5` 不含 SDM630 电表模板、控制回滚协调器和告警 envelope；
-        承载这些能力的镜像尚未构建、尚未 push，不可变 tag 待定。运行在 v1.6.5 上时，做完观察
-        模式的几个子步骤即可停止，电表、回滚和告警子步骤无法完成。
+        已固定的 `missionpack-knn:v1.6.8` 包含 SDM630 电表模板、控制回滚协调器、告警 envelope
+        及自定义中间变量引擎，可完整执行后续所有联调与控制步骤。
     optional: false
 
   - id: import_meter_template

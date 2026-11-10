@@ -79,4 +79,4 @@ Docker Engine 20.10 or newer, about 1 GB free disk, and host ports 8280 (console
 - **Confirm the meter's byte order.** Vendor defaults are not universal. Read a register with a known physical value before believing the scaled points.
 - **Modbus RTU needs the serial-device profile.** The standard Docker profile attaches no host serial device. Keep production writes disabled until the exact adapter and the target controller have passed hardware-in-the-loop validation.
 - **Central plant only.** This addresses central HVAC systems, not split-unit air conditioners.
-- **Image tag.** The published image "missionpack-knn:v1.6.5" predates the meter template, the rollback coordinator and the alarm envelope. The image carrying them has not been built or pushed and its immutable tag is still to be assigned. Check the tag before following the commissioning steps in the deployment guide.
+- **Image tag.** The deployment is pinned to immutable image "missionpack-knn:v1.6.8", which includes the SDM630 meter template, control rollback coordinator, alarm envelope, derived points engine, and React console. Follow the commissioning steps in the deployment guide.

@@ -9,13 +9,9 @@ type: docker_deploy
 # docker_remote views via derive_docker_views() — no need to maintain
 # parallel local.yaml + remote.yaml files.
 #
-# Image tag: assets/docker/docker-compose.yml pins `missionpack-knn:v1.6.5`.
-# That tag predates the SDM630 meter template, the control rollback coordinator
-# and the alarm envelope, so the meter, safety and alarm inputs below are
-# consumed only by the image that carries those features — which has not been
-# built or pushed, and whose immutable tag is still to be assigned. v1.6.5
-# ignores the environment variables it does not know, so deployment still
-# succeeds; the commissioning step in the guide checks the tag first.
+# Image tag: assets/docker/docker-compose.yml pins `missionpack-knn:v1.6.8`.
+# That tag includes the SDM630 meter template, the control rollback coordinator,
+# the alarm envelope, and custom derived points engine with sliding window statistics.
 
 detection:
   method: local
