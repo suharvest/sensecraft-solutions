@@ -16,7 +16,34 @@ intro:
       src: gallery/rebot-teleop-photo.jpg
       caption: reBot B601-DM arm driven from the web cockpit on a tablet
       caption_i18n:
-        zh: 在平板上的网页控制台里遥控 reBot B601-DM 机械臂
+        zh: 平板 Web 驾驶舱无线遥控 reBot B601-DM 机械臂真机
+    - type: image
+      src: gallery/cockpit-desktop-en.png
+      src_i18n:
+        zh: gallery/cockpit-desktop-zh.png
+      caption: Desktop expert cockpit with 7-joint telemetry, Cartesian controls, and safety watchdogs
+      caption_i18n:
+        zh: 桌面端专家驾驶舱：7 关节实时遥测、笛卡尔控制与租约看门狗安全状态机
+    - type: image
+      src: gallery/cockpit-phone-zh.png
+      caption: Mobile web cockpit with dual touch joysticks and hold-to-enable safety switch
+      caption_i18n:
+        zh: 手机端触控驾驶舱：双虚拟摇杆点动与 Hold-to-Enable 防误触开关
+    - type: image
+      src: gallery/vision-overlay-zh.png
+      caption: Real-time edge TPU YOLOv11 target detection and CPU ArUco 3D pose estimation
+      caption_i18n:
+        zh: 真实场景端侧视觉：TPU YOLOv11 目标检测框与 CPU ArUco 3D 位姿轴实时叠加
+    - type: image
+      src: gallery/cockpit-cartesian-zh.png
+      caption: Desktop Cartesian cockpit with XYZ/RPY coordinate control and inverse kinematics
+      caption_i18n:
+        zh: 桌面端笛卡尔空间控制：末端 XYZ/RPY 姿态微调与实时逆运动学解算
+    - type: image
+      src: gallery/cockpit-phone-land-zh.png
+      caption: Mobile landscape cockpit with dual virtual joysticks for intuitive operation
+      caption_i18n:
+        zh: 手机端横屏驾驶舱：双手双虚拟摇杆全向操控与急停防护
   category: vision_video_ai
   solution_type: solution
   tags:
