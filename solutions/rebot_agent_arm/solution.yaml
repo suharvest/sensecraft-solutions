@@ -4,9 +4,9 @@ name: "reBot Arm: Phone Teleop & AI Agent Control"
 name_i18n:
   zh: reBot 机械臂：手机遥控与 AI 智能体操控
 intro:
-  summary: Drive a reBot B601-DM arm from a phone or tablet browser, let an AI agent on your computer control it through an MCP server, and record joint data while you guide it. The arm runtime runs on a standard reCamera with the B4 CAN base board.
+  summary: Drive a reBot B601-DM arm from a phone or tablet browser, let an AI agent on your computer control it through an MCP server, and calibrate the gripper camera with an ArUco marker. One app on a standard reCamera with the B4 CAN base board runs the arm control and the camera vision.
   summary_i18n:
-    zh: 在手机或平板浏览器里遥控 reBot B601-DM 机械臂，让电脑上的 AI 智能体通过 MCP 服务操控它，并在你带着它示范时录制关节数据。机械臂运行程序跑在装了 B4 CAN 底板的标准版 reCamera 上。
+    zh: 在手机或平板浏览器里遥控 reBot B601-DM 机械臂，让电脑上的 AI 智能体通过 MCP 服务操控它，并用 ArUco 标记完成夹爪摄像头的手眼标定。装了 B4 CAN 底板的标准版 reCamera 上的一个应用同时运行机械臂控制和摄像头视觉。
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
@@ -49,20 +49,20 @@ intro:
     - type: websocket
       port: 8001
       endpoint: /
-      description: Camera H.264 stream from the camera app (ArUco or YOLO)
+      description: Camera H.264 stream from rebot-vision, the camera process inside the rebot-teleop app
       schema_type: binary
       description_i18n:
-        zh: 摄像头应用（ArUco 或 YOLO）输出的 H.264 视频流
+        zh: rebot-teleop 应用内的摄像头进程 rebot-vision 输出的 H.264 视频流
 
   device_catalog:
     recamera_2002:
-      description: Runs the arm runtime and the web cockpit; needs the B4 CAN base board
+      description: Runs the arm control, the web cockpit and the camera vision (YOLO, ArUco); needs the B4 CAN base board
       description_i18n:
-        zh: 运行机械臂程序和网页控制台，需要 B4 CAN 底板
+        zh: 运行机械臂控制、网页控制台和摄像头视觉（YOLO、ArUco），需要 B4 CAN 底板
     rebot_arm_b601:
-      description: 6-joint arm with a gripper, Damiao motors on the CAN bus
+      description: 6 joints and a gripper, 7 Damiao motors on the CAN bus
       description_i18n:
-        zh: 六关节加夹爪机械臂，达妙电机，CAN 总线连接
+        zh: 6 个关节加夹爪，7 个达妙电机，CAN 总线连接
       purchase:
         require:
           actuator: [dm]
@@ -72,9 +72,9 @@ intro:
       name: reCamera + reBot B601-DM
       name_i18n:
         zh: reCamera + reBot B601-DM
-      description: Install the arm runtime on the camera, optionally the agent server on your computer and a camera app (ArUco or YOLO), then check teleop and run hand-eye calibration in the cockpit.
+      description: Install the rebot-teleop app on the camera and the AI agent server (MCP) on your computer, then check teleop and run hand-eye calibration in the cockpit.
       description_i18n:
-        zh: 在摄像头上安装机械臂程序，可选在电脑上安装智能体服务、在摄像头上安装摄像头应用（ArUco 或 YOLO），最后在控制台里检查遥控并完成手眼标定。
+        zh: 在摄像头上安装 rebot-teleop 应用，在电脑上安装 AI 智能体服务（MCP），最后在控制台里检查遥控并完成手眼标定。
       device_groups:
         - id: camera
           name: AI Camera

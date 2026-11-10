@@ -1,18 +1,23 @@
 version: "1.0"
 id: rebot_teleop
-name: Install reBot Arm Teleop
+name: Install reBot Teleop on the Camera
 type: recamera_console_app
 device_class: recamera
 
-# Installs the gallery app rebot-teleop (armd + web cockpit on :8765) through
-# the camera console's own App Manager API: the engine reads the package URL
-# from the cloud catalog, uploads it to the camera, runs appMgr/installApp and
-# then appMgr/switch. The app id is fixed here; the user does not pick it.
+# Installs the gallery app rebot-teleop through the camera console's own App
+# Manager API: the engine reads the package URL from the cloud catalog, uploads
+# it to the camera, runs appMgr/installApp and then appMgr/switch. The app id is
+# fixed here; the user does not pick it.
+#
+# rebot-teleop is one app with two processes: armd (arm control, web cockpit
+# on :8765) and rebot-vision (H.264 video on :8001, YOLO on the TPU and ArUco
+# on the CPU on request, API on :8090). The console runs one active app, and
+# vision is bundled, so this solution installs no separate camera app.
 #
 # A camera in factory Node-RED mode has no console. The deployer then reports
 # console_not_installed and the App offers to install the console first
-# (recamera_console_app.rs ensure_console_installed, supervisor 0.5.7-1 deb),
-# so this solution has no separate console step.
+# (recamera_console_app.rs ensure_console_installed), so this solution has no
+# separate console step.
 #
 # The package's gallery manifest declares "requires": ["can"]: on a camera
 # without can0 (no B4 CAN base board) the console refuses the switch with
@@ -37,9 +42,9 @@ user_inputs:
     required: true
     options:
       - value: rebot-teleop
-        label: reBot Arm Teleop
+        label: reBot Teleoperation & Vision
         label_i18n:
-          zh: reBot 机械臂遥控
+          zh: reBot 机械臂遥控与视觉
     default: rebot-teleop
     name_i18n:
       zh: 应用
@@ -71,4 +76,4 @@ post_deployment:
   open_browser: false
 
 name_i18n:
-  zh: 安装 reBot 机械臂遥控
+  zh: 在摄像头上安装 reBot 遥控
