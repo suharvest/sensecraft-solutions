@@ -64,6 +64,10 @@ script:
       }
       JSON
       echo "rebot-mcp" "ready"
+      # The engine stops reading the output once the process has exited, so a
+      # line still buffered then is lost (script.rs check_log_pattern). Stay
+      # alive until the ready line has been read.
+      sleep 3
     windows: |
       # Errors go to stderr without Write-Error: Write-Error echoes the script
       # source, and that echo could match the health check pattern.
@@ -93,6 +97,7 @@ script:
       $cfg = @{ mcpServers = @{ rebot = @{ command = $bin; args = @('--armd', $armd, '--camera-ws', $cam) } } }
       Write-Output ($cfg | ConvertTo-Json -Depth 5)
       Write-Output ('rebot-mcp' + ' ready')
+      Start-Sleep -Seconds 3
   # The start command runs like a service: without this check the step would
   # report success even when the install failed. A first install downloads
   # Python and the dependencies (about 30 packages).
