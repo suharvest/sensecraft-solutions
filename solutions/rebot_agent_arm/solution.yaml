@@ -1,12 +1,12 @@
 version: "1.0"
 id: rebot_agent_arm
-name: "reBot Arm: Phone Teleop & AI Agent Control"
+name: "Smart Robot Arm with Vision Brain"
 name_i18n:
-  zh: reBot 机械臂：手机遥控与 AI 智能体操控
+  zh: 自带视觉大脑的智能机械臂
 intro:
-  summary: Drive a reBot B601-DM arm from a phone or tablet browser, let an AI agent on your computer control it through an MCP server, and calibrate the gripper camera with an ArUco marker. One app on a standard reCamera with the B4 CAN base board runs the arm control and the camera vision.
+  summary: A single reCamera serves as both eyes and brain for the reBot arm. Mount it directly on the arm to drive 7 joint motors over CAN with no external industrial PC. Drive it immediately from a phone browser, or let AI agents take full closed-loop control over native tools.
   summary_i18n:
-    zh: 在手机或平板浏览器里遥控 reBot B601-DM 机械臂，让电脑上的 AI 智能体通过 MCP 服务操控它，并用 ArUco 标记完成夹爪摄像头的手眼标定。装了 B4 CAN 底板的标准版 reCamera 上的一个应用同时运行机械臂控制和摄像头视觉。
+    zh: 一台 reCamera 同时搞定机械臂的眼睛和大脑。装上机械臂即可直驱 7 个关节电机，免去外挂工控机与杂乱连线；手机扫码直接操控，AI 智能体通过原生接口闭环接管。
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
