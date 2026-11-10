@@ -1,0 +1,126 @@
+version: "1.0"
+id: mcp_server
+name: Install the AI Agent Server
+name_i18n:
+  zh: 安装 AI 智能体服务
+type: script
+
+# Runs on the deploy computer (macOS, Linux or Windows), not on the camera.
+# Installs rebot-mcp, the stdio MCP server from rebot-companion
+# (https://github.com/Seeed-Solution/rebot-companion, package rebot-companion,
+# extra "agent", entry point rebot-mcp), as a uv tool, then registers it with
+# the Claude Code CLI when that is installed and prints the generic
+# mcpServers JSON for other clients.
+#
+# The package comes from the GitHub source archive rather than git+https, so
+# the computer needs no git. uv brings its own Python.
+#
+# Safe defaults: neither --allow-clear-fault nor --allow-preempt is passed, so
+# the agent cannot clear an E-stop or fault and cannot take control from the
+# web cockpit.
+#
+# Inputs reach the commands through start_command.env (the engine substitutes
+# {{...}} there, not in the commands). The last line the command prints is the
+# health-check pattern; it is assembled from two words so the pattern never
+# appears in an echoed command line.
+script:
+  start_command:
+    env:
+      ARM_HOST: "{{host}}"
+      REBOT_PKG: "rebot-companion[agent] @ https://github.com/Seeed-Solution/rebot-companion/archive/refs/heads/main.zip"
+    linux_macos: |
+      set -eu
+      PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
+      if ! command -v uv >/dev/null 2>&1; then
+        echo "Installing uv (https://astral.sh/uv) ..."
+        if command -v curl >/dev/null 2>&1; then
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+        else
+          wget -qO- https://astral.sh/uv/install.sh | sh
+        fi
+      fi
+      command -v uv >/dev/null 2>&1 || { echo "uv not found after install" >&2; exit 1; }
+      echo "Installing rebot-mcp ..."
+      uv tool install --force "$REBOT_PKG"
+      BIN="$(uv tool dir --bin)/rebot-mcp"
+      "$BIN" --help >/dev/null
+      ARMD="http://$ARM_HOST:8765"
+      CAM="ws://$ARM_HOST:8001/"
+      if command -v claude >/dev/null 2>&1; then
+        claude mcp remove --scope user rebot >/dev/null 2>&1 || true
+        claude mcp add --scope user rebot -- "$BIN" --armd "$ARMD" --camera-ws "$CAM"
+        echo "Registered with Claude Code (user scope) as 'rebot'."
+      else
+        echo "Claude Code CLI not found. Add this to your agent's MCP configuration:"
+      fi
+      cat <<JSON
+      {
+        "mcpServers": {
+          "rebot": {
+            "command": "$BIN",
+            "args": ["--armd", "$ARMD", "--camera-ws", "$CAM"]
+          }
+        }
+      }
+      JSON
+      echo "rebot-mcp" "ready"
+      # The engine stops reading the output once the process has exited, so a
+      # line still buffered then is lost (script.rs check_log_pattern). Stay
+      # alive until the ready line has been read.
+      sleep 3
+    windows: |
+      # Errors go to stderr without Write-Error: Write-Error echoes the script
+      # source, and that echo could match the health check pattern.
+      $ErrorActionPreference = 'Stop'
+      $env:Path = "$env:USERPROFILE\.local\bin;$env:Path"
+      if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
+        Write-Output 'Installing uv (https://astral.sh/uv) ...'
+        powershell -NoProfile -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+        $env:Path = "$env:USERPROFILE\.local\bin;$env:Path"
+      }
+      if (-not (Get-Command uv -ErrorAction SilentlyContinue)) { [Console]::Error.WriteLine('uv not found after install'); exit 1 }
+      Write-Output 'Installing rebot-mcp ...'
+      uv tool install --force $env:REBOT_PKG
+      if ($LASTEXITCODE -ne 0) { [Console]::Error.WriteLine("uv tool install failed (exit $LASTEXITCODE)"); exit $LASTEXITCODE }
+      $bin = Join-Path ((uv tool dir --bin) | Out-String).Trim() 'rebot-mcp.exe'
+      & $bin --help | Out-Null
+      if ($LASTEXITCODE -ne 0) { [Console]::Error.WriteLine("rebot-mcp --help failed (exit $LASTEXITCODE)"); exit $LASTEXITCODE }
+      $armd = "http://$($env:ARM_HOST):8765"
+      $cam = "ws://$($env:ARM_HOST):8001/"
+      if (Get-Command claude -ErrorAction SilentlyContinue) {
+        claude mcp remove --scope user rebot 2>$null | Out-Null
+        claude mcp add --scope user rebot -- $bin --armd $armd --camera-ws $cam
+        Write-Output "Registered with Claude Code (user scope) as 'rebot'."
+      } else {
+        Write-Output "Claude Code CLI not found. Add this to your agent's MCP configuration:"
+      }
+      $cfg = @{ mcpServers = @{ rebot = @{ command = $bin; args = @('--armd', $armd, '--camera-ws', $cam) } } }
+      Write-Output ($cfg | ConvertTo-Json -Depth 5)
+      Write-Output ('rebot-mcp' + ' ready')
+      Start-Sleep -Seconds 3
+  # The start command runs like a service: without this check the step would
+  # report success even when the install failed. A first install downloads
+  # Python and the dependencies (about 30 packages).
+  health_check:
+    type: log_pattern
+    pattern: "rebot-mcp ready"
+    timeout_seconds: 600
+
+user_inputs:
+  - id: host
+    name: reCamera IP Address
+    type: text
+    default: "192.168.42.1"
+    default_template: "{{host}}"
+    placeholder: "192.168.42.1"
+    required: true
+    description: Address the agent uses to reach the arm (USB 192.168.42.1; 192.168.16.1 on the arm's Wi-Fi hotspot).
+    validation:
+      pattern: "^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$"
+    name_i18n:
+      zh: reCamera IP 地址
+    description_i18n:
+      zh: 智能体连接机械臂用的地址（USB 为 192.168.42.1；连机械臂热点时为 192.168.16.1）。
+
+post_deployment:
+  open_browser: false
