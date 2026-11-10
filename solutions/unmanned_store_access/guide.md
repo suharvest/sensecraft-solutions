@@ -18,7 +18,7 @@ Starts the face library, MQTT broker and management console on one server.
 - Server clock synchronised by NTP; door devices take their time from it.
 - Ports 8080 (face library), 8088 (console) and 1883 (MQTT) free on the server.
 - Set **Door Device** to reCamera Pro for this preset.
-- The signing key and admin token are generated automatically; find them under "Auto-generated secrets" at the bottom of this step. Sign in to the console with the admin token.
+- The signing key and admin token are generated automatically; find them under "Auto-generated secrets" at the bottom of this step. The console uses access token authentication: subsequent steps can open it directly without credentials, or enter this admin token on the login page when visiting manually.
 
 ### Troubleshooting
 
@@ -51,7 +51,7 @@ Enrol each person with 3 to 8 photos in the console's Person Library.
 > 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#how-to-deploy-on-site).
 
 
-- The admin token from Step 1.
+- The admin token from Step 1 (clicking this step's link opens the console automatically with the token; if visiting manually, enter this token on the login page).
 - 3 to 8 clear, front-facing photos per person.
 - Recognition Service URL filled in Step 1; without it enrolled people are not recognised.
 - Known limitation: people enrolled here are not yet recognised by the reCamera Pro's on-device model. On this preset the step tests enrolment and delivery only.
@@ -145,7 +145,7 @@ Test the door: an enrolled person opens it, a photo does not, remote unlock work
 
 - The door controller connected and at least one person enrolled.
 - A printed photo of that person.
-- The admin token from Step 1.
+- The admin token from Step 1 (clicking this step's link opens the console automatically with the token; if visiting manually, enter this token on the login page).
 
 ### Deployment Complete
 
@@ -188,7 +188,7 @@ Starts the face library, MQTT broker and management console on one server.
 - Server clock synchronised by NTP; door devices take their time from it.
 - Ports 8080 (face library), 8088 (console) and 1883 (MQTT) free on the server.
 - Set **Door Device** to standard reCamera for this preset.
-- The signing key and admin token are generated automatically; find them under "Auto-generated secrets" at the bottom of this step. Sign in to the console with the admin token.
+- The signing key and admin token are generated automatically; find them under "Auto-generated secrets" at the bottom of this step. The console uses access token authentication: subsequent steps can open it directly without credentials, or enter this admin token on the login page when visiting manually.
 
 ### Troubleshooting
 
@@ -218,7 +218,7 @@ Enrol each person with 3 to 8 photos in the console's Person Library.
 > 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#how-to-deploy-on-site).
 
 
-- The admin token from Step 1.
+- The admin token from Step 1 (clicking this step's link opens the console automatically with the token; if visiting manually, enter this token on the login page).
 - 3 to 8 clear, front-facing photos per person.
 - Recognition Service URL filled in Step 1; without it enrolled people are not recognised.
 
@@ -314,7 +314,7 @@ Test the door: an enrolled person opens it, a photo does not, remote unlock work
 
 - The door controller connected and at least one person enrolled.
 - A printed photo of that person.
-- The admin token from Step 1.
+- The admin token from Step 1 (clicking this step's link opens the console automatically with the token; if visiting manually, enter this token on the login page).
 
 ### Deployment Complete
 
@@ -357,7 +357,7 @@ Starts the face library, MQTT broker and management console on one server.
 - Server clock synchronised by NTP; door devices take their time from it.
 - Ports 8080 (face library), 8088 (console) and 1883 (MQTT) free on the server.
 - Set **Door Device** to standard reCamera for this preset.
-- The signing key and admin token are generated automatically; find them under "Auto-generated secrets" at the bottom of this step. Sign in to the console with the admin token.
+- The signing key and admin token are generated automatically; find them under "Auto-generated secrets" at the bottom of this step. The console uses access token authentication: subsequent steps can open it directly without credentials, or enter this admin token on the login page when visiting manually.
 
 ### Troubleshooting
 
@@ -387,7 +387,7 @@ Enrol each person with 3 to 8 photos in the console's Person Library.
 > 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#how-to-deploy-on-site).
 
 
-- The admin token from Step 1.
+- The admin token from Step 1 (clicking this step's link opens the console automatically with the token; if visiting manually, enter this token on the login page).
 - 3 to 8 clear, front-facing photos per person.
 - Recognition Service URL filled in Step 1; without it enrolled people are not recognised.
 
@@ -470,7 +470,7 @@ Test the door: an enrolled person opens it, a photo does not, remote unlock work
 
 - The door controller connected and at least one person enrolled.
 - A printed photo of that person.
-- The admin token from Step 1.
+- The admin token from Step 1 (clicking this step's link opens the console automatically with the token; if visiting manually, enter this token on the login page).
 
 ### Deployment Complete
 
@@ -512,7 +512,7 @@ Starts the face library, MQTT broker and management console on one server.
 - Server clock synchronised by NTP; door devices take their time from it.
 - Ports 8080 (face library), 8088 (console) and 1883 (MQTT) free on the server.
 - Set **Door Device** to AI host for this preset.
-- The signing key and admin token are generated automatically; find them under "Auto-generated secrets" at the bottom of this step. Sign in to the console with the admin token.
+- The signing key and admin token are generated automatically; find them under "Auto-generated secrets" at the bottom of this step. The console uses access token authentication: subsequent steps can open it directly without credentials, or enter this admin token on the login page when visiting manually.
 
 ### Troubleshooting
 
@@ -542,7 +542,7 @@ Enrol each person with 3 to 8 photos in the console's Person Library.
 > 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/unmanned-store-face-access/#how-to-deploy-on-site).
 
 
-- The admin token from Step 1.
+- The admin token from Step 1 (clicking this step's link opens the console automatically with the token; if visiting manually, enter this token on the login page).
 - 3 to 8 clear, front-facing photos per person.
 - Recognition Service URL filled in Step 1; without it enrolled people are not recognised.
 
@@ -715,7 +715,7 @@ Test the door: an enrolled person opens it, a photo does not, remote unlock work
 
 - The door controller connected and at least one person enrolled.
 - A printed photo of that person.
-- The admin token from Step 1.
+- The admin token from Step 1 (clicking this step's link opens the console automatically with the token; if visiting manually, enter this token on the login page).
 
 ### Deployment Complete
 

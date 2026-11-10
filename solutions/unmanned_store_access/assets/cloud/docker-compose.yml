@@ -131,6 +131,7 @@ services:
       - ./secret/facedb.key:/run/secrets/facedb.key:ro
       # license_block has no environment variable of its own.
       - ./config/web-config.json:/app/config/web-config.json:ro
+      - ./ui/dist:/app/web/ui/dist:ro
     depends_on:
       facedb:
         condition: service_started

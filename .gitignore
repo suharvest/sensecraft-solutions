@@ -21,3 +21,5 @@ work/
 .sensecraft-work/
 .claude/settings.local.json
 .cache/
+!solutions/unmanned_store_access/assets/cloud/ui/dist/
+!solutions/unmanned_store_access/assets/cloud/ui/dist/**

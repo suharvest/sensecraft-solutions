@@ -132,10 +132,11 @@ actions:
       env:
         INPUT_FACEDB_PORT: "{{facedb_port}}"
         INPUT_WEB_PORT: "{{web_port}}"
+        INPUT_WEB_ADMIN_TOKEN: "{{web_admin_token}}"
       run: |
         set -e
         FACEDB_PORT="${INPUT_FACEDB_PORT:-8080}"
-        WEB_PORT="${INPUT_WEB_PORT:-5173}"
+        WEB_PORT="${INPUT_WEB_PORT:-8088}"
         for i in $(seq 1 30); do
           CODE=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:$FACEDB_PORT/v1/facedb/current" || echo 000)
           case "$CODE" in
@@ -155,6 +156,13 @@ actions:
         ANON=$(curl -s -o /dev/null -w '%{http_code}' "$URL/api/events")
         echo "anonymous GET /api/events -> HTTP $ANON (401 or 403 expected)"
         docker ps --filter name=usa- --no-trunc
+        echo
+        echo "=================================================================="
+        echo "  管理界面已就绪 (Management Console Ready)"
+        echo "  免密登录链接: http://localhost:${WEB_PORT}/#token=${INPUT_WEB_ADMIN_TOKEN}"
+        echo "  Admin Token : ${INPUT_WEB_ADMIN_TOKEN}"
+        echo "=================================================================="
+        echo
       ignore_error: true
       name_i18n:
         zh: 确认人脸库、broker 与管理界面已响应
@@ -248,6 +256,11 @@ user_inputs:
     type: password
     required: true
     generate: hex32
+    description: Access token for logging into the web console. Generated during deployment.
+    name_i18n:
+      zh: 管理界面 Admin Token
+    description_i18n:
+      zh: 用于登录管理界面的访问令牌（Token）。部署时自动生成，请妥善保管。
     description: Used to sign in to the management console.
     name_i18n:
       zh: 管理界面 admin token
