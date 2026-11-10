@@ -45,7 +45,7 @@ reCamera Pro is not supported. Without the B4 CAN board the console refuses to s
 
 ### Measured on the reCamera
 
-Camera vision with the arm's torque off, rebot-teleop 1.3.2:
+Camera vision with the arm's torque off:
 
 | | Runs on | Time per frame | Whole chip at 5 results/s |
 |---|---|---|---|
