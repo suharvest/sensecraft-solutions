@@ -10,13 +10,13 @@ intro:
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
-  cover_image: gallery/cockpit.png
+  cover_image: gallery/rebot-teleop-photo.jpg
   gallery:
     - type: image
-      src: gallery/cockpit.png
-      caption: Web cockpit, expert view (screenshot from the simulated arm used in the cockpit tests)
+      src: gallery/rebot-teleop-photo.jpg
+      caption: reBot B601-DM arm driven from the web cockpit on a tablet
       caption_i18n:
-        zh: 网页控制台专家视图（控制台测试中模拟机械臂的截图）
+        zh: 在平板上的网页控制台里遥控 reBot B601-DM 机械臂
   category: vision_video_ai
   solution_type: solution
   tags:
