@@ -36,11 +36,11 @@ ssh:
 binary:
   # .deb package (init script K92rebot-teleop, symlink S92rebot-teleop)
   deb_package:
-    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/rebot-teleop_1.3.2_riscv64.deb
+    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/rebot-teleop_1.3.3_riscv64.deb
     name: rebot-teleop
     includes_init_script: true
     checksum:
-      sha256: 9d7f8b13e84a63ee5b281ba3529aafebf04a872ede6675760a8f532548354968
+      sha256: 608449f1489395d1a59bc7305461764e4699b24774194ecb66651706af5e9111
 
   # models: none in the package; see the YOLO note above.
 
