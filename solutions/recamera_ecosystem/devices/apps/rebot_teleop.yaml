@@ -1,6 +1,6 @@
 version: "1.0"
 id: rebot_teleop
-name: reBot Arm Teleop
+name: reBot Teleoperation & Vision
 type: recamera_cpp
 device_class: recamera
 
@@ -10,12 +10,16 @@ device_class: recamera
 # refuses to activate it on a camera without can0 and marks it unsupported in
 # the app list; the before-action below is the same check for SSH deploys.
 #
-# armd is not a camera app: it reads video from the camera app's H.264
-# WebSocket (:8001) and detections from its HTTP API (:8090). The console still
-# treats it as one gallery app among others: activating a camera app while
-# rebot-teleop is the active app stops rebot-teleop (appMgr/switch stops the
-# state.json active_script). The S92rebot-teleop symlink starts armd again at
-# the next boot, next to the camera app the console restores.
+# The package holds two processes: armd (arm control, web cockpit on :8765)
+# and rebot-vision, which owns the camera (H.264 WebSocket on :8001, YOLO on
+# the TPU and ArUco markers on the CPU on request, API on :8090). Its init
+# script stops a running camera app before starting rebot-vision, so no other
+# camera app is needed next to it. Activating another app in the console stops
+# rebot-teleop (appMgr/switch stops the state.json active_script).
+#
+# YOLO uses the model already on the device (rebot-vision searches
+# /userdata/rebot-teleop/models, /usr/share/supervisor/models and
+# /userdata/local/models); without one, ArUco still works.
 
 detection:
   method: network_scan
@@ -32,14 +36,13 @@ ssh:
 binary:
   # .deb package (init script K92rebot-teleop, symlink S92rebot-teleop)
   deb_package:
-    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/rebot-teleop_1.1.0_riscv64.deb
+    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/rebot-teleop_1.3.2_riscv64.deb
     name: rebot-teleop
     includes_init_script: true
     checksum:
-      sha256: a6ec600ec22400490a42bb7a55fc895487361b5f531c27eb97f1f9fcd92f4766
+      sha256: 9d7f8b13e84a63ee5b281ba3529aafebf04a872ede6675760a8f532548354968
 
-  # models: none. armd drives the motors; it runs no model and does not open
-  # the camera.
+  # models: none in the package; see the YOLO note above.
 
   service_name: rebot-teleop
   service_priority: 92
@@ -85,13 +88,13 @@ post_deployment:
   open_browser: false
 
 name_i18n:
-  zh: reBot 机械臂遥控
+  zh: reBot 机械臂遥控与视觉
 
 # --- Console install catalog copy -------------------------------------------
 # Read by scripts/generate_recamera_catalog.py (see recamera_yolo11.yaml).
-catalog_name: "reBot Arm Teleop"
+catalog_name: "reBot Teleoperation & Vision"
 catalog_name_i18n:
-  zh: "reBot 机械臂遥控"
-catalog_description: "Drive a reBot B601-DM arm from a phone or tablet browser on port 8765, with an API for AI agents and joint recording. Needs the B4 CAN base board; not for reCamera Pro"
+  zh: "reBot 机械臂遥控与视觉"
+catalog_description: "Drive a reBot B601-DM arm from a phone or tablet browser on port 8765, with an API for AI agents, hand-eye calibration and joint recording. Camera vision included: video, YOLO object detection and ArUco markers. Needs the B4 CAN base board; not for reCamera Pro"
 catalog_description_i18n:
-  zh: "在手机或平板浏览器（8765 端口）里遥控 reBot B601-DM 机械臂，并提供 AI 智能体接口和关节数据录制。需要 B4 CAN 底板，不支持 reCamera Pro"
+  zh: "在手机或平板浏览器（8765 端口）里遥控 reBot B601-DM 机械臂，并提供 AI 智能体接口、手眼标定和关节数据录制。已内置摄像头视觉：视频、YOLO 物体识别和 ArUco 标记识别。需要 B4 CAN 底板，不支持 reCamera Pro"
