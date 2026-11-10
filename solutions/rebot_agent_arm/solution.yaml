@@ -6,7 +6,7 @@ name_i18n:
 intro:
   summary: A single reCamera serves as both eyes and brain for the reBot arm. Mount it directly on the arm to drive 7 joint motors over CAN with no external industrial PC. Drive it immediately from a phone browser, or let AI agents take full closed-loop control over native tools.
   summary_i18n:
-    zh: 一台 reCamera 同时搞定机械臂的眼睛和大脑。装上机械臂即可直驱 7 个关节电机，免去外挂工控机与杂乱连线；手机扫码直接操控，AI 智能体通过原生接口闭环接管。
+    zh: 一台 reCamera 同时搞定机械臂的眼睛和大脑。装上机械臂即可直驱 7 个关节电机，免去外挂工控机与杂乱连线；手机直连热点即可操控，AI 智能体通过原生接口闭环接管。
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
