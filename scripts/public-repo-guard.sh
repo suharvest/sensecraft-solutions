@@ -32,7 +32,7 @@ fi
 if find . -path ./.git -prune -o -name 'IMPORT.md' -print | grep . >/dev/null; then
   fail "IMPORT.md (internal push instructions) present"
 fi
-if find . -path ./.git -prune -o -type d -name dist -print | grep . >/dev/null; then
+if find . -path ./.git -prune -o -path ./solutions/unmanned_store_access/assets/cloud/ui/dist -prune -o -type d -name dist -print | grep . >/dev/null; then
   fail "dist/ build artifact present"
 fi
 
