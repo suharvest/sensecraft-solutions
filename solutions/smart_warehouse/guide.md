@@ -1535,27 +1535,27 @@ Only for the reTerminal D1001 voice terminal. Skip this step and the next one if
 
 ## Step 12: Point the D1001 at Your Local Server (D1001 option) {#d1001_setup_edge_computing type=manual required=false}
 
-The D1001 ships pointing at the public Xiaozhi service, so it needs the same OTA-address override the Watcher gets — entered on the provisioning page, which the D1001 reaches through the boot button instead of a scroll button.
+The D1001 ships pointing at the public Xiaozhi service. You can configure both Wi-Fi and the local OTA server address directly on the touch screen.
 
 ### Wiring
 
 > 📖 **Engineering Reference:** For site survey constraints and wiring details, see [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/voice-warehouse-management/#how-to-deploy-on-site).
 
 
-1. Power the device on and click the boot button while it is still starting up — it enters Wi-Fi provisioning mode and broadcasts a setup hotspot
-2. Connect your phone to that hotspot; the setup page opens automatically (otherwise visit `http://192.168.4.1`)
-3. **Don't join WiFi yet** — open "**Advanced Options**", enter the OTA address of the voice service you deployed, and Save:
+1. Power on the device and tap the network icon in the top status bar to open network settings
+2. Select a **2.4GHz** Wi-Fi network and enter the password (or tap **Static IP** first if your network requires a fixed address)
+3. Scroll to the bottom of the Wi-Fi list, tap **OTA URL**, and enter the voice server OTA address:
 
    ```
    http://<Voice Server IP>:18002/xiaozhi/ota/
    ```
 
-4. Go back to the setup page, pick a **2.4GHz** network, enter the password, and connect
-5. In the console at `http://<Voice Server IP>:18002`, create the agent from the "Warehouse Assistant" role template, then copy its MCP endpoint under "Edit Functions"
+4. Tap **Save & Reboot**; the device restarts and connects to your local voice service (tap **Reset Default** anytime to restore official cloud service)
+5. In the console at `http://<Voice Server IP>:18002`, create an agent from the "Warehouse Assistant" role template, then copy its MCP endpoint under "Edit Functions"
 6. In the warehouse system, go to "Agent Configuration" → "Add Agent", paste the URL in the Endpoint field, then click "Save and Start"
-7. Click "MCP Endpoint" on the agent card and refresh — **Connected** means success
+7. Click "MCP Endpoint" on the agent card and refresh — **Connected** indicates success
 
-> Wi-Fi can also be set on the touch screen (network icon in the status bar), but the OTA address can only be entered on the provisioning page, so use the boot-button route the first time.
+> Alternative: If the touch screen is not convenient, you can click the boot button during startup to enter hotspot mode, connect your phone to `http://192.168.4.1`, and enter the OTA URL under "Advanced Options".
 
 ### Verify
 
@@ -1565,10 +1565,10 @@ Say "Xiaozhi Xiaozhi" to wake the device, then "Stock in 10 boxes of apples". Th
 
 | Symptom | Action |
 |-------|----------|
-| No setup hotspot appears | The click must land while the device is starting up; power-cycle and try again |
-| WiFi connection failed | 2.4GHz only; re-enter the password |
-| Nothing happens after the reboot | Make sure the OTA address uses the **server IP**, not localhost, and that device and server share a network |
+| Wi-Fi connection failed | 2.4GHz only; re-enter the password or verify static IP, gateway, and DNS settings |
+| Nothing happens after the reboot | Ensure the OTA URL starts with `http://` and uses the **server LAN IP** (not localhost), confirm the device finished rebooting, and verify both devices share the same local network |
 | Status stays Disconnected | Check the endpoint URL was copied in full, with no stray spaces |
+| Switch back to official service | Open the on-screen "OTA URL" page, tap "Reset Default", and reboot |
 
 ---
 
