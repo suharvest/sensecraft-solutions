@@ -20,9 +20,9 @@ firmware:
   # Multi-segment flash (no merged image: the face-model partition sits at
   # 0x1E00000 and a merged binary would carry ~20MB of 0xFF padding).
   source:
-    path: https://sensecraft-statics.seeed.cc/solution-app/smart_space_assistant/assets/d1001_firmware/xiaozhi-a45f6505.bin
+    path: https://sensecraft-statics.seeed.cc/solution-app/smart_space_assistant/assets/d1001_firmware/xiaozhi-8179b027.bin
     checksum:
-      sha256: a45f65058b72ad92cb75f534cfb32dfc8c03a06f3683d32da4fb3f03b0e8bfe4
+      sha256: 8179b0275cf4f17e02bca3c968234c9a825606742a126325a74628a2aefe3437
   flash_config:
     chip: esp32p4
     baud_rate: 921600
@@ -44,7 +44,7 @@ firmware:
         file: https://sensecraft-statics.seeed.cc/solution-app/smart_space_assistant/assets/d1001_firmware/ota_data_initial.bin
       - name: app
         offset: "0x200000"
-        file: https://sensecraft-statics.seeed.cc/solution-app/smart_space_assistant/assets/d1001_firmware/xiaozhi-a45f6505.bin
+        file: https://sensecraft-statics.seeed.cc/solution-app/smart_space_assistant/assets/d1001_firmware/xiaozhi-8179b027.bin
       - name: assets
         offset: "0x1000000"
         file: https://sensecraft-statics.seeed.cc/solution-app/smart_space_assistant/assets/d1001_firmware/generated_assets.bin
