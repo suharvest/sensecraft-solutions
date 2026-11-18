@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>if (window.parent !== window && new URLSearchParams(location.search).get('embedded') === '1') document.documentElement.classList.add('embedded');</script>
+  <title data-i18n="app.settingsTitle">场景设置 · 工时统计系统</title>
+  <link rel="stylesheet" href="/settings.css">
+  <link rel="stylesheet" href="/studio.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/"><span class="brand-mark">W</span><span><span data-i18n="app.name">工时统计系统</span> <small><span data-i18n="nav.monitor">工位监控</span></small></span></a>
+    <div class="language-switch" role="group" aria-label="界面语言" data-i18n-aria-label="nav.language"><button type="button" data-language="zh-CN" aria-pressed="true">中文</button><button type="button" data-language="en" aria-pressed="false">EN</button></div>
+    <a class="button secondary" href="/"><span data-i18n="nav.back">返回实时画面</span> <span aria-hidden="true">↗</span></a>
+  </header>
+  <main>
+    <div class="page-heading"><div><p class="eyebrow" data-i18n="config.eyebrow">设备设置</p><h1><span data-i18n="config.heading">让相机适应你的工位</span></h1><p class="intro"><span data-i18n="config.intro">划定观察范围，调整计时规则，统一管理画面隐私与检测图层。</span></p></div><div class="device-badges"><span id="connection" class="badge"><span data-i18n="camera.connectingDevice">正在连接设备</span></span><span id="revision" class="badge neutral"><span data-i18n="config.reading">读取配置中</span></span></div></div>
+    <nav class="studio-entry" aria-label="AI workspace">
+      <button type="button" data-studio="materials"><b data-i18n="studio.materials">物料计数</b><small data-i18n="studio.materialsBrief">划定区域 · 计数与核对</small></button>
+      <button type="button" data-studio="models"><b data-i18n="studio.models">模型管理</b><small data-i18n="studio.modelsBrief">上传 · 选择 · 切换模型</small></button>
+      <button type="button" data-studio="training"><b data-i18n="studio.training">训练中心</b><small data-i18n="studio.trainingBrief">采集 · 标注 · 本地训练</small></button>
+    </nav>
+    <section class="panel camera-source-panel" aria-labelledby="sourceTitle">
+      <div class="panel-heading"><div><p class="eyebrow" data-i18n="source.step">00 / 摄像头</p><h2 id="sourceTitle" data-i18n="source.title">摄像头接入</h2></div><span class="badge neutral" id="sourceCurrent"></span></div>
+      <p class="section-description" data-i18n="source.help">选择摄像头并测试连接，通过后点击保存并切换。切换会结束当前会话并重置区域草稿，需要重新确认检测区域。</p>
+      <div class="source-fields">
+        <label><span data-i18n="source.type">摄像头类型</span><select id="sourceType"><option value="rtsp" data-i18n="source.rtsp">网络 / PoE 摄像头（RTSP）</option><option value="usb" data-i18n="source.usb">USB 摄像头</option></select></label>
+        <div id="rtspFields" class="source-group">
+          <label class="source-url"><span data-i18n="source.url">RTSP 地址</span><input id="sourceUrl" type="url" placeholder="rtsp://camera.local:554/stream" autocomplete="off" spellcheck="false"></label>
+          <label><span data-i18n="source.username">用户名</span><input id="sourceUsername" autocomplete="off" spellcheck="false"></label>
+          <label><span data-i18n="source.password">密码</span><input id="sourcePassword" type="password" autocomplete="new-password"><small data-i18n="source.passwordHelp">同一地址和用户名，密码留空保留原密码。</small></label>
+          <label><span data-i18n="source.codec">视频编码</span><select id="sourceCodec"><option value="h264">H.264</option><option value="h265">H.265</option></select></label>
+        </div>
+        <div id="usbFields" class="source-group" hidden>
+          <label class="source-url"><span data-i18n="source.device">USB 设备</span><select id="sourceDevice"></select></label>
+          <label><span data-i18n="source.format">采集格式</span><select id="sourceFormat"></select></label>
+          <button id="refreshDevices" class="button secondary" type="button" data-i18n="source.refresh">刷新设备</button>
+        </div>
+      </div>
+      <p class="footnote" data-i18n="source.networkHelp">网络摄像头需与设备网络互通，PoE 供电由交换机或供电器提供。测试失败请检查地址、凭据、编码和摄像头连接数限制。</p>
+      <div class="source-actions"><button id="testSource" class="button secondary" type="button" disabled data-i18n="source.test">测试连接</button><button id="saveSource" class="button primary" type="button" disabled data-i18n="source.save">保存并切换摄像头</button><span id="sourceMessage" role="status" aria-live="polite"></span></div>
+    </section>
+    <div class="settings-grid">
+      <section class="panel editor-panel" id="editorPanel" aria-labelledby="regionTitle">
+        <div class="panel-heading"><div><p class="eyebrow" data-i18n="roi.step">01 / 场景</p><h2 id="regionTitle"><span data-i18n="roi.title">划定检测区域</span></h2></div><button class="button secondary" id="refreshFrame" type="button"><span data-i18n="roi.capture">重新取图</span></button></div>
+        <div class="region-tabs" role="group" aria-label="选择编辑区域" data-i18n-aria-label="roi.choose"><button type="button" class="region-tab active" data-region="station" aria-pressed="true"><i class="station-dot"></i><span data-i18n="roi.station">工位范围</span></button><button type="button" class="region-tab" data-region="seat" aria-pressed="false"><i class="seat-dot"></i><span data-i18n="roi.seat">在位判断区</span></button></div>
+        <p class="section-description" id="regionDescription"><span data-i18n="roi.stationHelp">圈出本工位的完整活动范围，包含人员站起与附近活动的位置。</span></p>
+        <div class="canvas-shell"><canvas id="roiCanvas" width="1280" height="720" aria-label="ROI区域编辑画布" data-i18n-aria-label="roi.canvas"></canvas><div class="canvas-empty" id="frameEmpty"><span data-i18n="roi.capturing">正在获取当前相机截图…</span></div><span class="image-label" id="imageLabel"><span data-i18n="roi.waiting">等待相机画面</span></span></div>
+        <div class="editor-toolbar" role="group" aria-label="绘图工具" data-i18n-aria-label="roi.tools"><button type="button" class="tool active" data-tool="rectangle" aria-pressed="true"><span data-i18n="roi.rectangle">▭ 矩形</span></button><button type="button" class="tool" data-tool="polygon" aria-pressed="false"><span data-i18n="roi.polygon">⬡ 多边形</span></button><button type="button" class="tool" data-tool="edit" aria-pressed="false"><span data-i18n="roi.edit">↖ 编辑顶点</span></button><span class="toolbar-divider"></span><button type="button" class="tool" id="finishPolygon"><span data-i18n="roi.finish">完成多边形</span></button><button type="button" class="tool" id="undo"><span data-i18n="roi.undo">撤销</span></button><button type="button" class="tool" id="clearRegion"><span data-i18n="roi.clear">清除本区</span></button><button type="button" class="tool" id="confirmRegions"><span data-i18n="roi.confirm">确认当前区域</span></button><button type="button" class="tool" id="fullscreen"><span data-i18n="video.fullscreen">全屏</span></button></div>
+        <p class="editor-hint" id="editorHint"><span data-i18n="roi.rectangleHint">在画面上按住并拖动，绘制矩形区域。支持鼠标与触摸。</span></p>
+        <div class="region-summary"><div><i class="station-dot"></i><span><span data-i18n="roi.station">工位范围</span></span><b id="stationCount">—</b></div><div><i class="seat-dot"></i><span><span data-i18n="roi.seat">在位判断区</span></span><b id="seatCount">—</b></div></div>
+        <p class="footnote"><span data-i18n="roi.notes">在位判断区应位于工位范围内。坐标按原图保存，缩放页面后仍与画面对齐。取图只冻结编辑画面，后台检测持续运行。</span></p>
+      </section>
+      <div class="settings-column">
+        <section class="panel" aria-labelledby="privacyTitle"><div class="panel-heading"><div><p class="eyebrow" data-i18n="display.step">02 / 显示</p><h2 id="privacyTitle"><span data-i18n="privacy.title">隐私与检测显示</span></h2></div></div>
+          <label class="switch-row privacy-row"><span><strong><span data-i18n="privacy.mask">头部与人脸马赛克</span></strong><small><span data-i18n="privacy.scope">统一控制直播、截图和新增保存素材</span></small></span><span class="switch"><input type="checkbox" id="privacy" role="switch"><span class="switch-track"></span></span></label>
+          <div class="privacy-status" id="privacyStatus"><span data-i18n="privacy.readSettings">读取隐私设置中…</span></div>
+          <label class="switch-row"><span><strong><span data-i18n="display.boxes">显示检测框</span></strong><small><span data-i18n="display.boxesHelp">人体边界与检测标签</span></small></span><span class="switch"><input type="checkbox" id="boxes" role="switch"><span class="switch-track"></span></span></label>
+          <label class="switch-row"><span><strong data-i18n="display.station">显示工位范围</strong><small data-i18n="display.stationHelp">工位范围蒙版、边界及名称</small></span><span class="switch"><input type="checkbox" id="station" role="switch"><span class="switch-track"></span></span></label>
+          <label class="switch-row"><span><strong data-i18n="display.seat">显示在位判断区</strong><small data-i18n="display.seatHelp">在位判断区蒙版、边界及名称</small></span><span class="switch"><input type="checkbox" id="seat" role="switch"><span class="switch-track"></span></span></label>
+          <label class="switch-row"><span><strong><span data-i18n="display.keypoints">显示关键点</span></strong><small><span data-i18n="display.keypointsHelp">关节、骨架与上半身判断点</span></small></span><span class="switch"><input type="checkbox" id="keypoints" role="switch"><span class="switch-track"></span></span></label>
+          <p class="footnote"><span data-i18n="display.note">显示开关只控制画面图层。隐私开启时，头脸打码由设备完成，脸部关键点在展示层隐藏。自动打码效果需结合现场遮挡情况验证。</span></p>
+        </section>
+        <section class="panel" aria-labelledby="detectionTitle" id="detectionPanel">
+          <div class="panel-heading"><div><p class="eyebrow" data-i18n="detection.step">03 / 检测</p><h2 id="detectionTitle" data-i18n="detection.title">检测参数</h2></div><button class="text-button" id="restoreDetectionDefaults" type="button" data-i18n="timing.defaults">恢复默认</button></div>
+          <div id="detectionFields"></div>
+          <p id="detectionError" class="detection-error" role="status" aria-live="polite" hidden></p>
+          <div class="rule-note"><strong data-i18n="detection.noteTitle">按场景调整筛选严格程度</strong><p data-i18n="detection.note">调高阈值会过滤更多低分结果，也可能漏掉远处、侧身或遮挡人员。参数影响计时与检测标注，隐私马赛克使用独立的保守候选。保存后结算当前会话并重新确认开工。</p></div>
+        </section>
+        <section class="panel" aria-labelledby="timingTitle"><div class="panel-heading"><div><p class="eyebrow" data-i18n="timing.step">04 / 时长</p><h2 id="timingTitle"><span data-i18n="timing.title">检测与计时规则</span></h2></div><button class="text-button" id="restoreDefaults" type="button"><span data-i18n="timing.defaults">恢复默认</span></button></div>
+          <div id="timingFields" class="timing-fields"></div>
+          <div class="rule-note"><strong><span data-i18n="timing.settlement">暂离时间如何结算</span></strong><p><span data-i18n="timing.note">当前规则下，暂离确认期内返回会补计工作时间；超过确认期，整段暂离计为休息。这里调整的是现有规则的时间参数。</span></p></div>
+        </section>
+        <section class="panel" aria-labelledby="visualizationTitle">
+          <div class="panel-heading"><h2 id="visualizationTitle" data-i18n="visualization.title">标注配色</h2><button id="restoreVisualization" class="text-button" type="button" data-i18n="timing.defaults">恢复默认</button></div>
+          <p data-i18n="visualization.help">分别设置区域、人物与姿态颜色。预览后点击保存并应用。</p>
+          <div id="visualizationFields" class="palette-fields"></div>
+          <canvas id="palettePreview" width="480" height="210" role="img" data-i18n-aria-label="visualization.preview" aria-label="标注配色预览"></canvas>
+        </section>
+      </div>
+    </div>
+    <section class="save-bar" aria-label="保存设置" data-i18n-aria-label="config.saveSection"><div><strong id="saveTitle"><span data-i18n="config.shared">设备级设置 · 所有观看者同步</span></strong><p id="saveImpact"><span data-i18n="config.impact">保存区域、时长或检测参数将结束当前工作会话，并按新配置重新确认开工。</span></p><p id="message" role="status" aria-live="polite"></p></div><div class="save-actions"><button type="button" class="button secondary" id="cancelChanges" title="放弃本页修改并重新读取设备配置" data-i18n-title="config.cancelTitle"><span data-i18n="config.cancel">取消修改</span></button><button type="button" class="button primary" id="saveSettings" disabled><span data-i18n="config.save">保存并应用</span></button></div></section>
+  </main>
+  <footer><span data-i18n="app.name">工时统计系统</span> <span><span data-i18n="config.persist">本页配置保存在设备，重启后自动加载。</span></span></footer>
+  <script type="module" src="/settings.js"></script>
+  <script type="module" src="/studio.js"></script>
+</body>
+</html>

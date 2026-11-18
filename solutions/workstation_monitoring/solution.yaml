@@ -1,0 +1,119 @@
+version: "1.0"
+id: workstation_monitoring
+name: Workstation Time and Material Monitoring
+name_i18n:
+  zh: 生产工位工时与物料监测
+# Top-level stats are read by the publish pipeline (scripts/publish_solutions.py);
+# intro.stats below is what the engine displays. Keep the two in sync.
+difficulty: intermediate
+estimated_time: 45min
+intro:
+  summary: Visual monitoring of operator worktime and material counts at production workstations, with on-site data collection, annotation and model training.
+  summary_i18n:
+    zh: 面向生产工位，通过视觉统计人员作业工时、监测物料数量，并支持现场数据采集、标注与模型训练。
+  description_file: description.md
+  description_file_i18n:
+    zh: description_zh.md
+  cover_image: gallery/demo.webp
+  category: vision_video_ai
+  solution_type: solution
+  tags: [jetson, docker, worktime, training, computer-vision]
+  stats:
+    difficulty: intermediate
+    estimated_time: 45min
+  gallery:
+    - type: image
+      src: gallery/camera-input.webp
+      caption: Camera input settings with RTSP and USB camera options
+      caption_i18n:
+        zh: 支持 RTSP 网络摄像头和 USB 摄像头的接入设置
+    - type: image
+      src: gallery/model-upload.png
+      caption: Models page with a custom detection model upload control
+      caption_i18n:
+        zh: 模型管理页面中的自定义检测模型上传入口
+    - type: image
+      src: gallery/detection-regions.png
+      caption: Detection region settings with rectangle, polygon and vertex editing tools
+      caption_i18n:
+        zh: 支持矩形、多边形和顶点编辑的检测区域设置
+  input_requirements:
+    - type: rtsp
+      required: false
+      description: IP or PoE camera via RTSP; configure it in the dashboard after deployment
+      description_i18n:
+        zh: RTSP 网络 / PoE 摄像头；部署完成后在看板中配置
+    - type: usb
+      required: false
+      description: USB V4L2 camera connected to the Jetson (alternative to RTSP)
+      description_i18n:
+        zh: 连接到 Jetson 的 USB V4L2 摄像头（与 RTSP 二选一）
+    - type: network
+      required: true
+      description: LAN reachability from the deployer and the viewing browser to the Jetson (SSH and web/WebRTC ports)
+      description_i18n:
+        zh: 部署工具与观看浏览器需经局域网直达 Jetson（SSH 与网页/WebRTC 端口）
+  presets:
+    - id: jetson_local
+      name: Jetson local deployment
+      name_i18n:
+        zh: Jetson 本地部署
+      badge: Beta
+      badge_i18n:
+        zh: 测试版
+      description: Deploy the application to your Jetson through SSH, then configure the camera in the browser.
+      description_i18n:
+        zh: 通过 SSH 部署到自己的 Jetson，再在网页中配置摄像头。
+      # Hardware attestation: verified on reComputer Industrial J40 (Orin NX 16GB),
+      # JetPack 6.2 / L4T 36.4.3 — see docs/validation.md for the measured record.
+      # Other baseline-compatible modules ship the same pinned image.
+      verified:
+        - hardware
+      device_groups:
+        - id: edge_device
+          name: Jetson Orin
+          name_i18n:
+            zh: Jetson Orin 设备
+          description: |
+            JetPack 6.2 / L4T 36.4.3, Ubuntu 22.04 and kernel 5.15.148-tegra.
+            reComputer J40 (Orin NX 8GB / 16GB) or reComputer J30 (Orin Nano 8GB), with at least 8GB of memory.
+            Hardware-verified on reComputer Industrial J40 with Orin NX 16GB.
+          description_i18n:
+            zh: |
+              JetPack 6.2 / L4T 36.4.3、Ubuntu 22.04，内核 5.15.148-tegra。
+              reComputer J40（Orin NX 8GB / 16GB）或 reComputer J30（Orin Nano 8GB），内存至少 8GB。
+              已在搭载 Orin NX 16GB 的 reComputer Industrial J40 上真机验证。
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_j40
+            - device_ref: recomputer_j30
+          default: recomputer_j40
+  device_catalog:
+    recomputer_j40:
+      description: reComputer J40 with Jetson Orin NX 8GB / 16GB; recommended for production workstation monitoring and local model training.
+      description_i18n:
+        zh: reComputer J40（Jetson Orin NX 8GB / 16GB），推荐用于生产工位监测与本地模型训练。
+      purchase:
+        require:
+          module: [orin_nx_16, orin_nx_8]
+    recomputer_j30:
+      description: reComputer J30 with Jetson Orin Nano 8GB runs the same application; preview uses software H.264.
+      description_i18n:
+        zh: reComputer J30（Jetson Orin Nano 8GB），运行同一应用，预览采用软件 H.264。
+      purchase:
+        require:
+          module: [orin_nano_8]
+  output_interfaces:
+    - type: http
+      port: 8088
+      endpoint: /
+      description: Web dashboard, model management and training center
+      description_i18n:
+        zh: 网页看板、模型管理与训练中心
+      schema_type: binary
+deployment:
+  guide_file: guide.md
+  guide_file_i18n:
+    zh: guide_zh.md
+  selection_mode: sequential

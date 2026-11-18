@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675">
+  <rect width="1200" height="675" fill="#142720"/>
+  <rect x="68" y="64" width="1064" height="547" rx="24" fill="#203c30" stroke="#5b9573" stroke-width="2"/>
+  <text x="112" y="164" font-family="sans-serif" font-size="52" font-weight="700" fill="#ffffff">生产工位工时与物料监测</text>
+  <text x="112" y="216" font-family="sans-serif" font-size="26" fill="#b8d9c3">Workstation Time and Material Monitoring</text>
+  <rect x="112" y="267" width="608" height="272" rx="12" fill="#12231c"/>
+  <path d="M150 490V310H680V490Z" fill="none" stroke="#77bf8d" stroke-width="3" stroke-dasharray="12 8"/>
+  <circle cx="415" cy="334" r="22" fill="#bfddbd"/>
+  <path d="M415 358V426M415 378L370 406M415 378L460 406M415 426L381 481M415 426L449 481" fill="none" stroke="#bfddbd" stroke-width="10" stroke-linecap="round"/>
+  <text x="772" y="320" font-family="sans-serif" font-size="23" fill="#b8d9c3">ACTIVE SESSION</text>
+  <text x="772" y="388" font-family="monospace" font-size="48" fill="#ffffff">00:24:18</text>
+  <text x="772" y="456" font-family="sans-serif" font-size="22" fill="#b8d9c3">Ubuntu 22.04</text>
+  <text x="772" y="493" font-family="sans-serif" font-size="22" fill="#b8d9c3">L4T 36.4.3 · ARM64</text>
+</svg>

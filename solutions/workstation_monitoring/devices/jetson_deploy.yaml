@@ -1,0 +1,136 @@
+version: "1.0"
+id: jetson_worktime
+name: Workstation Time and Material Monitoring
+name_i18n:
+  zh: 生产工位工时与物料监测
+type: docker_deploy
+# The strict release preflight owns compatibility checks. Avoid the generic
+# Jetson profile, which can restart Docker before the training safety gate.
+
+device_detection:
+  - type: shell
+    command: >-
+      python3 -c 'from pathlib import Path; import platform;
+      release=Path("/etc/nv_tegra_release").read_text();
+      assert "# R36 " in release and "REVISION: 4.3," in release;
+      assert platform.machine()=="aarch64";
+      assert platform.release()=="5.15.148-tegra";
+      assert "VERSION_ID=\"22.04\"" in Path("/etc/os-release").read_text()'
+    description: Verify Ubuntu 22.04, L4T 36.4.3 and the supported ARM64 kernel
+    on_failure:
+      message: This release requires Ubuntu 22.04 ARM64, L4T 36.4.3 and kernel 5.15.148-tegra.
+      message_i18n:
+        zh: 此版本需要 Ubuntu 22.04 ARM64、L4T 36.4.3 和 5.15.148-tegra 内核。
+
+docker:
+  compose_file: assets/docker/docker-compose.yml
+  compose_dir: assets/docker
+  remote_path: .sensecraft/deployments
+  environment:
+    WORKTIME_PORT: "{{http_port}}"
+    WORKTIME_MEDIA_PORT_OFFSET: "{{media_port_offset}}"
+    WORKTIME_ENCODER: "{{encoder}}"
+  options:
+    project_name: jetson_worktime
+    remove_orphans: false
+  offline:
+    arch: aarch64
+    images:
+      - chenduola6/jetson-worktime:0.1.0-rc1-jp62-r36.4.3
+  services:
+    - name: web
+      required: true
+    - name: trainer
+      required: true
+
+ssh:
+  port: 22
+  default_user: recomputer
+  auth_methods: [password, key]
+  connection_timeout: 30
+  command_timeout: 7200
+
+user_inputs:
+  - id: http_port
+    name: Web port
+    name_i18n:
+      zh: 网页端口
+    type: number
+    default: "8088"
+    required: true
+    validation:
+      min: "1024"
+      max: "65535"
+  - id: media_port_offset
+    name: Media port offset
+    name_i18n:
+      zh: 媒体端口偏移
+    type: number
+    default: "0"
+    required: true
+    validation:
+      min: "0"
+      max: "55000"
+  - id: encoder
+    name: Video encoder
+    name_i18n:
+      zh: 视频编码方式
+    type: select
+    default: auto
+    options:
+      - value: auto
+        label: Automatic
+      - value: nvidia
+        label: NVIDIA hardware encoder
+      - value: x264
+        label: Software H.264
+
+pre_checks:
+  - type: disk_space
+    min_gb: 18
+    description: Space for image download, extraction, persistent data and rollback
+
+deploy_timeout: 10800
+
+actions:
+  after_upload:
+    - name: Prepare the device configuration
+      env:
+        COMPOSE_PROJECT_NAME: jetson_worktime
+        DEPLOYMENT_DIR: "{{deployment_dir}}"
+        WORKTIME_PORT: "{{http_port}}"
+        WORKTIME_MEDIA_PORT_OFFSET: "{{media_port_offset}}"
+        WORKTIME_ENCODER: "{{encoder}}"
+      run: |
+        set -eu
+        case "$DEPLOYMENT_DIR" in *'{{'*|'') echo 'Upgrade the deployment engine to a version with Docker release hooks.' >&2; exit 1;; esac
+        python3 "$DEPLOYMENT_DIR/scripts/release.py" configure
+      timeout: 120
+  before_start:
+    - name: Prepare a recoverable release
+      env:
+        COMPOSE_PROJECT_NAME: jetson_worktime
+        DEPLOYMENT_DIR: "{{deployment_dir}}"
+        DEPLOYMENT_ID: "{{deployment_id}}"
+      run: python3 "$DEPLOYMENT_DIR/scripts/release.py" prepare "$DEPLOYMENT_ID"
+      timeout: 240
+  after:
+    - name: Commit the verified release
+      env:
+        COMPOSE_PROJECT_NAME: jetson_worktime
+        DEPLOYMENT_DIR: "{{deployment_dir}}"
+        DEPLOYMENT_ID: "{{deployment_id}}"
+      run: python3 "$DEPLOYMENT_DIR/scripts/release.py" commit "$DEPLOYMENT_ID"
+      timeout: 30
+  on_failure:
+    - name: Restore the previous release
+      env:
+        COMPOSE_PROJECT_NAME: jetson_worktime
+        DEPLOYMENT_DIR: "{{deployment_dir}}"
+        DEPLOYMENT_ID: "{{deployment_id}}"
+      run: python3 "$DEPLOYMENT_DIR/scripts/release.py" rollback "$DEPLOYMENT_ID"
+      timeout: 240
+
+post_deployment:
+  open_browser: true
+  url: "http://{{host}}:{{http_port}}/"

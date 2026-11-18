@@ -1,0 +1,10 @@
+**/__pycache__
+**/._*
+**/.DS_Store
+**/.env*
+app/data
+app/logs
+app/outputs
+app/.venv
+app/reports
+app/tests
