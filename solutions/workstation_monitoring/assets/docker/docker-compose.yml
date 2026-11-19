@@ -1,0 +1,90 @@
+name: jetson_worktime
+
+x-application: &application
+  image: ${WORKTIME_IMAGE:-chenduola6/jetson-worktime:0.1.0-rc1-jp62-r36.4.3}
+  platform: linux/arm64
+  init: true
+  user: "${WORKTIME_UID:-1000}:${WORKTIME_GID:-1000}"
+  read_only: true
+  group_add:
+    - "${WORKTIME_VIDEO_GID:-44}"
+    - "${WORKTIME_RENDER_GID:-104}"
+  environment: &environment
+    WORKTIME_UID: ${WORKTIME_UID:-1000}
+    WORKTIME_GID: ${WORKTIME_GID:-1000}
+    WORKTIME_PORT: ${WORKTIME_PORT:-8088}
+    WORKTIME_MEDIA_PORT_OFFSET: ${WORKTIME_MEDIA_PORT_OFFSET:-0}
+    WORKTIME_ENCODER: ${WORKTIME_ENCODER:-auto}
+    WORKTIME_DEVICE_MODEL_PATH: /run/jetson/model
+    WORKTIME_USB_DEVICE_ROOT: /host-dev
+    WORKTIME_RELEASE_STATE: /opt/jetson-worktime/release-state/release.json
+    TZ: ${TZ:-Asia/Shanghai}
+  volumes:
+    - ./persistent/configs:/opt/jetson-worktime/configs
+    - ./persistent/data:/opt/jetson-worktime/data
+    - ./persistent/outputs:/opt/jetson-worktime/outputs
+    - ./persistent/logs:/opt/jetson-worktime/logs
+    - ./release-state:/opt/jetson-worktime/release-state:ro
+  tmpfs:
+    - /tmp:size=256m,mode=1777
+  logging:
+    driver: local
+    options:
+      max-size: "20m"
+      max-file: "5"
+  security_opt:
+    - no-new-privileges:true
+
+services:
+  init:
+    <<: *application
+    user: "0:0"
+    command: [init]
+    restart: "no"
+    network_mode: none
+
+  trainer:
+    <<: *application
+    command: [trainer]
+    network_mode: none
+    runtime: nvidia
+    restart: unless-stopped
+    stop_grace_period: 60s
+    shm_size: "256m"
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: [CMD, python3, -c, "from pathlib import Path; import time; p=Path('data/agent-heartbeat'); assert p.exists() and time.time()-p.stat().st_mtime<30"]
+      interval: 10s
+      timeout: 5s
+      start_period: 90s
+      retries: 3
+
+  web:
+    <<: *application
+    command: [web]
+    runtime: nvidia
+    network_mode: host
+    restart: unless-stopped
+    stop_grace_period: 45s
+    shm_size: "512m"
+    device_cgroup_rules:
+      - "c 81:* rmw"
+    volumes:
+      - ./persistent/configs:/opt/jetson-worktime/configs
+      - ./persistent/data:/opt/jetson-worktime/data
+      - ./persistent/outputs:/opt/jetson-worktime/outputs
+      - ./persistent/logs:/opt/jetson-worktime/logs
+      - ./release-state:/opt/jetson-worktime/release-state:ro
+      - /dev:/host-dev:ro
+      - /proc/device-tree/model:/run/jetson/model:ro
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: [CMD, python3, -c, "import os,urllib.request; urllib.request.build_opener(urllib.request.ProxyHandler({})).open('http://127.0.0.1:'+os.environ.get('WORKTIME_PORT','8088')+'/health/ready',timeout=3).close()"]
+      interval: 10s
+      timeout: 5s
+      start_period: 120s
+      retries: 6

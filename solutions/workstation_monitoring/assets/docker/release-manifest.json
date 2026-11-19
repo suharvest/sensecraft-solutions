@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "image": "chenduola6/jetson-worktime:0.1.0-rc1-jp62-r36.4.3",
+  "image_id": "sha256:19d0ad6e354d1d21c8a6e34c7ef37e5a0f1e21e6ddcac7449639ea4fdc211069",
+  "platform": "linux/arm64",
+  "rootfs_diff_ids": [
+    "sha256:10258f3792de8f022e9db43154fc26c5ded35510de2c31d21f546e846c065dbb",
+    "sha256:12fb9e0c3fba130efd50fed54fdfd34d2f2047b983c5e233f225374162119ec6",
+    "sha256:4330baf19371c069cd248b97ff099b92d39556b6313555b2ba03580a72fedca1",
+    "sha256:39b127fed02a8dc4b12d03abf3ebb4309a61a4b024aa93cbc7b3c0426435bb7b",
+    "sha256:56571cae23543979323b63dbb7d85d74f0dbb07135163391a78946fd585b86e8",
+    "sha256:1bd810993a9d6d5b4c962a4af618c2e55af4b31f9659fab17774d4c036c06398",
+    "sha256:8b1a655f71a89a27cf208fb4965fa927a520c555784dbe8b297005f8d61603eb",
+    "sha256:c804c3815e39b3e0e35c13261a67fba193face1ce9c2ae810e0099d2f10dedb2",
+    "sha256:289450002be347c710bf253c1068443183231f3d1932764996a983cd51752c10",
+    "sha256:dc0c05e86f3733139574d56c1ce8ae31215f4813c256522bc043424380268016",
+    "sha256:20c9c1032ec19b421a69a0a85ad92ed3f38749098c0f2b3ebd242edbbb660a40",
+    "sha256:5f70bf18a086007016e948b04aed3b82103a36bea41755b6cddfaf10ace3c6ef"
+  ],
+  "source_sha256": "e133c28e1998d8472d56bc415d945aeb1d4566cec0432b3f9a9e867c703f1d21",
+  "created_at": "2026-11-16T18:05:40.092803014+08:00",
+  "compatibility": {
+    "ubuntu": "22.04",
+    "l4t": "36.4.3",
+    "kernel": "5.15.148-tegra",
+    "modules": [
+      "Orin NX 8GB",
+      "Orin NX 16GB",
+      "Orin Nano 8GB"
+    ]
+  },
+  "runtime": {
+    "cuda": "12.6.68",
+    "cudnn": "9.3.0.75",
+    "tensorrt": "10.3.0.30",
+    "torch": "2.7.0",
+    "torchvision": "0.22.0"
+  },
+  "resources": {
+    "mediamtx/mediamtx": {
+      "bytes": 66362178,
+      "sha256": "a1621ba39c0aa58430809df28263865e37a75bb4d2f1c87e642ddf5f3f67b19d"
+    },
+    "models/yolo11n-pose.pt": {
+      "bytes": 6255593,
+      "sha256": "869e83fcdffdc7371fa4e34cd8e51c838cc729571d1635e5141e3075e9319dc0"
+    },
+    "pretrained/yolo11l.pt": {
+      "bytes": 51387343,
+      "sha256": "9ebd0e09d59811db4b1d61e2bc6730649608b1ac47f8dd01e2da6bca7c20023f"
+    },
+    "pretrained/yolo11m.pt": {
+      "bytes": 40684120,
+      "sha256": "d5ffc1a674953a08e11a8d21e022781b1b23a19b730afc309290bd9fb5305b95"
+    },
+    "pretrained/yolo11n.pt": {
+      "bytes": 5613764,
+      "sha256": "0ebbc80d4a7680d14987a577cd21342b65ecfd94632bd9a8da63ae6417644ee1"
+    },
+    "uv": {
+      "bytes": 31728432,
+      "sha256": "7d60258dc76bca41d7b3591cdd829fa9633827fad944970bf5e1fb2a8c01476d"
+    },
+    "wheels/SHA256SUMS": {
+      "bytes": 223,
+      "sha256": "248cb729bd6c16371d5f14abb1bc305cd35f2877f3a65098a57575d32af6a5d1"
+    },
+    "wheels/torch-2.7.0-cp310-cp310-linux_aarch64.whl": {
+      "bytes": 266741529,
+      "sha256": "6eff643c0a7acda92734cc798338f733ff35c7df1a4434576f5ff7c66fc97319"
+    },
+    "wheels/torchvision-0.22.0-cp310-cp310-linux_aarch64.whl": {
+      "bytes": 5324865,
+      "sha256": "7e273be5d71914c03dfb8b05a96d5e5115807471677d069cef3020ba02f59b7d"
+    }
+  },
+  "registry_digest": "chenduola6/jetson-worktime@sha256:19d0ad6e354d1d21c8a6e34c7ef37e5a0f1e21e6ddcac7449639ea4fdc211069"
+}
