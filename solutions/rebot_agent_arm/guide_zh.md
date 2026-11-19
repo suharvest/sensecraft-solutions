@@ -1,156 +1,164 @@
-## 套餐: reCamera + reBot B601-DM {#default}
+## 套餐: reCamera + reBot B601-DM：真机遥操与 AI 控制 {#default}
 
-在 reCamera 上安装 reBot 遥控应用，在这台电脑上安装 AI 智能体服务（MCP），然后打开控制台移动机械臂，并用 ArUco 标记完成手眼标定。
+在 reCamera 上安装 `rebot-teleop`，通过网页控制台遥控机械臂与完成标定，并按需在这台电脑安装 `rebot-mcp` 接入 AI 智能体控制。
 
-| 设备 | 用途 |
-|------|------|
-| 装 B4 CAN 底板的 reCamera（SG2002） | 运行机械臂程序、网页控制台和摄像头视觉（同一个应用：rebot-teleop） |
-| reBot B601-DM 机械臂 | 接在 B4 底板的 CAN 口 |
-| 这台电脑 | 执行部署，运行 AI 智能体服务 |
-
-**部署完成后你可以：**
-- 在手机、平板或电脑浏览器打开 `http://<摄像头>:8765` 遥控机械臂
-- 同一个应用里提供摄像头画面、YOLO 目标检测和 ArUco 标记识别
-- 通过 MCP 服务让这台电脑上的 AI 智能体读取状态、查看摄像头画面并移动机械臂
-- 用 ArUco 标记做手眼标定
-
-**前提条件：** 装 B4 CAN 底板的 reCamera（不支持 reCamera Pro）· 机械臂电源 · 部署时这台电脑能联网 · 标定需要打印 4x4_50 字典的 ArUco 标记（默认边长 5 cm）
+**前提条件：** 装 B4 CAN 底板的 reCamera（不支持 reCamera Pro）· reBot B601-DM 机械臂与 12–24 V 直流电源（共地）· 本机可联网 · 标定需打印 4x4_50 ArUco 标记（5 cm）
 
 ## 步骤 1: 在摄像头上安装 reBot 遥控 {#install_teleop type=recamera_console_app required=true config=devices/rebot_teleop.yaml}
 
-安装 rebot-teleop 应用：机械臂控制、网页控制台和摄像头视觉。
-
-### 前置条件
-
-1. 摄像头通过 USB 连接（`192.168.42.1`），或与这台电脑在同一网络。
-2. 登录账号为 `recamera` / `recamera`（早期固件为 `recamera.2`）。
-3. 摄像头仍处于出厂 Node-RED 模式时，部署会提示先安装 reCamera 控制台。确认后会接着安装应用。
+将 `rebot-teleop` 部署到 reCamera（USB 连接为 `192.168.42.1`，或与电脑处于同一局域网；默认账号 `recamera` / `recamera`，早期固件为 `recamera.2`）。若摄像头处于出厂 Node-RED 模式，按提示先确认安装 reCamera 控制台即可。
 
 ### 接线
 
-1. 关闭机械臂电源和摄像头。
-2. 把机械臂的 CAN 线接到 B4 底板的 J2：5 脚 `CAN_H`（红线），6 脚 `CAN_L`（黑线）。
-3. J2 的 1/2 脚接 12–24 V 直流电源，3/4 脚接地；摄像头和机械臂电源共地。
-4. 上电，等摄像头启动约一分钟，然后点击**部署**。
+1. 关闭机械臂电源与摄像头电源。
+2. 将机械臂 CAN 线接到 B4 底板 J2：5 脚 `CAN_H`（红线），6 脚 `CAN_L`（黑线）。
+3. J2 的 1/2 脚接 12–24 V 直流电源，3/4 脚接 GND（摄像头与机械臂电源共地）。
+4. 上电后等待约 1 分钟启动，然后点击**部署**。
 
 ### 部署完成
 
-rebot-teleop 成为当前运行的应用。它运行 `armd`（控制台地址 `http://<摄像头>:8765`）和 `rebot-vision`（视频 `ws://<摄像头>:8001/`，按需运行 YOLO 和 ArUco）。摄像头还会开出 Wi-Fi 热点 `reCamera-Arm-Teleop`（默认密码 `12345678`，摄像头地址 `192.168.16.1`），供手机连接。在控制台里使能之前，机械臂不上力矩。
-
-应用已包含摄像头视觉，不需要再装其他摄像头应用。在 reCamera 控制台里启用其他应用会停止 rebot-teleop。
+`rebot-teleop` 会运行 `armd`（`http://<摄像头>:8765`）、视觉服务以及 Wi-Fi 热点 `reCamera-Arm-Teleop`（默认密码 `12345678`，地址 `192.168.16.1`）。使能前机械臂不上力矩；在控制台启用其他应用会停止 `rebot-teleop`。
 
 ### 故障排查
 
 | 问题 | 解决方法 |
-|------|----------|
-| 提示 "missing hardware capability: can" | 摄像头没有 B4 CAN 底板，或 `can0` 没有启动。检查底板后重启摄像头 |
-| 提示 "'rebot-teleop' is not in the catalog" | 这台电脑访问不了 `sensecraft-statics.seeed.cc`，或应用目录比本方案旧。检查网络后重新部署 |
-| 登录被拒绝 | 使用摄像头账号：`recamera` / `recamera`（或 `recamera.2`） |
-| 存储空间不足 | 在控制台的应用页面卸载不用的应用 |
-| 用过控制台后机械臂控制台打不开 | 启用了其他应用。在控制台的应用页面重新启用 rebot-teleop |
+|---|---|
+| 提示 `"missing hardware capability: can"` | 检查 B4 CAN 底板是否插牢并重启摄像头 |
+| 登录被拒绝 | 使用账号 `recamera` / `recamera`（早期固件为 `recamera.2`） |
+| 用过控制台后机械臂页面打不开 | 启用了其他应用，在控制台的应用页面重新启用 `rebot-teleop` |
 
 ---
 
-## 步骤 2: 在这台电脑上安装 AI 智能体服务 {#install_mcp type=script required=true config=devices/mcp_server.yaml}
+## 步骤 2: 打开控制台进行遥操与标定 {#open_cockpit type=web_dashboard required=true config=devices/cockpit.yaml}
 
-从 [rebot-companion](https://github.com/Seeed-Solution/rebot-companion) 安装 `rebot-mcp`，并接入 Claude Code 或 Claude Desktop。
+### 操作检查清单
 
-### 前置条件
+1. 在手机、平板或电脑打开 `http://<host>:8765`，确认实时视频、CAN 状态与 7 关节遥测正常刷新。
+2. 按住力矩开关使能机械臂，测试虚拟摇杆点动或笛卡尔 XYZ/RPY 移动。
+3. 将常用工位（如 `scan`、`bin_a`、`bin_b`）保存为命名位姿。
+4. *(可选)* ArUco 手眼标定：桌面平放单个 5 cm `4x4_50` 标记 → 打开**手眼标定**选**相机在夹爪上** → 采集 5–9 个不同角度 → 点击**求解标定**并**导出配置**。
 
-1. 这台电脑能联网。没有 [uv](https://docs.astral.sh/uv/) 时，这一步会用官方安装脚本装上；uv 会自己下载 Python。不需要 git。
-2. 填写智能体连接摄像头用的地址：USB 为 `192.168.42.1`，连机械臂热点时为 `192.168.16.1`。
-
-### 部署完成
-
-`rebot-mcp` 已作为 uv 工具安装。服务跑在这台电脑上，通过网络连接机械臂；摄像头上不需要另外安装任何东西。
-
-- **Claude Code**：如果装了 `claude` 命令行，服务会以 `rebot` 的名字注册到当前用户。用 `claude mcp list` 查看。
-- **Claude Desktop**：把部署日志末尾打印的 `mcpServers` 配置复制到 `claude_desktop_config.json`（Claude Desktop：**Settings → Developer → Edit Config**），然后重启 Claude Desktop。Cursor、Windsurf 等使用 `mcpServers` 格式的客户端用同一段配置。
-
-智能体可用的工具（14 个）：`get_state`、`snapshot`、`snapshot_annotated`、`detect`（pipelines 可选 `yolo`、`aruco` 或两者）、`move_to`、`move_relative`、`gripper`、`home`、`park`、`stop`、`e_stop`、`enable`、`take_control`、`release_control`。
-
-默认安全设置：
-- 智能体不能解除急停或故障，需要人在控制台里解除。只有服务以 `--allow-clear-fault` 启动时才会出现 `clear_fault` 工具。
-- 智能体不能从控制台手里抢走控制权。只有加 `--allow-preempt` 才能强制接管。
-- 摄像头上的 `armd` 会限制工作空间和速度，控制方停止响应时由控制权看门狗把机械臂收回停放位。
-
-#### 手动安装
-
-与 rebot-companion README 中的命令一致：
-
-```bash
-git clone https://github.com/Seeed-Solution/rebot-companion
-cd rebot-companion
-uv sync --extra agent
-claude mcp add rebot -- uv run --directory /path/to/rebot-companion --extra agent rebot-mcp \
-  --armd http://192.168.42.1:8765
-```
-
-Claude Desktop 在 `mcpServers` 里加入：
-
-```json
-{
-  "mcpServers": {
-    "rebot": {
-      "command": "uv",
-      "args": ["run", "--directory", "/path/to/rebot-companion", "--extra", "agent",
-               "rebot-mcp", "--armd", "http://192.168.42.1:8765"]
-    }
-  }
-}
-```
-
-视频流默认是 `ws://192.168.42.1:8001/`；摄像头用其他地址时，加上 `--camera-ws ws://<摄像头>:8001/`。
+真机运动时请始终确保有人在物理断电开关旁监护。
 
 ### 故障排查
 
 | 问题 | 解决方法 |
-|------|----------|
-| uv 安装失败 | 按 [docs.astral.sh/uv](https://docs.astral.sh/uv/getting-started/installation/) 手动安装 uv，然后重新部署这一步 |
-| 智能体返回 `LEASE_BUSY` | 控制台持有控制权。在控制台里释放，或关闭控制台后让智能体调用 `take_control` |
-| 智能体返回 `CAMERA_UNAVAILABLE` 或 `DETECTOR_UNAVAILABLE` | 摄像头上当前运行的不是 rebot-teleop。在控制台的应用页面启用它 |
-| 智能体返回 `ESTOP_ACTIVE` 或 `FAULT_ACTIVE` | 检查机械臂后，在控制台里解除 |
-| Claude Code 里没有 `rebot` | 运行 `claude mcp list`；没有的话执行上面的手动命令 |
-| Claude Desktop 里看不到 `rebot` 工具 | 检查 JSON 格式正确、`command` 路径存在，然后重启 Claude Desktop |
+|---|---|
+| 页面打不开 | 检查 IP（USB 为 `192.168.42.1`，热点为 `192.168.16.1`）并确认 `rebot-teleop` 运行中 |
+| 没有画面 | 等待几秒让 `rebot-vision` 自动重启，或在控制台重启 `rebot-teleop` |
+| 机械臂无法使能 | 检查 12–24 V 机械臂供电与 J2 CAN 接线 |
+| 残差偏大 / 进入观察者模式 | 采集时保持标记与机械臂静止并剔除异常帧；观察者模式说明其他端持有控制权 |
 
 ---
 
-## 步骤 3: 打开控制台并完成标定 {#open_cockpit type=web_dashboard required=true config=devices/cockpit.yaml}
+## 步骤 3: 在这台电脑上安装 AI 智能体服务 {#install_mcp type=script required=false config=devices/mcp_server.yaml}
 
-打开控制台，移动机械臂，并用 ArUco 标记完成手眼标定。
+可选步骤：在本机安装 `rebot-mcp`（自动继承步骤 1 的设备 IP），让 AI 智能体通过 24 个 MCP 工具读取画面状态并控制机械臂。
 
-### 部署完成
-
-#### 检查遥控
-
-1. 在手机、平板或这台电脑上打开 `http://<摄像头>:8765`。
-2. 页面显示摄像头画面；专家模式下连接状态显示 CAN 反馈，关节表实时刷新。
-3. 按住力矩开关使能机械臂，再用摇杆把 J1 点动几度。
-
-#### 手眼标定（ArUco 标记）
-
-1. 打印 4x4_50 字典的 ArUco 标记（默认边长 5 cm），平贴在桌面上。
-2. 打开**手眼标定**，**相机安装方式**选**相机在夹爪上**。
-3. 移动机械臂，从不同角度拍到标记并采集位姿：至少 5 个，建议 9 个。画面里只保留一个标记。
-4. 点击**求解标定**，查看给出的 RMSE，再点击**导出配置**。rebot-companion 用 `HandEyeCalibration.load_result` 加载导出的 JSON。
-
-#### 检测叠加
-
-1. 打开识别，选择 YOLO、ArUco 或两者；画面上会画出检测框和标记。
-2. 点选抓取只在仿真中测试过；尝试时手放在急停上。
-
-#### 试试智能体
-
-对 Claude 说："读取机械臂状态，拍一张照片，告诉我摄像头看到了什么。"需要智能体移动机械臂时，先关闭控制台或在控制台里释放控制权。
+- **连接客户端**：已安装 Claude Code 时会自动注册 `rebot`（可用 `claude mcp list` 查看）；Claude Desktop、Cursor 或 Windsurf 请复制步骤日志末尾的 `mcpServers` JSON 到配置文件后重启客户端。
+- **测试指令**：*"先调用 `describe_safety` 和 `get_state`，拍一张照片告诉我摄像头看到了什么。"*
+- **安全规则**：让 AI 移动机械臂前必须先在控制台释放控制权；已锁存的故障与急停只能人工在网页控制台解除。
 
 ### 故障排查
 
 | 问题 | 解决方法 |
-|------|----------|
-| 页面打不开 | 检查地址（USB 为 `192.168.42.1`，热点为 `192.168.16.1`），并确认控制台里当前运行的是 rebot-teleop |
-| 没有画面 | rebot-vision 会自动重启，等几秒。一直黑屏时，在控制台的应用页面重启 rebot-teleop |
-| YOLO 显示不可用 | 摄像头上没有 YOLO11n 模型；应用使用设备上已有的模型。ArUco 和标定不受影响 |
-| 控制台进入观察者模式 | 另一个客户端（例如 AI 智能体）持有控制权；在控制台确认接管，或停止智能体 |
-| 机械臂无法使能 | 检查机械臂电源和 J2 上的 CAN 接线 |
-| 显示急停或故障 | 检查机械臂后在控制台里解除 |
-| 求解提示残差偏大 | 采集时保持标记固定、机械臂静止，删除标黄的位姿后重新求解 |
+|---|---|
+| `LEASE_BUSY` | 在网页控制台释放控制权或关闭控制台标签页 |
+| `ESTOP_ACTIVE` 或 `FAULT_ACTIVE` | 检查机械臂周围环境后，人工在网页控制台解除故障 |
+| Claude Code 中看不到 `rebot` | 运行 `claude mcp list`，缺失时重新执行本步骤 |
+
+---
+
+## 套餐: 虚拟沙盒编排与策略训练（免硬件） {#virtual_training}
+
+免硬件在浏览器 3D MuJoCo 沙盒中测试任务，并在本地准备与校验可用于套餐 3 的 ONNX 策略包。
+
+**前提条件：** 支持 WebGL/WASM 的现代浏览器 · 本机可联网
+
+## 步骤 1: 打开 reBot Cyclops 3D 虚拟沙盒 {#open_sandbox type=web_dashboard required=true config=devices/cyclops_sandbox.yaml}
+
+1. 点击**在浏览器中打开**启动已配对的 3D 沙盒标签页（无需任何硬件）。
+2. 在底部控制栏选择工具、视觉预设、运动参数与安全设置，点击**运行测试**观察物理仿真与诊断结果。
+3. 保持该标签页开启，AI 助手（或 `solution-cli page`）即可与你同步调参、跑批量测试并导出配置。
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|---|---|
+| 沙盒打开但未配对 | 从部署卡片重新打开，或运行 `solution-cli page pair` |
+| 3D 画布空白或卡顿 | 开启浏览器硬件 WebGL 加速并关闭其他高负载 WebGL 标签页 |
+
+---
+
+## 步骤 2: 配置本地策略训练工作区 {#train_policy type=script required=true config=devices/policy_training.yaml}
+
+1. 填写 `policy_id`（默认 `pcb_demo`）并部署，将在 `~/.sensecraft/rebot-policies/<policy_id>` 生成初始模板（已有的 `policy.json` 与 `model.onnx` 不会被覆盖）。
+2. 将训练好的 `policy.json` + `model.onnx` 放入该目录（或用 `rebot-record` 采集示范数据；若只想先端到端跑通套餐 3，可直接使用初始模板）。
+3. 进入套餐 3 前运行以下命令完成校验：
+   ```bash
+   rebot-scene validate ~/.sensecraft/rebot-policies/<policy_id>
+   ```
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|---|---|
+| `uv tool install` 失败 | 检查 GitHub/PyPI 网络连通性，或先手动安装 `uv` 后重试 |
+| `rebot-scene validate` 失败 | 核对 `policy.json` 的输入输出名称与形状是否与 `model.onnx` 一致 |
+
+---
+
+## 套餐: 在 reBot armd 中加载与运行策略 {#armd_policy}
+
+将校验通过的 ONNX 策略包（`policy.json` + `model.onnx`）上传至 `armd`，在浏览器 WASM 或本地仿真中预检，或在专人监护下驱动真机执行。
+
+**前提条件：** `~/.sensecraft/rebot-policies/<policy_id>` 中的策略包（来自套餐 2）· reCamera 上已运行 `armd`，或本机已启动 `armd --follower sim`（`127.0.0.1`）
+
+## 步骤 1: 在摄像头安装或确认 reBot 遥控 (armd) {#ensure_armd type=recamera_console_app required=false config=devices/rebot_teleop.yaml}
+
+如果 reCamera 已安装 `rebot-teleop`，或本次连接本机 `armd --follower sim`（`127.0.0.1`），可直接跳过本步骤。
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|---|---|
+| 目标是本地仿真器 | 跳过本步骤，并在步骤 2 将 `host` 设为 `127.0.0.1` |
+| 缺少 `can0` 接口 | 检查 B4 CAN 底板是否插牢并重启摄像头 |
+
+---
+
+## 步骤 2: 上传并激活 ONNX 策略到 armd {#load_policy type=script required=true config=devices/armd_policy_loader.yaml}
+
+填写 3 个参数（`host`：USB 为 `192.168.42.1`、热点为 `192.168.16.1`、本地仿真为 `127.0.0.1`；`policy_id`：默认 `pcb_demo`；`sandbox_mode`：`wasm` 浏览器预检、`sim` 实时仿真或 `upload_only`）并部署，自动上传并激活到 `armd`。
+
+- **在本地仿真运行**（`armd --follower sim`）：
+  ```bash
+  rebot-policy --armd 127.0.0.1 --policy onnx:$HOME/.sensecraft/rebot-policies/<policy_id> --fps 30 --max-seconds 15
+  ```
+- **在真机运行**（先释放控制台控制权，并确认有人站在物理断电开关旁后再传入 `--i-am-at-the-arm`）：
+  ```bash
+  rebot-policy --armd <host> --policy onnx:$HOME/.sensecraft/rebot-policies/<policy_id> --fps 30 --max-seconds 15 --i-am-at-the-arm
+  ```
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|---|---|
+| 8765 端口连接被拒绝 | 确认 reCamera 上的 `rebot-teleop`（或本地 `armd`）正在 `<host>:8765` 运行 |
+| 上传时校验失败 | 执行 `rebot-scene validate ~/.sensecraft/rebot-policies/<policy_id>` 修正配置或模型 |
+| `rebot-policy` 报 `LEASE_BUSY` | 先在网页控制台释放控制权或关闭控制台标签页 |
+
+---
+
+## 步骤 3: 打开策略控制台并监控安全状态 {#open_policy_cockpit type=web_dashboard required=true config=devices/cockpit_policy.yaml}
+
+1. 打开 `http://<host>:8765/` 查看实时关节遥测、故障状态与软件急停按钮。
+2. 若选择了 `wasm` 模式，打开 `http://<host>:8765/?sim=wasm` 运行浏览器仿真预检。
+3. `rebot-policy` 运行期间控制台显示**观察者模式**属正常现象（策略端持有控制权），急停按钮仍可随时触发。真机运行时需确保物理断电开关触手可及。
+
+### 故障排查
+
+| 问题 | 解决方法 |
+|---|---|
+| `?sim=wasm` 缺少运行资源 | 运行 `rebot-scene status --armd-url http://<host>:8765` 确认设备端 WASM 资源就绪 |
+| 运行因 `FAULT_ACTIVE` 或 `FOLLOWING_ERROR` 停止 | 立即停止并检查周围干涉，然后在网页控制台解除故障 |

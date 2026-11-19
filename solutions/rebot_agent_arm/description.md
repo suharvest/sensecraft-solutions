@@ -1,65 +1,33 @@
 ## What This Solution Does
 
-**A single reCamera serves as the eyes and brain of the robot arm. No industrial PC needed — drive it from your phone, or let AI agents take over.**
+**Use one reCamera as both the eyes and brain of a reBot B601-DM arm—or start with zero hardware in the 3D browser sandbox and deploy ONNX policies to the arm.**
 
-Drive a reBot B601-DM arm from the browser on your phone, tablet or computer, and let an AI agent on your computer move it through an MCP server. The camera on the gripper shows what the arm sees, finds objects (YOLO) and ArUco markers, and is calibrated to the arm with one printed marker.
+On the camera, a single app (`rebot-teleop`) runs motor control (`armd`), the web cockpit, and camera vision (`rebot-vision`). Three presets cover the full workflow:
 
-Everything on the arm side is one app, rebot-teleop, on a standard reCamera with the B4 CAN base board: `armd` drives the motors and serves the web cockpit, `rebot-vision` runs the camera. No separate controller computer or camera app is needed.
+1. **Teleop & AI Control (`default`)**: Drive the arm from a browser, save named poses, calibrate eye-in-hand vision, and optionally connect `rebot-mcp` (24 tools) for AI agent control.
+2. **Virtual Sandbox & Policy Training (`virtual_training`)**: Test tasks in the browser 3D MuJoCo sandbox with zero hardware and prepare a validated ONNX policy package (`policy.json` + `model.onnx`).
+3. **Load & Run Learned Policy in reBot armd (`armd_policy`)**: Upload your policy to `armd` for browser WASM pre-flight, local simulation, or supervised physical arm execution.
 
 ## Core Value
 
-| What you get | Details |
+| Feature | What you get |
 |---|---|
-| Teleop from a browser | Joysticks, joint control and Cartesian moves at `http://<camera>:8765`; the camera also opens its own Wi-Fi hotspot, so a phone can connect without a router |
-| AI agent control | `rebot-mcp` from [rebot-companion](https://github.com/Seeed-Solution/rebot-companion) runs on your computer and gives Claude Code, Claude Desktop or another MCP client 14 tools: arm state, snapshots, detection, moves, gripper, home, park, stop, E-stop |
-| Vision on demand | Video, YOLO object detection on the camera's AI chip and ArUco markers with 3D pose on its CPU; detection runs only when the cockpit or the agent asks |
-| Hand-eye calibration | Eye-in-hand calibration with an ArUco marker on the table; the exported JSON loads in rebot-companion |
-| Demonstration recording | Joint state and commands are written to one Parquet file per episode; with gravity compensation you guide the arm by hand |
-| Small runtime | Measured on the reCamera: `armd` is a 4.1 MB static binary using 3.7 MB of RAM and 7.0 % of the single core with all 7 motors torqued at 50 Hz |
+| Browser teleop | Joysticks, 7-joint and Cartesian XYZ/RPY control, and named poses at `http://<camera>:8765`, plus a built-in Wi-Fi hotspot |
+| AI agent control | Optional `rebot-mcp` server (24 tools) for state, vision, motion, pose management, and safety checks |
+| 3D browser sandbox | Interactive MuJoCo simulation for testing tools, vision presets, motion parameters, and batch runs with zero hardware |
+| Portable ONNX workflow | Record real episodes with `rebot-record` or train in simulation, validate with `rebot-scene`, and run in WASM, sim, or hardware |
+| Vision on demand | Live video, TPU YOLO detection, and CPU ArUco 3D pose estimation—inference runs only when requested |
+| Compact footprint | Measured on reCamera: `armd` is a 4.1 MB static binary using 3.7 MB RAM and 7% CPU with all 7 motors torqued at 50 Hz |
 
 ## Use Cases
 
-| Scenario | How you use it |
-|---|---|
-| Remote handling | Open the cockpit on a phone, watch the gripper camera and move objects with the joysticks |
-| Agent experiments | Ask Claude to read the arm state, take a snapshot, detect objects and move to a position |
-| Data collection | Start a recording in the cockpit, guide the arm by hand, save the episode |
-| Vision calibration | Print a 4x4_50 ArUco marker, run hand-eye calibration, use the result for camera-guided picking in rebot-companion |
+- **Remote teleop & teaching**: Watch the gripper camera on a phone or tablet, jog the arm, and save named poses.
+- **AI agent pick-and-place**: Connect `rebot-mcp` so an AI agent inspects detections, respects keep-out zones, and moves the arm safely.
+- **Zero-hardware policy iteration**: Prototype tasks in the 3D sandbox, validate an ONNX policy locally, and pre-flight it before touching hardware.
 
 ## Usage Notes
 
-### Hardware
-
-| Device | Role | Required |
-|---|---|---|
-| reCamera (SG2002) with the B4 CAN base board | Runs rebot-teleop (`armd`, cockpit, `rebot-vision`); the arm connects to the board's CAN port (`can0`) | ✓ |
-| reBot B601-DM arm (Damiao motors) | 6 joints and a gripper, 7 motors; the camera is mounted after the last wrist joint | ✓ |
-| Power supply for the arm | The B4 board takes 12–24 V DC on its J2 connector; connect the grounds of the camera and the arm supply | ✓ |
-| Computer (macOS, Windows or Linux) | Runs this deployment and the AI agent server | ✓ |
-| Printed ArUco marker (dictionary 4x4_50, 5 cm by default) | Hand-eye calibration | For calibration |
-
-reCamera Pro is not supported. Without the B4 CAN board the console refuses to start the app.
-
-### Network
-
-- Over USB the camera is `192.168.42.1`. On the camera's Wi-Fi hotspot (`reCamera-Arm-Teleop`, default password `12345678`) it is `192.168.16.1`. The cockpit and the API have no login: change the hotspot password before using the arm outside a lab.
-- The computer needs internet access during deployment to download the packages; the camera does not.
-
-### Measured on the reCamera
-
-Camera vision with the arm's torque off:
-
-| | Runs on | Time per frame | Whole chip at 5 results/s |
-|---|---|---|---|
-| Standby (no caller) | — | — | 20–26 % |
-| YOLO | AI chip (TPU) | 47 ms | 34 % |
-| ArUco (640 × 360) | CPU | 37–57 ms (depends on the scene) | 53 % |
-| YOLO + ArUco | TPU + CPU | — | 55 % |
-
-### Test coverage
-
-- Teleop, torque, gravity compensation and the figures above were measured on a reCamera with a reBot B601-DM. A 30 s hand-guided recording gave 1509 frames.
-- Tap-to-grasp was tested in simulation and screenshot tests only. Keep the E-stop within reach when you use it.
-- Hand-eye calibration accuracy in rebot-companion was checked on synthetic data. The cockpit reports the RMSE of your own calibration.
-- The recording is a plain Parquet file with LeRobot-style column names, not a LeRobot dataset; conversion and training on it are not provided or tested.
-- YOLO uses the YOLO11n model already on the camera. Without it, ArUco markers and calibration still work.
+- **Hardware (Presets 1 & 3)**: Requires a standard reCamera (SG2002) with the **B4 CAN base board** (**reCamera Pro is not supported**), a reBot B601-DM arm, and a 12–24 V DC arm supply sharing ground with the camera. Calibration uses a printed 4x4_50 ArUco marker (5 cm default).
+- **Network**: Camera IP is `192.168.42.1` over USB, or `192.168.16.1` on the camera hotspot (`reCamera-Arm-Teleop`, default password `12345678`—change it outside a lab).
+- **Safety**: The reBot B601-DM has no physical E-stop switch; keep someone within reach of the power cut-off during physical motion. `rebot-policy` requires `--i-am-at-the-arm` on real hardware.
+- **Measured vision load on reCamera** (torque off, 5 results/s): standby 20–26% chip load; YOLO (TPU) 47 ms/frame (34% load); ArUco 640×360 (CPU) 37–57 ms/frame (53% load); YOLO + ArUco 55% load.

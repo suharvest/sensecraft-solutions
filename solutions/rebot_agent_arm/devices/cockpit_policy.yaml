@@ -1,0 +1,33 @@
+version: "1.0"
+id: cockpit_policy
+name: Open Policy Cockpit & Monitor Safety
+name_i18n:
+  zh: 打开策略控制台并监控安全状态
+type: web_dashboard
+
+inherit_host_from: load_policy
+
+user_inputs:
+  - id: host
+    name: armd Host IP Address
+    name_i18n:
+      zh: armd 主机 IP 地址
+    default: "192.168.42.1"
+    default_template: "{{host}}"
+    required: true
+    description: IP address of armd (USB 192.168.42.1, hotspot 192.168.16.1, or 127.0.0.1 for local sim).
+    description_i18n:
+      zh: armd 的 IP 地址（USB 为 192.168.42.1，热点为 192.168.16.1，本地仿真为 127.0.0.1）。
+
+web_dashboard:
+  url: "http://{{host}}:8765/"
+  title: reBot Policy Cockpit & Safety Monitor
+  title_i18n:
+    zh: reBot 策略控制台与安全监控
+  description: >-
+    Monitor live arm telemetry and faults, preview `?sim=wasm` browser
+    simulation, and keep the software E-stop ready while running policies.
+  description_i18n:
+    zh: >-
+      查看机械臂实时遥测与故障状态，打开 `?sim=wasm` 浏览器仿真预检，
+      并在策略运行期间保持软件急停随时可用。

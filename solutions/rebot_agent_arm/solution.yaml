@@ -4,9 +4,9 @@ name: "Smart Robot Arm with Vision Brain"
 name_i18n:
   zh: 自带视觉大脑的智能机械臂
 intro:
-  summary: A single reCamera serves as both eyes and brain for the reBot arm. Mount it directly on the arm to drive 7 joint motors over CAN with no external industrial PC. Drive it immediately from a phone browser, or let AI agents take full closed-loop control over native tools.
+  summary: Control a reBot B601-DM arm from a browser or AI agent via reCamera, or start with zero hardware in the 3D browser sandbox to test tasks, prepare ONNX policies, and deploy them to the arm.
   summary_i18n:
-    zh: 一台 reCamera 同时搞定机械臂的眼睛和大脑。装上机械臂即可直驱 7 个关节电机，免去外挂工控机与杂乱连线；手机直连热点即可操控，AI 智能体通过原生接口闭环接管。
+    zh: 通过 reCamera 用浏览器或 AI 智能体控制 reBot B601-DM 机械臂；也可免硬件从浏览器 3D 沙盒起步，测试任务、准备 ONNX 策略并部署到真机运行。
   description_file: description.md
   description_file_i18n:
     zh: description_zh.md
@@ -53,19 +53,20 @@ intro:
     - teleoperation
     - mcp
     - ai-agent
-    - hand-eye-calibration
-    - aruco
-    - yolo
-    - can-bus
+    - sandbox
+    - mujoco
+    - onnx
+    - policy-learning
+    - page-bridge
 
   output_interfaces:
     - type: http
       port: 8765
       endpoint: /
-      description: Web cockpit for phones, tablets and desktops (joysticks, Cartesian control, video, detection overlay, hand-eye calibration)
+      description: Web cockpit for phones, tablets and desktops (joysticks, Cartesian control, video, detection overlay, hand-eye calibration, WASM sandbox preview)
       schema_type: html
       description_i18n:
-        zh: 手机、平板和电脑通用的网页控制台（摇杆、笛卡尔控制、视频、检测框、手眼标定）
+        zh: 手机、平板和电脑通用的网页控制台（摇杆、笛卡尔控制、视频、检测框、手眼标定、WASM 沙盒预览）
     - type: websocket
       port: 8765
       endpoint: /api/v1/ws
@@ -96,12 +97,12 @@ intro:
 
   presets:
     - id: default
-      name: reCamera + reBot B601-DM
+      name: "reCamera + reBot B601-DM: Teleop & AI Control"
       name_i18n:
-        zh: reCamera + reBot B601-DM
-      description: Install the rebot-teleop app on the camera and the AI agent server (MCP) on your computer, then check teleop and run hand-eye calibration in the cockpit.
+        zh: "reCamera + reBot B601-DM：真机遥操与 AI 控制"
+      description: Install rebot-teleop on reCamera, drive the arm and calibrate in the web cockpit, and optionally connect MCP tools for AI agent control.
       description_i18n:
-        zh: 在摄像头上安装 rebot-teleop 应用，在电脑上安装 AI 智能体服务（MCP），最后在控制台里检查遥控并完成手眼标定。
+        zh: 在 reCamera 上安装 rebot-teleop，通过网页控制台遥控机械臂与手眼标定，并按需接入 MCP 工具实现 AI 智能体控制。
       device_groups:
         - id: camera
           name: AI Camera
@@ -126,6 +127,48 @@ intro:
           default: rebot_arm_b601
       links:
         github: https://github.com/Seeed-Solution/rebot-armd
+
+    - id: virtual_training
+      name: "Virtual Sandbox & Policy Training (Zero Hardware)"
+      name_i18n:
+        zh: "虚拟沙盒编排与策略训练（免硬件）"
+      description: Test tasks in the browser 3D MuJoCo sandbox with zero hardware and prepare a validated ONNX policy package for deployment.
+      description_i18n:
+        zh: 免硬件在浏览器 3D MuJoCo 沙盒中测试任务，并准备通过校验的本地 ONNX 策略包用于后续部署。
+      links:
+        github: https://github.com/Seeed-Solution/rebot-companion
+
+    - id: armd_policy
+      name: "Load & Run Learned Policy in reBot armd"
+      name_i18n:
+        zh: "在 reBot armd 中加载与运行策略"
+      description: Upload a validated ONNX policy to armd, preview it in browser simulation, or run it on the physical arm under supervision.
+      description_i18n:
+        zh: 将校验通过的 ONNX 策略上传到 armd，在浏览器仿真中预检或在专人监护下驱动真机执行。
+      device_groups:
+        - id: camera
+          name: AI Camera
+          name_i18n:
+            zh: AI 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: recamera_2002
+              label: reCamera (SG2002) with B4 CAN board
+              label_i18n:
+                zh: reCamera（SG2002）+ B4 CAN 底板
+          default: recamera_2002
+        - id: arm
+          name: Robotic Arm
+          name_i18n:
+            zh: 机械臂
+          type: single
+          required: true
+          options:
+            - device_ref: rebot_arm_b601
+          default: rebot_arm_b601
+      links:
+        github: https://github.com/Seeed-Solution/rebot-companion
 
   stats:
     difficulty: intermediate

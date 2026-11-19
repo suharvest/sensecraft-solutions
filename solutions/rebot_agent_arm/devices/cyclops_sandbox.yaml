@@ -1,0 +1,20 @@
+version: "1.0"
+id: cyclops_sandbox
+name: Open reBot Cyclops 3D Virtual Sandbox
+name_i18n:
+  zh: 打开 reBot Cyclops 3D 虚拟沙盒
+type: web_dashboard
+
+web_dashboard:
+  url: "https://sensecraft-statics.seeed.cc/solution-app/rebot-cyclops/index.html"
+  open_in: "interactive_page"
+  title: reBot Cyclops 3D Virtual Sandbox (Page Bridge)
+  title_i18n:
+    zh: reBot Cyclops 3D 虚拟沙盒（Page Bridge）
+  description: >-
+    Launch the browser 3D MuJoCo virtual sandbox to pick tools and presets, run
+    physics tests, and collaborate live with an AI assistant.
+  description_i18n:
+    zh: >-
+      打开浏览器 3D MuJoCo 虚拟沙盒，选择工具与场景预设、运行物理仿真测试，
+      并支持 AI 助手同步协同调参。

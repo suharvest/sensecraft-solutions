@@ -1,0 +1,175 @@
+version: "1.0"
+id: armd_policy_loader
+name: Upload & Activate ONNX Policy in armd
+name_i18n:
+  zh: 上传并激活 ONNX 策略到 armd
+type: script
+
+inherit_host_from: ensure_armd
+
+script:
+  start_command:
+    env:
+      ARM_HOST: "{{host}}"
+      POLICY_ID: "{{policy_id}}"
+      SANDBOX_MODE: "{{sandbox_mode}}"
+      REBOT_PKG: "rebot-companion[onnx,policy] @ https://github.com/Seeed-Solution/rebot-companion/archive/refs/heads/main.zip"
+    linux_macos: |
+      set -eu
+      PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
+      if ! command -v uv >/dev/null 2>&1; then
+        echo "Installing uv (https://astral.sh/uv) ..."
+        if command -v curl >/dev/null 2>&1; then
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+        else
+          wget -qO- https://astral.sh/uv/install.sh | sh
+        fi
+      fi
+      command -v uv >/dev/null 2>&1 || { echo "uv not found after install" >&2; exit 1; }
+      uv tool install --force "$REBOT_PKG"
+      BIN_DIR="$(uv tool dir --bin)"
+      SCENE_BIN="$BIN_DIR/rebot-scene"
+      POLICY_BIN="$BIN_DIR/rebot-policy"
+      "$SCENE_BIN" --help >/dev/null
+      "$POLICY_BIN" --help >/dev/null
+      POLICY_DIR="$HOME/.sensecraft/rebot-policies/$POLICY_ID"
+      if [ ! -f "$POLICY_DIR/policy.json" ]; then
+        if [ -f "$POLICY_DIR/model.onnx" ]; then
+          echo "Error: $POLICY_DIR/model.onnx exists without policy.json; refusing to overwrite model.onnx with rebot-scene init --force." >&2
+          exit 1
+        fi
+        echo "Policy not found at $POLICY_DIR; scaffolding starter rebot-onnx-policy/v1 ..."
+        if [ -d "$POLICY_DIR" ]; then
+          "$SCENE_BIN" init "$POLICY_DIR" --kind policy --id "$POLICY_ID" --force
+        else
+          "$SCENE_BIN" init "$POLICY_DIR" --kind policy --id "$POLICY_ID"
+        fi
+      else
+        echo "Preserving existing policy workspace at $POLICY_DIR ..."
+      fi
+      "$SCENE_BIN" validate "$POLICY_DIR"
+      ARMD_URL="http://$ARM_HOST:8765"
+      echo "Uploading policy '$POLICY_ID' to $ARMD_URL ..."
+      "$SCENE_BIN" upload "$POLICY_DIR" --armd-url "$ARMD_URL"
+      if [ "$SANDBOX_MODE" = "wasm" ] || [ "$SANDBOX_MODE" = "sim" ]; then
+        echo "Activating sandbox mode '$SANDBOX_MODE' with scene=pcb_suction tool=suction policy=$POLICY_ID ..."
+        "$SCENE_BIN" activate --mode "$SANDBOX_MODE" --scene pcb_suction --tool suction --policy "$POLICY_ID" --armd-url "$ARMD_URL"
+        "$SCENE_BIN" status --armd-url "$ARMD_URL"
+      else
+        echo "Sandbox activation skipped (upload_only selected)."
+      fi
+      echo "To run the uploaded ONNX policy against armd from this computer (confirm nobody is in reach before passing --i-am-at-the-arm):"
+      echo "  $POLICY_BIN --armd $ARM_HOST --policy onnx:$POLICY_DIR --fps 30 --max-seconds 15 --i-am-at-the-arm"
+      echo "armd-policy" "loaded"
+      sleep 3
+    windows: |
+      $ErrorActionPreference = 'Stop'
+      $env:Path = "$env:USERPROFILE\.local\bin;$env:Path"
+      if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
+        Write-Output 'Installing uv (https://astral.sh/uv) ...'
+        powershell -NoProfile -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+        $env:Path = "$env:USERPROFILE\.local\bin;$env:Path"
+      }
+      if (-not (Get-Command uv -ErrorAction SilentlyContinue)) { [Console]::Error.WriteLine('uv not found after install'); exit 1 }
+      uv tool install --force $env:REBOT_PKG
+      if ($LASTEXITCODE -ne 0) { [Console]::Error.WriteLine("uv tool install failed (exit $LASTEXITCODE)"); exit $LASTEXITCODE }
+      $binDir = ((uv tool dir --bin) | Out-String).Trim()
+      $sceneBin = Join-Path $binDir 'rebot-scene.exe'
+      $policyBin = Join-Path $binDir 'rebot-policy.exe'
+      & $sceneBin --help | Out-Null
+      if ($LASTEXITCODE -ne 0) { [Console]::Error.WriteLine("rebot-scene --help failed (exit $LASTEXITCODE)"); exit $LASTEXITCODE }
+      & $policyBin --help | Out-Null
+      if ($LASTEXITCODE -ne 0) { [Console]::Error.WriteLine("rebot-policy --help failed (exit $LASTEXITCODE)"); exit $LASTEXITCODE }
+      $policyDir = Join-Path (Join-Path $env:USERPROFILE '.sensecraft\rebot-policies') $env:POLICY_ID
+      if (-not (Test-Path (Join-Path $policyDir 'policy.json'))) {
+        if (Test-Path (Join-Path $policyDir 'model.onnx')) {
+          [Console]::Error.WriteLine("Error: $(Join-Path $policyDir 'model.onnx') exists without policy.json; refusing to overwrite model.onnx with rebot-scene init --force.")
+          exit 1
+        }
+        Write-Output "Policy not found at $policyDir; scaffolding starter rebot-onnx-policy/v1 ..."
+        if (Test-Path $policyDir) {
+          & $sceneBin init $policyDir --kind policy --id $env:POLICY_ID --force
+        } else {
+          & $sceneBin init $policyDir --kind policy --id $env:POLICY_ID
+        }
+        if ($LASTEXITCODE -ne 0) { [Console]::Error.WriteLine("rebot-scene init failed (exit $LASTEXITCODE)"); exit $LASTEXITCODE }
+      } else {
+        Write-Output "Preserving existing policy workspace at $policyDir ..."
+      }
+      & $sceneBin validate $policyDir
+      if ($LASTEXITCODE -ne 0) { [Console]::Error.WriteLine("rebot-scene validate failed (exit $LASTEXITCODE)"); exit $LASTEXITCODE }
+      $armdUrl = "http://$($env:ARM_HOST):8765"
+      Write-Output "Uploading policy '$($env:POLICY_ID)' to $armdUrl ..."
+      & $sceneBin upload $policyDir --armd-url $armdUrl
+      if ($LASTEXITCODE -ne 0) { [Console]::Error.WriteLine("rebot-scene upload failed (exit $LASTEXITCODE)"); exit $LASTEXITCODE }
+      if ($env:SANDBOX_MODE -eq 'wasm' -or $env:SANDBOX_MODE -eq 'sim') {
+        Write-Output "Activating sandbox mode '$($env:SANDBOX_MODE)' with scene=pcb_suction tool=suction policy=$($env:POLICY_ID) ..."
+        & $sceneBin activate --mode $env:SANDBOX_MODE --scene pcb_suction --tool suction --policy $env:POLICY_ID --armd-url $armdUrl
+        if ($LASTEXITCODE -ne 0) { [Console]::Error.WriteLine("rebot-scene activate failed (exit $LASTEXITCODE)"); exit $LASTEXITCODE }
+        & $sceneBin status --armd-url $armdUrl
+      } else {
+        Write-Output 'Sandbox activation skipped (upload_only selected).'
+      }
+      Write-Output 'To run the uploaded ONNX policy against armd from this computer (confirm nobody is in reach before passing --i-am-at-the-arm):'
+      Write-Output "  $policyBin --armd $($env:ARM_HOST) --policy onnx:$policyDir --fps 30 --max-seconds 15 --i-am-at-the-arm"
+      Write-Output ('armd-policy' + ' loaded')
+      Start-Sleep -Seconds 3
+  health_check:
+    type: log_pattern
+    pattern: "armd-policy loaded"
+    timeout_seconds: 600
+
+user_inputs:
+  - id: host
+    name: armd Host IP Address
+    name_i18n:
+      zh: armd 主机 IP 地址
+    type: text
+    default: "192.168.42.1"
+    default_template: "{{host}}"
+    placeholder: "192.168.42.1"
+    required: true
+    description: IP address of armd (USB 192.168.42.1, hotspot 192.168.16.1, or 127.0.0.1 for local sim).
+    description_i18n:
+      zh: armd 的 IP 地址（USB 为 192.168.42.1，热点为 192.168.16.1，本地仿真为 127.0.0.1）。
+    validation:
+      pattern: "^\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}$"
+  - id: policy_id
+    name: Policy Identifier
+    name_i18n:
+      zh: 策略 ID
+    type: text
+    default: "pcb_demo"
+    placeholder: "pcb_demo"
+    required: true
+    description: Policy directory name under ~/.sensecraft/rebot-policies/<policy_id> to validate and upload.
+    description_i18n:
+      zh: 位于 ~/.sensecraft/rebot-policies/<policy_id> 下待校验并上传的策略目录名。
+    validation:
+      pattern: "^[A-Za-z0-9_-]{1,64}$"
+  - id: sandbox_mode
+    name: Sandbox Activation Mode
+    name_i18n:
+      zh: 沙盒激活模式
+    type: select
+    default: "wasm"
+    required: true
+    description: Whether to activate browser WASM preview (wasm), real-time sim backend (sim), or upload only for host rebot-policy execution (upload_only).
+    description_i18n:
+      zh: 选择在 armd 中激活浏览器 WASM 预览（wasm）、实时仿真后端（sim），或仅上传以便通过 rebot-policy 运行（upload_only）。
+    options:
+      - value: wasm
+        label: Browser WASM preview (wasm)
+        label_i18n:
+          zh: 浏览器 WASM 预览（wasm）
+      - value: upload_only
+        label: Upload only (run via rebot-policy)
+        label_i18n:
+          zh: 仅上传（配合 rebot-policy 运行）
+      - value: sim
+        label: Real-time MuJoCo backend (sim)
+        label_i18n:
+          zh: 实时 MuJoCo 后端（sim）
+
+post_deployment:
+  open_browser: false

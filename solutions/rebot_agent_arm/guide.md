@@ -1,156 +1,164 @@
-## Preset: reCamera + reBot B601-DM {#default}
+## Preset: reCamera + reBot B601-DM: Teleop & AI Control {#default}
 
-Install the reBot Teleop app on the reCamera, install the AI agent server (MCP) on this computer, then open the cockpit, move the arm and run hand-eye calibration with an ArUco marker.
+Install `rebot-teleop` on reCamera, drive and calibrate the arm from the web cockpit, and optionally install `rebot-mcp` on this computer for AI agent control.
 
-| Device | Purpose |
-|--------|---------|
-| reCamera (SG2002) with the B4 CAN base board | Runs the arm runtime, the web cockpit and the camera vision (one app: rebot-teleop) |
-| reBot B601-DM arm | Connected to the B4 board's CAN port |
-| This computer | Runs the deployment and the AI agent server |
-
-**What you'll get:**
-- Arm teleop from a phone, tablet or computer browser at `http://<camera>:8765`
-- Camera video, YOLO object detection and ArUco markers in the same app
-- An MCP server that lets an AI agent on this computer read, look through the camera and move the arm
-- Hand-eye calibration with an ArUco marker
-
-**Requirements:** reCamera with the B4 CAN base board (not reCamera Pro) · arm power supply · internet on this computer during deployment · printed ArUco marker, dictionary 4x4_50 (5 cm by default), for calibration
+**Requirements:** reCamera (SG2002) with B4 CAN board (not reCamera Pro) · reBot B601-DM arm + 12–24 V DC supply (common ground) · internet on this computer · printed 4x4_50 ArUco marker (5 cm) if calibrating
 
 ## Step 1: Install reBot Teleop on the Camera {#install_teleop type=recamera_console_app required=true config=devices/rebot_teleop.yaml}
 
-Install the rebot-teleop app: arm control, web cockpit and camera vision.
-
-### Prerequisites
-
-1. The camera is connected over USB (`192.168.42.1`) or is on the same network as this computer.
-2. Login is `recamera` / `recamera` (`recamera.2` on earlier firmware).
-3. If the camera is still in factory Node-RED mode, the deployment offers to install the reCamera console first. Accept it; the app is installed right after.
+Install `rebot-teleop` on reCamera (`192.168.42.1` over USB or on the same network; login `recamera` / `recamera`, or `recamera.2` on earlier firmware). If the camera is in factory Node-RED mode, accept the prompt to install the reCamera console first.
 
 ### Wiring
 
-1. Power off the arm supply and the camera.
+1. Power off both the arm supply and the camera.
 2. Connect the arm's CAN wires to J2 on the B4 board: pin 5 `CAN_H` (red), pin 6 `CAN_L` (black).
-3. Connect 12–24 V DC to J2 pins 1/2 and ground to pins 3/4; the camera and the arm supply share ground.
-4. Power on, wait about one minute for the camera to boot, then click **Deploy**.
+3. Connect 12–24 V DC to J2 pins 1/2 and GND to pins 3/4 (share ground between camera and arm supply).
+4. Power on, wait ~1 minute for boot, then click **Deploy**.
 
 ### Deployment Complete
 
-rebot-teleop is the active app. It runs `armd` (cockpit at `http://<camera>:8765`) and `rebot-vision` (video at `ws://<camera>:8001/`, YOLO and ArUco on request). The camera also starts a Wi-Fi hotspot `reCamera-Arm-Teleop` (default password `12345678`, camera address `192.168.16.1`) for phones. The arm stays without torque until you enable it in the cockpit.
-
-The app includes the camera vision, so no other camera app is needed. Activating another app in the reCamera console stops rebot-teleop.
+`rebot-teleop` runs `armd` (`http://<camera>:8765`), camera vision, and the `reCamera-Arm-Teleop` Wi-Fi hotspot (`12345678`, `192.168.16.1`). Torque stays off until enabled, and activating another app in the console stops `rebot-teleop`.
 
 ### Troubleshooting
 
 | Issue | Solution |
-|-------|----------|
-| "missing hardware capability: can" | The camera has no B4 CAN board, or `can0` did not come up. Check the board and reboot the camera |
-| "'rebot-teleop' is not in the catalog" | This computer cannot reach `sensecraft-statics.seeed.cc`, or the catalog is older than this solution. Check the network and deploy again |
-| Login rejected | Use the camera account: `recamera` / `recamera` (or `recamera.2`) |
-| Not enough storage | Uninstall an unused app on the console's Applications page |
-| Cockpit stopped after using the console | Another app was activated. Activate rebot-teleop again on the console's Applications page |
+|---|---|
+| `"missing hardware capability: can"` | Check B4 CAN board seating and reboot the camera |
+| Login rejected | Use `recamera` / `recamera` (or `recamera.2` on earlier firmware) |
+| Cockpit stopped after using console | Another app was activated; re-enable `rebot-teleop` on the console Applications page |
 
 ---
 
-## Step 2: Install the AI Agent Server on This Computer {#install_mcp type=script required=true config=devices/mcp_server.yaml}
+## Step 2: Open the Cockpit for Teleop & Calibration {#open_cockpit type=web_dashboard required=true config=devices/cockpit.yaml}
 
-Install `rebot-mcp` from [rebot-companion](https://github.com/Seeed-Solution/rebot-companion) and connect it to Claude Code or Claude Desktop.
+### Operator Checklist
 
-### Prerequisites
+1. Open `http://<host>:8765` on a phone, tablet, or computer and verify live video, CAN feedback, and 7-joint telemetry.
+2. Press and hold the torque-enable switch, then test joint jogs or Cartesian XYZ/RPY moves.
+3. Save common waypoints (`scan`, `bin_a`, `bin_b`) as named poses on `armd`.
+4. *(Optional)* Run ArUco hand-eye calibration: place one printed 5 cm `4x4_50` marker flat on the table, open **Hand-Eye Cal** → set **Camera on gripper**, capture 5–9 angles, then click **Solve** and **Export JSON**.
 
-1. This computer has internet access. The step installs [uv](https://docs.astral.sh/uv/) with its official installer if it is missing; uv downloads its own Python. git is not needed.
-2. Enter the camera address the agent should use: `192.168.42.1` over USB, `192.168.16.1` on the arm's hotspot.
-
-### Deployment Complete
-
-`rebot-mcp` is installed as a uv tool. The server runs on this computer and reaches the arm over the network; nothing extra is installed on the camera.
-
-- **Claude Code**: if the `claude` CLI is installed, the server is registered for your user as `rebot`. Check with `claude mcp list`.
-- **Claude Desktop**: copy the `mcpServers` entry printed at the end of the step log into `claude_desktop_config.json` (Claude Desktop: **Settings → Developer → Edit Config**), then restart Claude Desktop. Cursor, Windsurf and other clients that use `mcpServers` take the same entry.
-
-Tools available to the agent (14): `get_state`, `snapshot`, `snapshot_annotated`, `detect` (pipelines `yolo`, `aruco` or both), `move_to`, `move_relative`, `gripper`, `home`, `park`, `stop`, `e_stop`, `enable`, `take_control`, `release_control`.
-
-Safety defaults:
-- The agent cannot clear an E-stop or a fault; a person clears it in the cockpit. `clear_fault` is listed only when the server starts with `--allow-clear-fault`.
-- The agent cannot take control away from the cockpit. A forced takeover is available only with `--allow-preempt`.
-- `armd` on the camera enforces the workspace box, speed caps and a lease watchdog that parks the arm when the controlling client stops responding.
-
-#### Install by hand
-
-Same commands as the rebot-companion README:
-
-```bash
-git clone https://github.com/Seeed-Solution/rebot-companion
-cd rebot-companion
-uv sync --extra agent
-claude mcp add rebot -- uv run --directory /path/to/rebot-companion --extra agent rebot-mcp \
-  --armd http://192.168.42.1:8765
-```
-
-For Claude Desktop, add to `mcpServers`:
-
-```json
-{
-  "mcpServers": {
-    "rebot": {
-      "command": "uv",
-      "args": ["run", "--directory", "/path/to/rebot-companion", "--extra", "agent",
-               "rebot-mcp", "--armd", "http://192.168.42.1:8765"]
-    }
-  }
-}
-```
-
-The camera stream defaults to `ws://192.168.42.1:8001/`; add `--camera-ws ws://<camera>:8001/` when the camera has another address.
+Keep someone within reach of the arm power cut-off during physical motion.
 
 ### Troubleshooting
 
 | Issue | Solution |
-|-------|----------|
-| uv install fails | Install uv by hand from [docs.astral.sh/uv](https://docs.astral.sh/uv/getting-started/installation/), then deploy this step again |
-| Agent reports `LEASE_BUSY` | The cockpit holds control. Release it in the cockpit, or let the agent call `take_control` after the cockpit is closed |
-| Agent reports `CAMERA_UNAVAILABLE` or `DETECTOR_UNAVAILABLE` | rebot-teleop is not the active app on the camera. Activate it on the console's Applications page |
-| Agent reports `ESTOP_ACTIVE` or `FAULT_ACTIVE` | Check the arm, then clear it in the cockpit |
-| Claude Code does not list `rebot` | Run `claude mcp list`; if missing, run the manual command above |
-| Claude Desktop shows no `rebot` tools | Check that the JSON is valid and the `command` path exists, then restart Claude Desktop |
+|---|---|
+| Page does not load | Verify IP (`192.168.42.1` USB, `192.168.16.1` hotspot) and confirm `rebot-teleop` is active |
+| No video | Wait a few seconds for `rebot-vision` to restart, or restart `rebot-teleop` in the console |
+| Arm does not enable | Check the 12–24 V arm supply and J2 CAN wiring |
+| High solve residual / observer mode | Keep the marker still and remove outliers; observer mode means another client holds control |
 
 ---
 
-## Step 3: Open the Cockpit and Calibrate {#open_cockpit type=web_dashboard required=true config=devices/cockpit.yaml}
+## Step 3: Install the AI Agent Server on This Computer {#install_mcp type=script required=false config=devices/mcp_server.yaml}
 
-Open the cockpit, move the arm, and run hand-eye calibration with an ArUco marker.
+Optional: install `rebot-mcp` on this computer (automatically inherits the Step 1 IP) so an AI agent can read camera/arm state and run closed-loop tasks over 24 MCP tools.
 
-### Deployment Complete
-
-#### Check teleop
-
-1. Open `http://<camera>:8765` on a phone, tablet or this computer.
-2. The camera video is shown, and in expert mode the link status shows the CAN feedback and the joint table updates.
-3. Press and hold the torque switch to enable the arm, then jog J1 a few degrees with the joysticks.
-
-#### Hand-eye calibration (ArUco marker)
-
-1. Print an ArUco marker from dictionary 4x4_50 (5 cm by default) and fix it flat on the table.
-2. Open **Hand-Eye Cal** and set **Camera mounting** to **Camera on gripper**.
-3. Move the arm so the marker is in view from different angles and capture poses: at least 5, 9 recommended. Keep only one marker in view.
-4. Click **Solve**, check the reported RMSE, and click **Export JSON**. rebot-companion loads it with `HandEyeCalibration.load_result`.
-
-#### Detection overlay
-
-1. Turn on detection and choose YOLO, ArUco or both; boxes and markers appear on the video.
-2. Tap-to-grasp is tested in simulation only; keep a hand on the E-stop if you try it.
-
-#### Try the agent
-
-Ask Claude: "Read the arm state, take a snapshot and tell me what the camera sees." Close the cockpit or release control first so the agent can take the lease for moves.
+- **Connect**: Claude Code auto-registers `rebot` (`claude mcp list`); for Claude Desktop, Cursor, or Windsurf, paste the `mcpServers` JSON printed at the end of the step log into your client config and restart.
+- **Test prompt**: *"Check `describe_safety` and `get_state`, take a snapshot, and tell me what the camera sees."*
+- **Safety rules**: Release control in the cockpit before asking the AI to move the arm; latched faults and E-stops can only be cleared manually in the cockpit.
 
 ### Troubleshooting
 
 | Issue | Solution |
-|-------|----------|
-| Page does not load | Check the address (`192.168.42.1` over USB, `192.168.16.1` on the hotspot) and that rebot-teleop is the active app in the console |
-| No video | rebot-vision restarts on its own; wait a few seconds. If it stays black, restart rebot-teleop from the console's Applications page |
-| YOLO shown as unavailable | The YOLO11n model is not on the camera; the app uses the model already on the device. ArUco and calibration still work |
-| Cockpit shows observer mode | Another client (for example the AI agent) holds control; confirm the takeover in the cockpit or stop the agent |
-| Arm does not enable | Check the arm power supply and the CAN wiring on J2 |
-| E-stop or fault shown | Clear it in the cockpit after checking the arm |
-| Solve reports a high residual | Keep the marker fixed and the arm still at each capture, remove the highlighted poses and solve again |
+|---|---|
+| `LEASE_BUSY` | Release control in the cockpit or close the cockpit tab |
+| `ESTOP_ACTIVE` or `FAULT_ACTIVE` | Inspect the workspace and clear the fault manually in the cockpit |
+| Claude Code missing `rebot` | Run `claude mcp list` and re-run this step if needed |
+
+---
+
+## Preset: Virtual Sandbox & Policy Training (Zero Hardware) {#virtual_training}
+
+Test tasks in the browser 3D MuJoCo sandbox with zero hardware, then prepare and validate a local ONNX policy package ready for Preset 3.
+
+**Requirements:** Modern WebGL/WASM browser · internet access on this computer
+
+## Step 1: Open the reBot Cyclops 3D Virtual Sandbox {#open_sandbox type=web_dashboard required=true config=devices/cyclops_sandbox.yaml}
+
+1. Click **Open in Browser** to launch the paired 3D sandbox tab (no hardware needed).
+2. Pick a tool, vision preset, motion parameters, and safety settings in the bottom deck, then click **Run Test** to observe the physics simulation and diagnostics.
+3. Keep the tab open so an AI assistant (or `solution-cli page`) can adjust parameters, run batch tests, and export configurations alongside you.
+
+### Troubleshooting
+
+| Issue | Solution |
+|---|---|
+| Sandbox tab opens without pairing | Re-open from the deployment card or run `solution-cli page pair` |
+| 3D canvas stays blank or slow | Enable hardware WebGL acceleration and close other heavy WebGL tabs |
+
+---
+
+## Step 2: Set Up the Local Policy Training Workspace {#train_policy type=script required=true config=devices/policy_training.yaml}
+
+1. Enter `policy_id` (default `pcb_demo`) and deploy — this creates `~/.sensecraft/rebot-policies/<policy_id>` with a starter template (existing `policy.json` and `model.onnx` are never overwritten).
+2. Put your trained `policy.json` + `model.onnx` in that folder (or collect demonstrations with `rebot-record`; to test Preset 3 end-to-end first, use the starter template directly).
+3. Verify the package before Preset 3:
+   ```bash
+   rebot-scene validate ~/.sensecraft/rebot-policies/<policy_id>
+   ```
+
+### Troubleshooting
+
+| Issue | Solution |
+|---|---|
+| `uv tool install` fails | Check internet access to GitHub/PyPI, or install `uv` manually and re-run |
+| `rebot-scene validate` fails | Ensure `policy.json` input/output shapes and names match `model.onnx` |
+
+---
+
+## Preset: Load & Run Learned Policy in reBot armd {#armd_policy}
+
+Upload a validated ONNX policy package (`policy.json` + `model.onnx`) to `armd`, preview it in browser WASM or local simulation, or run it on the physical arm under supervision.
+
+**Requirements:** Policy folder in `~/.sensecraft/rebot-policies/<policy_id>` (from Preset 2) · running `armd` on reCamera or local `armd --follower sim` (`127.0.0.1`)
+
+## Step 1: Install or Verify reBot Teleop (armd) on the Camera {#ensure_armd type=recamera_console_app required=false config=devices/rebot_teleop.yaml}
+
+Skip this step if `rebot-teleop` is already installed on reCamera or when targeting local `armd --follower sim` (`127.0.0.1`).
+
+### Troubleshooting
+
+| Issue | Solution |
+|---|---|
+| Targeting local simulator | Skip this step and set `host` to `127.0.0.1` in Step 2 |
+| `can0` missing | Verify B4 CAN board seating and reboot the camera |
+
+---
+
+## Step 2: Upload & Activate the ONNX Policy in armd {#load_policy type=script required=true config=devices/armd_policy_loader.yaml}
+
+Set the 3 inputs (`host`: `192.168.42.1` USB, `192.168.16.1` hotspot, or `127.0.0.1` local sim; `policy_id`: default `pcb_demo`; `sandbox_mode`: `wasm` browser pre-flight, `sim` real-time sim, or `upload_only`) and deploy to upload and activate the policy on `armd`.
+
+- **Run on local simulator** (`armd --follower sim`):
+  ```bash
+  rebot-policy --armd 127.0.0.1 --policy onnx:$HOME/.sensecraft/rebot-policies/<policy_id> --fps 30 --max-seconds 15
+  ```
+- **Run on physical arm** (release cockpit control first, and stand with power cut-off within reach before passing `--i-am-at-the-arm`):
+  ```bash
+  rebot-policy --armd <host> --policy onnx:$HOME/.sensecraft/rebot-policies/<policy_id> --fps 30 --max-seconds 15 --i-am-at-the-arm
+  ```
+
+### Troubleshooting
+
+| Issue | Solution |
+|---|---|
+| Connection refused on port `8765` | Confirm `rebot-teleop` (or local `armd`) is running at `<host>:8765` |
+| Upload rejects policy | Run `rebot-scene validate ~/.sensecraft/rebot-policies/<policy_id>` and fix schema mismatches |
+| `rebot-policy` stops with `LEASE_BUSY` | Release control or close the web cockpit tab before starting `rebot-policy` |
+
+---
+
+## Step 3: Open the Policy Cockpit & Monitor Safety {#open_policy_cockpit type=web_dashboard required=true config=devices/cockpit_policy.yaml}
+
+1. Open `http://<host>:8765/` for live arm telemetry, fault status, and the software E-stop button.
+2. If you chose `wasm` mode, open `http://<host>:8765/?sim=wasm` to run browser simulation pre-flight.
+3. Seeing **observer mode** while `rebot-policy` runs is normal—the policy runner holds control, while the cockpit **E-stop** button remains active. On physical hardware, keep someone within reach of the power cut-off.
+
+### Troubleshooting
+
+| Issue | Solution |
+|---|---|
+| `?sim=wasm` missing runtime assets | Check `rebot-scene status --armd-url http://<host>:8765` and confirm WASM assets are present |
+| Run stops on `FAULT_ACTIVE` or `FOLLOWING_ERROR` | Stop motion, check for physical obstructions, and clear the fault in the cockpit |

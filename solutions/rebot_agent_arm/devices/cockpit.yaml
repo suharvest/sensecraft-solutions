@@ -1,6 +1,6 @@
 version: "1.0"
 id: cockpit
-name: Open the Cockpit and Calibrate
+name: Open the Cockpit for Teleop & Calibration
 type: web_dashboard
 
 # Step id of the teleop install (guide.md {#install_teleop}), not a device id.
@@ -17,19 +17,15 @@ user_inputs:
       zh: reCamera 的 IP 地址（USB 为 192.168.42.1；连机械臂自带热点时为 192.168.16.1）
 web_dashboard:
   url: "http://{{host}}:8765/"
-  title: reBot Arm Cockpit
+  title: reBot Arm Web Cockpit
   description: >-
-    The cockpit shows the camera video, the link status and the joint table.
-    Press and hold the torque switch to enable the arm, then jog J1 a few
-    degrees. For hand-eye calibration, open Hand-Eye Cal, choose Camera on
-    gripper, capture at least 5 poses (9 recommended) of the ArUco marker on
-    the table, solve and export the JSON.
+    Control the arm via joysticks, 7-joint, or Cartesian XYZ/RPY moves, save
+    named poses, and run ArUco eye-in-hand calibration (5–9 poses).
   title_i18n:
-    zh: reBot 机械臂控制台
+    zh: reBot 机械臂网页控制台
   description_i18n:
     zh: >-
-      控制台显示摄像头画面、连接状态和关节表。按住力矩开关使能机械臂，再把 J1 点动几度。
-      手眼标定：打开「手眼标定」，相机安装方式选「相机在夹爪上」，对桌上的 ArUco 标记
-      采集至少 5 个位姿（建议 9 个），求解并导出 JSON。
+      使用双摇杆、7 关节或笛卡尔 XYZ/RPY 模式遥控机械臂，保存命名位姿，
+      并完成 ArUco 眼在手上标定（采集 5–9 个位姿）。
 name_i18n:
-  zh: 打开控制台并完成标定
+  zh: 打开控制台进行遥操与标定

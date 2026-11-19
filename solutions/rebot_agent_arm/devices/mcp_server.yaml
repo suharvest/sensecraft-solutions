@@ -4,6 +4,7 @@ name: Install the AI Agent Server
 name_i18n:
   zh: 安装 AI 智能体服务
 type: script
+inherit_host_from: install_teleop
 
 # Runs on the deploy computer (macOS, Linux or Windows), not on the camera.
 # Installs rebot-mcp, the stdio MCP server from rebot-companion

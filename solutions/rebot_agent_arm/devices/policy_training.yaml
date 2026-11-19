@@ -1,0 +1,116 @@
+version: "1.0"
+id: policy_training
+name: Set Up Policy Training Workspace
+name_i18n:
+  zh: 配置本地策略训练工作区
+type: script
+
+# Runs on the local computer (macOS, Linux or Windows). Installs rebot-scene
+# and rebot-policy from rebot-companion[onnx,policy] and initializes an ONNX
+# policy workspace under ~/.sensecraft/rebot-policies/<policy_id> without
+# overwriting an existing policy.json or trained model.onnx.
+script:
+  start_command:
+    env:
+      POLICY_ID: "{{policy_id}}"
+      REBOT_PKG: "rebot-companion[onnx,policy] @ https://github.com/Seeed-Solution/rebot-companion/archive/refs/heads/main.zip"
+    linux_macos: |
+      set -eu
+      PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
+      if ! command -v uv >/dev/null 2>&1; then
+        echo "Installing uv (https://astral.sh/uv) ..."
+        if command -v curl >/dev/null 2>&1; then
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+        else
+          wget -qO- https://astral.sh/uv/install.sh | sh
+        fi
+      fi
+      command -v uv >/dev/null 2>&1 || { echo "uv not found after install" >&2; exit 1; }
+      echo "Installing rebot-companion[onnx,policy] ..."
+      uv tool install --force "$REBOT_PKG"
+      BIN_DIR="$(uv tool dir --bin)"
+      "$BIN_DIR/rebot-scene" --help >/dev/null
+      "$BIN_DIR/rebot-policy" --help >/dev/null
+      POLICY_DIR="$HOME/.sensecraft/rebot-policies/$POLICY_ID"
+      if [ ! -f "$POLICY_DIR/policy.json" ]; then
+        if [ -f "$POLICY_DIR/model.onnx" ]; then
+          echo "Error: $POLICY_DIR/model.onnx exists without policy.json; refusing to overwrite model.onnx with rebot-scene init --force." >&2
+          exit 1
+        fi
+        echo "Scaffolding ONNX policy workspace at $POLICY_DIR ..."
+        if [ -d "$POLICY_DIR" ]; then
+          "$BIN_DIR/rebot-scene" init "$POLICY_DIR" --kind policy --id "$POLICY_ID" --force
+        else
+          "$BIN_DIR/rebot-scene" init "$POLICY_DIR" --kind policy --id "$POLICY_ID"
+        fi
+      else
+        echo "Preserving existing policy workspace at $POLICY_DIR ..."
+      fi
+      "$BIN_DIR/rebot-scene" validate "$POLICY_DIR"
+      "$BIN_DIR/rebot-scene" list
+      echo "Policy workspace path: $POLICY_DIR"
+      echo "rebot-policy-workspace" "ready"
+      sleep 3
+    windows: |
+      $ErrorActionPreference = 'Stop'
+      $env:Path = "$env:USERPROFILE\.local\bin;$env:Path"
+      if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
+        Write-Output 'Installing uv (https://astral.sh/uv) ...'
+        powershell -NoProfile -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+        $env:Path = "$env:USERPROFILE\.local\bin;$env:Path"
+      }
+      if (-not (Get-Command uv -ErrorAction SilentlyContinue)) { [Console]::Error.WriteLine('uv not found after install'); exit 1 }
+      Write-Output 'Installing rebot-companion[onnx,policy] ...'
+      uv tool install --force $env:REBOT_PKG
+      if ($LASTEXITCODE -ne 0) { [Console]::Error.WriteLine("uv tool install failed (exit $LASTEXITCODE)"); exit $LASTEXITCODE }
+      $binDir = ((uv tool dir --bin) | Out-String).Trim()
+      $sceneBin = Join-Path $binDir 'rebot-scene.exe'
+      $policyBin = Join-Path $binDir 'rebot-policy.exe'
+      & $sceneBin --help | Out-Null
+      if ($LASTEXITCODE -ne 0) { [Console]::Error.WriteLine("rebot-scene --help failed (exit $LASTEXITCODE)"); exit $LASTEXITCODE }
+      & $policyBin --help | Out-Null
+      if ($LASTEXITCODE -ne 0) { [Console]::Error.WriteLine("rebot-policy --help failed (exit $LASTEXITCODE)"); exit $LASTEXITCODE }
+      $policyDir = Join-Path (Join-Path $env:USERPROFILE '.sensecraft\rebot-policies') $env:POLICY_ID
+      if (-not (Test-Path (Join-Path $policyDir 'policy.json'))) {
+        if (Test-Path (Join-Path $policyDir 'model.onnx')) {
+          [Console]::Error.WriteLine("Error: $(Join-Path $policyDir 'model.onnx') exists without policy.json; refusing to overwrite model.onnx with rebot-scene init --force.")
+          exit 1
+        }
+        Write-Output "Scaffolding ONNX policy workspace at $policyDir ..."
+        if (Test-Path $policyDir) {
+          & $sceneBin init $policyDir --kind policy --id $env:POLICY_ID --force
+        } else {
+          & $sceneBin init $policyDir --kind policy --id $env:POLICY_ID
+        }
+        if ($LASTEXITCODE -ne 0) { [Console]::Error.WriteLine("rebot-scene init failed (exit $LASTEXITCODE)"); exit $LASTEXITCODE }
+      } else {
+        Write-Output "Preserving existing policy workspace at $policyDir ..."
+      }
+      & $sceneBin validate $policyDir
+      if ($LASTEXITCODE -ne 0) { [Console]::Error.WriteLine("rebot-scene validate failed (exit $LASTEXITCODE)"); exit $LASTEXITCODE }
+      & $sceneBin list
+      Write-Output "Policy workspace path: $policyDir"
+      Write-Output ('rebot-policy-workspace' + ' ready')
+      Start-Sleep -Seconds 3
+  health_check:
+    type: log_pattern
+    pattern: "rebot-policy-workspace ready"
+    timeout_seconds: 600
+
+user_inputs:
+  - id: policy_id
+    name: Policy Identifier
+    name_i18n:
+      zh: 策略 ID
+    type: text
+    default: "pcb_demo"
+    placeholder: "pcb_demo"
+    required: true
+    description: Identifier for the ONNX policy directory under ~/.sensecraft/rebot-policies/<policy_id> (letters, digits, '_' or '-', max 64 chars).
+    description_i18n:
+      zh: 保存在 ~/.sensecraft/rebot-policies/<policy_id> 下的 ONNX 策略标识（字母、数字、下划线或连字符，最多 64 位）。
+    validation:
+      pattern: "^[A-Za-z0-9_-]{1,64}$"
+
+post_deployment:
+  open_browser: false
