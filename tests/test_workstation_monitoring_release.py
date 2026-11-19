@@ -297,6 +297,54 @@ class ReleaseTests(unittest.TestCase):
                 release.rollback('fail-2')
         self.assertTrue((self.data / 'configs/must-survive.json').exists())
 
+    def test_prepare_pulls_missing_image_only_when_enabled(self):
+        release.configure()
+        layers = ['sha256:' + '2' * 64]
+        (self.root / 'release-manifest.json').write_text(
+            json.dumps({'schema_version': 1, 'rootfs_diff_ids': layers}) + '\n'
+        )
+        image_id = 'sha256:' + 'f' * 64
+        inspect_payload = json.dumps(
+            [{'Id': image_id, 'Architecture': 'arm64', 'Os': 'linux', 'RootFS': {'Layers': layers}}]
+        )
+        missing_error = subprocess.CalledProcessError(1, ['docker', 'image', 'inspect', release.IMAGE])
+
+        class DummySocket:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+            def setsockopt(self, *args):
+                pass
+
+            def bind(self, *args):
+                pass
+
+        with patch.object(release, 'check_host'), patch.object(
+            release, 'command', side_effect=missing_error
+        ), patch.object(release.subprocess, 'check_call') as check_call:
+            with self.assertRaises(subprocess.CalledProcessError):
+                release.prepare('no-pull-1')
+            check_call.assert_not_called()
+
+        with patch.object(release, 'check_host'), patch.object(
+            release, 'command', side_effect=[missing_error, inspect_payload, '']
+        ) as command_mock, patch.object(release.subprocess, 'check_call') as check_call, patch.object(
+            release.socket, 'socket', return_value=DummySocket()
+        ), patch.object(
+            release.subprocess, 'Popen'
+        ), patch.object(
+            release.time, 'sleep'
+        ):
+            release.prepare('pull-1', pull_if_missing=True)
+
+        check_call.assert_called_once_with(('docker', 'pull', release.IMAGE), cwd=self.root)
+        self.assertEqual(command_mock.call_count, 3)
+        self.assertEqual(release.journal()['phase'], 'switching')
+        self.assertEqual(release.journal()['deployment_id'], 'pull-1')
+
 
 class PackageTests(unittest.TestCase):
     def setUp(self):

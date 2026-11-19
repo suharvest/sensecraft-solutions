@@ -169,7 +169,17 @@ def check_training():
                     raise RuntimeError('Pause or finish the active training job before upgrading')
 
 
-def prepare(ident=None):
+def inspect_image(reference, pull_if_missing=False):
+    try:
+        return json.loads(command('docker', 'image', 'inspect', reference))[0]
+    except subprocess.CalledProcessError:
+        if not pull_if_missing:
+            raise
+        subprocess.check_call(('docker', 'pull', reference), cwd=ROOT)
+        return json.loads(command('docker', 'image', 'inspect', reference))[0]
+
+
+def prepare(ident=None, pull_if_missing=False):
     ident = 'deploy-' + str(time.time_ns()) if not ident else validate_ident(ident)
     STATE.mkdir(parents=True, exist_ok=True, mode=0o700)
     descriptor = os.open(STATE / 'deployment.lock', os.O_CREAT | os.O_RDWR, 0o600)
@@ -178,7 +188,7 @@ def prepare(ident=None):
         check_host()
         check_training()
         env = environment()
-        image = json.loads(command('docker', 'image', 'inspect', env['WORKTIME_IMAGE']))[0]
+        image = inspect_image(env['WORKTIME_IMAGE'], pull_if_missing=pull_if_missing)
         if image['Architecture'] != 'arm64' or image['Os'] != 'linux':
             raise RuntimeError('Image platform is not Linux ARM64')
         manifest_path = ROOT / 'release-manifest.json'
@@ -354,6 +364,7 @@ if __name__ == '__main__':
     parser.add_argument('action', choices=['configure', 'prepare', 'commit', 'rollback', 'watch', 'check', 'diagnose'])
     parser.add_argument('deployment_id', nargs='?', default=os.environ.get('DEPLOYMENT_ID'))
     parser.add_argument('--lease-fd', type=int)
+    parser.add_argument('--pull', action='store_true')
     arguments = parser.parse_args()
     try:
         if arguments.action == 'configure':
@@ -364,9 +375,11 @@ if __name__ == '__main__':
             diagnose()
         elif arguments.action == 'watch':
             watch(validate_ident(arguments.deployment_id), arguments.lease_fd)
+        elif arguments.action == 'prepare':
+            prepare(arguments.deployment_id or None, pull_if_missing=arguments.pull)
         else:
             ident = arguments.deployment_id or None
-            {'prepare': prepare, 'commit': commit, 'rollback': rollback}[arguments.action](ident)
+            {'commit': commit, 'rollback': rollback}[arguments.action](ident)
     except Exception as error:
         print(type(error).__name__ + ': ' + str(error), file=sys.stderr)
         sys.exit(1)

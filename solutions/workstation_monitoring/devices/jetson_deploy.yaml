@@ -116,8 +116,8 @@ actions:
           exit 1
         fi
         python3 "$DEPLOYMENT_DIR/scripts/release.py" configure
-        python3 "$DEPLOYMENT_DIR/scripts/release.py" prepare
-      timeout: 360
+        python3 "$DEPLOYMENT_DIR/scripts/release.py" prepare --pull
+      timeout: 1800
   after:
     - name: Commit the verified release
       name_i18n:
@@ -179,8 +179,8 @@ remote_overrides:
             exit 1
           fi
           python3 "$DEPLOYMENT_DIR/scripts/release.py" configure
-          python3 "$DEPLOYMENT_DIR/scripts/release.py" prepare
-        timeout: 360
+          python3 "$DEPLOYMENT_DIR/scripts/release.py" prepare --pull
+        timeout: 1800
     after:
       - name: Commit the verified release
         name_i18n:
