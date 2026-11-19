@@ -752,5 +752,111 @@ def test_urls_remote_recamera_deb_nested_manifest_zst_rejected(tmp_path, monkeyp
     ) in errs[0]
 
 
+# ---------------------------------------------------------------------------
+# check_device_template_vars
+# ---------------------------------------------------------------------------
+
+
+def test_device_template_vars_good_and_exemptions(tmp_path):
+    sol = _make_solution(
+        tmp_path / "s",
+        files={
+            "devices/deploy.yaml": (
+                "id: deploy\n"
+                "type: docker_deploy\n"
+                "user_inputs:\n"
+                "  - id: http_port\n"
+                "    name: Port\n"
+                "    type: number\n"
+                "docker:\n"
+                "  compose_file: assets/c.yml\n"
+                "  remote_path: /home/{{username}}/app\n"
+                "  environment:\n"
+                '    PORT: "{{http_port}}"\n'
+                '    HOST_ADDR: "{{host}}"\n'
+                '    PASS: "{{password}}"\n'
+                '    SSH_PORT: "{{port}}"\n'
+                '    SOL_DIR: "{{solution_dir}}"\n'
+                "actions:\n"
+                "  before:\n"
+                "    - name: check\n"
+                "      env:\n"
+                '        INPUT_PORT: "{{http_port}}"\n'
+                "      run: |\n"
+                "        # Comment referencing {{remote_path}} and {{device_id}} and {{...}} is exempt\n"
+                '        docker inspect -f "{{.State.Running}}" app\n'
+                '        docker ps --format "{{.Names}}"\n'
+                '        FMT=\'{{range .Config.Env}}{{println .}}\'$(printf \'{{%s}}\' \'end\')\n'
+                '        docker inspect --format "{{index .Config.Labels \\"x\\"}}" app\n'
+                '        echo "{{solution_dir}} {{remote_opt}}"\n'
+                "post_deployment:\n"
+                '  url: "http://{{host}}:{{http_port}}/"\n'
+                "remote_overrides:\n"
+                "  user_inputs:\n"
+                "    - id: remote_opt\n"
+                "      name: Opt\n"
+                "      type: text\n"
+                "  actions:\n"
+                "    after:\n"
+                "      - name: post\n"
+                '        run: echo "{{remote_opt}}"\n'
+                "ha_integration:\n"
+                "  entity: '{{entities.temperature}}'\n"
+                "recamera_pro_app:\n"
+                "  config_when: '{{some_runtime_ctx}}'\n"
+                "text_chat:\n"
+                "  request_template: '{\"q\": \"{{input}}\"}'\n"
+            ),
+        },
+    )
+    assert checks.check_device_template_vars(sol, {}) == []
+
+
+def test_device_template_vars_bad_undefined(tmp_path):
+    sol = _make_solution(
+        tmp_path / "s",
+        files={
+            "devices/deploy.yaml": (
+                "id: deploy\n"
+                "type: docker_deploy\n"
+                "user_inputs:\n"
+                "  - id: http_port\n"
+                "    name: Port\n"
+                "    type: number\n"
+                "docker:\n"
+                "  compose_file: assets/c.yml\n"
+                "  remote_path: '{{unknown_dir}}/app'\n"
+                "  environment:\n"
+                "    BAD_ENV: '{{bogus_var}}'\n"
+                "actions:\n"
+                "  after_upload:\n"
+                "    - name: cfg\n"
+                "      env:\n"
+                "        DEPLOYMENT_DIR: '{{deployment_dir}}'\n"
+                "      run: echo '{{deployment_id}}'\n"
+                "post_deployment:\n"
+                "  url: 'http://{{host}}:{{missing_port}}/'\n"
+                "remote_overrides:\n"
+                "  actions:\n"
+                "    after:\n"
+                "      - name: post\n"
+                "        run: echo '{{remote_unknown}}'\n"
+            ),
+        },
+    )
+    errs = checks.check_device_template_vars(sol, {})
+    joined = "\n".join(errs)
+    assert "{{unknown_dir}}" in joined
+    assert "{{bogus_var}}" in joined
+    assert "{{deployment_dir}}" in joined
+    assert "{{deployment_id}}" in joined
+    assert "{{missing_port}}" in joined
+    assert "{{remote_unknown}}" in joined
+    assert len(errs) == 6
+
+    static_errs = checks.run_static_checks(sol, {})
+    assert any("[device_template_vars]" in e for e in static_errs)
+
+
 if __name__ == "__main__":
     raise SystemExit(pytest.main([__file__, "-q"]))

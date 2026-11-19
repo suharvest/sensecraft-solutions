@@ -79,6 +79,22 @@ def check_solution_content_lint() -> tuple[int, str]:
     return run_command([sys.executable, "scripts/ci/lint_solution_content.py"])
 
 
+def check_solution_assets_test() -> tuple[int, str]:
+    return run_command(["uv", "run", "--with", "pytest", "pytest", "tests/test_solution_assets_lint.py", "-q"])
+
+
+def check_solution_assets_lint() -> tuple[int, str]:
+    return run_command([sys.executable, "scripts/ci/lint_solution_assets.py"])
+
+
+def check_spec_checks_test() -> tuple[int, str]:
+    return run_command(["uv", "run", "--package", "sensecraft-solution-spec", "pytest", "packages/sensecraft-solution-spec/tests", "-q"])
+
+
+def check_solutionctl_validate_test() -> tuple[int, str]:
+    return run_command(["uv", "run", "--package", "sensecraft-solutionctl", "pytest", "packages/solutionctl/tests/test_validate.py", "-q"])
+
+
 def check_no_local_gifs_lint() -> tuple[int, str]:
     return run_command([sys.executable, "scripts/ci/lint_no_local_gifs.py"])
 
@@ -152,10 +168,14 @@ CHECKS = [
     ("product-names-lint", "Lint customer-facing product family names", check_product_names_lint, True, True, False, True),
     ("untested-wording-lint", "Lint customer-facing untested disclaimer patterns", check_untested_wording_lint, True, True, False, True),
     ("solution-content-lint", "Lint 4-part structure, headers and forbidden terms", check_solution_content_lint, True, True, False, True),
+    ("solution-assets-lint", "Lint solution packages for forbidden dev/test/lock/cache files", check_solution_assets_lint, True, True, False, True),
     ("no-local-gifs-lint", "Lint solutions to ensure no local GIFs exist or are referenced", check_no_local_gifs_lint, True, True, False, True),
     ("product-names-test", "Unit tests for product name linting rules", check_product_names_test, False, True, False, True),
     ("untested-wording-test", "Unit tests for untested wording rules", check_untested_wording_test, False, True, False, True),
     ("solution-content-test", "Unit tests for solution content rules", check_solution_content_test, False, True, False, True),
+    ("solution-assets-test", "Unit tests for solution asset linting rules", check_solution_assets_test, False, True, False, True),
+    ("spec-checks-test", "Unit tests for sensecraft-solution-spec static checks", check_spec_checks_test, False, True, False, True),
+    ("solutionctl-validate-test", "Unit tests for solutionctl offline validate rules", check_solutionctl_validate_test, False, True, False, True),
     ("target-mode-test", "Unit tests for target deployment mode exclusivity", check_target_mode_test, False, True, False, True),
     ("solutionctl-offline", "Schema validation for all solution directories (offline)", lambda: check_solutionctl_offline(), False, True, False, True),
     ("public-guard", "Enforce public/closed boundaries and secrets isolation", check_public_repo_guard, False, False, False, True),

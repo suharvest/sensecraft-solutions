@@ -673,6 +673,153 @@ def check_recamera_deb_packages(sol_dir: Path, sol_data: dict) -> list[str]:
     return errors
 
 
+# ---------------------------------------------------------------------------
+# Device YAML template variable validation
+# ---------------------------------------------------------------------------
+
+_BUILTIN_DEVICE_TEMPLATE_VARS: frozenset[str] = frozenset(
+    {"host", "username", "port", "password", "solution_dir"}
+)
+_TEMPLATE_EXPR_RE = re.compile(r"\{\{([^}]*)\}\}")
+_GO_TEMPLATE_KEYWORDS = ("range ", "println ", "index ", "%s", "if ", "else ", "with ", "printf ")
+
+
+def _is_exempt_go_template(expr: str) -> bool:
+    """Return True for Go / Docker ``--format`` template expressions."""
+    if expr == "...":
+        return True
+    if expr.startswith((".", "-")):
+        return True
+    if expr in {"end", "else"}:
+        return True
+    return any(tok in expr for tok in _GO_TEMPLATE_KEYWORDS)
+
+
+def _collect_user_input_ids(dev_data: dict) -> set[str]:
+    """Collect ``user_inputs[].id`` from root and ``*_overrides`` sections."""
+    ids: set[str] = set()
+    for inp in dev_data.get("user_inputs") or []:
+        if isinstance(inp, dict) and inp.get("id"):
+            ids.add(str(inp["id"]))
+    for ov_key in ("remote_overrides", "local_overrides"):
+        ov = dev_data.get(ov_key)
+        if isinstance(ov, dict):
+            for inp in ov.get("user_inputs") or []:
+                if isinstance(inp, dict) and inp.get("id"):
+                    ids.add(str(inp["id"]))
+    return ids
+
+
+def _iter_string_values(node, prefix: str):
+    """Yield ``(field_path, string_value)`` recursively from dicts/lists."""
+    if isinstance(node, str):
+        yield prefix, node
+    elif isinstance(node, dict):
+        for k, v in node.items():
+            child = f"{prefix}.{k}" if prefix else str(k)
+            yield from _iter_string_values(v, child)
+    elif isinstance(node, list):
+        for i, v in enumerate(node):
+            yield from _iter_string_values(v, f"{prefix}[{i}]")
+
+
+def _iter_device_template_fields(node: dict, prefix: str = ""):
+    """Yield ``(field_path, text, is_shell_run)`` for deployment template
+    subtrees only: ``actions.*.run``, ``actions.*.env``, ``docker.remote_path``,
+    ``docker.environment``, and ``post_deployment.*``.
+
+    Non-deployment template subtrees (``ha_integration``,
+    ``recamera_pro_app.config_when``, ``*.request_template``, etc.) are
+    intentionally excluded.
+    """
+    pfx = f"{prefix}." if prefix else ""
+
+    actions = node.get("actions")
+    if isinstance(actions, dict):
+        for hook, action_list in actions.items():
+            if not isinstance(action_list, list):
+                continue
+            for idx, action in enumerate(action_list):
+                if not isinstance(action, dict):
+                    continue
+                if isinstance(action.get("run"), str):
+                    yield f"{pfx}actions.{hook}[{idx}].run", action["run"], True
+                if isinstance(action.get("env"), dict):
+                    for fp, val in _iter_string_values(
+                        action["env"], f"{pfx}actions.{hook}[{idx}].env"
+                    ):
+                        yield fp, val, False
+
+    docker = node.get("docker")
+    if isinstance(docker, dict):
+        if isinstance(docker.get("remote_path"), str):
+            yield f"{pfx}docker.remote_path", docker["remote_path"], False
+        if isinstance(docker.get("environment"), dict):
+            for fp, val in _iter_string_values(
+                docker["environment"], f"{pfx}docker.environment"
+            ):
+                yield fp, val, False
+
+    post_dep = node.get("post_deployment")
+    if isinstance(post_dep, dict):
+        for fp, val in _iter_string_values(post_dep, f"{pfx}post_deployment"):
+            yield fp, val, False
+
+
+def check_device_template_vars(sol_dir: Path, sol_data: dict) -> list[str]:
+    """Validate ``{{...}}`` template placeholders inside deployment subtrees of
+    ``devices/*.yaml``.
+
+    Allowed variables are the device's ``user_inputs[].id`` union the engine
+    built-in connection/context variables (``host``, ``username``, ``port``,
+    ``password``, ``solution_dir``). Shell ``#`` comment lines in ``run:`` and
+    Go/Docker ``--format`` templates are exempted.
+    """
+    devices_dir = sol_dir / "devices"
+    if not devices_dir.is_dir():
+        return []
+
+    errors: list[str] = []
+    for dev_file in sorted(devices_dir.rglob("*.yaml")):
+        try:
+            data = yaml.safe_load(dev_file.read_text(encoding="utf-8")) or {}
+        except yaml.YAMLError:
+            continue
+        if not isinstance(data, dict):
+            continue
+
+        rel = dev_file.relative_to(sol_dir).as_posix()
+        allowed = _BUILTIN_DEVICE_TEMPLATE_VARS | _collect_user_input_ids(data)
+
+        subtrees: list[tuple[dict, str]] = [(data, "")]
+        for ov_key in ("remote_overrides", "local_overrides"):
+            ov = data.get(ov_key)
+            if isinstance(ov, dict):
+                subtrees.append((ov, ov_key))
+
+        seen_errors: set[tuple[str, str]] = set()
+        for subtree, prefix in subtrees:
+            for field_path, text, is_shell_run in _iter_device_template_fields(
+                subtree, prefix
+            ):
+                lines = text.splitlines() if is_shell_run else [text]
+                for line in lines:
+                    if is_shell_run and line.lstrip().startswith("#"):
+                        continue
+                    for match in _TEMPLATE_EXPR_RE.finditer(line):
+                        expr = match.group(1).strip()
+                        if not expr or _is_exempt_go_template(expr):
+                            continue
+                        if expr not in allowed and (field_path, expr) not in seen_errors:
+                            seen_errors.add((field_path, expr))
+                            errors.append(
+                                f"undefined template variable '{{{{{expr}}}}}' in "
+                                f"{rel}:{field_path} (not in user_inputs or built-ins "
+                                f"{sorted(_BUILTIN_DEVICE_TEMPLATE_VARS)})"
+                            )
+    return errors
+
+
 def run_static_checks(sol_dir: Path, sol_data: dict) -> list[str]:
     """Run all engine-free static checks and return a flat list of errors,
     each prefixed with the originating check name.
@@ -700,6 +847,10 @@ def run_static_checks(sol_dir: Path, sol_data: dict) -> list[str]:
     errors.extend(
         f"[recamera_deb_format] {e}"
         for e in check_recamera_deb_packages(sol_dir, sol_data)
+    )
+    errors.extend(
+        f"[device_template_vars] {e}"
+        for e in check_device_template_vars(sol_dir, sol_data)
     )
     return errors
 

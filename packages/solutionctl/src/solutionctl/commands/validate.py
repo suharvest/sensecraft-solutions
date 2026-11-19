@@ -234,6 +234,57 @@ def _check_verify_and_target_naming(
     return errors
 
 
+# Historical docker_deploy steps that expose only a remote target and are
+# exempted in ``sensecraft-engine package validate`` for backwards compatibility.
+# New docker_deploy steps must expose both ``local`` and ``remote`` targets.
+_DOCKER_DEPLOY_DUAL_TARGET_LEGACY_ALLOWLIST: frozenset[tuple[str, str, str]] = frozenset(
+    {
+        ("edge_command_workbench", "rk3576_rkllm_remote", "deploy_rk3576_rkllm"),
+        ("edge_command_workbench", "rk3588_rkllm_remote", "deploy_rk3588_rkllm"),
+        ("edge_command_workbench", "rk3576_remote", "deploy"),
+        ("edge_security", "jetson_hub", "deploy_edge_security_jetson_hub"),
+        ("edge_security", "rk3588", "deploy_edge_security_rk3588"),
+        ("edge_security", "hailo", "deploy_edge_security_hailo"),
+        ("fall_detection", "recamera", "panel_host_recamera"),
+        ("fall_detection", "recamera_pro", "panel_host_recamera_pro"),
+        ("retail_voice", "local_transcribe", "deploy_local"),
+        ("retail_voice", "cloud_stack", "deploy_server_platform"),
+        ("unmanned_store_access", "b_ai_host", "p2_deploy"),
+    }
+)
+
+
+def _check_docker_deploy_targets(result, sol_id: str, fname: str) -> list[str]:
+    """Require every ``docker_deploy`` step to expose both ``local`` and
+    ``remote`` targets, matching ``sensecraft-engine package validate``.
+    """
+    errors: list[str] = []
+    for preset in result.presets:
+        for step in preset.steps:
+            if step.type != "docker_deploy":
+                continue
+            if (sol_id, preset.id, step.id) in _DOCKER_DEPLOY_DUAL_TARGET_LEGACY_ALLOWLIST:
+                continue
+            methods: set[str] = set()
+            for target in step.targets or []:
+                method = (
+                    getattr(target, "target_type", None)
+                    or getattr(target, "method", None)
+                    or "local"
+                )
+                method = str(method).strip().lower() or "local"
+                methods.add(method)
+            if "local" not in methods or "remote" not in methods:
+                got = ", ".join(sorted(methods)) if methods else "none"
+                errors.append(
+                    f"{fname}: docker_deploy step '{sol_id}/{preset.id}/{step.id}' "
+                    f"must expose both 'local' and 'remote' targets (got: {got}) — "
+                    "add the missing '### Target: Local {#local type=local config=devices/x.yaml}' "
+                    "or '### Target: <Device> {#<device> type=remote config=devices/x.yaml}' subsection."
+                )
+    return errors
+
+
 def _check_device_aware_target_grouping(result, fname: str, lang: str) -> list[str]:
     """Reject ambiguous multi-target Docker selectors.
 
@@ -896,6 +947,47 @@ def _check_orphan_device_yamls(
     return warnings
 
 
+_GALLERY_DOC_FILES: frozenset[str] = frozenset({"ATTRIBUTION.md", "README.md"})
+
+
+def _check_orphan_gallery_files(sol_path: Path, sol_yaml_text: str) -> list[str]:
+    """Warn about files under ``gallery/`` not referenced by ``solution.yaml``
+    or any Markdown document in the solution directory (excluding
+    ``ATTRIBUTION.md`` and ``README.md``)."""
+    gallery_dir = sol_path / "gallery"
+    if not gallery_dir.is_dir():
+        return []
+
+    search_corpus_parts: list[str] = [sol_yaml_text]
+    for md_file in sorted(sol_path.glob("*.md")):
+        try:
+            search_corpus_parts.append(md_file.read_text(encoding="utf-8"))
+        except OSError:
+            continue
+    devices_dir = sol_path / "devices"
+    if devices_dir.is_dir():
+        for dev_file in sorted(devices_dir.rglob("*.yaml")):
+            try:
+                search_corpus_parts.append(dev_file.read_text(encoding="utf-8"))
+            except OSError:
+                continue
+    corpus = "\n".join(search_corpus_parts)
+
+    warnings: list[str] = []
+    for asset in sorted(gallery_dir.rglob("*")):
+        if not asset.is_file():
+            continue
+        if asset.name in _GALLERY_DOC_FILES:
+            continue
+        rel = asset.relative_to(sol_path).as_posix()
+        if rel not in corpus:
+            warnings.append(
+                f"{rel}: not referenced by solution.yaml or any markdown guide/description "
+                "— unused gallery asset; delete it or reference it."
+            )
+    return warnings
+
+
 # --- Action image-reference lint ------------------------------------------ #
 #
 # The engine exports ``DOCKER_REGISTRY_PREFIX`` into every action step's
@@ -1418,6 +1510,7 @@ def run(
                     result, sol_id, fname, lang, verify_types, verify_exempt
                 )
             )
+            errors.extend(_check_docker_deploy_targets(result, sol_id, fname))
             errors.extend(_check_device_aware_target_grouping(result, fname, lang))
             errors.extend(_check_target_and_mode_exclusivity(result, fname))
         if not any_guide:
@@ -1448,15 +1541,17 @@ def run(
                 _plugin_type_warnings(plugin_types, parsed, required_plugin_ids)
             )
 
-        # --- 4d. orphan device YAMLs (WARN) ----------------------------------
+        # --- 4d. orphan device YAMLs & orphan gallery files (WARN) -----------
+        sol_yaml_text = sol_yaml.read_text(encoding="utf-8") if sol_yaml.is_file() else ""
         if any_guide:
             warnings.extend(
                 _check_orphan_device_yamls(
                     sol_path,
                     referenced_configs,
-                    sol_yaml.read_text(encoding="utf-8") if sol_yaml.is_file() else "",
+                    sol_yaml_text,
                 )
             )
+        warnings.extend(_check_orphan_gallery_files(sol_path, sol_yaml_text))
 
         # --- 4e. anti-console infrastructure check (ERROR) -------------------
         errors.extend(

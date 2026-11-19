@@ -912,3 +912,196 @@ def test_validate_rejects_local_gifs(tmp_path, capsys):
     assert "GIFs are excluded from desktop packaging" in err
 
 
+# ---------------------------------------------------------------------------
+# Unknown action hooks, undefined device template vars, docker_deploy dual
+# target, and orphan gallery warnings
+# ---------------------------------------------------------------------------
+
+
+def _write_docker_solution(
+    base: Path,
+    *,
+    targets_md: str,
+    device_extra: str = "",
+) -> None:
+    base.mkdir(parents=True, exist_ok=True)
+    (base / "solution.yaml").write_text(
+        'version: "1.0"\n'
+        f"id: {base.name}\n"
+        "name: Test Solution\n"
+        "intro:\n"
+        "  summary: A test solution.\n"
+        "  description_file: description.md\n"
+        "deployment:\n"
+        "  guide_file: guide.md\n",
+        encoding="utf-8",
+    )
+    (base / "description.md").write_text("# Test\n", encoding="utf-8")
+    (base / "assets").mkdir(exist_ok=True)
+    (base / "assets" / "docker-compose.yml").write_text(
+        "services:\n  app:\n    image: alpine:latest\n", encoding="utf-8"
+    )
+    (base / "devices").mkdir(exist_ok=True)
+    (base / "devices" / "deploy.yaml").write_text(
+        'version: "1.0"\n'
+        "id: deploy\n"
+        "name: Deploy\n"
+        "type: docker_deploy\n"
+        "docker:\n"
+        "  compose_file: assets/docker-compose.yml\n"
+        "user_inputs:\n"
+        "  - id: http_port\n"
+        "    name: Port\n"
+        "    type: number\n"
+        f"{device_extra}",
+        encoding="utf-8",
+    )
+    (base / "devices" / "dash.yaml").write_text(
+        'version: "1.0"\n'
+        "id: dash\n"
+        "name: Dash\n"
+        "type: web_dashboard\n"
+        'web_dashboard:\n  url: "http://{{host}}:{{http_port}}/"\n',
+        encoding="utf-8",
+    )
+    (base / "guide.md").write_text(
+        "## Preset: Default {#default}\n\n"
+        "## Step 1: Deploy {#deploy type=docker_deploy required=true config=devices/deploy.yaml}\n\n"
+        f"{targets_md}\n\n"
+        "## Step 2: Open {#dash type=web_dashboard required=false config=devices/dash.yaml}\n\n"
+        "Open dashboard.\n",
+        encoding="utf-8",
+    )
+
+
+def test_validate_rejects_unknown_action_hooks(tmp_path, capsys):
+    """ActionsConfig additionalProperties=false rejects before_start / on_failure."""
+    base = tmp_path / "bad_hooks"
+    _write_docker_solution(
+        base,
+        targets_md=(
+            "### Target: Local box {#local type=local config=devices/deploy.yaml default=true}\n\nLocal.\n\n"
+            "### Target: Remote box {#remote type=remote config=devices/deploy.yaml}\n\nRemote.\n"
+        ),
+        device_extra=(
+            "actions:\n"
+            "  before_start:\n"
+            "    - name: bad1\n"
+            "      run: echo hi\n"
+            "  on_failure:\n"
+            "    - name: bad2\n"
+            "      run: echo fail\n"
+        ),
+    )
+    rc = validate.run(str(base), spec_dir=str(SPEC_DIR))
+    assert rc == 1
+    err = capsys.readouterr().err
+    assert "before_start" in err
+    assert "on_failure" in err
+
+
+def test_validate_rejects_undefined_device_template_var(tmp_path, capsys):
+    """Undefined {{deployment_dir}} in device YAML fails validate."""
+    base = tmp_path / "bad_tmpl"
+    _write_docker_solution(
+        base,
+        targets_md=(
+            "### Target: Local box {#local type=local config=devices/deploy.yaml default=true}\n\nLocal.\n\n"
+            "### Target: Remote box {#remote type=remote config=devices/deploy.yaml}\n\nRemote.\n"
+        ),
+        device_extra=(
+            "actions:\n"
+            "  after:\n"
+            "    - name: run_hook\n"
+            "      env:\n"
+            '        DEPLOYMENT_DIR: "{{deployment_dir}}"\n'
+            "      run: echo ok\n"
+        ),
+    )
+    rc = validate.run(str(base), spec_dir=str(SPEC_DIR))
+    assert rc == 1
+    err = capsys.readouterr().err
+    assert "[device_template_vars]" in err
+    assert "{{deployment_dir}}" in err
+
+
+def test_validate_docker_deploy_requires_both_local_and_remote(tmp_path, capsys):
+    """docker_deploy missing local or remote target fails validate."""
+    for label, targets_md, expected_got in [
+        (
+            "only_remote",
+            "### Target: Jetson Orin {#jetson type=remote config=devices/deploy.yaml default=true}\n\nRemote.\n",
+            "got: remote",
+        ),
+        (
+            "only_local",
+            "### Target: Local box {#local type=local config=devices/deploy.yaml default=true}\n\nLocal.\n",
+            "got: local",
+        ),
+        (
+            "no_targets",
+            "Deploy directly.\n",
+            "got: none",
+        ),
+    ]:
+        base = tmp_path / f"docker_{label}"
+        _write_docker_solution(base, targets_md=targets_md)
+        rc = validate.run(str(base), spec_dir=str(SPEC_DIR))
+        assert rc == 1, label
+        err = capsys.readouterr().err
+        assert "must expose both 'local' and 'remote' targets" in err
+        assert expected_got in err
+
+    # Both present -> passes
+    good = tmp_path / "docker_both"
+    _write_docker_solution(
+        good,
+        targets_md=(
+            "### Target: Local box {#local type=local config=devices/deploy.yaml default=true}\n\nLocal.\n\n"
+            "### Target: Jetson Orin {#jetson type=remote config=devices/deploy.yaml}\n\nRemote.\n"
+        ),
+    )
+    rc = validate.run(str(good), spec_dir=str(SPEC_DIR))
+    assert rc == 0
+
+
+def test_validate_warns_on_orphan_gallery_files(tmp_path, capsys):
+    """Unreferenced gallery files emit WARNING while keeping exit code 0."""
+    base = tmp_path / "orphan_gallery"
+    _write_docker_solution(
+        base,
+        targets_md=(
+            "### Target: Local box {#local type=local config=devices/deploy.yaml default=true}\n\nLocal.\n\n"
+            "### Target: Jetson Orin {#jetson type=remote config=devices/deploy.yaml}\n\nRemote.\n"
+        ),
+    )
+    (base / "solution.yaml").write_text(
+        'version: "1.0"\n'
+        f"id: {base.name}\n"
+        "name: Test Solution\n"
+        "intro:\n"
+        "  summary: A test solution.\n"
+        "  cover_image: gallery/used.webp\n"
+        "  description_file: description.md\n"
+        "deployment:\n"
+        "  guide_file: guide.md\n",
+        encoding="utf-8",
+    )
+    gallery = base / "gallery"
+    gallery.mkdir(exist_ok=True)
+    (gallery / "used.webp").write_text("used", encoding="utf-8")
+    (gallery / "cover.svg").write_text("<svg/>", encoding="utf-8")
+    (gallery / "ATTRIBUTION.md").write_text("credits", encoding="utf-8")
+    (gallery / "README.md").write_text("notes", encoding="utf-8")
+
+    rc = validate.run(str(base), spec_dir=str(SPEC_DIR))
+    assert rc == 0
+    captured = capsys.readouterr()
+    assert "warning(s)" in captured.err
+    assert "gallery/cover.svg" in captured.err
+    assert "gallery/used.webp" not in captured.err
+    assert "ATTRIBUTION.md" not in captured.err
+    assert "README.md" not in captured.err
+
+
+
