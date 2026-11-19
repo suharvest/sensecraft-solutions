@@ -59,6 +59,19 @@ General rules:
 - Otherwise follow `instructions`. When they say to run the check in the
   SenseCraft Solution app, tell the user: that check needs the desktop app.
 
+### Interactive page bridge (page_bridge / interactive-page)
+
+Applies when a `web_dashboard` step carries `page_bridge: true` and
+`cli_instructions` (e.g., `open_in: interactive_page` / renderer `interactive-page`).
+Keep the paired browser tab open while inspecting or controlling the page:
+
+- Open and pair: `solution-cli page open "<url>" --wait` (or
+  `solution-cli page pair` if the tab was already opened in the Engine UI).
+- Inspect exposed state and actions: `solution-cli page describe --json`.
+- Invoke an exposed action:
+  `solution-cli page call <action> --params '<json>' --json`.
+- Read buffered or streaming page events: `solution-cli page events --json`.
+
 ## 2. People counting lines (`serial_camera` with `counting_cli`)
 
 1. Ask the user where the counting lines / zones should be, in camera

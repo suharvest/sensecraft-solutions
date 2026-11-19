@@ -114,6 +114,7 @@ Do NOT read all reference files at once. Determine the user's workflow state and
 | **CUSTOMIZE / SECONDARY_DEV**<br>“我想改源码”、“换成自研模型”、“改前端看板”、“GitHub 仓库” | `references/secondary-development.md` | `git clone <repo_url>` / `sensecraft-engine --solutions-dir` | **Never edit cached content**: Clone to user workspace, pair-program, test locally with `--solutions-dir`. |
 | **EDGE_GOTCHAS / HARDWARE_DEBUG**<br>“3576/3588编译报错”、“/dev/rknn打不开”、“recamera崩溃”、“VPSS overflow”、“fork风暴”、“高卡/踩坑” | `references/edge-gotchas.md` | `solution-cli gotchas "<keyword>" [--chip <chip>] --json` / `dmesg \| grep -i -E "rknpu\|vpss\|fifo\|oom"` | **Brand-agnostic**: Focus on generic 3576, 3588, reCamera, reCamera Pro, and MCU gotchas and hardware traps. |
 | **TROUBLESHOOTING**<br>“部署报错”、“黑屏”、“无视频流” | `references/error-catalog.md` | `sensecraft-engine logs` / `solution-cli gotchas "<symptom>" --json` | Max 3 fix-and-retry rounds. Follow local auto-patching rule. |
+| **INTERACTIVE_PAGE / 3D_SANDBOX**<br>“打开 3D 沙盒编排任务”、“通过 Page Bridge 控制网页”、“获取仿真状态或导出产物” | `references/verify.md` | `solution-cli page open <url>` / `pair` / `describe` / `call <method>` / `events` | Keep the paired browser tab open; inspect exposed capabilities via `describe` before calling `applyPatch`, `runTest`, `runBatch`, or `exportArtifact`. |
 
 ### Progressive Disclosure & Multi-Section Fetch
 During discovery, `hub search` returns records with `available_sections` and their status (`section_status`: `documented`, `inherited`, `generic`, `inferred`).
