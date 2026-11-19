@@ -4,6 +4,21 @@
 
 ---
 
+## 0. 前置合规与目录核验（查 BOM 前必做）
+
+1. **区域、AC 插头与射频频段（Region, AC Plug & RF Band）**：
+   - 查配件或组装 BOM 前，**先锁定客户所在国家/地区**，并在查询配件/BOM 时传入 `--region <ISO>`（如 `US`、`DE`、`VN`、`CN`）。
+   - 核对 AC 电源插头制式与 LoRaWAN 频段（如欧洲 `EU868`、北美 `US915`、越南 `VN` 等亚洲地区 `AS923`），**严禁发货插头或频段不匹配的地区版本**。
+2. **海外客户语言参数（Overseas Locale）**：
+   - 面向海外客户查询方案与产品时，命令传入 `--locale en`，确保 `landing_url` 使用 `.com` 国际站域名且 L2 架构图为英文版。
+3. **目录时效性核验（Catalog Staleness）**：
+   - 检查 CLI 返回中的 `freshness` 与 `warnings` 字段；若出现 `STALE`，先执行 `solution-cli catalog pull` 刷新本地目录（或明确标注快照滞后），再下结论，**不得在未刷新前断定产品不存在**。
+4. **同族收敛与调试工具隔离（Same-Family Consolidation & Debug-Tool Separation）**：
+   - 优先检查目标产品族的 `axes`（配置维度）与 `common_options`（通用选配件），在**同一产品族内收敛选型**，再考虑其他产品族或外部第三方件。
+   - **调试/烧录工具**（如 `USB-CAN Analyzer`）必须与**运行态 BOM（Runtime BOM）**分列，避免混入量产单机清单。
+
+---
+
 ## 1. 核心流程：主板 ➔ 必选配件 ➔ 选配传感器/增强件
 
 为用户提供硬件采购清单时，必须严格区分：
@@ -17,14 +32,16 @@
 
 ### 动作一：查询主设备规格与默认 SKU
 ```bash
-solution-cli product query <family_id> --json
+solution-cli product query <family_id> [--locale en|zh|ja] --json
 ```
 - 获取产品族名称、官方默认主 SKU、物理电气规格（电压、电流接口、M.2 槽位等）以及内置的 UTM 商城购买直达链接。
+- 优先核对返回中的 `axes`、`common_options` 以及 `freshness` / `warnings`；海外客户传 `--locale en`。
 
 ### 动作二：查询经过验证的配件清单与批量加购链接
 ```bash
-solution-cli product accessories <family_id> --compact --json
+solution-cli product accessories <family_id> [--region <ISO>] [--locale en|zh|ja] --compact --json
 ```
+- 锁定客户国家后传 `--region <ISO>`，确保返回匹配当地标准的 AC 电源插头与射频版本。
 - 输出严格由确定性代码计算物理兼容性的配件清单：
   - `bundle_cart_url`：已自动将主机与必需配件打包的 Seeed 官方商城合并加购直达链接；
   - `REQUIRED` 列表：带必买技术原因（`reason`）、购买 SKU 与静默带 UTM 的直达链接；
@@ -49,7 +66,7 @@ Agent 严禁凭“常识”告知配件通用，必须遵循 CLI 评估结果并
 2. **射频与天线 (RF Antenna)**：
    - 必须严格区分 **N 型（N-Type）** 与 **SMA**；
    - 室外网关多为 **N-Type Female（母头）**，天线必须选 **N-Type Male（公头，带针）**，若为 SMA 天线必须提醒用户加购 **N转SMA转接线（Pigtail Cable）**；
-   - 频段必须对齐：欧洲选 `EU868`，北美选 `US915`，亚洲选 `AS923`。
+   - 频段必须对齐：欧洲选 `EU868`，北美选 `US915`，亚洲（如越南 `VN`）选 `AS923`；严禁发错地区频段与 AC 插头制式。
 3. **M.2 扩展卡 (M.2 Key)**：
    - **Key-M**：仅用于 NVMe SSD（尺寸通常为 2280）；
    - **Key-E**：仅用于 WiFi / 蓝牙 / AI 加速卡（尺寸通常为 2230）；
@@ -87,3 +104,7 @@ Agent 严禁凭“常识”告知配件通用，必须遵循 CLI 评估结果并
 ---
 > 📦 硬件采购并收到后，只要通电并插上网线，随时对我说“设备已连接，开始部署”，我将直接为您全自动化完成环境配置与方案运行！
 ```
+
+### 涉外与双语客户方案交付提示（Bilingual Customer Proposal）
+- **双语交叉排版**：面向海外客户输出提案与 BOM 时，使用**客户语言 + 英文双语穿插格式**（Interleaved Bilingual Format），并搭配 `--locale en` 获取的**英文版 L2 架构图**。
+- **交付前独立只读 QA**：发送给客户前，执行一轮**独立只读 QA 核验**（Independent Read-Only QA Pass），复核 `--region` 国家代码、AC 插头、LoRaWAN 频段、调试工具（如 `USB-CAN Analyzer`）与运行态 BOM 隔离、`landing_url` `.com` 域名及目录 `freshness`。
