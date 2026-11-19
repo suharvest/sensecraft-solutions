@@ -240,6 +240,46 @@ def check_description_structure(path: str, lines: list[str]) -> list[Finding]:
     return findings
 
 
+RELATIVE_DOCS_LINK_FILENAMES = frozenset(
+    {"description.md", "description_zh.md", "guide.md", "guide_zh.md"}
+)
+RELATIVE_DOCS_LINK_RE = re.compile(
+    r"!?\[[^\]]*\]\((?!https?://)([^)\s]*\bdocs/[^)\s]*\.md(?:#[^)\s]*)?)(?:\s+[^)]*)?\)",
+    re.IGNORECASE,
+)
+
+
+def check_relative_docs_links(path: str, lines: list[str]) -> list[Finding]:
+    """Forbid relative Markdown links pointing to ``docs/*.md`` in customer-facing
+    description and guide files (they break when rendered inside the desktop app).
+    """
+    findings: list[Finding] = []
+    in_code_fence = False
+
+    for lineno, line in enumerate(lines, 1):
+        stripped = line.strip()
+        if stripped.startswith("```"):
+            in_code_fence = not in_code_fence
+            continue
+        if in_code_fence:
+            continue
+
+        for match in RELATIVE_DOCS_LINK_RE.finditer(line):
+            target = match.group(1)
+            findings.append(
+                Finding(
+                    path=path,
+                    lineno=lineno,
+                    rule="relative-docs-link",
+                    detail=(
+                        f"Relative docs link '{target}' is not allowed in customer-facing "
+                        "description/guide files; inline the information or use an HTTPS URL."
+                    ),
+                )
+            )
+    return findings
+
+
 def scan_file(root: str, rel_path: str) -> list[Finding]:
     full_path = os.path.join(root, rel_path)
     if not os.path.isfile(full_path):
@@ -247,7 +287,8 @@ def scan_file(root: str, rel_path: str) -> list[Finding]:
 
     is_yaml = rel_path.endswith((".yaml", ".yml"))
     is_md = rel_path.endswith(".md")
-    is_desc = is_md and ("description" in os.path.basename(rel_path))
+    basename = os.path.basename(rel_path)
+    is_desc = is_md and ("description" in basename)
 
     with open(full_path, encoding="utf-8") as f:
         lines = f.readlines()
@@ -257,6 +298,9 @@ def scan_file(root: str, rel_path: str) -> list[Finding]:
 
     if is_md:
         findings.extend(check_broken_blockquotes(rel_path, lines))
+
+    if basename in RELATIVE_DOCS_LINK_FILENAMES:
+        findings.extend(check_relative_docs_links(rel_path, lines))
 
     if is_desc:
         findings.extend(check_description_structure(rel_path, lines))

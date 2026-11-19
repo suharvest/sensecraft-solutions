@@ -199,6 +199,7 @@
       "type": "object"
     },
     "ActionsConfig": {
+      "additionalProperties": false,
       "description": "Unified before/after action hooks",
       "properties": {
         "after": {

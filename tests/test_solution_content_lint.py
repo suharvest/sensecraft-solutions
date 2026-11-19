@@ -136,6 +136,30 @@ def test_flags_missing_description_section(tmp_path: pathlib.Path) -> None:
     assert any(h.rule == "missing-structure-section" for h in hits), hits
 
 
+@pytest.mark.parametrize("filename", ["description.md", "description_zh.md", "guide.md", "guide_zh.md"])
+def test_flags_relative_docs_links(tmp_path: pathlib.Path, filename: str) -> None:
+    content = (
+        "## Overview\n\n"
+        "See [operations](docs/operations.md#solution-naming) and "
+        "[validation](docs/validation.md).\n"
+    )
+    write(tmp_path, f"solutions/demo/{filename}", content)
+    hits = MODULE.scan(str(tmp_path))
+    rel_hits = [h for h in hits if h.rule == "relative-docs-link"]
+    assert len(rel_hits) == 2, hits
+
+
+def test_allows_https_docs_links_and_fenced_examples(tmp_path: pathlib.Path) -> None:
+    write(
+        tmp_path,
+        "solutions/demo/guide.md",
+        "See [docs](https://github.com/Seeed-Studio/sensecraft-solutions/blob/main/docs/validation.md).\n\n"
+        "```markdown\n[example](docs/validation.md)\n```\n",
+    )
+    hits = MODULE.scan(str(tmp_path))
+    assert hits == []
+
+
 def test_repository_is_clean() -> None:
     hits = MODULE.scan(str(ROOT))
     assert hits == [], f"Lint found issues in repository: {hits}"
