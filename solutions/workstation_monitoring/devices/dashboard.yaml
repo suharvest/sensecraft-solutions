@@ -4,8 +4,6 @@ name: Open the Monitoring Dashboard
 name_i18n:
   zh: 打开监测看板
 type: web_dashboard
-required: false
-verify: true
 
 # 看板地址由部署步 jetson_worktime 决定：host 取部署连接，http_port 取部署步
 # 「网页端口」（默认 8088）。下方输入仅作占位与默认值，运行时自动带入。

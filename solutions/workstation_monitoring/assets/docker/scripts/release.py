@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Durable, project-scoped Docker release preparation and recovery."""
 import argparse
+import contextlib
 import fcntl
 import functools
 import grp
@@ -9,7 +10,6 @@ import os
 from pathlib import Path
 import re
 import shutil
-import signal
 import socket
 import sqlite3
 import subprocess
@@ -24,25 +24,47 @@ PERSISTENT = ROOT / 'persistent'
 JOURNAL = STATE / 'release.json'
 PROJECT = os.environ.get('COMPOSE_PROJECT_NAME', 'jetson_worktime')
 IMAGE = 'chenduola6/jetson-worktime:0.1.0-rc1-jp62-r36.4.3'
+IDENT_RE = re.compile(r'[A-Za-z0-9_-]{1,100}')
 
 
 def command(*args, **kwargs):
     return subprocess.check_output(args, text=True, cwd=ROOT, **kwargs).strip()
 
 
-def save(path, value):
+def write_text_atomic(path, text, mode=0o600):
     path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-    with tempfile.NamedTemporaryFile(mode='w', dir=path.parent, delete=False) as stream:
-        temporary = Path(stream.name)
-        stream.write(json.dumps(value, indent=2) + '\n')
-        stream.flush()
-        os.fsync(stream.fileno())
-    os.replace(temporary, path)
+    fd, tmp_name = tempfile.mkstemp(dir=path.parent, prefix='.' + path.name + '.')
+    temporary = Path(tmp_name)
+    try:
+        os.fchmod(fd, mode)
+        with os.fdopen(fd, 'w', encoding='utf-8') as stream:
+            stream.write(text)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
+    except BaseException:
+        temporary.unlink(missing_ok=True)
+        raise
     descriptor = os.open(path.parent, os.O_RDONLY)
     try:
         os.fsync(descriptor)
     finally:
         os.close(descriptor)
+
+
+def save(path, value):
+    write_text_atomic(path, json.dumps(value, indent=2) + '\n', mode=0o600)
+
+
+def save_env(path, values):
+    body = ''.join(k + '=' + json.dumps(v.replace('$', '$$')) + '\n' for k, v in values.items())
+    write_text_atomic(path, body, mode=0o600)
+
+
+def validate_ident(ident):
+    if not ident or not IDENT_RE.fullmatch(ident):
+        raise RuntimeError('Invalid deployment ID')
+    return ident
 
 
 def journal():
@@ -85,13 +107,13 @@ def configure():
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         previous = journal()
         if previous.get('phase') not in (None, 'committed', 'rolled_back'):
-            rollback(previous['deployment_id'])
+            rollback(previous.get('deployment_id'), restore_root_compose=False)
         for name in ('configs', 'data', 'outputs', 'logs'):
             (PERSISTENT / name).mkdir(parents=True, exist_ok=True, mode=0o700)
         port = int(os.environ.get('WORKTIME_PORT', '8088'))
         offset = int(os.environ.get('WORKTIME_MEDIA_PORT_OFFSET', '0'))
         ports = [port] + [p + offset for p in (8189, 8554, 8889, 9997)]
-        if any(not 1024 <= p <= 65535 for p in ports) or len(set(ports)) != len(ports):
+        if offset < 0 or any(not 1024 <= p <= 65535 for p in ports) or len(set(ports)) != len(ports):
             raise RuntimeError('Invalid or overlapping HTTP/media ports')
         encoder = os.environ.get('WORKTIME_ENCODER', 'auto')
         if encoder not in ('auto', 'nvidia', 'x264'):
@@ -111,11 +133,7 @@ def configure():
             raise RuntimeError('Invalid Compose project name')
         if not re.fullmatch(r'[a-zA-Z0-9./_:@-]+', values['WORKTIME_IMAGE']):
             raise RuntimeError('Invalid image reference')
-        path = ROOT / '.env'
-        temporary = path.with_suffix('.tmp')
-        temporary.write_text(''.join(k + '=' + json.dumps(v.replace('$', '$$')) + '\n' for k, v in values.items()))
-        temporary.chmod(0o600)
-        os.replace(temporary, path)
+        save_env(ROOT / '.env', values)
         if not JOURNAL.exists():
             save(JOURNAL, {'phase': 'rolled_back', 'deployment_id': None})
         print('Device configuration prepared')
@@ -137,7 +155,7 @@ def check_host():
     if total < 7 * 1024**3:
         raise RuntimeError('Requires an 8GB or 16GB module')
     info = json.loads(command('docker', 'info', '--format', '{{json .}}'))
-    if 'nvidia' not in info['Runtimes']:
+    if 'nvidia' not in (info.get('Runtimes') or {}):
         raise RuntimeError('NVIDIA Runtime missing; configure the JetPack NVIDIA Container Toolkit')
     command('docker', 'compose', 'version')
 
@@ -145,13 +163,14 @@ def check_host():
 def check_training():
     database = PERSISTENT / 'data/worktime.sqlite'
     if database.exists():
-        with sqlite3.connect(database.as_uri() + '?mode=ro', uri=True) as connection:
+        with contextlib.closing(sqlite3.connect(f'{database.as_uri()}?mode=ro', uri=True)) as connection:
             for value, in connection.execute("SELECT value FROM objects WHERE kind='job'"):
                 if json.loads(value).get('state') in ('queued', 'preparing', 'running', 'validating', 'saving', 'stopping'):
                     raise RuntimeError('Pause or finish the active training job before upgrading')
 
 
-def prepare(ident):
+def prepare(ident=None):
+    ident = 'deploy-' + str(time.time_ns()) if not ident else validate_ident(ident)
     STATE.mkdir(parents=True, exist_ok=True, mode=0o700)
     descriptor = os.open(STATE / 'deployment.lock', os.O_CREAT | os.O_RDWR, 0o600)
     try:
@@ -181,6 +200,7 @@ def prepare(ident):
             for protocol, port in [(socket.SOCK_STREAM, int(env['WORKTIME_PORT']))] + [
                 (socket.SOCK_STREAM, p + offset) for p in (8189, 8554, 8889, 9997)] + [(socket.SOCK_DGRAM, 8189 + offset)]:
                 with socket.socket(socket.AF_INET, protocol) as probe:
+                    probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                     probe.bind(('0.0.0.0', port))
         backup = ROOT / 'releases' / ident
         backup.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -200,7 +220,8 @@ def prepare(ident):
         shutil.copytree(PERSISTENT / 'configs', backup / 'configs', dirs_exist_ok=True)
         database = PERSISTENT / 'data/worktime.sqlite'
         if database.exists():
-            with sqlite3.connect(database) as source, sqlite3.connect(backup / 'worktime.sqlite') as destination:
+            with contextlib.closing(sqlite3.connect(f'{database.as_uri()}?mode=ro', uri=True)) as source, \
+                 contextlib.closing(sqlite3.connect(backup / 'worktime.sqlite')) as destination:
                 source.backup(destination)
         latest = PERSISTENT / 'outputs/behavior/latest.json'
         if latest.exists():
@@ -225,9 +246,10 @@ def ready():
 
 
 @serialized
-def commit(ident):
+def commit(ident=None):
     value = journal()
-    if value.get('deployment_id') != ident or value.get('phase') != 'switching':
+    ident = value.get('deployment_id') if not ident else validate_ident(ident)
+    if not ident or value.get('deployment_id') != ident or value.get('phase') != 'switching':
         raise RuntimeError('Release ownership mismatch')
     ready()
     env = environment()
@@ -237,8 +259,7 @@ def commit(ident):
     # Rollback must survive a mutable registry tag being replaced later.
     pinned = environment(STATE / 'active.env')
     pinned['WORKTIME_IMAGE'] = image['Id']
-    (STATE / 'active.env').write_text(''.join(k + '=' + json.dumps(v.replace('$', '$$')) + '\n' for k, v in pinned.items()))
-    (STATE / 'active.env').chmod(0o600)
+    save_env(STATE / 'active.env', pinned)
     save(STATE / 'active.json', {'image': env['WORKTIME_IMAGE'], 'image_id': image['Id'],
                                'deployment_id': ident, 'committed_at': time.time()})
     value['phase'] = 'committed'
@@ -251,17 +272,34 @@ def commit(ident):
 
 
 @serialized
-def rollback(ident):
+def rollback(ident=None, restore_root_compose=True):
     value = journal()
-    if value.get('deployment_id') != ident or value.get('phase') in ('committed', 'rolled_back'):
+    ident = value.get('deployment_id') if not ident else validate_ident(ident)
+    if not ident or value.get('deployment_id') != ident or value.get('phase') in ('committed', 'rolled_back'):
         return
     previous = value.get('previous')
     if value.get('phase') != 'preparing':
-        compose('stop', '-t', '60')
+        try:
+            compose('stop', '-t', '60')
+        except Exception as error:
+            print(f'Warning: compose stop failed during rollback: {error}', file=sys.stderr)
     backup = Path(value['backup'])
     if value.get('backup_complete'):
-        shutil.rmtree(PERSISTENT / 'configs')
-        shutil.copytree(backup / 'configs', PERSISTENT / 'configs')
+        configs_dir = PERSISTENT / 'configs'
+        staged_configs = Path(tempfile.mkdtemp(prefix='.configs-restore-', dir=PERSISTENT))
+        old_configs = PERSISTENT / ('.configs-old-' + str(time.time_ns()))
+        try:
+            shutil.copytree(backup / 'configs', staged_configs, dirs_exist_ok=True)
+            if configs_dir.exists():
+                os.replace(configs_dir, old_configs)
+            os.replace(staged_configs, configs_dir)
+            if old_configs.exists():
+                shutil.rmtree(old_configs, ignore_errors=True)
+        except BaseException:
+            if not configs_dir.exists() and old_configs.exists():
+                os.replace(old_configs, configs_dir)
+            shutil.rmtree(staged_configs, ignore_errors=True)
+            raise
         if (backup / 'worktime.sqlite').exists():
             database = PERSISTENT / 'data/worktime.sqlite'
             for suffix in ('-wal', '-shm'):
@@ -275,8 +313,9 @@ def rollback(ident):
         if old_compose.exists():
             shutil.copy2(old_compose, STATE / 'active-compose.yml')
             shutil.copy2(old_env, STATE / 'active.env')
-        shutil.copy2(STATE / 'active-compose.yml', ROOT / 'docker-compose.yml')
-        shutil.copy2(STATE / 'active.env', ROOT / '.env')
+        if restore_root_compose:
+            shutil.copy2(STATE / 'active-compose.yml', ROOT / 'docker-compose.yml')
+            shutil.copy2(STATE / 'active.env', ROOT / '.env')
         compose('up', '-d', '--wait', '--wait-timeout', '180',
                 file=STATE / 'active-compose.yml', env_file=STATE / 'active.env')
         save(STATE / 'active.json', previous)
@@ -324,11 +363,10 @@ if __name__ == '__main__':
         elif arguments.action == 'diagnose':
             diagnose()
         elif arguments.action == 'watch':
-            watch(arguments.deployment_id, arguments.lease_fd)
+            watch(validate_ident(arguments.deployment_id), arguments.lease_fd)
         else:
-            if not arguments.deployment_id or not re.fullmatch(r'[A-Za-z0-9_-]{1,100}', arguments.deployment_id):
-                raise RuntimeError('A deployment ID is required')
-            {'prepare': prepare, 'commit': commit, 'rollback': rollback}[arguments.action](arguments.deployment_id)
+            ident = arguments.deployment_id or None
+            {'prepare': prepare, 'commit': commit, 'rollback': rollback}[arguments.action](ident)
     except Exception as error:
         print(type(error).__name__ + ': ' + str(error), file=sys.stderr)
         sys.exit(1)

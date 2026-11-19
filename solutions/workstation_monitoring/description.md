@@ -42,7 +42,7 @@ Other **reComputer J40 / J30 series** devices running **JetPack 6.2** are also s
 
 > **First launch:** No camera required. Privacy mode is on, and YOLO11 detection and pose weights are included for offline use.
 
-**Validation:** Hardware-verified on Orin NX 16GB (reComputer Industrial J40). Other baseline-compatible modules use the same pinned image; run the built-in GPU check after deployment. See the [validation record](docs/validation.md).
+**Validation:** Hardware-verified on Orin NX 16GB (reComputer Industrial J40). Other baseline-compatible modules use the same pinned image; run the built-in GPU check after deployment.
 
 ## Usage Notes
 

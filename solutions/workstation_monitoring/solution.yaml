@@ -55,15 +55,15 @@ intro:
         zh: 部署工具与观看浏览器需经局域网直达 Jetson（SSH 与网页/WebRTC 端口）
   presets:
     - id: jetson_local
-      name: Jetson local deployment
+      name: Jetson Edge Deployment
       name_i18n:
-        zh: Jetson 本地部署
+        zh: Jetson 边缘部署
       badge: Beta
       badge_i18n:
         zh: 测试版
-      description: Deploy the application to your Jetson through SSH, then configure the camera in the browser.
+      description: Deploy the application to your Jetson locally or through SSH, then configure the camera in the browser.
       description_i18n:
-        zh: 通过 SSH 部署到自己的 Jetson，再在网页中配置摄像头。
+        zh: 在 Jetson 本机或通过 SSH 部署应用，再在网页中配置摄像头。
       # Hardware attestation: verified on reComputer Industrial J40 (Orin NX 16GB),
       # JetPack 6.2 / L4T 36.4.3 — see docs/validation.md for the measured record.
       # Other baseline-compatible modules ship the same pinned image.
@@ -111,7 +111,6 @@ intro:
       description: Web dashboard, model management and training center
       description_i18n:
         zh: 网页看板、模型管理与训练中心
-      schema_type: binary
 deployment:
   guide_file: guide.md
   guide_file_i18n:

@@ -42,7 +42,7 @@
 
 > **首次启动：** 无需预先接入相机；隐私模式默认开启，已预置可离线使用的 YOLO11 检测与姿态权重。
 
-**验证范围：** 已在 Orin NX 16GB（reComputer Industrial J40）真机验证；满足上述基线的其他模组使用同一固定镜像，部署后请运行内置 GPU 检查，详见[验证记录](docs/validation.md)。
+**验证范围：** 已在 Orin NX 16GB（reComputer Industrial J40）真机验证；满足上述基线的其他模组使用同一固定镜像，部署后请运行内置 GPU 检查。
 
 ## 使用须知
 

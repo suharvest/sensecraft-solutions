@@ -17,6 +17,8 @@ device_detection:
       assert platform.release()=="5.15.148-tegra";
       assert "VERSION_ID=\"22.04\"" in Path("/etc/os-release").read_text()'
     description: Verify Ubuntu 22.04, L4T 36.4.3 and the supported ARM64 kernel
+    description_i18n:
+      zh: 校验 Ubuntu 22.04、L4T 36.4.3 与受支持的 ARM64 内核
     on_failure:
       message: This release requires Ubuntu 22.04 ARM64, L4T 36.4.3 and kernel 5.15.148-tegra.
       message_i18n:
@@ -25,7 +27,6 @@ device_detection:
 docker:
   compose_file: assets/docker/docker-compose.yml
   compose_dir: assets/docker
-  remote_path: .sensecraft/deployments
   environment:
     WORKTIME_PORT: "{{http_port}}"
     WORKTIME_MEDIA_PORT_OFFSET: "{{media_port_offset}}"
@@ -42,13 +43,6 @@ docker:
       required: true
     - name: trainer
       required: true
-
-ssh:
-  port: 22
-  default_user: recomputer
-  auth_methods: [password, key]
-  connection_timeout: 30
-  command_timeout: 7200
 
 user_inputs:
   - id: http_port
@@ -80,10 +74,16 @@ user_inputs:
     options:
       - value: auto
         label: Automatic
+        label_i18n:
+          zh: 自动
       - value: nvidia
         label: NVIDIA hardware encoder
+        label_i18n:
+          zh: NVIDIA 硬件编码
       - value: x264
         label: Software H.264
+        label_i18n:
+          zh: 软件 H.264
 
 pre_checks:
   - type: disk_space
@@ -94,43 +94,116 @@ deploy_timeout: 10800
 
 actions:
   after_upload:
-    - name: Prepare the device configuration
+    - name: Prepare device configuration and recoverable release
+      name_i18n:
+        zh: 准备设备配置与可恢复发布
       env:
         COMPOSE_PROJECT_NAME: jetson_worktime
-        DEPLOYMENT_DIR: "{{deployment_dir}}"
         WORKTIME_PORT: "{{http_port}}"
         WORKTIME_MEDIA_PORT_OFFSET: "{{media_port_offset}}"
         WORKTIME_ENCODER: "{{encoder}}"
       run: |
         set -eu
-        case "$DEPLOYMENT_DIR" in *'{{'*|'') echo 'Upgrade the deployment engine to a version with Docker release hooks.' >&2; exit 1;; esac
+        DEPLOYMENT_DIR=""
+        for candidate in "assets/docker" "."; do
+          if [ -f "$candidate/scripts/release.py" ]; then
+            DEPLOYMENT_DIR="$candidate"
+            break
+          fi
+        done
+        if [ -z "$DEPLOYMENT_DIR" ]; then
+          echo "Deployment directory not found (expected assets/docker/scripts/release.py)" >&2
+          exit 1
+        fi
         python3 "$DEPLOYMENT_DIR/scripts/release.py" configure
-      timeout: 120
-  before_start:
-    - name: Prepare a recoverable release
-      env:
-        COMPOSE_PROJECT_NAME: jetson_worktime
-        DEPLOYMENT_DIR: "{{deployment_dir}}"
-        DEPLOYMENT_ID: "{{deployment_id}}"
-      run: python3 "$DEPLOYMENT_DIR/scripts/release.py" prepare "$DEPLOYMENT_ID"
-      timeout: 240
+        python3 "$DEPLOYMENT_DIR/scripts/release.py" prepare
+      timeout: 360
   after:
     - name: Commit the verified release
+      name_i18n:
+        zh: 提交已验证的发布
       env:
         COMPOSE_PROJECT_NAME: jetson_worktime
-        DEPLOYMENT_DIR: "{{deployment_dir}}"
-        DEPLOYMENT_ID: "{{deployment_id}}"
-      run: python3 "$DEPLOYMENT_DIR/scripts/release.py" commit "$DEPLOYMENT_ID"
+      run: |
+        set -eu
+        DEPLOYMENT_DIR=""
+        for candidate in "assets/docker" "."; do
+          if [ -f "$candidate/scripts/release.py" ]; then
+            DEPLOYMENT_DIR="$candidate"
+            break
+          fi
+        done
+        if [ -z "$DEPLOYMENT_DIR" ]; then
+          echo "Deployment directory not found (expected assets/docker/scripts/release.py)" >&2
+          exit 1
+        fi
+        python3 "$DEPLOYMENT_DIR/scripts/release.py" commit
       timeout: 30
-  on_failure:
-    - name: Restore the previous release
-      env:
-        COMPOSE_PROJECT_NAME: jetson_worktime
-        DEPLOYMENT_DIR: "{{deployment_dir}}"
-        DEPLOYMENT_ID: "{{deployment_id}}"
-      run: python3 "$DEPLOYMENT_DIR/scripts/release.py" rollback "$DEPLOYMENT_ID"
-      timeout: 240
 
 post_deployment:
-  open_browser: true
-  url: "http://{{host}}:{{http_port}}/"
+  open_browser: false
+  url: "http://localhost:{{http_port}}/"
+
+remote_overrides:
+  remote_path: .sensecraft/deployments
+  compose_dir: assets/docker
+  ssh:
+    port: 22
+    default_user: recomputer
+    auth_methods: [password, key]
+    connection_timeout: 30
+    command_timeout: 7200
+  actions:
+    after_upload:
+      - name: Prepare device configuration and recoverable release
+        name_i18n:
+          zh: 准备设备配置与可恢复发布
+        env:
+          COMPOSE_PROJECT_NAME: jetson_worktime
+          WORKTIME_PORT: "{{http_port}}"
+          WORKTIME_MEDIA_PORT_OFFSET: "{{media_port_offset}}"
+          WORKTIME_ENCODER: "{{encoder}}"
+        run: |
+          set -eu
+          DEPLOYMENT_DIR=""
+          for candidate in \
+            "$HOME/.sensecraft/deployments/jetson_worktime" \
+            "$HOME/.sensecraft/deployments"; do
+            if [ -f "$candidate/scripts/release.py" ]; then
+              DEPLOYMENT_DIR="$candidate"
+              break
+            fi
+          done
+          if [ -z "$DEPLOYMENT_DIR" ]; then
+            echo "Deployment directory not found under $HOME/.sensecraft/deployments" >&2
+            exit 1
+          fi
+          python3 "$DEPLOYMENT_DIR/scripts/release.py" configure
+          python3 "$DEPLOYMENT_DIR/scripts/release.py" prepare
+        timeout: 360
+    after:
+      - name: Commit the verified release
+        name_i18n:
+          zh: 提交已验证的发布
+        env:
+          COMPOSE_PROJECT_NAME: jetson_worktime
+        run: |
+          set -eu
+          DEPLOYMENT_DIR=""
+          for candidate in \
+            "$HOME/.sensecraft/deployments/jetson_worktime" \
+            "$HOME/.sensecraft/deployments"; do
+            if [ -f "$candidate/scripts/release.py" ]; then
+              DEPLOYMENT_DIR="$candidate"
+              break
+            fi
+          done
+          if [ -z "$DEPLOYMENT_DIR" ]; then
+            echo "Deployment directory not found under $HOME/.sensecraft/deployments" >&2
+            exit 1
+          fi
+          python3 "$DEPLOYMENT_DIR/scripts/release.py" commit
+        timeout: 30
+  post_deployment:
+    open_browser: false
+    url: "http://{{host}}:{{http_port}}/"
