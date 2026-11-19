@@ -10,7 +10,7 @@
    - 查配件或组装 BOM 前，**先锁定客户所在国家/地区**，并在查询配件/BOM 时传入 `--region <ISO>`（如 `US`、`DE`、`VN`、`CN`）。
    - 核对 AC 电源插头制式与 LoRaWAN 频段（如欧洲 `EU868`、北美 `US915`、越南 `VN` 等亚洲地区 `AS923`），**严禁发货插头或频段不匹配的地区版本**。
 2. **海外客户语言参数（Overseas Locale）**：
-   - 面向海外客户查询方案与产品时，命令传入 `--locale en`，确保 `landing_url` 使用 `.com` 国际站域名且 L2 架构图为英文版。
+   - 面向海外客户查询方案与产品时，命令传入 `--locale en`，确保 `landing_url` 使用 `www.seeed.cc` 国际站方案页域名且 L2 架构图为英文版（商城 SKU/加购链接仍为 `www.seeedstudio.com`）。
 3. **目录时效性核验（Catalog Staleness）**：
    - 检查 CLI 返回中的 `freshness` 与 `warnings` 字段；若出现 `STALE`，先执行 `solution-cli catalog pull` 刷新本地目录（或明确标注快照滞后），再下结论，**不得在未刷新前断定产品不存在**。
 4. **同族收敛与调试工具隔离（Same-Family Consolidation & Debug-Tool Separation）**：
@@ -32,7 +32,7 @@
 
 ### 动作一：查询主设备规格与默认 SKU
 ```bash
-solution-cli product query <family_id> [--locale en|zh|ja] --json
+solution-cli product get <family_id> [--locale en|zh|ja] --json
 ```
 - 获取产品族名称、官方默认主 SKU、物理电气规格（电压、电流接口、M.2 槽位等）以及内置的 UTM 商城购买直达链接。
 - 优先核对返回中的 `axes`、`common_options` 以及 `freshness` / `warnings`；海外客户传 `--locale en`。
@@ -107,4 +107,4 @@ Agent 严禁凭“常识”告知配件通用，必须遵循 CLI 评估结果并
 
 ### 涉外与双语客户方案交付提示（Bilingual Customer Proposal）
 - **双语交叉排版**：面向海外客户输出提案与 BOM 时，使用**客户语言 + 英文双语穿插格式**（Interleaved Bilingual Format），并搭配 `--locale en` 获取的**英文版 L2 架构图**。
-- **交付前独立只读 QA**：发送给客户前，执行一轮**独立只读 QA 核验**（Independent Read-Only QA Pass），复核 `--region` 国家代码、AC 插头、LoRaWAN 频段、调试工具（如 `USB-CAN Analyzer`）与运行态 BOM 隔离、`landing_url` `.com` 域名及目录 `freshness`。
+- **交付前独立只读 QA**：发送给客户前，执行一轮**独立只读 QA 核验**（Independent Read-Only QA Pass），复核 `--region` 国家代码、AC 插头、LoRaWAN 频段、调试工具（如 `USB-CAN Analyzer`）与运行态 BOM 隔离、`landing_url` `www.seeed.cc` 域名及目录 `freshness`。
