@@ -8,9 +8,9 @@
 
 1. **区域、AC 插头与射频频段（Region, AC Plug & RF Band）**：
    - 查配件或组装 BOM 前，**先锁定客户所在国家/地区**，并在查询配件/BOM 时传入 `--region <ISO>`（如 `US`、`DE`、`VN`、`CN`）。
-   - 核对 AC 电源插头制式与 LoRaWAN 频段（如欧洲 `EU868`、北美 `US915`、越南 `VN` 等亚洲地区 `AS923`），**严禁发货插头或频段不匹配的地区版本**。
+   - 核对 AC 电源插头制式与 LoRaWAN 频段（东南亚/越南/日本等用 `AS923`，日本优先专用 `AS923_JP`；中国用 `CN470`，韩国用 `KR920`，印度用 `IN865`；欧洲用 `EU868`，北美用 `US915`，澳洲用 `AU915`），**严禁发货插头或频段不匹配的地区版本**。
 2. **海外客户语言参数（Overseas Locale）**：
-   - 面向海外客户查询方案与产品时，命令传入 `--locale en`，确保 `landing_url` 使用 `www.seeed.cc` 国际站方案页域名且 L2 架构图为英文版（商城 SKU/加购链接仍为 `www.seeedstudio.com`）。
+   - 面向海外客户查询方案与产品时，命令传入 `--locale en` 以优先获取 `www.seeed.cc` 国际站方案页 `landing_url` 与英文版 L2 架构图（商城 SKU/加购链接仍为 `www.seeedstudio.com`）；但当英文资源缺失时，CLI 仍可能回退为默认 URL 或中文架构图，不得仅因传入 `--locale en` 就将其描述为英文版，须先核对实际返回的 URL 与图内语言。
 3. **目录时效性核验（Catalog Staleness）**：
    - 检查 CLI 返回中的 `freshness` 与 `warnings` 字段；若出现 `STALE`，先执行 `solution-cli catalog pull` 刷新本地目录（或明确标注快照滞后），再下结论，**不得在未刷新前断定产品不存在**。
 4. **同族收敛与调试工具隔离（Same-Family Consolidation & Debug-Tool Separation）**：
@@ -66,7 +66,7 @@ Agent 严禁凭“常识”告知配件通用，必须遵循 CLI 评估结果并
 2. **射频与天线 (RF Antenna)**：
    - 必须严格区分 **N 型（N-Type）** 与 **SMA**；
    - 室外网关多为 **N-Type Female（母头）**，天线必须选 **N-Type Male（公头，带针）**，若为 SMA 天线必须提醒用户加购 **N转SMA转接线（Pigtail Cable）**；
-   - 频段必须对齐：欧洲选 `EU868`，北美选 `US915`，亚洲（如越南 `VN`）选 `AS923`；严禁发错地区频段与 AC 插头制式。
+   - 频段必须对齐：东南亚/越南/日本等用 `AS923`（日本优先专用 `AS923_JP`），中国用 `CN470`，韩国用 `KR920`，印度用 `IN865`；欧洲用 `EU868`，北美用 `US915`，澳洲用 `AU915`；严禁发错地区频段与 AC 插头制式。
 3. **M.2 扩展卡 (M.2 Key)**：
    - **Key-M**：仅用于 NVMe SSD（尺寸通常为 2280）；
    - **Key-E**：仅用于 WiFi / 蓝牙 / AI 加速卡（尺寸通常为 2230）；
@@ -106,5 +106,5 @@ Agent 严禁凭“常识”告知配件通用，必须遵循 CLI 评估结果并
 ```
 
 ### 涉外与双语客户方案交付提示（Bilingual Customer Proposal）
-- **双语交叉排版**：面向海外客户输出提案与 BOM 时，使用**客户语言 + 英文双语穿插格式**（Interleaved Bilingual Format），并搭配 `--locale en` 获取的**英文版 L2 架构图**。
-- **交付前独立只读 QA**：发送给客户前，执行一轮**独立只读 QA 核验**（Independent Read-Only QA Pass），复核 `--region` 国家代码、AC 插头、LoRaWAN 频段、调试工具（如 `USB-CAN Analyzer`）与运行态 BOM 隔离、`landing_url` `www.seeed.cc` 域名及目录 `freshness`。
+- **双语交叉排版**：面向海外客户输出提案与 BOM 时，使用**客户语言 + 英文双语穿插格式**（Interleaved Bilingual Format），并优先搭配 `--locale en` 获取的 L2 架构图；若因英文资源缺失而回退为中文架构图或默认链接，不得将其描述为英文版，须在正文中如实标注或补充关键节点英文释义。
+- **交付前独立只读 QA**：发送给客户前，执行一轮**独立只读 QA 核验**（Independent Read-Only QA Pass），复核 `--region` 国家代码、AC 插头、LoRaWAN 频段、调试工具（如 `USB-CAN Analyzer`）与运行态 BOM 隔离、目录 `freshness`，以及实际返回的 `landing_url`（确认是否真为 `www.seeed.cc` 而非回退默认链接）和架构图实际语言（确认后再标为英文版）。
