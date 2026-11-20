@@ -123,6 +123,106 @@ actions:
           https://sensecraft-statics.seeed.cc/solution-app/gun_detection_frigate/media/machinegun.mov
       name_i18n:
         zh: 获取并校验演示视频
+  after:
+    - name: Configure RTSP cameras
+      ignore_error: false
+      # Passed as environment variables, not spliced into the script:
+      # a quote, $ or & in the value cannot change what runs.
+      env:
+        INPUT_RTSP_URL_1: "{{rtsp_url_1}}"
+        INPUT_RTSP_URL_2: "{{rtsp_url_2}}"
+      run: |
+        bash -s <<'EOF'
+        set -euo pipefail
+        URL1="${INPUT_RTSP_URL_1:-}"
+        URL2="${INPUT_RTSP_URL_2:-}"
+        if [ -z "$URL1" ] && [ -z "$URL2" ]; then
+          echo "No RTSP cameras configured, using demo videos only"
+          exit 0
+        fi
+
+        ROOT="assets/rk3588"
+        if [ ! -f "$ROOT/docker-compose.yml" ]; then
+          echo "docker-compose.yml not found in $PWD/$ROOT" >&2
+          exit 1
+        fi
+        CONFIG="$ROOT/config/config.yml"
+        TMP_CONFIG="${CONFIG}.tmp.$$"
+        trap 'rm -f "$TMP_CONFIG"' EXIT
+        cp -f "$CONFIG" "$TMP_CONFIG"
+
+        add_camera() {
+          local name="$1" url="$2"
+          cat >> "$TMP_CONFIG" << 'ENDCAM'
+
+          __CAMERA_NAME__:
+            enabled: true
+            ffmpeg:
+              hwaccel_args: preset-rk-h264
+              inputs:
+                - path: __CAMERA_URL__
+                  roles:
+                    - detect
+                    - record
+            detect:
+              width: 1920
+              height: 1080
+              fps: 5
+            objects:
+              track:
+                - gun
+              filters:
+                gun:
+                  threshold: 0.45
+                  min_area: 10
+                  max_area: 500000
+        ENDCAM
+          sed -i "s|__CAMERA_NAME__|$name|" "$TMP_CONFIG"
+          # \ & and | would be read by sed itself; escape them so the
+          # URL lands in the config verbatim.
+          url_sed=$(printf '%s' "$url" | sed -e 's/[\\&|]/\\&/g')
+          sed -i "s|__CAMERA_URL__|$url_sed|" "$TMP_CONFIG"
+        }
+
+        if [ -n "$URL1" ]; then
+          add_camera "rtsp_camera_1" "$URL1"
+        fi
+        if [ -n "$URL2" ]; then
+          add_camera "rtsp_camera_2" "$URL2"
+        fi
+
+        if command -v python3 >/dev/null 2>&1 && python3 -c 'import yaml' >/dev/null 2>&1; then
+          python3 -c 'import sys, yaml; data = yaml.safe_load(open(sys.argv[1])); assert isinstance(data, dict) and isinstance(data.get("cameras"), dict)' "$TMP_CONFIG"
+        else
+          [ -s "$TMP_CONFIG" ] && grep -qE '^[[:space:]]*rtsp_camera_[12]:' "$TMP_CONFIG"
+        fi
+
+        cp -f "$CONFIG" "${CONFIG}.bak"
+        mv -f "$TMP_CONFIG" "$CONFIG"
+
+        healthy=0
+        if docker compose -f assets/rk3588/docker-compose.yml -p gun-detection-rk3588 restart; then
+          for _ in $(seq 1 15); do
+            if curl -sf -m 3 http://127.0.0.1:5000/api/version >/dev/null; then
+              healthy=1
+              break
+            fi
+            sleep 2
+          done
+        fi
+
+        if [ "$healthy" -ne 1 ]; then
+          echo "ERROR: Frigate failed /api/version health check within 30s; rolling back $CONFIG" >&2
+          mv -f "${CONFIG}.bak" "$CONFIG"
+          docker compose -f assets/rk3588/docker-compose.yml -p gun-detection-rk3588 restart || true
+          exit 1
+        fi
+
+        rm -f "${CONFIG}.bak"
+        echo "RTSP cameras configured and Frigate restarted"
+        EOF
+      name_i18n:
+        zh: 配置 RTSP 摄像头
 
 files:
   - url: https://sensecraft-statics.seeed.cc/solution-app/gun_detection_frigate/models/yolo11s_gun_rk3588_i8.rknn
@@ -283,9 +383,29 @@ remote_overrides:
             [ -s "$TMP_CONFIG" ] && grep -qE '^[[:space:]]*rtsp_camera_[12]:' "$TMP_CONFIG"
           fi
 
+          cp -f "$CONFIG" "${CONFIG}.bak"
           mv -f "$TMP_CONFIG" "$CONFIG"
           cd "$WORKDIR"
-          docker compose -p gun-detection-rk3588 restart
+
+          healthy=0
+          if docker compose -p gun-detection-rk3588 restart; then
+            for _ in $(seq 1 15); do
+              if curl -sf -m 3 http://127.0.0.1:5000/api/version >/dev/null; then
+                healthy=1
+                break
+              fi
+              sleep 2
+            done
+          fi
+
+          if [ "$healthy" -ne 1 ]; then
+            echo "ERROR: Frigate failed /api/version health check within 30s; rolling back $CONFIG" >&2
+            mv -f "${CONFIG}.bak" "$CONFIG"
+            docker compose -p gun-detection-rk3588 restart || true
+            exit 1
+          fi
+
+          rm -f "${CONFIG}.bak"
           echo "RTSP cameras configured and Frigate restarted"
           EOF
         name_i18n:

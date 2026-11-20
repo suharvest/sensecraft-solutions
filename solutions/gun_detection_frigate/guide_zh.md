@@ -524,6 +524,8 @@ docker compose -p gun-detection-r2000-hailo restart
 
 将 Frigate NVR 和 RKNN 枪支检测模型部署到 reComputer RK3588。
 
+> **RTSP 摄像头参数说明：** 表单中的 `rtsp_url_1` 和 `rtsp_url_2` 分别配置两路独立摄像头（`rtsp_camera_1` 和 `rtsp_camera_2`），每路单流同时用于检测与录像。如需单摄像头双码流（子码流检测 + 主码流录像），需在部署后手动编辑 `config/config.yml`，为同一摄像头配置两条 `inputs`。
+
 ### 部署目标 {#rk3588_remote type=remote config=devices/rk3588_deploy.yaml default=true}
 
 通过 SSH 部署到网络上的 reComputer RK3588。
@@ -557,11 +559,12 @@ docker compose -p gun-detection-r2000-hailo restart
 ### 接线
 
 1. 确认 Docker 正在运行且 NPU 设备节点存在（如 `/dev/rknpu` 或 `/dev/dri`）
-2. 点击 **部署**
+2. 可选填写 RTSP 摄像头地址（最多 2 个）
+3. 点击 **部署**
 
 ### 部署完成
 
-打开 **http://localhost:5000**，能看到两路演示视频上的枪支检测框。
+打开 **http://localhost:5000**，能看到两路演示视频上的枪支检测框；填写了 RTSP 地址时，你的摄像头也会出现。
 
 ### 故障排查
 
@@ -768,6 +771,8 @@ docker compose -p gun-detection-rk3588 restart
 
 将 Frigate NVR 和 RKNN 枪支检测模型部署到 reComputer RK3576。
 
+> **RTSP 摄像头参数说明：** 表单中的 `rtsp_url_1` 和 `rtsp_url_2` 分别配置两路独立摄像头（`rtsp_camera_1` 和 `rtsp_camera_2`），每路单流同时用于检测与录像。如需单摄像头双码流（子码流检测 + 主码流录像），需在部署后手动编辑 `config/config.yml`，为同一摄像头配置两条 `inputs`。
+
 ### 部署目标 {#rk3576_remote type=remote config=devices/rk3576_deploy.yaml default=true}
 
 通过 SSH 部署到网络上的 reComputer RK3576。
@@ -801,11 +806,12 @@ docker compose -p gun-detection-rk3588 restart
 ### 接线
 
 1. 确认 Docker 正在运行且 NPU 设备节点存在（如 `/dev/rknpu` 或 `/dev/dri`）
-2. 点击 **部署**
+2. 可选填写 RTSP 摄像头地址（最多 2 个）
+3. 点击 **部署**
 
 ### 部署完成
 
-打开 **http://localhost:5000**，能看到两路演示视频上的枪支检测框。
+打开 **http://localhost:5000**，能看到两路演示视频上的枪支检测框；填写了 RTSP 地址时，你的摄像头也会出现。
 
 ### 故障排查
 

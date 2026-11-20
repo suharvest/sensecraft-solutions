@@ -524,6 +524,8 @@ Use the sub stream for detection and the main stream for recording.
 
 Deploy Frigate NVR and the RKNN gun detection model to the reComputer RK3588.
 
+> **RTSP Camera Inputs:** `rtsp_url_1` and `rtsp_url_2` configure two independent cameras (`rtsp_camera_1` and `rtsp_camera_2`), with a single stream per camera used for both `detect` and `record`. If you need dual-stream for a single camera (sub stream for detection + main stream for recording), manually edit `config/config.yml` after deployment to configure two `inputs` under the same camera.
+
 ### Target {#rk3588_remote type=remote config=devices/rk3588_deploy.yaml default=true}
 
 Deploy to a reComputer RK3588 on the network over SSH.
@@ -557,11 +559,12 @@ Deploy on this machine. It must be a reComputer RK3588 with Docker, Rockchip NPU
 ### Wiring
 
 1. Confirm Docker is running and NPU device nodes exist (e.g., `/dev/rknpu` or `/dev/dri`)
-2. Click **Deploy**
+2. Optionally enter RTSP camera URLs (up to 2)
+3. Click **Deploy**
 
 ### Deployment Complete
 
-Open **http://localhost:5000**. The two demo videos show gun detection boxes.
+Open **http://localhost:5000**. The two demo videos show gun detection boxes; RTSP cameras you entered appear as well.
 
 ### Troubleshooting
 
@@ -768,6 +771,8 @@ Use the sub stream for detection and the main stream for recording.
 
 Deploy Frigate NVR and the RKNN gun detection model to the reComputer RK3576.
 
+> **RTSP Camera Inputs:** `rtsp_url_1` and `rtsp_url_2` configure two independent cameras (`rtsp_camera_1` and `rtsp_camera_2`), with a single stream per camera used for both `detect` and `record`. If you need dual-stream for a single camera (sub stream for detection + main stream for recording), manually edit `config/config.yml` after deployment to configure two `inputs` under the same camera.
+
 ### Target {#rk3576_remote type=remote config=devices/rk3576_deploy.yaml default=true}
 
 Deploy to a reComputer RK3576 on the network over SSH.
@@ -801,11 +806,12 @@ Deploy on this machine. It must be a reComputer RK3576 with Docker, Rockchip NPU
 ### Wiring
 
 1. Confirm Docker is running and NPU device nodes exist (e.g., `/dev/rknpu` or `/dev/dri`)
-2. Click **Deploy**
+2. Optionally enter RTSP camera URLs (up to 2)
+3. Click **Deploy**
 
 ### Deployment Complete
 
-Open **http://localhost:5000**. The two demo videos show gun detection boxes.
+Open **http://localhost:5000**. The two demo videos show gun detection boxes; RTSP cameras you entered appear as well.
 
 ### Troubleshooting
 
