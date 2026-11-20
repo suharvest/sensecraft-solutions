@@ -6,7 +6,7 @@ name_i18n:
 type: docker_deploy
 
 preconditions:
-  - command: "(curl -sf -m 2 http://127.0.0.1:8123/manifest.json || curl -sf -m 2 http://localhost:8123/manifest.json) | grep -qi 'Home Assistant'"
+  - command: "(curl -sf -m 2 http://127.0.0.1:8123/manifest.json || curl -sf -m 2 http://localhost:8123/manifest.json || curl -sfk -m 2 https://127.0.0.1:8123/manifest.json || curl -sfk -m 2 https://localhost:8123/manifest.json) | grep -qi 'Home Assistant'"
     description: "Check if Home Assistant is already running on port 8123"
     satisfied_message: "Home Assistant is already running on this host, skipping Docker installation."
     satisfied_message_i18n:

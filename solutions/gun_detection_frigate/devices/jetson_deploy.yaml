@@ -125,81 +125,307 @@ remote_overrides:
           set -euo pipefail
           URL1="${INPUT_RTSP_URL_1:-}"
           URL2="${INPUT_RTSP_URL_2:-}"
-          if [ -z "$URL1" ] && [ -z "$URL2" ]; then
-            echo "No RTSP cameras configured, using demo videos only"
-            exit 0
-          fi
+          case "${URL1}${URL2}" in
+            *$'\n'*|*$'\r'*)
+              echo "ERROR: RTSP URL must not contain newline characters" >&2
+              exit 1
+              ;;
+          esac
 
           WORKDIR="/home/{{username}}/gun-detection-frigate/jetson_deploy"
           CONFIG="$WORKDIR/config/config.yml"
+          CFG_THRESHOLD="0.3"
+          CFG_HWACCEL=""
+          export INPUT_RTSP_URL_1="$URL1"
+          export INPUT_RTSP_URL_2="$URL2"
+          export CFG_THRESHOLD CFG_HWACCEL
+
+          USE_PY_YAML=0
+          if command -v python3 >/dev/null 2>&1 && python3 -c 'import yaml' >/dev/null 2>&1; then
+            USE_PY_YAML=1
+          fi
+
+          if [ -z "$URL1" ] && [ -z "$URL2" ]; then
+            has_rtsp=0
+            if [ "$USE_PY_YAML" -eq 1 ]; then
+              has_rtsp=$(python3 - "$CONFIG" <<'PYCHK'
+          import re, sys, yaml
+
+          def redact(text):
+              return re.sub(r"([A-Za-z][A-Za-z0-9+.-]*://)([^:@/\s]+):([^@/\s]+)@", r"\1***:***@", str(text))
+
+          try:
+              with open(sys.argv[1], "r", encoding="utf-8") as f:
+                  data = yaml.safe_load(f)
+          except yaml.YAMLError as exc:
+              mark = getattr(exc, "problem_mark", None)
+              loc = f" at line {mark.line + 1}, column {mark.column + 1}" if mark else ""
+              problem = redact(getattr(exc, "problem", None) or type(exc).__name__)
+              sys.stderr.write(f"ERROR: Failed to parse Frigate config{loc}: {problem}\n")
+              sys.exit(1)
+
+          cams = data.get("cameras") if isinstance(data, dict) else None
+          print("1" if isinstance(cams, dict) and ("rtsp_camera_1" in cams or "rtsp_camera_2" in cams) else "0")
+          PYCHK
+              )
+            elif grep -qE '^[[:space:]]+(rtsp_camera_1|rtsp_camera_2):[[:space:]]*(#.*)?$' "$CONFIG"; then
+              has_rtsp=1
+            fi
+            if [ "$has_rtsp" -eq 0 ]; then
+              echo "No RTSP cameras configured, using demo videos only"
+              exit 0
+            fi
+          fi
+
           TMP_CONFIG="${CONFIG}.tmp.$$"
           trap 'rm -f "$TMP_CONFIG"' EXIT
-          cp -f "$CONFIG" "$TMP_CONFIG"
 
-          add_camera() {
-            local name="$1" url="$2"
-            cat >> "$TMP_CONFIG" << 'ENDCAM'
+          if [ "$USE_PY_YAML" -eq 1 ]; then
+            python3 - "$CONFIG" "$TMP_CONFIG" "$CFG_THRESHOLD" "$CFG_HWACCEL" <<'PYEOF'
+          import os, re, sys, yaml
 
-            __CAMERA_NAME__:
-              enabled: true
-              ffmpeg:
-                inputs:
-                  - path: __CAMERA_URL__
-                    roles:
-                      - detect
-                      - record
-              detect:
-                width: 1920
-                height: 1080
-                fps: 5
-              objects:
-                track:
-                  - gun
-                filters:
-                  gun:
-                    threshold: 0.3
-                    min_area: 10
-                    max_area: 500000
-          ENDCAM
-            sed -i "s|__CAMERA_NAME__|$name|" "$TMP_CONFIG"
-            # \ & and | would be read by sed itself; escape them so the
-            # URL lands in the config verbatim.
-            url_sed=$(printf '%s' "$url" | sed -e 's/[\\&|]/\\&/g')
-            sed -i "s|__CAMERA_URL__|$url_sed|" "$TMP_CONFIG"
-          }
+          def redact(text):
+              return re.sub(r"([A-Za-z][A-Za-z0-9+.-]*://)([^:@/\s]+):([^@/\s]+)@", r"\1***:***@", str(text))
 
-          if [ -n "$URL1" ]; then
-            add_camera "rtsp_camera_1" "$URL1"
-          fi
-          if [ -n "$URL2" ]; then
-            add_camera "rtsp_camera_2" "$URL2"
-          fi
+          cfg_in, cfg_out, threshold_str, hwaccel = sys.argv[1:5]
+          threshold = float(threshold_str)
+          url1 = os.environ.get("INPUT_RTSP_URL_1", "")
+          url2 = os.environ.get("INPUT_RTSP_URL_2", "")
 
-          if command -v python3 >/dev/null 2>&1 && python3 -c 'import yaml' >/dev/null 2>&1; then
-            python3 -c 'import sys, yaml; data = yaml.safe_load(open(sys.argv[1])); assert isinstance(data, dict) and isinstance(data.get("cameras"), dict)' "$TMP_CONFIG"
+          try:
+              with open(cfg_in, "r", encoding="utf-8") as f:
+                  data = yaml.safe_load(f)
+          except yaml.YAMLError as exc:
+              mark = getattr(exc, "problem_mark", None)
+              loc = f" at line {mark.line + 1}, column {mark.column + 1}" if mark else ""
+              problem = redact(getattr(exc, "problem", None) or type(exc).__name__)
+              sys.stderr.write(f"ERROR: Failed to parse Frigate config{loc}: {problem}\n")
+              sys.exit(1)
+          except OSError as exc:
+              sys.stderr.write(f"ERROR: Failed to read Frigate config: {redact(exc)}\n")
+              sys.exit(1)
+
+          if not isinstance(data, dict):
+              sys.stderr.write("ERROR: Invalid Frigate config: top-level mapping expected\n")
+              sys.exit(1)
+
+          cameras = data.get("cameras")
+          if cameras is None:
+              cameras = {}
+              data["cameras"] = cameras
+          elif not isinstance(cameras, dict):
+              sys.stderr.write("ERROR: Invalid Frigate config: 'cameras' must be a mapping\n")
+              sys.exit(1)
+
+          def build_camera(url):
+              ffmpeg_cfg = {"inputs": [{"path": url, "roles": ["detect", "record"]}]}
+              if hwaccel:
+                  ffmpeg_cfg["hwaccel_args"] = hwaccel
+              return {
+                  "enabled": True,
+                  "ffmpeg": ffmpeg_cfg,
+                  "detect": {"width": 1920, "height": 1080, "fps": 5},
+                  "objects": {
+                      "track": ["gun"],
+                      "filters": {"gun": {"threshold": threshold, "min_area": 10, "max_area": 500000}},
+                  },
+              }
+
+          targets = [("rtsp_camera_1", url1), ("rtsp_camera_2", url2)]
+          for cam_name, cam_url in targets:
+              if cam_url:
+                  cameras[cam_name] = build_camera(cam_url)
+              else:
+                  cameras.pop(cam_name, None)
+
+          try:
+              dumped = yaml.safe_dump(data, sort_keys=False, allow_unicode=True, default_flow_style=False)
+          except TypeError:
+              dumped = yaml.safe_dump(data, allow_unicode=True, default_flow_style=False)
+
+          with open(cfg_out, "w", encoding="utf-8") as f:
+              f.write(dumped)
+
+          try:
+              with open(cfg_out, "r", encoding="utf-8") as f:
+                  verified = yaml.safe_load(f)
+          except yaml.YAMLError as exc:
+              mark = getattr(exc, "problem_mark", None)
+              loc = f" at line {mark.line + 1}, column {mark.column + 1}" if mark else ""
+              problem = redact(getattr(exc, "problem", None) or type(exc).__name__)
+              sys.stderr.write(f"ERROR: Generated Frigate config failed YAML validation{loc}: {problem}\n")
+              sys.exit(1)
+
+          if not isinstance(verified, dict) or not isinstance(verified.get("cameras"), dict):
+              sys.stderr.write("ERROR: Generated Frigate config missing valid 'cameras' mapping\n")
+              sys.exit(1)
+
+          v_cams = verified["cameras"]
+          for cam_name, cam_url in targets:
+              if cam_url:
+                  cam_entry = v_cams.get(cam_name)
+                  inputs = cam_entry.get("ffmpeg", {}).get("inputs", []) if isinstance(cam_entry, dict) else []
+                  actual_path = inputs[0].get("path") if inputs and isinstance(inputs[0], dict) else None
+                  if actual_path != cam_url:
+                      sys.stderr.write(f"ERROR: Verification failed for {cam_name}: configured RTSP path mismatch\n")
+                      sys.exit(1)
+              elif cam_name in v_cams:
+                  sys.stderr.write(f"ERROR: Verification failed: stale {cam_name} was not removed\n")
+                  sys.exit(1)
+          PYEOF
           else
-            [ -s "$TMP_CONFIG" ] && grep -qE '^[[:space:]]*rtsp_camera_[12]:' "$TMP_CONFIG"
+            awk '
+              function indent_of(s) { match(s, /^[ ]*/); return RLENGTH }
+              function yaml_sq(s,    out, sq) {
+                sq = sprintf("%c", 39)
+                out = s
+                gsub(sq, sq sq, out)
+                return sq out sq
+              }
+              function emit_cam(name, url) {
+                print cam_indent name ":"
+                print cam_indent "  enabled: true"
+                print cam_indent "  ffmpeg:"
+                if (hwaccel != "") print cam_indent "    hwaccel_args: " hwaccel
+                print cam_indent "    inputs:"
+                print cam_indent "      - path: " yaml_sq(url)
+                print cam_indent "        roles:"
+                print cam_indent "          - detect"
+                print cam_indent "          - record"
+                print cam_indent "  detect:"
+                print cam_indent "    width: 1920"
+                print cam_indent "    height: 1080"
+                print cam_indent "    fps: 5"
+                print cam_indent "  objects:"
+                print cam_indent "    track:"
+                print cam_indent "      - gun"
+                print cam_indent "    filters:"
+                print cam_indent "      gun:"
+                print cam_indent "        threshold: " threshold
+                print cam_indent "        min_area: 10"
+                print cam_indent "        max_area: 500000"
+              }
+              function flush_cams() {
+                if (!cams_emitted) {
+                  if (url1 != "") emit_cam("rtsp_camera_1", url1)
+                  if (url2 != "") emit_cam("rtsp_camera_2", url2)
+                  cams_emitted = 1
+                }
+              }
+              BEGIN {
+                url1 = ENVIRON["INPUT_RTSP_URL_1"]
+                url2 = ENVIRON["INPUT_RTSP_URL_2"]
+                threshold = ENVIRON["CFG_THRESHOLD"]
+                hwaccel = ENVIRON["CFG_HWACCEL"]
+                in_cameras = 0; seen_cameras = 0; cams_emitted = 0
+                skipping = 0; skip_indent = -1; cam_indent = "  "; got_cam_indent = 0
+              }
+              {
+                if (skipping) {
+                  if ($0 ~ /^[[:space:]]*$/ || $0 ~ /^[[:space:]]*#/) next
+                  if (indent_of($0) > skip_indent) next
+                  skipping = 0; skip_indent = -1
+                }
+                if ($0 ~ /^[^[:space:]#]/) {
+                  if (in_cameras) { flush_cams(); in_cameras = 0 }
+                  if ($0 ~ /^cameras:[[:space:]]*\{\}[[:space:]]*(#.*)?$/) {
+                    in_cameras = 1; seen_cameras = 1
+                    print (url1 != "" || url2 != "") ? "cameras:" : $0
+                    next
+                  }
+                  if ($0 ~ /^cameras:[[:space:]]*(#.*)?$/) { in_cameras = 1; seen_cameras = 1 }
+                  print $0; next
+                }
+                if (in_cameras) {
+                  if ($0 ~ /^[[:space:]]+(rtsp_camera_1|rtsp_camera_2):[[:space:]]*(#.*)?$/) {
+                    skip_indent = indent_of($0)
+                    if (!got_cam_indent && skip_indent > 0) {
+                      cam_indent = substr($0, 1, skip_indent); got_cam_indent = 1
+                    }
+                    skipping = 1; next
+                  }
+                  if (!got_cam_indent && $0 ~ /^[[:space:]]+[A-Za-z0-9_-]+:[[:space:]]*(#.*)?$/) {
+                    ind = indent_of($0)
+                    if (ind > 0) { cam_indent = substr($0, 1, ind); got_cam_indent = 1 }
+                  }
+                }
+                print $0
+              }
+              END {
+                if (in_cameras) {
+                  flush_cams()
+                } else if (!seen_cameras && (url1 != "" || url2 != "")) {
+                  print "cameras:"; flush_cams()
+                }
+              }
+            ' "$CONFIG" > "$TMP_CONFIG"
+
+            if [ ! -s "$TMP_CONFIG" ] || ! grep -qE '^cameras:' "$TMP_CONFIG"; then
+              echo "ERROR: Generated Frigate config missing 'cameras:' section" >&2
+              exit 1
+            fi
+            for cam_idx in 1 2; do
+              cam_key="rtsp_camera_${cam_idx}"
+              if [ "$cam_idx" -eq 1 ]; then cam_url="$URL1"; else cam_url="$URL2"; fi
+              if [ -n "$cam_url" ]; then
+                if [ "$(grep -cE "^[[:space:]]+${cam_key}:[[:space:]]*(#.*)?$" "$TMP_CONFIG")" -ne 1 ]; then
+                  echo "ERROR: Verification failed for ${cam_key} in generated config" >&2
+                  exit 1
+                fi
+              elif grep -qE "^[[:space:]]+${cam_key}:[[:space:]]*(#.*)?$" "$TMP_CONFIG"; then
+                echo "ERROR: Verification failed: stale ${cam_key} was not removed" >&2
+                exit 1
+              fi
+            done
           fi
 
-          cp -f "$CONFIG" "${CONFIG}.bak"
+          if [ ! -f "${CONFIG}.bak" ]; then
+            cp -f "$CONFIG" "${CONFIG}.bak"
+          else
+            echo "Preserving existing backup ${CONFIG}.bak from previous incomplete run"
+          fi
           mv -f "$TMP_CONFIG" "$CONFIG"
           cd "$WORKDIR"
 
-          healthy=0
-          if docker compose -p gun-detection-frigate restart; then
-            for _ in $(seq 1 15); do
+          wait_for_frigate() {
+            local deadline=$(( $(date +%s) + 30 ))
+            while true; do
               if curl -sf -m 3 http://127.0.0.1:5000/api/version >/dev/null; then
-                healthy=1
-                break
+                return 0
+              fi
+              if [ "$(date +%s)" -ge "$deadline" ]; then
+                return 1
               fi
               sleep 2
             done
+          }
+
+          healthy=0
+          if docker compose -p gun-detection-frigate restart; then
+            if wait_for_frigate; then
+              healthy=1
+            fi
+          else
+            echo "ERROR: Frigate container restart failed" >&2
           fi
 
           if [ "$healthy" -ne 1 ]; then
             echo "ERROR: Frigate failed /api/version health check within 30s; rolling back $CONFIG" >&2
-            mv -f "${CONFIG}.bak" "$CONFIG"
-            docker compose -p gun-detection-frigate restart || true
+            cp -f "${CONFIG}.bak" "$CONFIG"
+            rollback_healthy=0
+            if docker compose -p gun-detection-frigate restart; then
+              if wait_for_frigate; then
+                rollback_healthy=1
+              fi
+            else
+              echo "ERROR: Rollback restart command failed" >&2
+            fi
+            if [ "$rollback_healthy" -eq 1 ]; then
+              rm -f "${CONFIG}.bak"
+              echo "ROLLBACK SUCCEEDED: Restored previous $CONFIG and Frigate /api/version is healthy" >&2
+            else
+              echo "ROLLBACK FAILED: Restored $CONFIG but Frigate /api/version failed to recover within 30s (backup kept at ${CONFIG}.bak)" >&2
+            fi
             exit 1
           fi
 

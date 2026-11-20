@@ -40,7 +40,8 @@ ha_integration:
       alias_i18n:
         zh: "枪支检测告警"
       description: "Send a persistent notification when Frigate detects a firearm over MQTT."
-      mode: single
+      mode: queued
+      max: 10
       trigger:
         - platform: mqtt
           topic: "frigate/events"
