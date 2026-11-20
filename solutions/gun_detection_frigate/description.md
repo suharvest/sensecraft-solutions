@@ -9,7 +9,7 @@ This solution adds gun detection to existing cameras. Every frame is analysed on
 | Instant detection | AI scans every video frame in real-time, no human fatigue |
 | Works offline | Runs entirely on local hardware, no cloud dependency, no data leaves your network |
 | Easy to set up | One-click deployment, starts with demo videos so you can see it working immediately |
-| Hardware flexible | Choose NVIDIA Jetson (GPU) or reComputer AI Industrial R21 + Hailo (NPU) based on your needs |
+| Hardware flexible | Choose NVIDIA Jetson (GPU), reComputer AI Industrial R21 + Hailo (NPU), or reComputer RK3588 / RK3576 (Rockchip NPU) based on your needs |
 
 ## Use Cases
 

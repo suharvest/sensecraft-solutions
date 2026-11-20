@@ -36,6 +36,8 @@ Use the sub stream for detection and the main stream for recording.
 
 Deploy Frigate NVR and the gun detection model to the NVIDIA Jetson.
 
+> **RTSP Camera Inputs:** `rtsp_url_1` and `rtsp_url_2` configure two independent cameras (`rtsp_camera_1` and `rtsp_camera_2`), with a single stream per camera used for both `detect` and `record`. If you need dual-stream for a single camera (sub stream for detection + main stream for recording), manually edit `config/config.yml` after deployment to configure two `inputs` under the same camera.
+
 ### Target {#jetson_remote type=remote config=devices/jetson_deploy.yaml default=true}
 
 Deploy to a Jetson on the network over SSH.
@@ -184,7 +186,8 @@ To forward gun-detection alerts to your phone without losing your configuration 
 
    ```yaml
    alias: "Gun Detection Mobile Push (iOS)"
-   mode: single
+   mode: queued
+   max: 10
    trigger:
      - platform: mqtt
        topic: "frigate/events"
@@ -209,7 +212,8 @@ To forward gun-detection alerts to your phone without losing your configuration 
 
    ```yaml
    alias: "Gun Detection Mobile Push (Android)"
-   mode: single
+   mode: queued
+   max: 10
    trigger:
      - platform: mqtt
        topic: "frigate/events"
@@ -279,6 +283,8 @@ Use the sub stream for detection and the main stream for recording.
 
 Deploy Frigate NVR and the gun detection model to the reComputer AI Industrial R21.
 
+> **RTSP Camera Inputs:** `rtsp_url_1` and `rtsp_url_2` configure two independent cameras (`rtsp_camera_1` and `rtsp_camera_2`), with a single stream per camera used for both `detect` and `record`. If you need dual-stream for a single camera (sub stream for detection + main stream for recording), manually edit `config/config.yml` after deployment to configure two `inputs` under the same camera.
+
 ### Target {#r2000_remote type=remote config=devices/r2000_hailo_deploy.yaml default=true}
 
 Deploy to an R21 on the network over SSH. The deployment checks for and installs the HailoRT 4.21.0 driver if needed (5-10 minutes on first run).
@@ -301,7 +307,7 @@ Open **http://\<device-ip\>:5000**. The two demo videos show gun detection boxes
 |---------|-----|
 | Hailo device not found | Check Hailo is seated in the M.2 slot; `ls /dev/hailo*` should show `/dev/hailo0` |
 | HailoRT version mismatch | HailoRT **4.21.0** is required; check with `dpkg -l hailort`. Install: `curl -sfL https://raw.githubusercontent.com/blakeblackshear/frigate/dev/docker/hailo8l/user_installation.sh \| sudo bash`, then reboot |
-| Insufficient disk space | At least 4 GB is needed; run `docker system prune -a` and `sudo apt clean` |
+| Insufficient disk space | At least 4 GB is needed; run `docker system df` first to inspect Docker disk usage, then remove only unneeded containers/images (`docker rm <container>`, `docker rmi <image>`) and run `sudo apt clean` |
 | Port 5000 already in use | Run `docker ps --filter publish=5000 --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Ports}}'` first to inspect what is using port 5000, then stop only the intended container with `docker stop <container_name>` |
 | Container keeps restarting | Run `docker logs frigate-hailo`; usually a Hailo driver issue |
 | RTSP camera not showing | Verify the URL in VLC, then edit `config/config.yml` as in step 3 and restart |
@@ -429,7 +435,8 @@ To forward gun-detection alerts to your phone without losing your configuration 
 
    ```yaml
    alias: "Gun Detection Mobile Push (iOS)"
-   mode: single
+   mode: queued
+   max: 10
    trigger:
      - platform: mqtt
        topic: "frigate/events"
@@ -454,7 +461,8 @@ To forward gun-detection alerts to your phone without losing your configuration 
 
    ```yaml
    alias: "Gun Detection Mobile Push (Android)"
-   mode: single
+   mode: queued
+   max: 10
    trigger:
      - platform: mqtt
        topic: "frigate/events"
@@ -547,7 +555,7 @@ Open **http://\<device-ip\>:5000**. The two demo videos show gun detection boxes
 | Symptom | Fix |
 |---------|-----|
 | NPU or codec device node not found | Confirm the target runs the reComputer RK3588 OS image with Rockchip NPU/MPP drivers loaded (`ls /dev/rknpu /dev/dri`) |
-| Insufficient disk space | At least 4 GB is needed; run `docker system prune -a` and `sudo apt clean` |
+| Insufficient disk space | At least 4 GB is needed; run `docker system df` first to inspect Docker disk usage, then remove only unneeded containers/images (`docker rm <container>`, `docker rmi <image>`) and run `sudo apt clean` |
 | Port 5000 already in use | Run `docker ps --filter publish=5000 --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Ports}}'` first to inspect what is using port 5000, then stop only the intended container with `docker stop <container_name>` |
 | Container keeps restarting | Run `docker compose -p gun-detection-rk3588 logs` in `~/gun-detection-rk3588/rk3588_deploy` to inspect NPU or runtime errors |
 | RTSP camera not showing | Verify the URL in VLC, then edit `config/config.yml` as in step 3 and restart |
@@ -572,7 +580,7 @@ Open **http://localhost:5000**. The two demo videos show gun detection boxes; RT
 |---------|-----|
 | NPU or codec device node not found | Confirm the machine runs the reComputer RK3588 OS image with Rockchip NPU/MPP drivers loaded (`ls /dev/rknpu /dev/dri`) |
 | Port 5000 already in use | Run `docker ps --filter publish=5000 --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Ports}}'` first to inspect what is using port 5000, then stop only the intended container with `docker stop <container_name>` |
-| Container keeps restarting | Run `docker compose -p gun-detection-rk3588 logs` in `~/gun-detection-rk3588/rk3588_deploy` to inspect NPU or runtime errors |
+| Container keeps restarting | Run `docker compose -f assets/rk3588/docker-compose.yml -p gun-detection-rk3588 logs` from the solution directory (or `docker compose -p gun-detection-rk3588 logs` inside `assets/rk3588/`) to inspect NPU or runtime errors |
 
 ## Step 3: Open Dashboard {#dashboard_rk3588 type=web_dashboard required=true config=devices/dashboard.yaml}
 
@@ -593,10 +601,16 @@ Click below to open the Frigate dashboard.
 
 #### Adding or Modifying Cameras
 
-SSH into the device and edit the configuration:
+Open the Frigate configuration directory according to your deployment target:
+
+- **Remote SSH deployment:** SSH into the device and go to `~/gun-detection-rk3588/rk3588_deploy`
+- **Local deployment:** Go to `assets/rk3588/` inside the solution directory on this device
 
 ```bash
+# Remote SSH deployment:
 cd ~/gun-detection-rk3588/rk3588_deploy
+# Or local deployment (from the solution directory):
+# cd assets/rk3588
 nano config/config.yml
 ```
 
@@ -676,7 +690,8 @@ To forward gun-detection alerts to your phone without losing your configuration 
 
    ```yaml
    alias: "Gun Detection Mobile Push (iOS)"
-   mode: single
+   mode: queued
+   max: 10
    trigger:
      - platform: mqtt
        topic: "frigate/events"
@@ -701,7 +716,8 @@ To forward gun-detection alerts to your phone without losing your configuration 
 
    ```yaml
    alias: "Gun Detection Mobile Push (Android)"
-   mode: single
+   mode: queued
+   max: 10
    trigger:
      - platform: mqtt
        topic: "frigate/events"
@@ -794,7 +810,7 @@ Open **http://\<device-ip\>:5000**. The two demo videos show gun detection boxes
 | Symptom | Fix |
 |---------|-----|
 | NPU or codec device node not found | Confirm the target runs the reComputer RK3576 OS image with Rockchip NPU/MPP drivers loaded (`ls /dev/rknpu /dev/dri`) |
-| Insufficient disk space | At least 4 GB is needed; run `docker system prune -a` and `sudo apt clean` |
+| Insufficient disk space | At least 4 GB is needed; run `docker system df` first to inspect Docker disk usage, then remove only unneeded containers/images (`docker rm <container>`, `docker rmi <image>`) and run `sudo apt clean` |
 | Port 5000 already in use | Run `docker ps --filter publish=5000 --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Ports}}'` first to inspect what is using port 5000, then stop only the intended container with `docker stop <container_name>` |
 | Container keeps restarting | Run `docker compose -p gun-detection-rk3576 logs` in `~/gun-detection-rk3576/rk3576_deploy` to inspect NPU or runtime errors |
 | RTSP camera not showing | Verify the URL in VLC, then edit `config/config.yml` as in step 3 and restart |
@@ -819,7 +835,7 @@ Open **http://localhost:5000**. The two demo videos show gun detection boxes; RT
 |---------|-----|
 | NPU or codec device node not found | Confirm the machine runs the reComputer RK3576 OS image with Rockchip NPU/MPP drivers loaded (`ls /dev/rknpu /dev/dri`) |
 | Port 5000 already in use | Run `docker ps --filter publish=5000 --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Ports}}'` first to inspect what is using port 5000, then stop only the intended container with `docker stop <container_name>` |
-| Container keeps restarting | Run `docker compose -p gun-detection-rk3576 logs` in `~/gun-detection-rk3576/rk3576_deploy` to inspect NPU or runtime errors |
+| Container keeps restarting | Run `docker compose -f assets/rk3576/docker-compose.yml -p gun-detection-rk3576 logs` from the solution directory (or `docker compose -p gun-detection-rk3576 logs` inside `assets/rk3576/`) to inspect NPU or runtime errors |
 
 ## Step 3: Open Dashboard {#dashboard_rk3576 type=web_dashboard required=true config=devices/dashboard.yaml}
 
@@ -840,10 +856,16 @@ Click below to open the Frigate dashboard.
 
 #### Adding or Modifying Cameras
 
-SSH into the device and edit the configuration:
+Open the Frigate configuration directory according to your deployment target:
+
+- **Remote SSH deployment:** SSH into the device and go to `~/gun-detection-rk3576/rk3576_deploy`
+- **Local deployment:** Go to `assets/rk3576/` inside the solution directory on this device
 
 ```bash
+# Remote SSH deployment:
 cd ~/gun-detection-rk3576/rk3576_deploy
+# Or local deployment (from the solution directory):
+# cd assets/rk3576
 nano config/config.yml
 ```
 
@@ -923,7 +945,8 @@ To forward gun-detection alerts to your phone without losing your configuration 
 
    ```yaml
    alias: "Gun Detection Mobile Push (iOS)"
-   mode: single
+   mode: queued
+   max: 10
    trigger:
      - platform: mqtt
        topic: "frigate/events"
@@ -948,7 +971,8 @@ To forward gun-detection alerts to your phone without losing your configuration 
 
    ```yaml
    alias: "Gun Detection Mobile Push (Android)"
-   mode: single
+   mode: queued
+   max: 10
    trigger:
      - platform: mqtt
        topic: "frigate/events"

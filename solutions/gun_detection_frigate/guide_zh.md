@@ -36,6 +36,8 @@
 
 将 Frigate NVR 和枪支检测模型部署到 NVIDIA Jetson。
 
+> **RTSP 摄像头参数说明：** 表单中的 `rtsp_url_1` 和 `rtsp_url_2` 分别配置两路独立摄像头（`rtsp_camera_1` 和 `rtsp_camera_2`），每路单流同时用于检测与录像。如需单摄像头双码流（子码流检测 + 主码流录像），需在部署后手动编辑 `config/config.yml`，为同一摄像头配置两条 `inputs`。
+
 ### 部署目标 {#jetson_remote type=remote config=devices/jetson_deploy.yaml default=true}
 
 通过 SSH 部署到网络上的 Jetson。
@@ -184,7 +186,8 @@ docker compose -p gun-detection-frigate restart
 
    ```yaml
    alias: "Gun Detection Mobile Push (iOS)"
-   mode: single
+   mode: queued
+   max: 10
    trigger:
      - platform: mqtt
        topic: "frigate/events"
@@ -209,7 +212,8 @@ docker compose -p gun-detection-frigate restart
 
    ```yaml
    alias: "Gun Detection Mobile Push (Android)"
-   mode: single
+   mode: queued
+   max: 10
    trigger:
      - platform: mqtt
        topic: "frigate/events"
@@ -279,6 +283,8 @@ docker compose -p gun-detection-frigate restart
 
 将 Frigate NVR 和枪支检测模型部署到 reComputer AI Industrial R21。
 
+> **RTSP 摄像头参数说明：** 表单中的 `rtsp_url_1` 和 `rtsp_url_2` 分别配置两路独立摄像头（`rtsp_camera_1` 和 `rtsp_camera_2`），每路单流同时用于检测与录像。如需单摄像头双码流（子码流检测 + 主码流录像），需在部署后手动编辑 `config/config.yml`，为同一摄像头配置两条 `inputs`。
+
 ### 部署目标 {#r2000_remote type=remote config=devices/r2000_hailo_deploy.yaml default=true}
 
 通过 SSH 部署到网络上的 R21。部署时会自动检查并安装 HailoRT 4.21.0 驱动，首次约需 5-10 分钟。
@@ -301,7 +307,7 @@ docker compose -p gun-detection-frigate restart
 |------|------|
 | 找不到 Hailo 设备 | 检查 Hailo 是否插好 M.2 插槽，`ls /dev/hailo*` 应显示 `/dev/hailo0` |
 | HailoRT 版本不匹配 | 需要 HailoRT **4.21.0**，用 `dpkg -l hailort` 查看。安装：`curl -sfL https://raw.githubusercontent.com/blakeblackshear/frigate/dev/docker/hailo8l/user_installation.sh \| sudo bash`，然后重启 |
-| 磁盘空间不足 | 至少需要 4 GB，执行 `docker system prune -a` 和 `sudo apt clean` 释放空间 |
+| 磁盘空间不足 | 至少需要 4 GB，先执行 `docker system df` 查看 Docker 占用，再按需清理指定无用容器或镜像（`docker rm <container>`、`docker rmi <image>`）并执行 `sudo apt clean` |
 | 端口 5000 被占用 | 先执行 `docker ps --filter publish=5000 --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Ports}}'` 排查占用 5000 端口的容器，确认后再执行 `docker stop <container_name>` 停止指定容器 |
 | 容器反复重启 | 执行 `docker logs frigate-hailo` 查看原因，常见为 Hailo 驱动问题 |
 | RTSP 摄像头未显示 | 用 VLC 验证地址，按步骤 3 修改 `config/config.yml` 后重启 |
@@ -429,7 +435,8 @@ docker compose -p gun-detection-r2000-hailo restart
 
    ```yaml
    alias: "Gun Detection Mobile Push (iOS)"
-   mode: single
+   mode: queued
+   max: 10
    trigger:
      - platform: mqtt
        topic: "frigate/events"
@@ -454,7 +461,8 @@ docker compose -p gun-detection-r2000-hailo restart
 
    ```yaml
    alias: "Gun Detection Mobile Push (Android)"
-   mode: single
+   mode: queued
+   max: 10
    trigger:
      - platform: mqtt
        topic: "frigate/events"
@@ -547,7 +555,7 @@ docker compose -p gun-detection-r2000-hailo restart
 | 现象 | 处理 |
 |------|------|
 | 找不到 NPU 或编解码设备节点 | 确认目标设备使用已加载 Rockchip NPU/MPP 驱动的 reComputer RK3588 系统镜像（`ls /dev/rknpu /dev/dri`） |
-| 磁盘空间不足 | 至少需要 4 GB，执行 `docker system prune -a` 和 `sudo apt clean` 释放空间 |
+| 磁盘空间不足 | 至少需要 4 GB，先执行 `docker system df` 查看 Docker 占用，再按需清理指定无用容器或镜像（`docker rm <container>`、`docker rmi <image>`）并执行 `sudo apt clean` |
 | 端口 5000 被占用 | 先执行 `docker ps --filter publish=5000 --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Ports}}'` 排查占用 5000 端口的容器，确认后再执行 `docker stop <container_name>` 停止指定容器 |
 | 容器反复重启 | 进入 `~/gun-detection-rk3588/rk3588_deploy` 执行 `docker compose -p gun-detection-rk3588 logs` 查看 NPU 或运行时报错 |
 | RTSP 摄像头未显示 | 用 VLC 验证地址，按步骤 3 修改 `config/config.yml` 后重启 |
@@ -572,7 +580,7 @@ docker compose -p gun-detection-r2000-hailo restart
 |------|------|
 | 找不到 NPU 或编解码设备节点 | 确认本机使用已加载 Rockchip NPU/MPP 驱动的 reComputer RK3588 系统镜像（`ls /dev/rknpu /dev/dri`） |
 | 端口 5000 被占用 | 先执行 `docker ps --filter publish=5000 --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Ports}}'` 排查占用 5000 端口的容器，确认后再执行 `docker stop <container_name>` 停止指定容器 |
-| 容器反复重启 | 进入 `~/gun-detection-rk3588/rk3588_deploy` 执行 `docker compose -p gun-detection-rk3588 logs` 查看 NPU 或运行时报错 |
+| 容器反复重启 | 在方案目录下执行 `docker compose -f assets/rk3588/docker-compose.yml -p gun-detection-rk3588 logs`（或进入 `assets/rk3588/` 后执行 `docker compose -p gun-detection-rk3588 logs`）查看 NPU 或运行时报错 |
 
 ## 步骤 3: 打开面板 {#dashboard_rk3588 type=web_dashboard required=true config=devices/dashboard.yaml}
 
@@ -593,10 +601,16 @@ docker compose -p gun-detection-r2000-hailo restart
 
 #### 添加或修改摄像头
 
-SSH 登录设备，编辑配置文件：
+根据部署方式进入对应的 Frigate 配置目录并编辑配置文件：
+
+- **远程 SSH 部署：** SSH 登录设备后进入 `~/gun-detection-rk3588/rk3588_deploy`
+- **本机部署：** 进入本机方案目录下的 `assets/rk3588/`
 
 ```bash
+# 远程 SSH 部署：
 cd ~/gun-detection-rk3588/rk3588_deploy
+# 本机部署（从方案目录进入）：
+# cd assets/rk3588
 nano config/config.yml
 ```
 
@@ -676,7 +690,8 @@ docker compose -p gun-detection-rk3588 restart
 
    ```yaml
    alias: "Gun Detection Mobile Push (iOS)"
-   mode: single
+   mode: queued
+   max: 10
    trigger:
      - platform: mqtt
        topic: "frigate/events"
@@ -701,7 +716,8 @@ docker compose -p gun-detection-rk3588 restart
 
    ```yaml
    alias: "Gun Detection Mobile Push (Android)"
-   mode: single
+   mode: queued
+   max: 10
    trigger:
      - platform: mqtt
        topic: "frigate/events"
@@ -794,7 +810,7 @@ docker compose -p gun-detection-rk3588 restart
 | 现象 | 处理 |
 |------|------|
 | 找不到 NPU 或编解码设备节点 | 确认目标设备使用已加载 Rockchip NPU/MPP 驱动的 reComputer RK3576 系统镜像（`ls /dev/rknpu /dev/dri`） |
-| 磁盘空间不足 | 至少需要 4 GB，执行 `docker system prune -a` 和 `sudo apt clean` 释放空间 |
+| 磁盘空间不足 | 至少需要 4 GB，先执行 `docker system df` 查看 Docker 占用，再按需清理指定无用容器或镜像（`docker rm <container>`、`docker rmi <image>`）并执行 `sudo apt clean` |
 | 端口 5000 被占用 | 先执行 `docker ps --filter publish=5000 --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Ports}}'` 排查占用 5000 端口的容器，确认后再执行 `docker stop <container_name>` 停止指定容器 |
 | 容器反复重启 | 进入 `~/gun-detection-rk3576/rk3576_deploy` 执行 `docker compose -p gun-detection-rk3576 logs` 查看 NPU 或运行时报错 |
 | RTSP 摄像头未显示 | 用 VLC 验证地址，按步骤 3 修改 `config/config.yml` 后重启 |
@@ -819,7 +835,7 @@ docker compose -p gun-detection-rk3588 restart
 |------|------|
 | 找不到 NPU 或编解码设备节点 | 确认本机使用已加载 Rockchip NPU/MPP 驱动的 reComputer RK3576 系统镜像（`ls /dev/rknpu /dev/dri`） |
 | 端口 5000 被占用 | 先执行 `docker ps --filter publish=5000 --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Ports}}'` 排查占用 5000 端口的容器，确认后再执行 `docker stop <container_name>` 停止指定容器 |
-| 容器反复重启 | 进入 `~/gun-detection-rk3576/rk3576_deploy` 执行 `docker compose -p gun-detection-rk3576 logs` 查看 NPU 或运行时报错 |
+| 容器反复重启 | 在方案目录下执行 `docker compose -f assets/rk3576/docker-compose.yml -p gun-detection-rk3576 logs`（或进入 `assets/rk3576/` 后执行 `docker compose -p gun-detection-rk3576 logs`）查看 NPU 或运行时报错 |
 
 ## 步骤 3: 打开面板 {#dashboard_rk3576 type=web_dashboard required=true config=devices/dashboard.yaml}
 
@@ -840,10 +856,16 @@ docker compose -p gun-detection-rk3588 restart
 
 #### 添加或修改摄像头
 
-SSH 登录设备，编辑配置文件：
+根据部署方式进入对应的 Frigate 配置目录并编辑配置文件：
+
+- **远程 SSH 部署：** SSH 登录设备后进入 `~/gun-detection-rk3576/rk3576_deploy`
+- **本机部署：** 进入本机方案目录下的 `assets/rk3576/`
 
 ```bash
+# 远程 SSH 部署：
 cd ~/gun-detection-rk3576/rk3576_deploy
+# 本机部署（从方案目录进入）：
+# cd assets/rk3576
 nano config/config.yml
 ```
 
@@ -923,7 +945,8 @@ docker compose -p gun-detection-rk3576 restart
 
    ```yaml
    alias: "Gun Detection Mobile Push (iOS)"
-   mode: single
+   mode: queued
+   max: 10
    trigger:
      - platform: mqtt
        topic: "frigate/events"
@@ -948,7 +971,8 @@ docker compose -p gun-detection-rk3576 restart
 
    ```yaml
    alias: "Gun Detection Mobile Push (Android)"
-   mode: single
+   mode: queued
+   max: 10
    trigger:
      - platform: mqtt
        topic: "frigate/events"
