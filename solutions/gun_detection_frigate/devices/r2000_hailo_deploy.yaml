@@ -56,15 +56,15 @@ name_i18n:
 
 files:
   - url: https://sensecraft-statics.seeed.cc/solution-app/gun_detection_frigate/models/yolov11s.hef
-    remote_path: /home/{{username}}/gun-detection-r2000-hailo/config/model_cache/yolov11s.hef
+    remote_path: /home/{{username}}/gun-detection-r2000-hailo/r2000_hailo_deploy/config/model_cache/yolov11s.hef
     checksum:
       sha256: c221c193b74c7372aa8e5d411660d2a05f568fe5a5e78906f80220a2f689041a
   - url: https://sensecraft-statics.seeed.cc/solution-app/gun_detection_frigate/media/handgun.mp4
-    remote_path: /home/{{username}}/gun-detection-r2000-hailo/storage/handgun.mp4
+    remote_path: /home/{{username}}/gun-detection-r2000-hailo/r2000_hailo_deploy/storage/handgun.mp4
     checksum:
       sha256: a0f9f66b05fefab3efce023db3519010f22ec9bc4195382ece5f6a9ccf9996f5
   - url: https://sensecraft-statics.seeed.cc/solution-app/gun_detection_frigate/media/machinegun.mov
-    remote_path: /home/{{username}}/gun-detection-r2000-hailo/storage/machinegun.mov
+    remote_path: /home/{{username}}/gun-detection-r2000-hailo/r2000_hailo_deploy/storage/machinegun.mov
     checksum:
       sha256: e6219f9df566aa09a9cae49eac7c2e3ce59e92aa5afad20aecf7e6c76d438da7
 
@@ -116,7 +116,7 @@ remote_overrides:
         timeout: 900
         run: |
           set -e
-          WORKDIR="/home/{{username}}/gun-detection-r2000-hailo"
+          WORKDIR="/home/{{username}}/gun-detection-r2000-hailo/r2000_hailo_deploy"
           MODELS_DIR="$WORKDIR/config/model_cache"
           HEF="$MODELS_DIR/yolov11s.hef"
           SHA=c221c193b74c7372aa8e5d411660d2a05f568fe5a5e78906f80220a2f689041a
@@ -143,7 +143,7 @@ remote_overrides:
         timeout: 300
         run: |
           set -e
-          WORKDIR="/home/{{username}}/gun-detection-r2000-hailo"
+          WORKDIR="/home/{{username}}/gun-detection-r2000-hailo/r2000_hailo_deploy"
           STORAGE_DIR="$WORKDIR/storage"
           mkdir -p "$STORAGE_DIR"
 
@@ -182,7 +182,7 @@ remote_overrides:
         run: |
           URL1="$INPUT_RTSP_URL_1"
           URL2="$INPUT_RTSP_URL_2"
-          CONFIG="/home/{{username}}/gun-detection-r2000-hailo/config/config.yml"
+          CONFIG="/home/{{username}}/gun-detection-r2000-hailo/r2000_hailo_deploy/config/config.yml"
           ADDED=0
 
           add_camera() {
@@ -222,8 +222,8 @@ remote_overrides:
           [ -n "$URL2" ] && add_camera "rtsp_camera_2" "$URL2"
 
           if [ "$ADDED" -eq 1 ]; then
-            cd /home/{{username}}/gun-detection-r2000-hailo
-            docker compose restart
+            cd /home/{{username}}/gun-detection-r2000-hailo/r2000_hailo_deploy
+            docker compose -p gun-detection-r2000-hailo restart
             echo "RTSP cameras configured and Frigate restarted"
           else
             echo "No RTSP cameras configured, using demo videos only"

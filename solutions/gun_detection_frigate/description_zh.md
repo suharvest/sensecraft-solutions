@@ -30,7 +30,7 @@
 ### 输出对接
 
 - MQTT：配置 broker 地址 + topic
-- Webhook：配置回调 URL
+- Home Assistant（可选一键联动）：一键接入安装官方 Frigate 集成与 MQTT，默认创建 HA 站内持久告警通知，并可在 HA 中进一步配置手机端告警推送
 - 截图保存：配置本地目录
 
 ### 摄像头安装建议
@@ -46,5 +46,7 @@
 | **reComputer J30 系列**（Jetson 入门） | TensorRT GPU | 约 2 路 | $630 | $315/路 |
 | **reComputer J40 系列**（Jetson 多路） ⭐ | TensorRT GPU | 约 6 路 | $1000 | $150/路（性价比最优） |
 | **reComputer J50 系列**（Jetson 高配） | TensorRT GPU | 约 9 路 | $2500 | $300/路 |
+| **reComputer RK3588** | Rockchip NPU 6 TOPS / RKNN INT8 | — | — | — |
+| **reComputer RK3576** | Rockchip NPU 6 TOPS / RKNN INT8 | — | — | — |
 
 按场景路数需求选择：少量摄像头选 R21+Hailo 或 J30 系列；多路高性价比选 J40 系列；高帧率/多路选 J50 系列。
