@@ -264,11 +264,25 @@ docker run --rm ${DOCKER_REGISTRY_PREFIX}library/alpine sh -c '...'
 - 必须在前置条件和正文文案中明确说明：如果用户已经拥有运行中的独立 Home Assistant（例如另一台机器上的 HAOS 硬件设备）或外部 MQTT Broker，可以直接跳过/取消勾选此步骤，并将设备直接指向现有的 Broker 地址。
 
 **4. 部署后指引（Guide Post-Deployment Guidance）**
+- **适用范围**：仅适用于未配置 `ha_integration` 自动步骤、需用户手工接入的方案。
 - 部署完成说明中必须包含明确的操作路径：
   1. 浏览器打开 `http://<host>:8123` 完成初始管理员账户初始化；
   2. 在 Home Assistant 中进入 **Settings (设置) -> Devices & Services (设备与服务) -> Add Integration (添加集成)**，搜索并添加官方 **MQTT** 集成；
   3. Broker 地址填写宿主机 IP（本地填 `127.0.0.1`），端口 `1883`，无需账号密码；
   4. 保存后，reCamera 发布的自动发现实体（如 `binary_sensor.recamera_motion`）将自动在 HA 中显现。
+
+**5. ha_integration Deployer 能力边界（自动接入与自定义组件安装）**
+- **自动 Onboarding**：`ha_login` 会探测 `/api/onboarding`，全新未初始化的 HA 会自动创建管理员并完成基础配置。
+- **自定义组件安装（`components_dir`）三路自动分流**：自动探测 HAOS 与 Docker Core、本地与远程环境，无需修改引擎即可覆盖以下三种环境：
+  - **HAOS**：通过 Supervisor API 自动检测/安装/启动 SSH Add-on，拷贝到 `<config_dir>/custom_components/<domain>` 并重启 HA；
+  - **本机 Docker / 本机目录**（`ha_host` 为 `localhost`/`127.0.0.1` 或 `target_type=local`）：优先直拷到 `$HOME/home-assistant/config/custom_components/<domain>`，否则通过 `docker ps` 定位 `homeassistant` 容器并用 `docker cp` 解包到 `/config/custom_components/<domain>` 后重启；
+  - **远程 Docker Core**：经宿主机 SSH + `docker exec` 解包到容器 `/config/custom_components/<domain>` 并重启（需提供宿主机 SSH 凭据）。
+  - 注：`components_dir` 会覆盖目标同名目录并默认重启 HA；引擎不包含 HACS 安装能力，第三方集成（如 `frigate-hass-integration`）可通过 `components_dir` 打包随方案安装。
+- **纯 API 模式（省略 `components_dir`）**：跳过 HAOS/Docker 探测、SSH 与拷贝，默认不重启 HA（除非显式配置 `restart: true`），直接经 REST/WS API 配置：
+  - `entries`：配置原生或已安装集成的 Config Flow（如 `mqtt`/`onvif`/`esphome`/`wyoming`/`litellm`）；MQTT 查到已 `loaded` 直接复用，通用集成遇 `already_configured`/`single_instance_allowed` 视为成功跳过。
+  - `addons`：仅 HAOS Supervisor 可用；设 `optional: true` 可在非 HAOS（Docker Core）环境自动跳过。
+  - `automations` 与 `dashboards`：均已在引擎实现，并带 `[Managed by SenseCraft: {solution_id}]` 归属标记做幂等更新与跨方案冲突保护。
+  - `pipeline`：经 WS API 创建/更新 Assist 语音管线。
 
 ---
 

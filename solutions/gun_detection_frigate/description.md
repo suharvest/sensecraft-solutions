@@ -30,7 +30,7 @@ This solution adds gun detection to existing cameras. Every frame is analysed on
 ### Output Integration
 
 - MQTT: Configure broker address + topic
-- Webhook: Configure callback URL
+- Home Assistant (optional one-click integration): Installs the official Frigate integration and MQTT, creates a default persistent alert notification inside Home Assistant, and allows further configuration of mobile push alerts in Home Assistant
 - Screenshot storage: Configure local directory
 
 ### Camera Placement Tips
@@ -46,5 +46,7 @@ This solution adds gun detection to existing cameras. Every frame is analysed on
 | **reComputer J30 series** (Jetson entry) | TensorRT GPU | ~2 streams | $630 | $315/stream |
 | **reComputer J40 series** (Jetson multi) ⭐ | TensorRT GPU | ~6 streams | $1000 | $150/stream (best value) |
 | **reComputer J50 series** (Jetson high-end) | TensorRT GPU | ~9 streams | $2500 | $300/stream |
+| **reComputer RK3588** | Rockchip NPU 6 TOPS / RKNN INT8 | — | — | — |
+| **reComputer RK3576** | Rockchip NPU 6 TOPS / RKNN INT8 | — | — | — |
 
 Choose based on your stream count needs: R21+Hailo or J30 series for few cameras; J40 series for best multi-stream value; J50 series for high frame rate / many streams.

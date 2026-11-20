@@ -39,6 +39,14 @@ intro:
       description: Industrial edge AI with Hailo NPU acceleration
       description_i18n:
         zh: 搭载 Hailo NPU 加速的工业边缘 AI 设备
+    recomputer_rk3588:
+      description: Edge AI computing device with RK3588 NPU acceleration
+      description_i18n:
+        zh: 搭载 RK3588 NPU 加速的边缘 AI 计算设备
+    recomputer_rk3576:
+      description: Edge AI computing device with RK3576 NPU acceleration
+      description_i18n:
+        zh: 搭载 RK3576 NPU 加速的边缘 AI 计算设备
   presets:
     - id: jetson
       name: NVIDIA Jetson
@@ -76,6 +84,40 @@ intro:
         zh: reComputer AI Industrial R21 + Hailo
       description_i18n:
         zh: 用 Hailo NPU 在 reComputer AI Industrial R21 上加速部署
+    - id: rk3588
+      name: reComputer RK3588
+      description: Deploy with RK3588 NPU acceleration on reComputer RK3588
+      device_groups:
+        - id: edge_device
+          name: Edge AI Device
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_rk3588
+          default: recomputer_rk3588
+          name_i18n:
+            zh: 边缘 AI 设备
+      name_i18n:
+        zh: reComputer RK3588
+      description_i18n:
+        zh: 用 RK3588 NPU 在 reComputer RK3588 上加速部署
+    - id: rk3576
+      name: reComputer RK3576
+      description: Deploy with RK3576 NPU acceleration on reComputer RK3576
+      device_groups:
+        - id: edge_device
+          name: Edge AI Device
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_rk3576
+          default: recomputer_rk3576
+          name_i18n:
+            zh: 边缘 AI 设备
+      name_i18n:
+        zh: reComputer RK3576
+      description_i18n:
+        zh: 用 RK3576 NPU 在 reComputer RK3576 上加速部署
   stats:
     difficulty: beginner
     estimated_time: 10min

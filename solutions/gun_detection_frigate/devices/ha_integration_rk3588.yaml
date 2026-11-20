@@ -1,0 +1,186 @@
+version: "1.0"
+id: ha_integration_rk3588
+name: Connect Frigate to Home Assistant
+name_i18n:
+  zh: 接入 Home Assistant
+type: ha_integration
+
+ha_integration:
+  domain: frigate
+  components_dir: assets/custom_components/frigate
+  include_patterns:
+    - "*.py"
+    - "*.json"
+    - "*.yaml"
+    - "*.yml"
+  restart: true
+  config_flow_data:
+    - name: url
+      value_from: frigate_url
+  entries:
+    - id: mqtt
+      domain: mqtt
+      skip_if_empty:
+        - mqtt_broker
+      data:
+        - name: broker
+          value_from: mqtt_broker
+        - name: port
+          value_from: mqtt_port
+          type: int
+        - name: username
+          value_from: mqtt_username
+          omit_if_empty: true
+        - name: password
+          value_from: mqtt_password
+          omit_if_empty: true
+  automations:
+    - id: gun_detection_ha_alert
+      alias: "Gun Detection Alert"
+      alias_i18n:
+        zh: "枪支检测告警"
+      description: "Send a persistent notification when Frigate detects a firearm over MQTT."
+      mode: single
+      trigger:
+        - platform: mqtt
+          topic: "frigate/events"
+      condition:
+        - condition: template
+          value_template: "{{ trigger.payload_json is defined and trigger.payload_json.get('type') == 'new' and trigger.payload_json.get('after', {}).get('label') == 'gun' and trigger.payload_json.get('after', {}).get('camera') not in ['handgun_demo', 'machinegun_demo'] }}"
+      action:
+        - service: persistent_notification.create
+          data:
+            title: "Gun Detected ({{ trigger.payload_json.after.camera | default('unknown') }})"
+            message: "Camera: {{ trigger.payload_json.after.camera | default('unknown') }} | Score: {{ ((trigger.payload_json.after.score | default(0)) * 100) | round(0) }}% | Event ID: {{ trigger.payload_json.after.id | default('') }}"
+            notification_id: "gun_detection_{{ trigger.payload_json.after.camera | default('unknown') }}"
+
+user_inputs:
+  - id: ha_host
+    name: Home Assistant Host
+    name_i18n:
+      zh: Home Assistant 地址
+    type: text
+    default: "127.0.0.1"
+    default_template: "{{deploy_ha_rk3588.host}}"
+    required: true
+    validation:
+      pattern: "^([A-Za-z0-9-]+\\.)*[A-Za-z0-9-]+$"
+    description: IPv4 address or hostname of your Home Assistant instance.
+    description_i18n:
+      zh: Home Assistant 实例的 IPv4 地址或主机名。
+
+  - id: ha_port
+    name: Home Assistant Port
+    name_i18n:
+      zh: Home Assistant 端口
+    type: text
+    default: "8123"
+    required: true
+    validation:
+      pattern: "^([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$"
+    description: "Port number for Home Assistant (default: 8123)."
+    description_i18n:
+      zh: "Home Assistant 服务端口号（默认：8123）。"
+
+  - id: ha_ssl
+    name: Use HTTPS (TLS)
+    name_i18n:
+      zh: 启用 HTTPS (TLS)
+    type: select
+    default: "false"
+    required: false
+    options:
+      - value: "false"
+        label: HTTP (Plaintext)
+        label_i18n:
+          zh: HTTP（明文）
+      - value: "true"
+        label: HTTPS (TLS)
+        label_i18n:
+          zh: HTTPS（TLS 加密）
+    description: "Whether to connect to Home Assistant over HTTPS/TLS (default: false; port 443 defaults to HTTPS). Recommended for remote deployments or HTTPS instances on non-443 ports such as 8123."
+    description_i18n:
+      zh: "是否通过 HTTPS/TLS 连接 Home Assistant（默认 false；443 端口自动启用 HTTPS）。远程部署或使用非 443 端口（如 8123）的 HTTPS 实例时建议启用。"
+
+  - id: ha_username
+    name: Home Assistant Username
+    name_i18n:
+      zh: Home Assistant 用户名
+    type: text
+    required: true
+    validation:
+      pattern: "^\\S+$"
+    description: Administrator username for Home Assistant Web UI (a fresh HA instance will be initialized automatically with this account).
+    description_i18n:
+      zh: Home Assistant Web UI 管理员用户名（全新 HA 实例将自动使用此账号完成初始化）。
+
+  - id: ha_password
+    name: Home Assistant Password
+    name_i18n:
+      zh: Home Assistant 密码
+    type: password
+    required: true
+    description: Administrator password for Home Assistant Web UI.
+    description_i18n:
+      zh: Home Assistant Web UI 管理员密码。
+
+  - id: frigate_url
+    name: Frigate URL
+    name_i18n:
+      zh: Frigate 服务地址
+    type: text
+    default: "http://127.0.0.1:5000"
+    default_template: "http://{{deploy_frigate_rk3588.host}}:5000"
+    required: true
+    validation:
+      pattern: "^https?://.+$"
+    description: "URL of the Frigate NVR service (default port: 5000)."
+    description_i18n:
+      zh: "Frigate NVR 服务访问地址（默认端口：5000）。"
+
+  - id: mqtt_broker
+    name: MQTT Broker Host
+    name_i18n:
+      zh: MQTT Broker 地址
+    type: text
+    default: "127.0.0.1"
+    default_template: "{{deploy_frigate_rk3588.host}}"
+    required: true
+    validation:
+      pattern: "^([A-Za-z0-9-]+\\.)*[A-Za-z0-9-]+$"
+    description: IPv4 address or hostname of the MQTT Broker. If Home Assistant and Frigate are not on the same machine, enter the LAN IP of the Frigate device.
+    description_i18n:
+      zh: MQTT Broker 的 IPv4 地址或主机名。若 Home Assistant 与 Frigate 不在同一台机器上，请填写 Frigate 设备的局域网 IP。
+
+  - id: mqtt_port
+    name: MQTT Port
+    name_i18n:
+      zh: MQTT 端口
+    type: text
+    default: "1883"
+    required: true
+    validation:
+      pattern: "^([1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$"
+    description: "Port number for the MQTT Broker (default: 1883)."
+    description_i18n:
+      zh: "MQTT Broker 端口号（默认：1883）。"
+
+  - id: mqtt_username
+    name: MQTT Username
+    name_i18n:
+      zh: MQTT 用户名
+    type: text
+    required: false
+    description: Username for MQTT broker authentication (leave blank if not required).
+    description_i18n:
+      zh: MQTT Broker 认证用户名（若不需要可留空）。
+
+  - id: mqtt_password
+    name: MQTT Password
+    name_i18n:
+      zh: MQTT 密码
+    type: password
+    required: false
+    description: Password for MQTT broker authentication (leave blank if not required).
+    description_i18n:
+      zh: MQTT Broker 认证密码（若不需要可留空）。

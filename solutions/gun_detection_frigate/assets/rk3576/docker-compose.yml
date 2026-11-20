@@ -1,0 +1,34 @@
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: mosquitto
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf
+    mem_limit: 256M
+
+  frigate:
+    container_name: frigate-rk3576
+    image: ghcr.io/blakeblackshear/frigate:0.16.0-rk
+    privileged: true
+    restart: unless-stopped
+    shm_size: "512mb"
+    mem_limit: 4G
+    stop_grace_period: 30s
+    depends_on:
+      - mosquitto
+    devices:
+      - /dev/dri:/dev/dri
+      - /dev/dma_heap:/dev/dma_heap
+      - /dev/rga:/dev/rga
+      - /dev/mpp_service:/dev/mpp_service
+    volumes:
+      - ./config:/config
+      - ./storage:/media/frigate
+      - /sys:/sys:ro
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "5000:5000"
+      - "8554:8554"
