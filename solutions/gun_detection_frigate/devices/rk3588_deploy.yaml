@@ -52,6 +52,78 @@ post_deployment:
 name_i18n:
   zh: reComputer RK3588
 
+actions:
+  before:
+    - name: Fetch and verify the RKNN model
+      timeout: 900
+      run: |
+        set -e
+        ROOT="assets/rk3588"
+        if [ ! -f "$ROOT/docker-compose.yml" ]; then
+          echo "docker-compose.yml not found in $PWD/$ROOT" >&2
+          exit 1
+        fi
+        MODELS_DIR="$ROOT/config/model_cache"
+        MODEL="$MODELS_DIR/yolo11s_gun_rk3588_i8.rknn"
+        SHA=05234018c549fb1ccdfd219ae7bfbfc2eaadc399e601976474eb8fc827250bd5
+        URL=https://sensecraft-statics.seeed.cc/solution-app/gun_detection_frigate/models/yolo11s_gun_rk3588_i8.rknn
+
+        mkdir -p "$MODELS_DIR"
+
+        if [ -s "$MODEL" ] && echo "$SHA  $MODEL" | sha256sum -c - >/dev/null 2>&1; then
+          echo "RKNN model already present and verified: $MODEL"
+          exit 0
+        fi
+
+        echo "Downloading yolo11s_gun_rk3588_i8.rknn ..."
+        curl -fSL --retry 3 --continue-at - -o "$MODEL.part" "$URL"
+        if ! echo "$SHA  $MODEL.part" | sha256sum -c -; then
+          rm -f "$MODEL.part"
+          exit 1
+        fi
+        mv -f "$MODEL.part" "$MODEL"
+        echo "RKNN model verified: $MODEL"
+      name_i18n:
+        zh: 获取并校验 RKNN 模型
+
+    - name: Fetch and verify the demo videos
+      timeout: 300
+      run: |
+        set -e
+        ROOT="assets/rk3588"
+        if [ ! -f "$ROOT/docker-compose.yml" ]; then
+          echo "docker-compose.yml not found in $PWD/$ROOT" >&2
+          exit 1
+        fi
+        STORAGE_DIR="$ROOT/storage"
+        mkdir -p "$STORAGE_DIR"
+
+        fetch_video() {
+          local name="$1" sha="$2" url="$3"
+          local dest="$STORAGE_DIR/$name"
+          if [ -s "$dest" ] && echo "$sha  $dest" | sha256sum -c - >/dev/null 2>&1; then
+            echo "$name already present and verified"
+            return 0
+          fi
+          echo "Downloading $name ..."
+          curl -fSL --retry 3 --continue-at - -o "$dest.part" "$url"
+          if ! echo "$sha  $dest.part" | sha256sum -c -; then
+            rm -f "$dest.part"
+            return 1
+          fi
+          mv -f "$dest.part" "$dest"
+          echo "$name verified: $dest"
+        }
+
+        fetch_video handgun.mp4 \
+          a0f9f66b05fefab3efce023db3519010f22ec9bc4195382ece5f6a9ccf9996f5 \
+          https://sensecraft-statics.seeed.cc/solution-app/gun_detection_frigate/media/handgun.mp4
+        fetch_video machinegun.mov \
+          e6219f9df566aa09a9cae49eac7c2e3ce59e92aa5afad20aecf7e6c76d438da7 \
+          https://sensecraft-statics.seeed.cc/solution-app/gun_detection_frigate/media/machinegun.mov
+      name_i18n:
+        zh: 获取并校验演示视频
+
 files:
   - url: https://sensecraft-statics.seeed.cc/solution-app/gun_detection_frigate/models/yolo11s_gun_rk3588_i8.rknn
     remote_path: /home/{{username}}/gun-detection-rk3588/rk3588_deploy/config/model_cache/yolo11s_gun_rk3588_i8.rknn
@@ -97,7 +169,10 @@ remote_overrides:
           # 这里的下载是老引擎（不认 files: 字段）的兜底路径。
           echo "Downloading yolo11s_gun_rk3588_i8.rknn ..."
           curl -fSL --retry 3 --continue-at - -o "$MODEL.part" "$URL"
-          echo "$SHA  $MODEL.part" | sha256sum -c -
+          if ! echo "$SHA  $MODEL.part" | sha256sum -c -; then
+            rm -f "$MODEL.part"
+            exit 1
+          fi
           mv -f "$MODEL.part" "$MODEL"
           echo "RKNN model verified: $MODEL"
         name_i18n:
@@ -122,7 +197,10 @@ remote_overrides:
             # 这里的下载是老引擎（不认 files: 字段）的兜底路径。
             echo "Downloading $name ..."
             curl -fSL --retry 3 --continue-at - -o "$dest.part" "$url"
-            echo "$sha  $dest.part" | sha256sum -c -
+            if ! echo "$sha  $dest.part" | sha256sum -c -; then
+              rm -f "$dest.part"
+              return 1
+            fi
             mv -f "$dest.part" "$dest"
             echo "$name verified: $dest"
           }
@@ -137,21 +215,31 @@ remote_overrides:
           zh: 获取并校验演示视频
     after:
       - name: Configure RTSP cameras
-        ignore_error: true
+        ignore_error: false
         # Passed as environment variables, not spliced into the script:
         # a quote, $ or & in the value cannot change what runs.
         env:
           INPUT_RTSP_URL_1: "{{rtsp_url_1}}"
           INPUT_RTSP_URL_2: "{{rtsp_url_2}}"
         run: |
-          URL1="$INPUT_RTSP_URL_1"
-          URL2="$INPUT_RTSP_URL_2"
-          CONFIG="/home/{{username}}/gun-detection-rk3588/rk3588_deploy/config/config.yml"
-          ADDED=0
+          bash -s <<'EOF'
+          set -euo pipefail
+          URL1="${INPUT_RTSP_URL_1:-}"
+          URL2="${INPUT_RTSP_URL_2:-}"
+          if [ -z "$URL1" ] && [ -z "$URL2" ]; then
+            echo "No RTSP cameras configured, using demo videos only"
+            exit 0
+          fi
+
+          WORKDIR="/home/{{username}}/gun-detection-rk3588/rk3588_deploy"
+          CONFIG="$WORKDIR/config/config.yml"
+          TMP_CONFIG="${CONFIG}.tmp.$$"
+          trap 'rm -f "$TMP_CONFIG"' EXIT
+          cp -f "$CONFIG" "$TMP_CONFIG"
 
           add_camera() {
             local name="$1" url="$2"
-            cat >> "$CONFIG" << 'ENDCAM'
+            cat >> "$TMP_CONFIG" << 'ENDCAM'
 
             __CAMERA_NAME__:
               enabled: true
@@ -175,23 +263,30 @@ remote_overrides:
                     min_area: 10
                     max_area: 500000
           ENDCAM
-            sed -i "s|__CAMERA_NAME__|$name|" "$CONFIG"
+            sed -i "s|__CAMERA_NAME__|$name|" "$TMP_CONFIG"
             # \ & and | would be read by sed itself; escape them so the
             # URL lands in the config verbatim.
             url_sed=$(printf '%s' "$url" | sed -e 's/[\\&|]/\\&/g')
-            sed -i "s|__CAMERA_URL__|$url_sed|" "$CONFIG"
-            ADDED=1
+            sed -i "s|__CAMERA_URL__|$url_sed|" "$TMP_CONFIG"
           }
 
-          [ -n "$URL1" ] && add_camera "rtsp_camera_1" "$URL1"
-          [ -n "$URL2" ] && add_camera "rtsp_camera_2" "$URL2"
-
-          if [ "$ADDED" -eq 1 ]; then
-            cd /home/{{username}}/gun-detection-rk3588/rk3588_deploy
-            docker compose -p gun-detection-rk3588 restart
-            echo "RTSP cameras configured and Frigate restarted"
-          else
-            echo "No RTSP cameras configured, using demo videos only"
+          if [ -n "$URL1" ]; then
+            add_camera "rtsp_camera_1" "$URL1"
           fi
+          if [ -n "$URL2" ]; then
+            add_camera "rtsp_camera_2" "$URL2"
+          fi
+
+          if command -v python3 >/dev/null 2>&1 && python3 -c 'import yaml' >/dev/null 2>&1; then
+            python3 -c 'import sys, yaml; data = yaml.safe_load(open(sys.argv[1])); assert isinstance(data, dict) and isinstance(data.get("cameras"), dict)' "$TMP_CONFIG"
+          else
+            [ -s "$TMP_CONFIG" ] && grep -qE '^[[:space:]]*rtsp_camera_[12]:' "$TMP_CONFIG"
+          fi
+
+          mv -f "$TMP_CONFIG" "$CONFIG"
+          cd "$WORKDIR"
+          docker compose -p gun-detection-rk3588 restart
+          echo "RTSP cameras configured and Frigate restarted"
+          EOF
         name_i18n:
           zh: 配置 RTSP 摄像头

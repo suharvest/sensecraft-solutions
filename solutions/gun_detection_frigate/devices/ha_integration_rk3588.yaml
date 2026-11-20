@@ -46,7 +46,7 @@ ha_integration:
           topic: "frigate/events"
       condition:
         - condition: template
-          value_template: "{{ trigger.payload_json is defined and trigger.payload_json.get('type') == 'new' and trigger.payload_json.get('after', {}).get('label') == 'gun' }}"
+          value_template: "{{ trigger.payload_json is defined and trigger.payload_json.get('type') == 'new' and trigger.payload_json.get('after', {}).get('label') == 'gun' and trigger.payload_json.get('after', {}).get('camera') not in ['handgun_demo', 'machinegun_demo'] }}"
       action:
         - service: persistent_notification.create
           data:
@@ -81,6 +81,26 @@ user_inputs:
     description: "Port number for Home Assistant (default: 8123)."
     description_i18n:
       zh: "Home Assistant 服务端口号（默认：8123）。"
+
+  - id: ha_ssl
+    name: Use HTTPS (TLS)
+    name_i18n:
+      zh: 启用 HTTPS (TLS)
+    type: select
+    default: "false"
+    required: false
+    options:
+      - value: "false"
+        label: HTTP (Plaintext)
+        label_i18n:
+          zh: HTTP（明文）
+      - value: "true"
+        label: HTTPS (TLS)
+        label_i18n:
+          zh: HTTPS（TLS 加密）
+    description: "Whether to connect to Home Assistant over HTTPS/TLS (default: false; port 443 defaults to HTTPS). Recommended for remote deployments or HTTPS instances on non-443 ports such as 8123."
+    description_i18n:
+      zh: "是否通过 HTTPS/TLS 连接 Home Assistant（默认 false；443 端口自动启用 HTTPS）。远程部署或使用非 443 端口（如 8123）的 HTTPS 实例时建议启用。"
 
   - id: ha_username
     name: Home Assistant Username

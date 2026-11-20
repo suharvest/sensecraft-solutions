@@ -96,7 +96,10 @@ remote_overrides:
             # 这里的下载是老引擎（不认 files: 字段）的兜底路径。
             echo "Downloading $name ..."
             curl -fSL --retry 3 --continue-at - -o "$dest.part" "$url"
-            echo "$sha  $dest.part" | sha256sum -c -
+            if ! echo "$sha  $dest.part" | sha256sum -c -; then
+              rm -f "$dest.part"
+              return 1
+            fi
             mv -f "$dest.part" "$dest"
             echo "$name verified: $dest"
           }
@@ -111,21 +114,31 @@ remote_overrides:
           zh: 获取并校验演示视频
     after:
       - name: Configure RTSP cameras
-        ignore_error: true
+        ignore_error: false
         # Passed as environment variables, not spliced into the script:
         # a quote, $ or & in the value cannot change what runs.
         env:
           INPUT_RTSP_URL_1: "{{rtsp_url_1}}"
           INPUT_RTSP_URL_2: "{{rtsp_url_2}}"
         run: |
-          URL1="$INPUT_RTSP_URL_1"
-          URL2="$INPUT_RTSP_URL_2"
-          CONFIG="/home/{{username}}/gun-detection-frigate/jetson_deploy/config/config.yml"
-          ADDED=0
+          bash -s <<'EOF'
+          set -euo pipefail
+          URL1="${INPUT_RTSP_URL_1:-}"
+          URL2="${INPUT_RTSP_URL_2:-}"
+          if [ -z "$URL1" ] && [ -z "$URL2" ]; then
+            echo "No RTSP cameras configured, using demo videos only"
+            exit 0
+          fi
+
+          WORKDIR="/home/{{username}}/gun-detection-frigate/jetson_deploy"
+          CONFIG="$WORKDIR/config/config.yml"
+          TMP_CONFIG="${CONFIG}.tmp.$$"
+          trap 'rm -f "$TMP_CONFIG"' EXIT
+          cp -f "$CONFIG" "$TMP_CONFIG"
 
           add_camera() {
             local name="$1" url="$2"
-            cat >> "$CONFIG" << 'ENDCAM'
+            cat >> "$TMP_CONFIG" << 'ENDCAM'
 
             __CAMERA_NAME__:
               enabled: true
@@ -148,23 +161,30 @@ remote_overrides:
                     min_area: 10
                     max_area: 500000
           ENDCAM
-            sed -i "s|__CAMERA_NAME__|$name|" "$CONFIG"
+            sed -i "s|__CAMERA_NAME__|$name|" "$TMP_CONFIG"
             # \ & and | would be read by sed itself; escape them so the
             # URL lands in the config verbatim.
             url_sed=$(printf '%s' "$url" | sed -e 's/[\\&|]/\\&/g')
-            sed -i "s|__CAMERA_URL__|$url_sed|" "$CONFIG"
-            ADDED=1
+            sed -i "s|__CAMERA_URL__|$url_sed|" "$TMP_CONFIG"
           }
 
-          [ -n "$URL1" ] && add_camera "rtsp_camera_1" "$URL1"
-          [ -n "$URL2" ] && add_camera "rtsp_camera_2" "$URL2"
-
-          if [ "$ADDED" -eq 1 ]; then
-            cd /home/{{username}}/gun-detection-frigate/jetson_deploy
-            docker compose -p gun-detection-frigate restart
-            echo "RTSP cameras configured and Frigate restarted"
-          else
-            echo "No RTSP cameras configured, using demo videos only"
+          if [ -n "$URL1" ]; then
+            add_camera "rtsp_camera_1" "$URL1"
           fi
+          if [ -n "$URL2" ]; then
+            add_camera "rtsp_camera_2" "$URL2"
+          fi
+
+          if command -v python3 >/dev/null 2>&1 && python3 -c 'import yaml' >/dev/null 2>&1; then
+            python3 -c 'import sys, yaml; data = yaml.safe_load(open(sys.argv[1])); assert isinstance(data, dict) and isinstance(data.get("cameras"), dict)' "$TMP_CONFIG"
+          else
+            [ -s "$TMP_CONFIG" ] && grep -qE '^[[:space:]]*rtsp_camera_[12]:' "$TMP_CONFIG"
+          fi
+
+          mv -f "$TMP_CONFIG" "$CONFIG"
+          cd "$WORKDIR"
+          docker compose -p gun-detection-frigate restart
+          echo "RTSP cameras configured and Frigate restarted"
+          EOF
         name_i18n:
           zh: 配置 RTSP 摄像头

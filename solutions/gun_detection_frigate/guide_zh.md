@@ -56,7 +56,7 @@
 | 现象 | 处理 |
 |------|------|
 | 找不到 NVIDIA 运行时 | `sudo apt install nvidia-container-toolkit && sudo systemctl restart docker` |
-| 端口 5000 被占用 | `docker stop $(docker ps -q --filter publish=5000)` |
+| 端口 5000 被占用 | 先执行 `docker ps --filter publish=5000 --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Ports}}'` 排查占用 5000 端口的容器，确认后再执行 `docker stop <container_name>` 停止指定容器 |
 | 首次启动很慢 | 首次编译模型需 5-10 分钟，之后启动不再编译 |
 | 容器反复重启 | 执行 `docker logs frigate` 查看原因，常见为 GPU 内存或驱动问题 |
 | RTSP 摄像头未显示 | 用 VLC 验证地址，按步骤 3 修改 `config/config.yml` 后重启 |
@@ -79,7 +79,7 @@
 | 现象 | 处理 |
 |------|------|
 | 找不到 NVIDIA 运行时 | `sudo apt install nvidia-container-toolkit && sudo systemctl restart docker` |
-| 端口 5000 被占用 | `docker stop $(docker ps -q --filter publish=5000)` |
+| 端口 5000 被占用 | 先执行 `docker ps --filter publish=5000 --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Ports}}'` 排查占用 5000 端口的容器，确认后再执行 `docker stop <container_name>` 停止指定容器 |
 | 容器反复重启 | 执行 `docker logs frigate` 查看原因，常见为 GPU 内存或驱动问题 |
 
 ## 步骤 3: 打开面板 {#dashboard type=web_dashboard required=true config=devices/dashboard.yaml}
@@ -169,6 +169,7 @@ docker compose -p gun-detection-frigate restart
 - **远程 Docker 版 HA：** 需在顶部 SSH 区域填写 HA 宿主机 SSH 凭据，在下方填写 HA Web UI 管理员账号密码（全新部署的 HA 将自动用此账号完成初始化）；HAOS 或本机 Docker 版无需额外手动配置 SSH Add-on。
 - **跨设备部署：** 若 Frigate 本地部署（`localhost`）但 HA 运行在另一台设备，需将 `Frigate URL` 和 `MQTT Broker` 中的地址改为 Frigate 设备的局域网 IP。
 - **已有 MQTT 集成：** 如果 Home Assistant 之前已经配置并加载了 MQTT 集成，引擎会直接复用现有连接而不会覆盖其 Broker 地址；此时必须确保 Frigate（`config/config.yml` 中的 `mqtt.host`）与 Home Assistant 使用同一个 MQTT Broker，并在启用告警前于 Home Assistant 中验证能收到 `frigate/events` 消息。
+- **MQTT 安全提示：** 默认随 Frigate 启动的 Mosquitto 为局域网内匿名连接以简化初次配置；生产环境部署建议配置 Mosquitto 账号密码与 ACL，并在步骤 5 填写 `MQTT 用户名`（`MQTT Username`）和 `MQTT 密码`（`MQTT Password`）。
 
 ### 部署完成
 
@@ -189,7 +190,7 @@ docker compose -p gun-detection-frigate restart
        topic: "frigate/events"
    condition:
      - condition: template
-       value_template: "{{ trigger.payload_json is defined and trigger.payload_json.get('type') == 'new' and trigger.payload_json.get('after', {}).get('label') == 'gun' }}"
+       value_template: "{{ trigger.payload_json is defined and trigger.payload_json.get('type') == 'new' and trigger.payload_json.get('after', {}).get('label') == 'gun' and trigger.payload_json.get('after', {}).get('camera') not in ['handgun_demo', 'machinegun_demo'] }}"
    action:
      - action: notify.mobile_app_<your_phone>
        data:
@@ -214,7 +215,7 @@ docker compose -p gun-detection-frigate restart
        topic: "frigate/events"
    condition:
      - condition: template
-       value_template: "{{ trigger.payload_json is defined and trigger.payload_json.get('type') == 'new' and trigger.payload_json.get('after', {}).get('label') == 'gun' }}"
+       value_template: "{{ trigger.payload_json is defined and trigger.payload_json.get('type') == 'new' and trigger.payload_json.get('after', {}).get('label') == 'gun' and trigger.payload_json.get('after', {}).get('camera') not in ['handgun_demo', 'machinegun_demo'] }}"
    action:
      - action: notify.mobile_app_<your_phone>
        data:
@@ -226,6 +227,8 @@ docker compose -p gun-detection-frigate restart
            priority: high
            channel: alarm_stream
    ```
+
+   > **提示：** 上述示例已默认排除内置演示摄像头（`handgun_demo`、`machinegun_demo`），避免演示循环视频刷屏误报；如需用内置演示视频测试告警推送，临时移除条件中的 `and trigger.payload_json.get('after', {}).get('camera') not in ['handgun_demo', 'machinegun_demo']` 即可。
 
 2. **使用社区 Blueprint：**
    在 HA 中导入 **Frigate Notifications Blueprint**，可视化选择摄像头、`gun` 标签、目标手机以及强提醒或静音按钮。该方式创建的自动化同样独立于受管自动化，重新部署方案后不会丢失。
@@ -299,7 +302,7 @@ docker compose -p gun-detection-frigate restart
 | 找不到 Hailo 设备 | 检查 Hailo 是否插好 M.2 插槽，`ls /dev/hailo*` 应显示 `/dev/hailo0` |
 | HailoRT 版本不匹配 | 需要 HailoRT **4.21.0**，用 `dpkg -l hailort` 查看。安装：`curl -sfL https://raw.githubusercontent.com/blakeblackshear/frigate/dev/docker/hailo8l/user_installation.sh \| sudo bash`，然后重启 |
 | 磁盘空间不足 | 至少需要 4 GB，执行 `docker system prune -a` 和 `sudo apt clean` 释放空间 |
-| 端口 5000 被占用 | `docker stop $(docker ps -q --filter publish=5000)` |
+| 端口 5000 被占用 | 先执行 `docker ps --filter publish=5000 --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Ports}}'` 排查占用 5000 端口的容器，确认后再执行 `docker stop <container_name>` 停止指定容器 |
 | 容器反复重启 | 执行 `docker logs frigate-hailo` 查看原因，常见为 Hailo 驱动问题 |
 | RTSP 摄像头未显示 | 用 VLC 验证地址，按步骤 3 修改 `config/config.yml` 后重启 |
 
@@ -321,7 +324,7 @@ docker compose -p gun-detection-frigate restart
 | 现象 | 处理 |
 |------|------|
 | 找不到 Hailo 设备 | 检查 Hailo 是否插好，`ls /dev/hailo*` 应显示 `/dev/hailo0` |
-| 端口 5000 被占用 | `docker stop $(docker ps -q --filter publish=5000)` |
+| 端口 5000 被占用 | 先执行 `docker ps --filter publish=5000 --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Ports}}'` 排查占用 5000 端口的容器，确认后再执行 `docker stop <container_name>` 停止指定容器 |
 | 容器反复重启 | 执行 `docker logs frigate-hailo` 查看原因，常见为 Hailo 驱动问题 |
 
 ## 步骤 3: 打开面板 {#dashboard_r2000_hailo type=web_dashboard required=true config=devices/dashboard.yaml}
@@ -411,6 +414,7 @@ docker compose -p gun-detection-r2000-hailo restart
 - **远程 Docker 版 HA：** 需在顶部 SSH 区域填写 HA 宿主机 SSH 凭据，在下方填写 HA Web UI 管理员账号密码（全新部署的 HA 将自动用此账号完成初始化）；HAOS 或本机 Docker 版无需额外手动配置 SSH Add-on。
 - **跨设备部署：** 若 Frigate 本地部署（`localhost`）但 HA 运行在另一台设备，需将 `Frigate URL` 和 `MQTT Broker` 中的地址改为 Frigate 设备的局域网 IP。
 - **已有 MQTT 集成：** 如果 Home Assistant 之前已经配置并加载了 MQTT 集成，引擎会直接复用现有连接而不会覆盖其 Broker 地址；此时必须确保 Frigate（`config/config.yml` 中的 `mqtt.host`）与 Home Assistant 使用同一个 MQTT Broker，并在启用告警前于 Home Assistant 中验证能收到 `frigate/events` 消息。
+- **MQTT 安全提示：** 默认随 Frigate 启动的 Mosquitto 为局域网内匿名连接以简化初次配置；生产环境部署建议配置 Mosquitto 账号密码与 ACL，并在步骤 5 填写 `MQTT 用户名`（`MQTT Username`）和 `MQTT 密码`（`MQTT Password`）。
 
 ### 部署完成
 
@@ -431,7 +435,7 @@ docker compose -p gun-detection-r2000-hailo restart
        topic: "frigate/events"
    condition:
      - condition: template
-       value_template: "{{ trigger.payload_json is defined and trigger.payload_json.get('type') == 'new' and trigger.payload_json.get('after', {}).get('label') == 'gun' }}"
+       value_template: "{{ trigger.payload_json is defined and trigger.payload_json.get('type') == 'new' and trigger.payload_json.get('after', {}).get('label') == 'gun' and trigger.payload_json.get('after', {}).get('camera') not in ['handgun_demo', 'machinegun_demo'] }}"
    action:
      - action: notify.mobile_app_<your_phone>
        data:
@@ -456,7 +460,7 @@ docker compose -p gun-detection-r2000-hailo restart
        topic: "frigate/events"
    condition:
      - condition: template
-       value_template: "{{ trigger.payload_json is defined and trigger.payload_json.get('type') == 'new' and trigger.payload_json.get('after', {}).get('label') == 'gun' }}"
+       value_template: "{{ trigger.payload_json is defined and trigger.payload_json.get('type') == 'new' and trigger.payload_json.get('after', {}).get('label') == 'gun' and trigger.payload_json.get('after', {}).get('camera') not in ['handgun_demo', 'machinegun_demo'] }}"
    action:
      - action: notify.mobile_app_<your_phone>
        data:
@@ -468,6 +472,8 @@ docker compose -p gun-detection-r2000-hailo restart
            priority: high
            channel: alarm_stream
    ```
+
+   > **提示：** 上述示例已默认排除内置演示摄像头（`handgun_demo`、`machinegun_demo`），避免演示循环视频刷屏误报；如需用内置演示视频测试告警推送，临时移除条件中的 `and trigger.payload_json.get('after', {}).get('camera') not in ['handgun_demo', 'machinegun_demo']` 即可。
 
 2. **使用社区 Blueprint：**
    在 HA 中导入 **Frigate Notifications Blueprint**，可视化选择摄像头、`gun` 标签、目标手机以及强提醒或静音按钮。该方式创建的自动化同样独立于受管自动化，重新部署方案后不会丢失。
@@ -540,7 +546,7 @@ docker compose -p gun-detection-r2000-hailo restart
 |------|------|
 | 找不到 NPU 或编解码设备节点 | 确认目标设备使用已加载 Rockchip NPU/MPP 驱动的 reComputer RK3588 系统镜像（`ls /dev/rknpu /dev/dri`） |
 | 磁盘空间不足 | 至少需要 4 GB，执行 `docker system prune -a` 和 `sudo apt clean` 释放空间 |
-| 端口 5000 被占用 | `docker stop $(docker ps -q --filter publish=5000)` |
+| 端口 5000 被占用 | 先执行 `docker ps --filter publish=5000 --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Ports}}'` 排查占用 5000 端口的容器，确认后再执行 `docker stop <container_name>` 停止指定容器 |
 | 容器反复重启 | 进入 `~/gun-detection-rk3588/rk3588_deploy` 执行 `docker compose -p gun-detection-rk3588 logs` 查看 NPU 或运行时报错 |
 | RTSP 摄像头未显示 | 用 VLC 验证地址，按步骤 3 修改 `config/config.yml` 后重启 |
 
@@ -562,7 +568,7 @@ docker compose -p gun-detection-r2000-hailo restart
 | 现象 | 处理 |
 |------|------|
 | 找不到 NPU 或编解码设备节点 | 确认本机使用已加载 Rockchip NPU/MPP 驱动的 reComputer RK3588 系统镜像（`ls /dev/rknpu /dev/dri`） |
-| 端口 5000 被占用 | `docker stop $(docker ps -q --filter publish=5000)` |
+| 端口 5000 被占用 | 先执行 `docker ps --filter publish=5000 --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Ports}}'` 排查占用 5000 端口的容器，确认后再执行 `docker stop <container_name>` 停止指定容器 |
 | 容器反复重启 | 进入 `~/gun-detection-rk3588/rk3588_deploy` 执行 `docker compose -p gun-detection-rk3588 logs` 查看 NPU 或运行时报错 |
 
 ## 步骤 3: 打开面板 {#dashboard_rk3588 type=web_dashboard required=true config=devices/dashboard.yaml}
@@ -652,6 +658,7 @@ docker compose -p gun-detection-rk3588 restart
 - **远程 Docker 版 HA：** 需在顶部 SSH 区域填写 HA 宿主机 SSH 凭据，在下方填写 HA Web UI 管理员账号密码（全新部署的 HA 将自动用此账号完成初始化）；HAOS 或本机 Docker 版无需额外手动配置 SSH Add-on。
 - **跨设备部署：** 若 Frigate 本地部署（`localhost`）但 HA 运行在另一台设备，需将 `Frigate URL` 和 `MQTT Broker` 中的地址改为 Frigate 设备的局域网 IP。
 - **已有 MQTT 集成：** 如果 Home Assistant 之前已经配置并加载了 MQTT 集成，引擎会直接复用现有连接而不会覆盖其 Broker 地址；此时必须确保 Frigate（`config/config.yml` 中的 `mqtt.host`）与 Home Assistant 使用同一个 MQTT Broker，并在启用告警前于 Home Assistant 中验证能收到 `frigate/events` 消息。
+- **MQTT 安全提示：** 默认随 Frigate 启动的 Mosquitto 为局域网内匿名连接以简化初次配置；生产环境部署建议配置 Mosquitto 账号密码与 ACL，并在步骤 5 填写 `MQTT 用户名`（`MQTT Username`）和 `MQTT 密码`（`MQTT Password`）。
 
 ### 部署完成
 
@@ -672,7 +679,7 @@ docker compose -p gun-detection-rk3588 restart
        topic: "frigate/events"
    condition:
      - condition: template
-       value_template: "{{ trigger.payload_json is defined and trigger.payload_json.get('type') == 'new' and trigger.payload_json.get('after', {}).get('label') == 'gun' }}"
+       value_template: "{{ trigger.payload_json is defined and trigger.payload_json.get('type') == 'new' and trigger.payload_json.get('after', {}).get('label') == 'gun' and trigger.payload_json.get('after', {}).get('camera') not in ['handgun_demo', 'machinegun_demo'] }}"
    action:
      - action: notify.mobile_app_<your_phone>
        data:
@@ -697,7 +704,7 @@ docker compose -p gun-detection-rk3588 restart
        topic: "frigate/events"
    condition:
      - condition: template
-       value_template: "{{ trigger.payload_json is defined and trigger.payload_json.get('type') == 'new' and trigger.payload_json.get('after', {}).get('label') == 'gun' }}"
+       value_template: "{{ trigger.payload_json is defined and trigger.payload_json.get('type') == 'new' and trigger.payload_json.get('after', {}).get('label') == 'gun' and trigger.payload_json.get('after', {}).get('camera') not in ['handgun_demo', 'machinegun_demo'] }}"
    action:
      - action: notify.mobile_app_<your_phone>
        data:
@@ -709,6 +716,8 @@ docker compose -p gun-detection-rk3588 restart
            priority: high
            channel: alarm_stream
    ```
+
+   > **提示：** 上述示例已默认排除内置演示摄像头（`handgun_demo`、`machinegun_demo`），避免演示循环视频刷屏误报；如需用内置演示视频测试告警推送，临时移除条件中的 `and trigger.payload_json.get('after', {}).get('camera') not in ['handgun_demo', 'machinegun_demo']` 即可。
 
 2. **使用社区 Blueprint：**
    在 HA 中导入 **Frigate Notifications Blueprint**，可视化选择摄像头、`gun` 标签、目标手机以及强提醒或静音按钮。该方式创建的自动化同样独立于受管自动化，重新部署方案后不会丢失。
@@ -781,7 +790,7 @@ docker compose -p gun-detection-rk3588 restart
 |------|------|
 | 找不到 NPU 或编解码设备节点 | 确认目标设备使用已加载 Rockchip NPU/MPP 驱动的 reComputer RK3576 系统镜像（`ls /dev/rknpu /dev/dri`） |
 | 磁盘空间不足 | 至少需要 4 GB，执行 `docker system prune -a` 和 `sudo apt clean` 释放空间 |
-| 端口 5000 被占用 | `docker stop $(docker ps -q --filter publish=5000)` |
+| 端口 5000 被占用 | 先执行 `docker ps --filter publish=5000 --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Ports}}'` 排查占用 5000 端口的容器，确认后再执行 `docker stop <container_name>` 停止指定容器 |
 | 容器反复重启 | 进入 `~/gun-detection-rk3576/rk3576_deploy` 执行 `docker compose -p gun-detection-rk3576 logs` 查看 NPU 或运行时报错 |
 | RTSP 摄像头未显示 | 用 VLC 验证地址，按步骤 3 修改 `config/config.yml` 后重启 |
 
@@ -803,7 +812,7 @@ docker compose -p gun-detection-rk3588 restart
 | 现象 | 处理 |
 |------|------|
 | 找不到 NPU 或编解码设备节点 | 确认本机使用已加载 Rockchip NPU/MPP 驱动的 reComputer RK3576 系统镜像（`ls /dev/rknpu /dev/dri`） |
-| 端口 5000 被占用 | `docker stop $(docker ps -q --filter publish=5000)` |
+| 端口 5000 被占用 | 先执行 `docker ps --filter publish=5000 --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Ports}}'` 排查占用 5000 端口的容器，确认后再执行 `docker stop <container_name>` 停止指定容器 |
 | 容器反复重启 | 进入 `~/gun-detection-rk3576/rk3576_deploy` 执行 `docker compose -p gun-detection-rk3576 logs` 查看 NPU 或运行时报错 |
 
 ## 步骤 3: 打开面板 {#dashboard_rk3576 type=web_dashboard required=true config=devices/dashboard.yaml}
@@ -893,6 +902,7 @@ docker compose -p gun-detection-rk3576 restart
 - **远程 Docker 版 HA：** 需在顶部 SSH 区域填写 HA 宿主机 SSH 凭据，在下方填写 HA Web UI 管理员账号密码（全新部署的 HA 将自动用此账号完成初始化）；HAOS 或本机 Docker 版无需额外手动配置 SSH Add-on。
 - **跨设备部署：** 若 Frigate 本地部署（`localhost`）但 HA 运行在另一台设备，需将 `Frigate URL` 和 `MQTT Broker` 中的地址改为 Frigate 设备的局域网 IP。
 - **已有 MQTT 集成：** 如果 Home Assistant 之前已经配置并加载了 MQTT 集成，引擎会直接复用现有连接而不会覆盖其 Broker 地址；此时必须确保 Frigate（`config/config.yml` 中的 `mqtt.host`）与 Home Assistant 使用同一个 MQTT Broker，并在启用告警前于 Home Assistant 中验证能收到 `frigate/events` 消息。
+- **MQTT 安全提示：** 默认随 Frigate 启动的 Mosquitto 为局域网内匿名连接以简化初次配置；生产环境部署建议配置 Mosquitto 账号密码与 ACL，并在步骤 5 填写 `MQTT 用户名`（`MQTT Username`）和 `MQTT 密码`（`MQTT Password`）。
 
 ### 部署完成
 
@@ -913,7 +923,7 @@ docker compose -p gun-detection-rk3576 restart
        topic: "frigate/events"
    condition:
      - condition: template
-       value_template: "{{ trigger.payload_json is defined and trigger.payload_json.get('type') == 'new' and trigger.payload_json.get('after', {}).get('label') == 'gun' }}"
+       value_template: "{{ trigger.payload_json is defined and trigger.payload_json.get('type') == 'new' and trigger.payload_json.get('after', {}).get('label') == 'gun' and trigger.payload_json.get('after', {}).get('camera') not in ['handgun_demo', 'machinegun_demo'] }}"
    action:
      - action: notify.mobile_app_<your_phone>
        data:
@@ -938,7 +948,7 @@ docker compose -p gun-detection-rk3576 restart
        topic: "frigate/events"
    condition:
      - condition: template
-       value_template: "{{ trigger.payload_json is defined and trigger.payload_json.get('type') == 'new' and trigger.payload_json.get('after', {}).get('label') == 'gun' }}"
+       value_template: "{{ trigger.payload_json is defined and trigger.payload_json.get('type') == 'new' and trigger.payload_json.get('after', {}).get('label') == 'gun' and trigger.payload_json.get('after', {}).get('camera') not in ['handgun_demo', 'machinegun_demo'] }}"
    action:
      - action: notify.mobile_app_<your_phone>
        data:
@@ -950,6 +960,8 @@ docker compose -p gun-detection-rk3576 restart
            priority: high
            channel: alarm_stream
    ```
+
+   > **提示：** 上述示例已默认排除内置演示摄像头（`handgun_demo`、`machinegun_demo`），避免演示循环视频刷屏误报；如需用内置演示视频测试告警推送，临时移除条件中的 `and trigger.payload_json.get('after', {}).get('camera') not in ['handgun_demo', 'machinegun_demo']` 即可。
 
 2. **使用社区 Blueprint：**
    在 HA 中导入 **Frigate Notifications Blueprint**，可视化选择摄像头、`gun` 标签、目标手机以及强提醒或静音按钮。该方式创建的自动化同样独立于受管自动化，重新部署方案后不会丢失。

@@ -56,7 +56,7 @@ Open **http://\<device-ip\>:5000**. The two demo videos show gun detection boxes
 | Symptom | Fix |
 |---------|-----|
 | NVIDIA runtime not found | `sudo apt install nvidia-container-toolkit && sudo systemctl restart docker` |
-| Port 5000 already in use | `docker stop $(docker ps -q --filter publish=5000)` |
+| Port 5000 already in use | Run `docker ps --filter publish=5000 --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Ports}}'` first to inspect what is using port 5000, then stop only the intended container with `docker stop <container_name>` |
 | Slow first startup | Model compilation takes 5-10 minutes the first time only |
 | Container keeps restarting | Run `docker logs frigate`; usually a GPU memory or driver issue |
 | RTSP camera not showing | Verify the URL in VLC, then edit `config/config.yml` as in step 3 and restart |
@@ -79,7 +79,7 @@ Open **http://localhost:5000**. The two demo videos show gun detection boxes.
 | Symptom | Fix |
 |---------|-----|
 | NVIDIA runtime not found | `sudo apt install nvidia-container-toolkit && sudo systemctl restart docker` |
-| Port 5000 already in use | `docker stop $(docker ps -q --filter publish=5000)` |
+| Port 5000 already in use | Run `docker ps --filter publish=5000 --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Ports}}'` first to inspect what is using port 5000, then stop only the intended container with `docker stop <container_name>` |
 | Container keeps restarting | Run `docker logs frigate`; usually a GPU memory or driver issue |
 
 ## Step 3: Open Dashboard {#dashboard type=web_dashboard required=true config=devices/dashboard.yaml}
@@ -169,6 +169,7 @@ Connect Frigate to Home Assistant in one step. This step automatically installs 
 - **Remote Docker HA:** Enter the HA host SSH credentials in the SSH section at the top and the HA Web UI administrator username and password below (a newly deployed HA instance is initialized automatically with this account). HAOS and local Docker HA do not require manually configuring an SSH Add-on.
 - **Cross-host setup:** If Frigate is deployed locally (`localhost`) while Home Assistant runs on another device, replace the host address in `Frigate URL` and `MQTT Broker` with the Frigate device's LAN IP.
 - **Existing MQTT integration:** If Home Assistant already has a configured and loaded MQTT integration, the engine reuses that existing connection without overwriting its broker address. Ensure Frigate (`mqtt.host` in `config/config.yml`) and Home Assistant point to the same MQTT broker, and verify in Home Assistant that `frigate/events` messages arrive before enabling alerts.
+- **MQTT security:** The bundled Mosquitto broker started with Frigate allows anonymous LAN connections by default to simplify initial setup. For production deployments, configure Mosquitto username/password authentication and ACLs, and fill in `MQTT Username` and `MQTT Password` below.
 
 ### Deployment Complete
 
@@ -189,7 +190,7 @@ To forward gun-detection alerts to your phone without losing your configuration 
        topic: "frigate/events"
    condition:
      - condition: template
-       value_template: "{{ trigger.payload_json is defined and trigger.payload_json.get('type') == 'new' and trigger.payload_json.get('after', {}).get('label') == 'gun' }}"
+       value_template: "{{ trigger.payload_json is defined and trigger.payload_json.get('type') == 'new' and trigger.payload_json.get('after', {}).get('label') == 'gun' and trigger.payload_json.get('after', {}).get('camera') not in ['handgun_demo', 'machinegun_demo'] }}"
    action:
      - action: notify.mobile_app_<your_phone>
        data:
@@ -214,7 +215,7 @@ To forward gun-detection alerts to your phone without losing your configuration 
        topic: "frigate/events"
    condition:
      - condition: template
-       value_template: "{{ trigger.payload_json is defined and trigger.payload_json.get('type') == 'new' and trigger.payload_json.get('after', {}).get('label') == 'gun' }}"
+       value_template: "{{ trigger.payload_json is defined and trigger.payload_json.get('type') == 'new' and trigger.payload_json.get('after', {}).get('label') == 'gun' and trigger.payload_json.get('after', {}).get('camera') not in ['handgun_demo', 'machinegun_demo'] }}"
    action:
      - action: notify.mobile_app_<your_phone>
        data:
@@ -226,6 +227,8 @@ To forward gun-detection alerts to your phone without losing your configuration 
            priority: high
            channel: alarm_stream
    ```
+
+   > **Note:** The examples above exclude the built-in demo cameras (`handgun_demo`, `machinegun_demo`) so looping demo videos do not flood your phone; to test mobile push notifications using the built-in demo videos, temporarily remove `and trigger.payload_json.get('after', {}).get('camera') not in ['handgun_demo', 'machinegun_demo']` from the condition.
 
 2. **Use the community Blueprint:**
    Import the **Frigate Notifications Blueprint** in Home Assistant to visually select the camera, the `gun` label, target mobile devices, and critical-alert or silence action buttons. Because it is user-managed, it is preserved when you redeploy this solution.
@@ -299,7 +302,7 @@ Open **http://\<device-ip\>:5000**. The two demo videos show gun detection boxes
 | Hailo device not found | Check Hailo is seated in the M.2 slot; `ls /dev/hailo*` should show `/dev/hailo0` |
 | HailoRT version mismatch | HailoRT **4.21.0** is required; check with `dpkg -l hailort`. Install: `curl -sfL https://raw.githubusercontent.com/blakeblackshear/frigate/dev/docker/hailo8l/user_installation.sh \| sudo bash`, then reboot |
 | Insufficient disk space | At least 4 GB is needed; run `docker system prune -a` and `sudo apt clean` |
-| Port 5000 already in use | `docker stop $(docker ps -q --filter publish=5000)` |
+| Port 5000 already in use | Run `docker ps --filter publish=5000 --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Ports}}'` first to inspect what is using port 5000, then stop only the intended container with `docker stop <container_name>` |
 | Container keeps restarting | Run `docker logs frigate-hailo`; usually a Hailo driver issue |
 | RTSP camera not showing | Verify the URL in VLC, then edit `config/config.yml` as in step 3 and restart |
 
@@ -321,7 +324,7 @@ Open **http://localhost:5000**. The two demo videos show gun detection boxes.
 | Symptom | Fix |
 |---------|-----|
 | Hailo device not found | Check Hailo is seated; `ls /dev/hailo*` should show `/dev/hailo0` |
-| Port 5000 already in use | `docker stop $(docker ps -q --filter publish=5000)` |
+| Port 5000 already in use | Run `docker ps --filter publish=5000 --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Ports}}'` first to inspect what is using port 5000, then stop only the intended container with `docker stop <container_name>` |
 | Container keeps restarting | Run `docker logs frigate-hailo`; usually a Hailo driver issue |
 
 ## Step 3: Open Dashboard {#dashboard_r2000_hailo type=web_dashboard required=true config=devices/dashboard.yaml}
@@ -411,6 +414,7 @@ Connect Frigate to Home Assistant in one step. This step automatically installs 
 - **Remote Docker HA:** Enter the HA host SSH credentials in the SSH section at the top and the HA Web UI administrator username and password below (a newly deployed HA instance is initialized automatically with this account). HAOS and local Docker HA do not require manually configuring an SSH Add-on.
 - **Cross-host setup:** If Frigate is deployed locally (`localhost`) while Home Assistant runs on another device, replace the host address in `Frigate URL` and `MQTT Broker` with the Frigate device's LAN IP.
 - **Existing MQTT integration:** If Home Assistant already has a configured and loaded MQTT integration, the engine reuses that existing connection without overwriting its broker address. Ensure Frigate (`mqtt.host` in `config/config.yml`) and Home Assistant point to the same MQTT broker, and verify in Home Assistant that `frigate/events` messages arrive before enabling alerts.
+- **MQTT security:** The bundled Mosquitto broker started with Frigate allows anonymous LAN connections by default to simplify initial setup. For production deployments, configure Mosquitto username/password authentication and ACLs, and fill in `MQTT Username` and `MQTT Password` below.
 
 ### Deployment Complete
 
@@ -431,7 +435,7 @@ To forward gun-detection alerts to your phone without losing your configuration 
        topic: "frigate/events"
    condition:
      - condition: template
-       value_template: "{{ trigger.payload_json is defined and trigger.payload_json.get('type') == 'new' and trigger.payload_json.get('after', {}).get('label') == 'gun' }}"
+       value_template: "{{ trigger.payload_json is defined and trigger.payload_json.get('type') == 'new' and trigger.payload_json.get('after', {}).get('label') == 'gun' and trigger.payload_json.get('after', {}).get('camera') not in ['handgun_demo', 'machinegun_demo'] }}"
    action:
      - action: notify.mobile_app_<your_phone>
        data:
@@ -456,7 +460,7 @@ To forward gun-detection alerts to your phone without losing your configuration 
        topic: "frigate/events"
    condition:
      - condition: template
-       value_template: "{{ trigger.payload_json is defined and trigger.payload_json.get('type') == 'new' and trigger.payload_json.get('after', {}).get('label') == 'gun' }}"
+       value_template: "{{ trigger.payload_json is defined and trigger.payload_json.get('type') == 'new' and trigger.payload_json.get('after', {}).get('label') == 'gun' and trigger.payload_json.get('after', {}).get('camera') not in ['handgun_demo', 'machinegun_demo'] }}"
    action:
      - action: notify.mobile_app_<your_phone>
        data:
@@ -468,6 +472,8 @@ To forward gun-detection alerts to your phone without losing your configuration 
            priority: high
            channel: alarm_stream
    ```
+
+   > **Note:** The examples above exclude the built-in demo cameras (`handgun_demo`, `machinegun_demo`) so looping demo videos do not flood your phone; to test mobile push notifications using the built-in demo videos, temporarily remove `and trigger.payload_json.get('after', {}).get('camera') not in ['handgun_demo', 'machinegun_demo']` from the condition.
 
 2. **Use the community Blueprint:**
    Import the **Frigate Notifications Blueprint** in Home Assistant to visually select the camera, the `gun` label, target mobile devices, and critical-alert or silence action buttons. Because it is user-managed, it is preserved when you redeploy this solution.
@@ -540,7 +546,7 @@ Open **http://\<device-ip\>:5000**. The two demo videos show gun detection boxes
 |---------|-----|
 | NPU or codec device node not found | Confirm the target runs the reComputer RK3588 OS image with Rockchip NPU/MPP drivers loaded (`ls /dev/rknpu /dev/dri`) |
 | Insufficient disk space | At least 4 GB is needed; run `docker system prune -a` and `sudo apt clean` |
-| Port 5000 already in use | `docker stop $(docker ps -q --filter publish=5000)` |
+| Port 5000 already in use | Run `docker ps --filter publish=5000 --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Ports}}'` first to inspect what is using port 5000, then stop only the intended container with `docker stop <container_name>` |
 | Container keeps restarting | Run `docker compose -p gun-detection-rk3588 logs` in `~/gun-detection-rk3588/rk3588_deploy` to inspect NPU or runtime errors |
 | RTSP camera not showing | Verify the URL in VLC, then edit `config/config.yml` as in step 3 and restart |
 
@@ -562,7 +568,7 @@ Open **http://localhost:5000**. The two demo videos show gun detection boxes.
 | Symptom | Fix |
 |---------|-----|
 | NPU or codec device node not found | Confirm the machine runs the reComputer RK3588 OS image with Rockchip NPU/MPP drivers loaded (`ls /dev/rknpu /dev/dri`) |
-| Port 5000 already in use | `docker stop $(docker ps -q --filter publish=5000)` |
+| Port 5000 already in use | Run `docker ps --filter publish=5000 --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Ports}}'` first to inspect what is using port 5000, then stop only the intended container with `docker stop <container_name>` |
 | Container keeps restarting | Run `docker compose -p gun-detection-rk3588 logs` in `~/gun-detection-rk3588/rk3588_deploy` to inspect NPU or runtime errors |
 
 ## Step 3: Open Dashboard {#dashboard_rk3588 type=web_dashboard required=true config=devices/dashboard.yaml}
@@ -652,6 +658,7 @@ Connect Frigate to Home Assistant in one step. This step automatically installs 
 - **Remote Docker HA:** Enter the HA host SSH credentials in the SSH section at the top and the HA Web UI administrator username and password below (a newly deployed HA instance is initialized automatically with this account). HAOS and local Docker HA do not require manually configuring an SSH Add-on.
 - **Cross-host setup:** If Frigate is deployed locally (`localhost`) while Home Assistant runs on another device, replace the host address in `Frigate URL` and `MQTT Broker` with the Frigate device's LAN IP.
 - **Existing MQTT integration:** If Home Assistant already has a configured and loaded MQTT integration, the engine reuses that existing connection without overwriting its broker address. Ensure Frigate (`mqtt.host` in `config/config.yml`) and Home Assistant point to the same MQTT broker, and verify in Home Assistant that `frigate/events` messages arrive before enabling alerts.
+- **MQTT security:** The bundled Mosquitto broker started with Frigate allows anonymous LAN connections by default to simplify initial setup. For production deployments, configure Mosquitto username/password authentication and ACLs, and fill in `MQTT Username` and `MQTT Password` below.
 
 ### Deployment Complete
 
@@ -672,7 +679,7 @@ To forward gun-detection alerts to your phone without losing your configuration 
        topic: "frigate/events"
    condition:
      - condition: template
-       value_template: "{{ trigger.payload_json is defined and trigger.payload_json.get('type') == 'new' and trigger.payload_json.get('after', {}).get('label') == 'gun' }}"
+       value_template: "{{ trigger.payload_json is defined and trigger.payload_json.get('type') == 'new' and trigger.payload_json.get('after', {}).get('label') == 'gun' and trigger.payload_json.get('after', {}).get('camera') not in ['handgun_demo', 'machinegun_demo'] }}"
    action:
      - action: notify.mobile_app_<your_phone>
        data:
@@ -697,7 +704,7 @@ To forward gun-detection alerts to your phone without losing your configuration 
        topic: "frigate/events"
    condition:
      - condition: template
-       value_template: "{{ trigger.payload_json is defined and trigger.payload_json.get('type') == 'new' and trigger.payload_json.get('after', {}).get('label') == 'gun' }}"
+       value_template: "{{ trigger.payload_json is defined and trigger.payload_json.get('type') == 'new' and trigger.payload_json.get('after', {}).get('label') == 'gun' and trigger.payload_json.get('after', {}).get('camera') not in ['handgun_demo', 'machinegun_demo'] }}"
    action:
      - action: notify.mobile_app_<your_phone>
        data:
@@ -709,6 +716,8 @@ To forward gun-detection alerts to your phone without losing your configuration 
            priority: high
            channel: alarm_stream
    ```
+
+   > **Note:** The examples above exclude the built-in demo cameras (`handgun_demo`, `machinegun_demo`) so looping demo videos do not flood your phone; to test mobile push notifications using the built-in demo videos, temporarily remove `and trigger.payload_json.get('after', {}).get('camera') not in ['handgun_demo', 'machinegun_demo']` from the condition.
 
 2. **Use the community Blueprint:**
    Import the **Frigate Notifications Blueprint** in Home Assistant to visually select the camera, the `gun` label, target mobile devices, and critical-alert or silence action buttons. Because it is user-managed, it is preserved when you redeploy this solution.
@@ -781,7 +790,7 @@ Open **http://\<device-ip\>:5000**. The two demo videos show gun detection boxes
 |---------|-----|
 | NPU or codec device node not found | Confirm the target runs the reComputer RK3576 OS image with Rockchip NPU/MPP drivers loaded (`ls /dev/rknpu /dev/dri`) |
 | Insufficient disk space | At least 4 GB is needed; run `docker system prune -a` and `sudo apt clean` |
-| Port 5000 already in use | `docker stop $(docker ps -q --filter publish=5000)` |
+| Port 5000 already in use | Run `docker ps --filter publish=5000 --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Ports}}'` first to inspect what is using port 5000, then stop only the intended container with `docker stop <container_name>` |
 | Container keeps restarting | Run `docker compose -p gun-detection-rk3576 logs` in `~/gun-detection-rk3576/rk3576_deploy` to inspect NPU or runtime errors |
 | RTSP camera not showing | Verify the URL in VLC, then edit `config/config.yml` as in step 3 and restart |
 
@@ -803,7 +812,7 @@ Open **http://localhost:5000**. The two demo videos show gun detection boxes.
 | Symptom | Fix |
 |---------|-----|
 | NPU or codec device node not found | Confirm the machine runs the reComputer RK3576 OS image with Rockchip NPU/MPP drivers loaded (`ls /dev/rknpu /dev/dri`) |
-| Port 5000 already in use | `docker stop $(docker ps -q --filter publish=5000)` |
+| Port 5000 already in use | Run `docker ps --filter publish=5000 --format 'table {{.ID}}\t{{.Names}}\t{{.Image}}\t{{.Ports}}'` first to inspect what is using port 5000, then stop only the intended container with `docker stop <container_name>` |
 | Container keeps restarting | Run `docker compose -p gun-detection-rk3576 logs` in `~/gun-detection-rk3576/rk3576_deploy` to inspect NPU or runtime errors |
 
 ## Step 3: Open Dashboard {#dashboard_rk3576 type=web_dashboard required=true config=devices/dashboard.yaml}
@@ -893,6 +902,7 @@ Connect Frigate to Home Assistant in one step. This step automatically installs 
 - **Remote Docker HA:** Enter the HA host SSH credentials in the SSH section at the top and the HA Web UI administrator username and password below (a newly deployed HA instance is initialized automatically with this account). HAOS and local Docker HA do not require manually configuring an SSH Add-on.
 - **Cross-host setup:** If Frigate is deployed locally (`localhost`) while Home Assistant runs on another device, replace the host address in `Frigate URL` and `MQTT Broker` with the Frigate device's LAN IP.
 - **Existing MQTT integration:** If Home Assistant already has a configured and loaded MQTT integration, the engine reuses that existing connection without overwriting its broker address. Ensure Frigate (`mqtt.host` in `config/config.yml`) and Home Assistant point to the same MQTT broker, and verify in Home Assistant that `frigate/events` messages arrive before enabling alerts.
+- **MQTT security:** The bundled Mosquitto broker started with Frigate allows anonymous LAN connections by default to simplify initial setup. For production deployments, configure Mosquitto username/password authentication and ACLs, and fill in `MQTT Username` and `MQTT Password` below.
 
 ### Deployment Complete
 
@@ -913,7 +923,7 @@ To forward gun-detection alerts to your phone without losing your configuration 
        topic: "frigate/events"
    condition:
      - condition: template
-       value_template: "{{ trigger.payload_json is defined and trigger.payload_json.get('type') == 'new' and trigger.payload_json.get('after', {}).get('label') == 'gun' }}"
+       value_template: "{{ trigger.payload_json is defined and trigger.payload_json.get('type') == 'new' and trigger.payload_json.get('after', {}).get('label') == 'gun' and trigger.payload_json.get('after', {}).get('camera') not in ['handgun_demo', 'machinegun_demo'] }}"
    action:
      - action: notify.mobile_app_<your_phone>
        data:
@@ -938,7 +948,7 @@ To forward gun-detection alerts to your phone without losing your configuration 
        topic: "frigate/events"
    condition:
      - condition: template
-       value_template: "{{ trigger.payload_json is defined and trigger.payload_json.get('type') == 'new' and trigger.payload_json.get('after', {}).get('label') == 'gun' }}"
+       value_template: "{{ trigger.payload_json is defined and trigger.payload_json.get('type') == 'new' and trigger.payload_json.get('after', {}).get('label') == 'gun' and trigger.payload_json.get('after', {}).get('camera') not in ['handgun_demo', 'machinegun_demo'] }}"
    action:
      - action: notify.mobile_app_<your_phone>
        data:
@@ -950,6 +960,8 @@ To forward gun-detection alerts to your phone without losing your configuration 
            priority: high
            channel: alarm_stream
    ```
+
+   > **Note:** The examples above exclude the built-in demo cameras (`handgun_demo`, `machinegun_demo`) so looping demo videos do not flood your phone; to test mobile push notifications using the built-in demo videos, temporarily remove `and trigger.payload_json.get('after', {}).get('camera') not in ['handgun_demo', 'machinegun_demo']` from the condition.
 
 2. **Use the community Blueprint:**
    Import the **Frigate Notifications Blueprint** in Home Assistant to visually select the camera, the `gun` label, target mobile devices, and critical-alert or silence action buttons. Because it is user-managed, it is preserved when you redeploy this solution.

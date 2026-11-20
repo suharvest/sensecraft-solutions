@@ -6,9 +6,9 @@ mqtt:
 go2rtc:
   streams:
     handgun_demo:
-      - "ffmpeg:/media/frigate/handgun.mp4#input=-stream_loop -1 -re"
+      - "ffmpeg:/media/frigate/handgun.mp4#video=h264#input=-stream_loop -1 -re -i {input}"
     machinegun_demo:
-      - "ffmpeg:/media/frigate/machinegun.mov#input=-stream_loop -1 -re"
+      - "ffmpeg:/media/frigate/machinegun.mov#video=h264#input=-stream_loop -1 -re -i {input}"
 
 detectors:
   rknn:
