@@ -4,11 +4,13 @@ mqtt:
   port: 1883
 
 go2rtc:
+  ffmpeg:
+    file: "-re -stream_loop -1 -i {input}"
   streams:
     handgun_demo:
-      - "ffmpeg:/media/frigate/handgun.mp4#video=h264#input=-stream_loop -1 -re -i {input}"
+      - "ffmpeg:/media/frigate/handgun.mp4#video=h264"
     machinegun_demo:
-      - "ffmpeg:/media/frigate/machinegun.mov#video=h264#input=-stream_loop -1 -re -i {input}"
+      - "ffmpeg:/media/frigate/machinegun.mov#video=h264"
 
 detectors:
   hailo8l:
