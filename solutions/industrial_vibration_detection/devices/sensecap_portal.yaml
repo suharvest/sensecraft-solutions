@@ -1,0 +1,13 @@
+version: "1.0"
+id: sensecap_portal
+name: SenseCAP Portal
+name_i18n:
+  zh: SenseCAP 智慧云平台
+
+type: web_dashboard
+
+web_dashboard:
+  url: https://sensecap.seeed.cc/
+  title: SenseCAP Portal
+  title_i18n:
+    zh: SenseCAP 智慧云平台

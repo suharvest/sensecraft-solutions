@@ -112,26 +112,25 @@ Vibration anomaly detection relies on rigid mechanical contact and true acoustic
 
 ---
 
-## Step 3: Online Baseline Calibration on SenseCraft AI {#vibration_calibration type=web_dashboard required=true config=devices/vibration_calibrator.yaml}
+## Step 3: Online Baseline Calibration with Native Calibrator {#vibration_calibration type=vibration_calibrator required=true config=devices/vibration_calibrator.yaml}
 
-With the device mounted, start the machinery and train the baseline model under steady, healthy operating conditions.
+With the device mounted, connect the magnetic data cable to your computer, start the machinery, and train the baseline model under steady, healthy operating conditions using the native calibrator widget.
 
 ### Wiring
 
-1. Start the monitored machinery and verify it is running in a steady, healthy operational state;
-2. Click **Open Dashboard** below to open SenseCraft AI Studio in your browser;
-3. Click **Connect**, select the **SenseCAP T1000-E** serial port, and grant permission;
-4. Observe real-time 3-axis acceleration waveforms. Once waveform features stabilize, click **Start Learning / Train Baseline**;
-5. Upon calibration, model parameters are written back to internal non-volatile memory;
-6. **Critical Step**: Click **Disconnect** in the web studio to release the serial port, then disconnect the magnetic cable to enter autonomous monitoring.
+1. **Connect Serial**: Ensure the magnetic data cable connects T1000-E to your PC. Select the corresponding serial port (115200 baud) in the native calibrator widget;
+2. **Time-Domain Waveform Monitoring**: Start the machinery under steady operation. Monitor the real-time 3-axis acceleration waveform in the calibrator interface to verify signal stability without transient noise;
+3. **10-Second GEDAD Baseline Training**: Click **Start Calibration / Train Baseline** while the machine runs at normal speed for 10 seconds. The GEDAD algorithm computes statistical feature means and the anomaly threshold (3.0σ), automatically writing calibration parameters to the device;
+4. **Impact Verification**: Once baseline training completes, tap the machinery surface or test bench to simulate vibration anomalies. Observe whether the real-time curve triggers peak alerts and flags anomalies;
+5. **Disconnect for Autonomous Inspection**: Click Disconnect in the widget and unplug the magnetic data cable. The device exits debug mode and enters autonomous low-power inspection.
 
 ### Troubleshooting
 
 | Symptom | Fix |
 |---|---|
-| T1000-E serial port is not listed after clicking Connect | Use a Chromium-based browser, connect the magnetic cable and grant the serial permission when prompted. |
-| Learning does not start | Start the machinery first and wait until the 3-axis waveform is stable, then click **Start Learning / Train Baseline**. |
-| Device cannot be reconnected later or does not enter monitoring | Click **Disconnect** in the web studio before unplugging the magnetic cable so the serial port is released. |
+| No serial waveform data received | Verify the magnetic cable is firmly attached to the rear contacts of T1000-E and that a data cable (not charge-only) is used. Ensure the port is not occupied by another app at 115200 baud. |
+| Excessive noise floor drift during baseline training | Ensure the device is rigidly bonded with 3M VHB tape on a clean metal surface. Keep machine operation steady during the 10-second calibration window. |
+| Impact verification does not trigger alert | Check tapping intensity and contact point, or verify the threshold sigma (default 3.0σ) in the calibrator configuration before re-training. |
 
 ---
 
@@ -156,6 +155,106 @@ Verify the off-grid alert propagation loop after unplugging the cable.
 ### Deployment Complete
 
 You have completed the full loop from foundational off-grid mesh communications to autonomous edge device intelligence, achieving predictive maintenance alerts in harsh industrial environments without external network infrastructure.
+
+---
+
+## Preset: LoRaWAN Industrial Vibration Inspection {#industrial_lorawan_vibration}
+
+Designed for wide-area industrial plants and facility equipment inspection, transmitting equipment health telemetry over long-range, ultra-low-power LoRaWAN. T1000-E is mounted firmly onto machinery surfaces, learning a healthy operating baseline via the native calibrator widget. When mechanical wear or bearing eccentricity triggers vibration anomalies, the device autonomously transmits alert packets through a LoRaWAN gateway to the SenseCAP Portal for centralized monitoring.
+
+| Device | Purpose |
+|---|---|
+| SenseCAP T1000-E | Rigidly mounted on rotating machinery, running edge GEDAD algorithm to detect vibration anomalies and report via LoRaWAN |
+| 3M VHB 4910 Tape | Ensures rigid contact with metal surfaces, preventing high-frequency vibration damping |
+| Magnetic Data Cable | Used for PC connection during native serial calibration and firmware flashing |
+| SenseCAP M2 Industrial Gateway | Receives LoRaWAN radio packets and forwards alerts to SenseCAP Cloud |
+| SenseCAP Portal | Centralized dashboard for device online status, vibration packets, and mechanical anomaly alerts |
+
+---
+
+## Step 1: Flash LoRaWAN Industrial Vibration Firmware {#flash_lorawan_vibration type=nrf52_usb required=true config=devices/t1000e_tracker_lorawan.yaml}
+
+Flash T1000-E with LoRaWAN communication firmware embedded with vibration anomaly detection (VAD) algorithms for periodic reporting and event-triggered alerting.
+
+### Wiring
+
+1. Connect the magnetic data cable to the contacts on the back of T1000-E, and plug the USB connector into your PC;
+2. Verify the firmware variant is set to **LoRaWAN Industrial Monitoring (lorawan)** below, then click **Deploy**;
+3. Upon completion, the indicator LED flashes and the device reboots into standby calibration mode.
+
+### Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| USB device not recognized | Re-attach the magnetic cable firmly to the rear pins of T1000-E. Ensure a data cable is used, as charge-only cables do not enumerate serial ports. |
+| Flashing fails or is interrupted | Reconnect the cable, select **Deploy** again. If the firmware is already flashed, proceed to the next step. |
+
+---
+
+## Step 2: Rigid Surface Mounting {#mount_lorawan_device type=manual required=true}
+
+Vibration anomaly detection relies on rigid contact and mechanical vibration transmission. The device must be firmly mounted to the machinery structure before baseline learning.
+
+### Wiring
+
+1. **Avoid Damping Materials**: Do not use soft foam or sponge tape (damping significantly degrades high-frequency impact features);
+2. **Recommended Adhesive**: Use **3M VHB 4910 (0.5mm acrylic tape)** or a high-strength magnetic base;
+3. **Measurement Point**: Select a flat metal bearing housing, motor frame, or pump casing along the radial load path, cleaned of grease and debris;
+4. **Orientation**: Press the device firmly against the flat metal surface. Connect the magnetic data cable to prepare for baseline calibration.
+
+### Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| False alarms or alarms never trigger | Check if foam tape was used. Always use rigid 3M VHB tape on a clean, flat surface. |
+| Device moved after calibration | The baseline is specific to the mounting location. Repeat Step 3 if the position changes. |
+
+---
+
+## Step 3: Online Baseline Calibration with Native Calibrator {#vibration_calibration_lorawan type=vibration_calibrator required=true config=devices/vibration_calibrator.yaml}
+
+With the device mounted, connect the magnetic data cable to your PC, start the machinery, and train the baseline model under steady, healthy operating conditions using the native calibrator widget.
+
+### Wiring
+
+1. **Connect Serial**: Ensure the magnetic data cable connects T1000-E to your PC. Select the corresponding serial port (115200 baud) in the native calibrator widget;
+2. **Time-Domain Waveform Monitoring**: Start the machinery under steady operation. Monitor the real-time 3-axis acceleration waveform in the calibrator interface to verify signal stability without transient noise;
+3. **10-Second GEDAD Baseline Training**: Click **Start Calibration / Train Baseline** while the machine runs at normal speed for 10 seconds. The GEDAD algorithm computes statistical feature means and the anomaly threshold (3.0σ), automatically writing calibration parameters to the device;
+4. **Impact Verification**: Once baseline training completes, tap the machinery surface or test bench to simulate vibration anomalies. Observe whether the real-time curve triggers peak alerts and flags anomalies;
+5. **Disconnect for Autonomous Inspection**: Click Disconnect in the widget and unplug the magnetic data cable. The device exits debug mode and enters autonomous low-power inspection.
+
+### Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| No serial waveform data received | Verify the magnetic cable is firmly attached to the rear contacts of T1000-E and that a data cable (not charge-only) is used. Ensure the port is not occupied by another app at 115200 baud. |
+| Excessive noise floor drift during baseline training | Ensure the device is rigidly bonded with 3M VHB tape on a clean metal surface. Keep machine operation steady during the 10-second calibration window. |
+| Impact verification does not trigger alert | Check tapping intensity and contact point, or verify the threshold sigma (default 3.0σ) in the calibrator configuration before re-training. |
+
+---
+
+## Step 4: SenseCAP Portal Cloud Data & Alert Verification {#verify_sensecap_portal type=web_dashboard required=true verify=true config=devices/sensecap_portal.yaml}
+
+Log in to SenseCAP Portal to verify LoRaWAN gateway reception, device telemetry, and vibration anomaly alerts.
+
+### Wiring
+
+1. **Gateway Online**: Ensure a SenseCAP M2 LoRaWAN gateway in the coverage area is powered and online;
+2. **Bind Device**: Use the SenseCAP Mate mobile app to scan the QR code on the T1000-E label (EUI / Key) and bind the device to your account;
+3. **Open Cloud Dashboard**: Click **Open Dashboard** below to access the SenseCAP Portal (https://sensecap.seeed.cc/);
+4. **Verify Telemetry & Alerts**: Check the device online status, heartbeat interval, and latest vibration metrics. Tap or simulate vibration to confirm anomaly alerts trigger in the SenseCAP Portal alert center.
+
+### Troubleshooting
+
+| Symptom | Fix |
+|---|---|
+| Device shows offline or not activated | Verify the LoRaWAN gateway is connected to the internet. Ensure the T1000-E frequency matches the gateway (e.g. CN470, EU868, US915). Long-press the button to reboot and re-initiate Join. |
+| No vibration alert received after tapping | Verify that Step 3 calibration parameters were saved. Check LoRaWAN signal quality (RSSI/SNR), and wait for the next uplink packet. |
+| Cannot access SenseCAP Portal | Verify internet connectivity. If using a private LoRaWAN server, verify host and port settings. |
+
+### Deployment Complete
+
+The LoRaWAN industrial vibration inspection solution is now deployed. T1000-E operates autonomously in the field, detecting vibration anomalies at the edge and reporting predictive maintenance insights to the cloud.
 
 ---
 

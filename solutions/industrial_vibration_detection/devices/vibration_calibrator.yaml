@@ -1,13 +1,18 @@
 version: "1.0"
 id: vibration_calibrator
-name: SenseCraft AI Vibration Calibrator
+name: Industrial Vibration Calibrator
 name_i18n:
-  zh: SenseCraft AI 振动在线标定平台
+  zh: 工业振动在线标定器
 
-type: web_dashboard
+type: vibration_calibrator
+category: verify
 
-web_dashboard:
-  url: https://sensecraft.seeed.cc/ai/
-  title: SenseCraft AI Studio
-  title_i18n:
-    zh: SenseCraft AI 工作台
+vibration_calibrator:
+  port_from_device: flash_vibration
+  baud: 115200
+  sample_duration_sec: 10
+  sampling_rate_hz: 50
+  threshold_sigma: 3.0
+  noise_floor_min_g: 0.005
+  max_drift_allowed_g: 0.2
+  impact_test_window_sec: 10
