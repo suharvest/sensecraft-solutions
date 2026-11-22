@@ -50,6 +50,13 @@ intro:
       description: Industrial outdoor LoRaWAN gateway
       description_i18n:
         zh: 工业级室外 LoRaWAN 网关
+    external_sensecap_portal:
+      name: SenseCAP Portal
+      name_i18n:
+        zh: SenseCAP 智慧云平台
+      description: SenseCAP PaaS Cloud Portal & Dashboard
+      description_i18n:
+        zh: SenseCAP 智慧云平台监控看板
 
   presets:
     - id: offgrid_mesh_communication
@@ -93,6 +100,36 @@ intro:
           options:
             - device_ref: sensecap_t1000e
           default: sensecap_t1000e
+
+    - id: industrial_lorawan_vibration
+      name: LoRaWAN Industrial Vibration Inspection
+      name_i18n:
+        zh: LoRaWAN 工业振动巡检
+      badge: LoRaWAN Field
+      badge_i18n:
+        zh: 工业低功耗巡检
+      description: Deploy T1000-E with LoRaWAN firmware for long-range, ultra-low-power industrial equipment vibration monitoring. Calibrate baseline on-site and report anomaly alerts via SenseCAP Gateway to SenseCAP Portal.
+      description_i18n:
+        zh: 烧录 LoRaWAN 固件的 T1000-E 刚性贴合于旋转机械，通过本地原生控件标定健康振动基线。当发生机械振动异常时，通过 LoRaWAN 工业网关将特征与告警上报至 SenseCAP 智慧云平台。
+      device_groups:
+        - id: tracker
+          name: LoRaWAN Vibration Tracker Node
+          name_i18n:
+            zh: LoRaWAN 振动监测节点
+          type: single
+          required: true
+          options:
+            - device_ref: sensecap_t1000e
+          default: sensecap_t1000e
+        - id: cloud_portal
+          name: SenseCAP Cloud Portal
+          name_i18n:
+            zh: SenseCAP 智慧云平台
+          type: single
+          required: true
+          options:
+            - device_ref: external_sensecap_portal
+          default: external_sensecap_portal
 
     - id: mesh_ha_bridge
       name: Mesh to Home Assistant Central Map
