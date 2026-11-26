@@ -35,11 +35,11 @@ binary:
   # .deb 包安装（自带 /etc/init.d/S93sscma-supervisor）
   # 包内已含 SPA 前端、画廊应用定义和 yolo11n 四件套模型，无需额外下发模型
   deb_package:
-    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/supervisor_0.5.7_riscv64.deb
+    path: https://sensecraft-statics.seeed.cc/solution-app/recamera_ecosystem/packages/supervisor_0.5.11_riscv64.deb
     name: supervisor
     includes_init_script: true
     checksum:
-      sha256: 0c7f9c8d7b46d0fca597f1e31d9e5a904ad1c7b504faf34b778e4f6432dd2b64
+      sha256: 45779c35932f993649269331440149bd2cd5c737a9f886f92ae3919b71c9d7b8
 
   # 服务配置
   #
