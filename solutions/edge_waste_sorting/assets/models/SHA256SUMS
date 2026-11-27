@@ -21,6 +21,8 @@ c514a4636dea5d9b3d0fb93f2d4a3dbe15ca907228122e3ed42bc894fce391d1  efficientnet_l
 0889b198d12041359216ea477896ec14b4804fc31ab1ed0444de69b8ed12de1f  efficientnet_lite0_waste8.rv1126b.fp16.rknn
 140a51d5ca4035c446116f6b62a728ea31b6d5155cb5fea432b02ed34def5d03  efficientnet_lite0_waste8.rk3588.int8.calib256.mmse.rknn
 6225423eb29ac5ee1de48abc2d0458c105beaeb8a5b8e84ce9c8014ab7cb5138  efficientnet_lite0_waste8.rk3588.fp16.rknn
+1308911ae3e9dedc836a9281424750ac3565ca8a643f9a334c34458980f2b83c  efficientnet_lite0_waste8.rk3576.int8.calib256.mmse.rknn
+15bee0deba9a6261319602adbd625c5bc212e040d77481d670e762d6f9da28d6  efficientnet_lite0_waste8.rk3576.fp16.rknn
 
 # metadata (not part of the checksum lines) — EfficientNet-Lite0 (m1c, current baseline)
 # arch           : efficientnet_lite0

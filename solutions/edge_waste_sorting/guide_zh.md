@@ -377,20 +377,174 @@ mosquitto_sub -h <broker IP> -t 'waste/<设备名>/results' -v
 
 ## 套餐: 摄像头 + reComputer RK3588 {#recomputer_rk3588}
 
-分类器以 INT8 在 reComputer RK3588 的 NPU 上运行，适合一台主机服务多个投放点，或摄像头无法更换的场合。
+分类器以 INT8 在 reComputer RK3588 的 NPU 上运行，通过 Docker 一键部署，提供网页、触发接口和 MQTT 输出，适合一台主机服务多个投放点。
 
-## 步骤 1: 在 reComputer RK3588 上部署分类器 {#deploy_recomputer_rk3588_waste type=manual required=true verify=true config=devices/recomputer_rk3588_waste.yaml}
+- **摄像头：** USB 或 IP 摄像头，俯视投放区，一次拍一件。
+- **可选外设：** 实体按钮作为触发源；翻盖、继电器或指示灯由 actuator 回调驱动。接线与 GPIO 读取需自行集成。
 
-按四个子步骤操作：核对模型、安装 RKNN Lite 运行时、准备一帧输入、运行分类。
+**使用限制：**
 
-需要：能 SSH 登录板卡、几百 MB 可用空间，以及已转换好的模型；自行转换时需要一台装有 `rknn-toolkit2` 2.3.2 的 x86_64 Linux 主机，转换不能在板卡上进行。
+- 中国四分类映射由本项目维护，各城市口径不同，不要作为收费、处罚或合规判定的唯一依据。
+- 一帧只分类一件物品。
+- `textile`（布料）不会被识别，`hazardous`（有害垃圾）不会输出。
+- 不支持开放词汇分类。
+
+## 步骤 1: 在 reComputer RK3588 上部署垃圾分类 {#deploy_recomputer_rk3588_waste type=docker_deploy required=true config=devices/recomputer_rk3588_waste.yaml}
+
+填写设备和摄像头信息，部署步骤会校验 RKNN 运行环境、下载并校验 RK3588 INT8 模型，然后启动分类器和本地 MQTT broker。
+
+### 前置条件
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-waste-sorting/#现场怎么部署)。
+
+- 装有 Docker 与 Rockchip rknpu2 运行时（`/usr/lib/librknnrt.so` 2.3.x）的 reComputer RK3588。
+- 存在 NPU 设备节点（`/dev/dri/renderD*` 或 `/dev/rknpu`）。
+- 至少 2 GB 可用磁盘。
+- 设备能访问 `sensecraft-statics.seeed.cc`（HTTPS）与 `sensecraft-missionpack.seeed.cn`。
 
 ### 故障排查
 
 | 现象 | 处理 |
-|------|------|
-| `init_runtime` 处只抛一个 `RKNN_ERR_FAIL` | 安装与板卡上 `librknnrt` 同版本的 Python 绑定 |
-| 没有可核对的模型文件 | 在装有 `rknn-toolkit2` 2.3.2 的 x86_64 Linux 主机上转换模型后拷到板卡 |
+|---|---|
+| `/usr/lib/librknnrt.so not found` | 在板卡上安装 Rockchip rknpu2 运行时（2.3.x），或通过环境变量 `RKNNRT_LIB` 指定实际路径。 |
+| `init_runtime` 报 `RKNN_ERR_FAIL` | 确认板卡 `librknnrt.so` 为 2.3.x（与镜像内置 `rknn-toolkit-lite2` 2.3.2 匹配），且容器以 `privileged: true` 挂载 `/dev/dri`。 |
+| Docker 启动报 `iptables: Failed to initialize nft` | 切换 `iptables-legacy` 后重启 docker（部署前置脚本会自动尝试修复）。 |
+| 预测集中到单一类别 | 检查 `config.json` 中 `model.input_range` 是否为 `uint8`，避免二次归一化。 |
+
+### 部署目标 {#rk3588_remote type=remote device=rk3588 device_name="reComputer RK3588" config=devices/recomputer_rk3588_waste.yaml default=true}
+
+从本机通过 SSH 部署到 reComputer RK3588。
+
+### 部署目标 {#rk3588_local type=local device=rk3588 device_name="reComputer RK3588" config=devices/recomputer_rk3588_waste.yaml}
+
+直接在 reComputer RK3588 上运行部署。
+
+## 步骤 2: 查看实时分类画面 {#preview_rk3588_waste type=web_dashboard required=false config=devices/preview_waste.yaml}
+
+打开设备自带的页面，查看实时画面、触发按钮和分类结果。在验证前用它对准摄像头。
+
+### 故障排查
+
+| 现象 | 处理 |
+|---|---|
+| 页面打不开 | 在设备上执行 `docker ps` 确认 `edge-waste-app` 容器在运行，查看 `docker logs edge-waste-app`。 |
+| 预览是黑的 | USB 摄像头检查 `/dev/videoN` 是否已挂进容器；RTSP 先用 VLC 测试地址。 |
+| 预览正常但 `/events` 一直空 | 先触发一次；仍为空时检查 `models/` 下 `.rknn` 模型是否完整。 |
+
+## 步骤 3: 接好触发并确认一次分类 {#trigger_setup_rk3588 type=manual required=true verify=true config=devices/trigger_setup.yaml}
+
+把一件物品放到摄像头下，触发一次，确认 MQTT 收到一条分类结果（`model.accelerator` 为 `rknn`）。
+
+### 前置条件
+
+- 步骤 1 已完成，容器在运行。
+- 同网络的机器上有 `mosquitto_sub`，或使用 broker 容器：`docker exec edge-waste-mosquitto mosquitto_sub …`。
+- 一件非布料的待分类物品。
+
+### 部署完成
+
+分类器已在 reComputer RK3588 NPU 上运行，并完成一次端到端分类。
+
+#### 快速验证
+
+1. 打开 `http://<设备IP>:8080/panel`，确认画面对准投放区。
+2. 订阅：`mosquitto_sub -h <设备IP> -t '<设备名>/waste/+/results' -v`。
+3. 触发一次：`curl -X POST http://<设备IP>:8080/trigger`。
+4. 确认收到一条消息，`category` 与 `top3[0]` 一致，`model.accelerator` 为 `rknn`。
+
+### 故障排查
+
+| 现象 | 处理 |
+|---|---|
+| 一条消息都没有 | 检查 `models/` 下是否有 `.rknn` 模型文件，并查看 `docker logs edge-waste-app`。 |
+| 触发计数不动 | 检查 `config/config.json` 里的 `trigger.sources`。 |
+| 按一次按钮出两条消息 | 调高 `trigger.debounce_ms`，不低于约 300 ms。 |
+| 需要开放词汇分类 | 本套餐不支持，使用 Orin 套餐。 |
+
+## 套餐: 摄像头 + reComputer RK3576 {#recomputer_rk3576}
+
+分类器以 INT8 在 reComputer RK3576 的 NPU 上运行，与 RK3588 共用同一 RKNN 运行镜像，通过 Docker 一键部署，提供网页、触发接口和 MQTT 输出。
+
+- **摄像头：** USB 或 IP 摄像头，俯视投放区，一次拍一件。
+- **可选外设：** 实体按钮作为触发源；翻盖、继电器或指示灯由 actuator 回调驱动。接线与 GPIO 读取需自行集成。
+
+**使用限制：**
+
+- 中国四分类映射由本项目维护，各城市口径不同，不要作为收费、处罚或合规判定的唯一依据。
+- 一帧只分类一件物品。
+- `textile`（布料）不会被识别，`hazardous`（有害垃圾）不会输出。
+- 不支持开放词汇分类。
+
+## 步骤 1: 在 reComputer RK3576 上部署垃圾分类 {#deploy_recomputer_rk3576_waste type=docker_deploy required=true config=devices/recomputer_rk3576_waste.yaml}
+
+填写设备和摄像头信息，部署步骤会校验 RKNN 运行环境、下载并校验 RK3576 INT8 模型，然后启动分类器和本地 MQTT broker。
+
+### 前置条件
+
+> 📖 **工程与技术参考：** 现场工勘约束与物理接线细节，请参阅 [工程 Wiki · 现场部署规范](https://wiki.seeedstudio.com/cn/solutions/edge-waste-sorting/#现场怎么部署)。
+
+- 装有 Docker 与 Rockchip rknpu2 运行时（`/usr/lib/librknnrt.so` 2.3.x）的 reComputer RK3576。
+- 存在 NPU 设备节点（`/dev/dri/renderD*` 或 `/dev/rknpu`）。
+- 至少 2 GB 可用磁盘。
+- 设备能访问 `sensecraft-statics.seeed.cc`（HTTPS）与 `sensecraft-missionpack.seeed.cn`。
+
+### 故障排查
+
+| 现象 | 处理 |
+|---|---|
+| `/usr/lib/librknnrt.so not found` | 在板卡上安装 Rockchip rknpu2 运行时（2.3.x），或通过环境变量 `RKNNRT_LIB` 指定实际路径。 |
+| `init_runtime` 报 `RKNN_ERR_FAIL` | 确认板卡 `librknnrt.so` 为 2.3.x（与镜像内置 `rknn-toolkit-lite2` 2.3.2 匹配），且模型为 `rk3576` 目标产物（不要混用 `rk3588` 的 `.rknn`）。 |
+| Docker 启动报 `iptables: Failed to initialize nft` | 切换 `iptables-legacy` 后重启 docker（部署前置脚本会自动尝试修复）。 |
+
+### 部署目标 {#rk3576_remote type=remote device=rk3576 device_name="reComputer RK3576" config=devices/recomputer_rk3576_waste.yaml default=true}
+
+从本机通过 SSH 部署到 reComputer RK3576。
+
+### 部署目标 {#rk3576_local type=local device=rk3576 device_name="reComputer RK3576" config=devices/recomputer_rk3576_waste.yaml}
+
+直接在 reComputer RK3576 上运行部署。
+
+## 步骤 2: 查看实时分类画面 {#preview_rk3576_waste type=web_dashboard required=false config=devices/preview_waste.yaml}
+
+打开设备自带的页面，查看实时画面、触发按钮和分类结果。在验证前用它对准摄像头。
+
+### 故障排查
+
+| 现象 | 处理 |
+|---|---|
+| 页面打不开 | 在设备上执行 `docker ps` 确认 `edge-waste-app` 容器在运行，查看 `docker logs edge-waste-app`。 |
+| 预览是黑的 | USB 摄像头检查 `/dev/videoN` 是否已挂进容器；RTSP 先用 VLC 测试地址。 |
+| 预览正常但 `/events` 一直空 | 先触发一次；仍为空时检查 `models/` 下 `.rknn` 模型是否完整。 |
+
+## 步骤 3: 接好触发并确认一次分类 {#trigger_setup_rk3576 type=manual required=true verify=true config=devices/trigger_setup.yaml}
+
+把一件物品放到摄像头下，触发一次，确认 MQTT 收到一条分类结果（`model.accelerator` 为 `rknn`）。
+
+### 前置条件
+
+- 步骤 1 已完成，容器在运行。
+- 同网络的机器上有 `mosquitto_sub`，或使用 broker 容器：`docker exec edge-waste-mosquitto mosquitto_sub …`。
+- 一件非布料的待分类物品。
+
+### 部署完成
+
+分类器已在 reComputer RK3576 NPU 上运行，并完成一次端到端分类。
+
+#### 快速验证
+
+1. 打开 `http://<设备IP>:8080/panel`，确认画面对准投放区。
+2. 订阅：`mosquitto_sub -h <设备IP> -t '<设备名>/waste/+/results' -v`。
+3. 触发一次：`curl -X POST http://<设备IP>:8080/trigger`。
+4. 确认收到一条消息，`category` 与 `top3[0]` 一致，`model.accelerator` 为 `rknn`。
+
+### 故障排查
+
+| 现象 | 处理 |
+|---|---|
+| 一条消息都没有 | 检查 `models/` 下是否有 `.rknn` 模型文件，并查看 `docker logs edge-waste-app`。 |
+| 触发计数不动 | 检查 `config/config.json` 里的 `trigger.sources`。 |
+| 按一次按钮出两条消息 | 调高 `trigger.debounce_ms`，不低于约 300 ms。 |
+| 需要开放词汇分类 | 本套餐不支持，使用 Orin 套餐。 |
 
 ### 后续步骤
 - [查看完整工程 Wiki 与二次开发指南](https://wiki.seeedstudio.com/cn/solutions/edge-waste-sorting/)

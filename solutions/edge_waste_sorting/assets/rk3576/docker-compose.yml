@@ -1,0 +1,54 @@
+# Waste sorting on reComputer RK3576 (Rockchip NPU, INT8 RKNN).
+#
+# Model: `efficientnet_lite0_waste8.rk3576.int8.calib256.mmse.rknn`
+# (rknn-toolkit2 2.3.2, target rk3576). Downloaded and sha256-verified by
+# `devices/recomputer_rk3576_waste.yaml`.
+#
+# The image carries `rknn-toolkit-lite2` (cp311 wheel, 2.3.2) and mounts the
+# host's `/usr/lib/librknnrt.so` read-only so user-space runtime stays aligned
+# with the board's kernel rknpu driver.
+services:
+  waste:
+    image: ${WASTE_IMAGE:-sensecraft-missionpack.seeed.cn/solution/edge-waste-sorting-rknn:0.1.3}
+    container_name: edge-waste-app
+    command: ["--config", "/app/config/config.json", "--device", "${DEVICE_NAME:-recomputer-rk3576}"]
+    restart: unless-stopped
+    privileged: true
+    network_mode: host
+    depends_on:
+      - mosquitto
+    environment:
+      PYTHONUNBUFFERED: "1"
+    devices:
+      - /dev/dri:/dev/dri
+    volumes:
+      - ${CONFIG_FILE:-./config/config.json}:/app/config/config.json:ro
+      - ${MODELS_DIR:-./models}:/models:ro
+      - ${DATA_DIR:-./data}:/data:ro
+      - ${CAPTURES_DIR:-./captures}:/var/lib/edge-waste-sorting/captures
+      - ${RKNNRT_LIB:-/usr/lib/librknnrt.so}:/usr/lib/librknnrt.so:ro
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8080/healthz',timeout=3).status==200 else 1)\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: edge-waste-mosquitto
+    restart: unless-stopped
+    network_mode: host
+    command: ["mosquitto", "-c", "/mosquitto/config/mosquitto.conf"]
+    volumes:
+      - ./config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

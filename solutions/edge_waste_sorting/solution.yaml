@@ -190,6 +190,10 @@ intro:
       description: Separate box for one host serving several bins; INT8 on NPU
       description_i18n:
         zh: 独立主机，可带多个投放点；NPU 跑 INT8 分类器
+    recomputer_rk3576:
+      description: Compact box for single or multi-bin sorting; INT8 on NPU
+      description_i18n:
+        zh: 紧凑型主机，单桶或多投放点均适用；NPU 跑 INT8 分类器
     recamera_pro:
       description: Faster all-in-one camera; classifier runs INT8 on its NPU
       description_i18n:
@@ -298,9 +302,9 @@ intro:
       name: Camera + reComputer RK3588
       name_i18n:
         zh: 摄像头 + reComputer RK3588
-      description: Classifier runs on the RK3588 NPU, in INT8, over the full validation set.
+      description: EfficientNet-Lite0 INT8 on RK3588 NPU via Docker; full 7417-image validation set verified.
       description_i18n:
-        zh: 分类器跑在 RK3588 的 NPU 上，用 INT8，覆盖全部验证集。
+        zh: EfficientNet-Lite0 INT8 跑在 RK3588 NPU 上，Docker 一键部署，已覆盖全量 7417 张验证集。
       device_groups:
         - id: compute
           name: Sorting Host
@@ -311,6 +315,33 @@ intro:
           options:
             - device_ref: recomputer_rk3588
           default: recomputer_rk3588
+        - id: camera
+          name: Camera
+          name_i18n:
+            zh: 摄像头
+          type: single
+          required: true
+          options:
+            - device_ref: generic_usb_camera
+          default: generic_usb_camera
+
+    - id: recomputer_rk3576
+      name: Camera + reComputer RK3576
+      name_i18n:
+        zh: 摄像头 + reComputer RK3576
+      description: EfficientNet-Lite0 INT8 on RK3576 NPU via Docker; includes web panel, HTTP trigger, and MQTT output.
+      description_i18n:
+        zh: EfficientNet-Lite0 INT8 跑在 RK3576 NPU 上，Docker 一键部署，自带网页、HTTP 触发与 MQTT 输出。
+      device_groups:
+        - id: compute
+          name: Sorting Host
+          name_i18n:
+            zh: 分类主机
+          type: single
+          required: true
+          options:
+            - device_ref: recomputer_rk3576
+          default: recomputer_rk3576
         - id: camera
           name: Camera
           name_i18n:

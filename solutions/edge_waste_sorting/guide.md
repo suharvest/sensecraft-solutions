@@ -377,20 +377,174 @@ Use the broker's port and credentials if it needs them. One item produces one JS
 
 ## Preset: Camera + reComputer RK3588 {#recomputer_rk3588}
 
-The classifier runs in INT8 on the reComputer RK3588 NPU, for one host serving several bins or when the camera cannot be replaced.
+The classifier runs in INT8 on the reComputer RK3588 NPU via Docker, serving the web panel, trigger endpoint, and MQTT output for one or more bins.
 
-## Step 1: Deploy the Classifier on reComputer RK3588 {#deploy_recomputer_rk3588_waste type=manual required=true verify=true config=devices/recomputer_rk3588_waste.yaml}
+- **Camera:** USB or IP camera looking down into the drop area, one item per frame.
+- **Optional peripherals:** Physical button as trigger source; lid, relay, or indicator light driven by the actuator callback (wiring and GPIO reading require integration).
 
-Follow the four sub-steps: check the model, install the RKNN Lite runtime, prepare one input frame, and run the classifier.
+**Limitations:**
 
-You need SSH access to the board, a few hundred MB free, and the converted model. To convert it yourself you need an x86_64 Linux host with `rknn-toolkit2` 2.3.2; conversion does not run on the board.
+- The China four-way mapping is maintained by this project; city rules vary, so do not use it as the sole basis for billing, fines, or compliance.
+- One item per frame.
+- `textile` is not recognised and `hazardous` is never emitted.
+- Open-vocabulary mode is not supported on this preset.
+
+## Step 1: Deploy Waste Sorting on reComputer RK3588 {#deploy_recomputer_rk3588_waste type=docker_deploy required=true config=devices/recomputer_rk3588_waste.yaml}
+
+Fill in device and camera settings. Deployment checks the RKNN runtime, downloads and sha256-verifies the RK3588 INT8 model, and starts the classifier and local MQTT broker.
+
+### Prerequisites
+
+> 📖 **Engineering Reference:** Siting constraints and on-site wiring guidelines are documented in the [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-waste-sorting/#how-to-deploy-on-site).
+
+- reComputer RK3588 with Docker and Rockchip rknpu2 runtime (`/usr/lib/librknnrt.so` 2.3.x).
+- NPU device node present (`/dev/dri/renderD*` or `/dev/rknpu`).
+- At least 2 GB free disk space.
+- Access to `sensecraft-statics.seeed.cc` (HTTPS) and `sensecraft-missionpack.seeed.cn`.
 
 ### Troubleshooting
 
 | Symptom | Action |
-|------|------|
-| A bare `RKNN_ERR_FAIL` at `init_runtime` | Install the Python binding version that matches the board's `librknnrt` |
-| No model file to check | Convert the model on an x86_64 Linux host with `rknn-toolkit2` 2.3.2 and copy it to the board |
+|---|---|
+| `/usr/lib/librknnrt.so not found` | Install Rockchip rknpu2 runtime (2.3.x) on the board, or set `RKNNRT_LIB` to the actual path. |
+| `RKNN_ERR_FAIL` at `init_runtime` | Confirm host `librknnrt.so` is 2.3.x (matching the container's `rknn-toolkit-lite2` 2.3.2) and `/dev/dri` is mounted with `privileged: true`. |
+| Docker fails with `iptables: Failed to initialize nft` | Switch to `iptables-legacy` and restart docker (attempted automatically in the pre-check step). |
+| Predictions collapse to one class | Check that `model.input_range` is `uint8` in `config.json` to avoid double normalisation. |
+
+### Target {#rk3588_remote type=remote device=rk3588 device_name="reComputer RK3588" config=devices/recomputer_rk3588_waste.yaml default=true}
+
+Deploy over SSH from this machine to reComputer RK3588.
+
+### Target {#rk3588_local type=local device=rk3588 device_name="reComputer RK3588" config=devices/recomputer_rk3588_waste.yaml}
+
+Run deployment directly on reComputer RK3588.
+
+## Step 2: View Live Classification Feed {#preview_rk3588_waste type=web_dashboard required=false config=devices/preview_waste.yaml}
+
+Open the device's built-in page to view the live feed, trigger button, and recent classifications. Use it to aim the camera before verification.
+
+### Troubleshooting
+
+| Symptom | Action |
+|---|---|
+| Page does not load | Run `docker ps` on the device to confirm `edge-waste-app` is running, and inspect `docker logs edge-waste-app`. |
+| Black preview | For USB cameras check `/dev/videoN` is mounted; for RTSP test the URL in VLC first. |
+| Live preview works but `/events` stays empty | Trigger once; if still empty verify the `.rknn` model under `models/`. |
+
+## Step 3: Connect a Trigger and Confirm One Classification {#trigger_setup_rk3588 type=manual required=true verify=true config=devices/trigger_setup.yaml}
+
+Place an item under the camera, fire one trigger, and confirm one MQTT classification arrives (`model.accelerator` is `rknn`).
+
+### Prerequisites
+
+- Step 1 finished and containers are running.
+- `mosquitto_sub` on the network, or use the broker container: `docker exec edge-waste-mosquitto mosquitto_sub …`.
+- One non-textile test item.
+
+### Deployment Complete
+
+The classifier is running on the reComputer RK3588 NPU and has completed an end-to-end classification.
+
+#### Quick Verification
+
+1. Open `http://<device-ip>:8080/panel` and confirm the framing.
+2. Subscribe: `mosquitto_sub -h <device-ip> -t '<device-name>/waste/+/results' -v`.
+3. Fire one trigger: `curl -X POST http://<device-ip>:8080/trigger`.
+4. Confirm one message arrives with `category` matching `top3[0]` and `model.accelerator` set to `rknn`.
+
+### Troubleshooting
+
+| Symptom | Action |
+|---|---|
+| No message at all | Check `models/` for the `.rknn` file and inspect `docker logs edge-waste-app`. |
+| Trigger counter does not move | Check `trigger.sources` in `config/config.json`. |
+| Two messages per button press | Raise `trigger.debounce_ms` to at least about 300 ms. |
+| Want open-vocabulary classification | Not supported on this preset; use the Orin preset. |
+
+## Preset: Camera + reComputer RK3576 {#recomputer_rk3576}
+
+The classifier runs in INT8 on the reComputer RK3576 NPU via Docker, sharing the same RKNN runtime image as RK3588, with the web panel, trigger endpoint, and MQTT output.
+
+- **Camera:** USB or IP camera looking down into the drop area, one item per frame.
+- **Optional peripherals:** Physical button as trigger source; lid, relay, or indicator light driven by the actuator callback (wiring and GPIO reading require integration).
+
+**Limitations:**
+
+- The China four-way mapping is maintained by this project; city rules vary, so do not use it as the sole basis for billing, fines, or compliance.
+- One item per frame.
+- `textile` is not recognised and `hazardous` is never emitted.
+- Open-vocabulary mode is not supported on this preset.
+
+## Step 1: Deploy Waste Sorting on reComputer RK3576 {#deploy_recomputer_rk3576_waste type=docker_deploy required=true config=devices/recomputer_rk3576_waste.yaml}
+
+Fill in device and camera settings. Deployment checks the RKNN runtime, downloads and sha256-verifies the RK3576 INT8 model, and starts the classifier and local MQTT broker.
+
+### Prerequisites
+
+> 📖 **Engineering Reference:** Siting constraints and on-site wiring guidelines are documented in the [Engineering Wiki · Deployment Guide](https://wiki.seeedstudio.com/solutions/edge-waste-sorting/#how-to-deploy-on-site).
+
+- reComputer RK3576 with Docker and Rockchip rknpu2 runtime (`/usr/lib/librknnrt.so` 2.3.x).
+- NPU device node present (`/dev/dri/renderD*` or `/dev/rknpu`).
+- At least 2 GB free disk space.
+- Access to `sensecraft-statics.seeed.cc` (HTTPS) and `sensecraft-missionpack.seeed.cn`.
+
+### Troubleshooting
+
+| Symptom | Action |
+|---|---|
+| `/usr/lib/librknnrt.so not found` | Install Rockchip rknpu2 runtime (2.3.x) on the board, or set `RKNNRT_LIB` to the actual path. |
+| `RKNN_ERR_FAIL` at `init_runtime` | Confirm host `librknnrt.so` is 2.3.x (matching the container's `rknn-toolkit-lite2` 2.3.2) and that the model is the `rk3576` target build (do not mix `rk3588` `.rknn`). |
+| Docker fails with `iptables: Failed to initialize nft` | Switch to `iptables-legacy` and restart docker (attempted automatically in the pre-check step). |
+
+### Target {#rk3576_remote type=remote device=rk3576 device_name="reComputer RK3576" config=devices/recomputer_rk3576_waste.yaml default=true}
+
+Deploy over SSH from this machine to reComputer RK3576.
+
+### Target {#rk3576_local type=local device=rk3576 device_name="reComputer RK3576" config=devices/recomputer_rk3576_waste.yaml}
+
+Run deployment directly on reComputer RK3576.
+
+## Step 2: View Live Classification Feed {#preview_rk3576_waste type=web_dashboard required=false config=devices/preview_waste.yaml}
+
+Open the device's built-in page to view the live feed, trigger button, and recent classifications. Use it to aim the camera before verification.
+
+### Troubleshooting
+
+| Symptom | Action |
+|---|---|
+| Page does not load | Run `docker ps` on the device to confirm `edge-waste-app` is running, and inspect `docker logs edge-waste-app`. |
+| Black preview | For USB cameras check `/dev/videoN` is mounted; for RTSP test the URL in VLC first. |
+| Live preview works but `/events` stays empty | Trigger once; if still empty verify the `.rknn` model under `models/`. |
+
+## Step 3: Connect a Trigger and Confirm One Classification {#trigger_setup_rk3576 type=manual required=true verify=true config=devices/trigger_setup.yaml}
+
+Place an item under the camera, fire one trigger, and confirm one MQTT classification arrives (`model.accelerator` is `rknn`).
+
+### Prerequisites
+
+- Step 1 finished and containers are running.
+- `mosquitto_sub` on the network, or use the broker container: `docker exec edge-waste-mosquitto mosquitto_sub …`.
+- One non-textile test item.
+
+### Deployment Complete
+
+The classifier is running on the reComputer RK3576 NPU and has completed an end-to-end classification.
+
+#### Quick Verification
+
+1. Open `http://<device-ip>:8080/panel` and confirm the framing.
+2. Subscribe: `mosquitto_sub -h <device-ip> -t '<device-name>/waste/+/results' -v`.
+3. Fire one trigger: `curl -X POST http://<device-ip>:8080/trigger`.
+4. Confirm one message arrives with `category` matching `top3[0]` and `model.accelerator` set to `rknn`.
+
+### Troubleshooting
+
+| Symptom | Action |
+|---|---|
+| No message at all | Check `models/` for the `.rknn` file and inspect `docker logs edge-waste-app`. |
+| Trigger counter does not move | Check `trigger.sources` in `config/config.json`. |
+| Two messages per button press | Raise `trigger.debounce_ms` to at least about 300 ms. |
+| Want open-vocabulary classification | Not supported on this preset; use the Orin preset. |
 
 ### Next Steps
 - [View Full Engineering Wiki and Integration Guide](https://wiki.seeedstudio.com/solutions/edge-waste-sorting/)

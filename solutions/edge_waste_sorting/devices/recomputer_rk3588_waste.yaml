@@ -1,224 +1,759 @@
 version: "1.0"
 id: recomputer_rk3588_waste
-name: Deploy the Classifier on reComputer RK3588
-type: manual
-
-# Manual for the same reason as the two camera presets: a converted .rknn and
-# the Python runtime exist, a packaged application does not, and naming a CDN
-# path that holds nothing would validate here and fail on the device.
-#
-# Figures in step 4 were measured on RK3588 hardware on 2026-09-08 over the
-# full 7417-image validation set -- the only configuration in this solution
-# measured on the whole set rather than a subset. INT8 (calib256+mmse):
-# material top-1 0.8881, agreement with the fp32 CPU baseline 0.9893,
-# p50 2.728 ms, p95 3.417 ms. fp16: top-1 0.8882 (no material difference),
-# agreement 0.9988, p50 5.575 ms, p95 9.904 ms -- INT8 is 51% faster.
-# See evaluation/runs/2026-09-08-rk3588-fullval in edge-waste-sorting.
-#
-# The board used carries the same SoC, NPU, kernel driver (0.9.8) and
-# librknnrt (2.3.2) as the shipping unit, but not its enclosure, thermal
-# design or power delivery, so sustained-load behaviour is not covered by
-# these numbers.
-
+name: reComputer RK3588
 name_i18n:
-  zh: 在 reComputer RK3588 上部署分类器
+  zh: reComputer RK3588
+type: docker_deploy
 
-steps:
-  - id: fetch_model
-    name: Get the converted model
-    name_i18n:
-      zh: 取转换好的模型
+# Baseline EfficientNet-Lite0 INT8 (calib256+mmse) RKNN deployment on RK3588.
+#
+# Full 7,417-image validation set measured on RK3588 hardware (2026-09-08):
+#   INT8 (calib256+mmse): material top-1 0.8881, agreement vs fp32 CPU 0.9893,
+#   p50 2.728 ms, p95 3.417 ms.
+#   See edge-waste-sorting evaluation/runs/2026-09-08-rk3588-fullval/results.md.
+#
+# Runtime image: sensecraft-missionpack.seeed.cn/solution/edge-waste-sorting-rknn:0.1.3
+# The image carries rknn-toolkit-lite2 2.3.2 (cp311) and mounts the host's
+# /usr/lib/librknnrt.so read-only so user-space runtime matches the kernel driver.
+
+docker:
+  compose_file: assets/rk3588/docker-compose.yml
+  compose_dir: assets/rk3588
+  options:
+    project_name: edge_waste_sorting_rk3588
+    remove_orphans: true
+  services:
+    - name: waste
+      port: 8080
+      required: true
+    - name: mosquitto
+      port: 1883
+      required: true
+
+ssh:
+  port: 22
+  default_user: recomputer
+  auth_methods:
+    - password
+  connection_timeout: 30
+  command_timeout: 1800
+
+pre_checks:
+  - type: disk_space
+    min_gb: 2
     description: >-
-      The model comes from the upstream repository `edge-waste-sorting`; it is
-      not committed to this package and not on the CDN. Either take the built
-      artifact from that repository's `evaluation/runs/2026-09-07-devices/`
-      run, or convert it yourself on an x86_64 Linux host with
-      `rknn-toolkit2` 2.3.2 — the conversion does not run on the board:
+      Runtime image, EfficientNet-Lite0 INT8 RKNN model (~4 MB), and config.
 
-        # from the root of the edge-waste-sorting checkout;
-        # models/efficientnet_lite0_waste8.onnx is 13,477,056 bytes,
-        # sha256 e9f9e847de6899ad4341d8f6084823e7c70307e84ac4d0da4bc4911b5b767391
-        python platforms/rknn/rknn_convert_m1c.py \
-          --onnx models/efficientnet_lite0_waste8.onnx \
-          --data-root data/cls/waste8 \
-          --out-dir out-rk3588 \
-          --target rk3588 --calib-sizes 256 --algos mmse
+deploy_timeout: 1800
 
-      `--data-root` must contain a `train/` directory of class folders; the
-      script samples 256 calibration images from it. The build lands in
-      `out-rk3588/`, so check and copy it from there:
+post_deployment:
+  open_browser: false
 
-        sha256sum out-rk3588/efficientnet_lite0_waste8.rk3588.int8.calib256.mmse.rknn
-        # 140a51d5ca4035c446116f6b62a728ea31b6d5155cb5fea432b02ed34def5d03
+files:
+  - url: https://sensecraft-statics.seeed.cc/solution-app/edge_waste_sorting/models/efficientnet_lite0_waste8.rk3588.int8.calib256.mmse.rknn
+    remote_path: /home/{{username}}/edge-waste-sorting/recomputer_rk3588_waste/models/efficientnet_lite0_waste8.rk3588.int8.calib256.mmse.rknn
+    checksum: "sha256:140a51d5ca4035c446116f6b62a728ea31b6d5155cb5fea432b02ed34def5d03"
 
-        ssh <user>@<board> 'mkdir -p ~/waste'
-        scp out-rk3588/efficientnet_lite0_waste8.rk3588.int8.calib256.mmse.rknn \
-            <user>@<board>:~/waste/
+actions:
+  before:
+    - name: Validate the RKNN runtime and NPU device
+      run: |
+        set -e
+        if [ ! -e /dev/dri/renderD129 ] && [ ! -e /dev/dri/renderD128 ] && [ ! -c /dev/rknpu ]; then
+          echo "No Rockchip NPU device node (/dev/dri/renderD* or /dev/rknpu) found" >&2
+          exit 1
+        fi
+        RKNN_LIB="${RKNNRT_LIB:-/usr/lib/librknnrt.so}"
+        if [ ! -e "$RKNN_LIB" ]; then
+          echo "$RKNN_LIB not found — install Rockchip rknpu2 runtime (librknnrt 2.3.x) first." >&2
+          exit 1
+        fi
+        strings "$RKNN_LIB" 2>/dev/null | grep -m1 'librknnrt version' || true
+        echo "RKNN runtime OK"
+      name_i18n:
+        zh: 校验 RKNN 运行环境与 NPU 设备
 
-      Every command in the later steps runs from `~/waste` on the board.
+    - name: Ensure Docker and docker compose are ready
+      run: |
+        set -e
+        if ! docker info >/dev/null 2>&1; then
+          if sudo -n true 2>/dev/null && [ -x /usr/sbin/iptables-legacy ]; then
+            sudo update-alternatives --set iptables /usr/sbin/iptables-legacy 2>/dev/null || true
+            sudo update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy 2>/dev/null || true
+            sudo systemctl reset-failed docker 2>/dev/null || true
+            sudo systemctl start docker 2>/dev/null || true
+          fi
+        fi
+        if ! docker info >/dev/null 2>&1; then
+          echo "User $(id -un) cannot reach the Docker daemon." >&2
+          echo "Run: sudo usermod -aG docker $(id -un), log in again, then retry." >&2
+          exit 1
+        fi
+        if docker compose version >/dev/null 2>&1; then
+          echo "docker compose plugin present"
+          exit 0
+        fi
+        if docker-compose --version >/dev/null 2>&1; then
+          if sudo -n true 2>/dev/null; then
+            for d in /usr/libexec/docker/cli-plugins /usr/local/lib/docker/cli-plugins /root/.docker/cli-plugins; do
+              sudo mkdir -p "$d"
+              sudo ln -sf "$(command -v docker-compose)" "$d/docker-compose"
+            done
+            echo "linked standalone docker-compose into cli-plugins"
+          fi
+          exit 0
+        fi
+        if sudo -n true 2>/dev/null; then
+          sudo apt-get update
+          sudo apt-get install -y docker-compose-plugin || \
+            sudo apt-get install -y docker-compose-v2 || \
+            sudo apt-get install -y docker-compose
+          docker compose version && exit 0
+        fi
+        echo "Neither docker compose nor docker-compose is installed." >&2
+        exit 1
+      name_i18n:
+        zh: 确保 Docker 与 docker compose 可用
 
-      That is the INT8 build, 4,044,169 bytes, and it is the one this preset
-      deploys. An fp16 build exists (`6225423e…`, 7,399,919 bytes); it returns
-      the same material top-1 at roughly twice the latency, and serves as the
-      comparison point when a quantisation problem is suspected.
-    description_i18n:
-      zh: >-
-        模型来自上游仓库 `edge-waste-sorting`，没有提交进本包，也不在 CDN 上。
-        要么直接取那个仓库 `evaluation/runs/2026-09-07-devices/` 里已经构建好的
-        产物，要么自己在装了 `rknn-toolkit2` 2.3.2 的 x86_64 Linux 主机上转换——
-        转换过程跑不了在板子上：
+    - name: Clean macOS sidecar files from the uploaded assets
+      run: |
+        set -e
+        if [ -d "assets/rk3588" ]; then WORKDIR="assets/rk3588"; else WORKDIR="."; fi
+        find "$WORKDIR" -name '._*' -print -delete 2>/dev/null || true
+        find "$WORKDIR" -name '.DS_Store' -print -delete 2>/dev/null || true
+        echo "sidecar cleanup done"
+      name_i18n:
+        zh: 清理上传目录里的 macOS 附属文件
 
-          # 在 edge-waste-sorting 检出目录的根下执行；
-          # models/efficientnet_lite0_waste8.onnx 为 13,477,056 字节，
-          # sha256 e9f9e847de6899ad4341d8f6084823e7c70307e84ac4d0da4bc4911b5b767391
-          python platforms/rknn/rknn_convert_m1c.py \
-            --onnx models/efficientnet_lite0_waste8.onnx \
-            --data-root data/cls/waste8 \
-            --out-dir out-rk3588 \
-            --target rk3588 --calib-sizes 256 --algos mmse
+    - name: Fetch and verify the RKNN model
+      timeout: 900
+      run: |
+        set -e
+        if [ -d "assets/rk3588" ]; then WORKDIR="assets/rk3588"; else WORKDIR="."; fi
+        MODELS_DIR="$WORKDIR/models"
+        MODEL="$MODELS_DIR/efficientnet_lite0_waste8.rk3588.int8.calib256.mmse.rknn"
+        SHA=140a51d5ca4035c446116f6b62a728ea31b6d5155cb5fea432b02ed34def5d03
+        URL="https://sensecraft-statics.seeed.cc/solution-app/edge_waste_sorting/models/efficientnet_lite0_waste8.rk3588.int8.calib256.mmse.rknn"
+        mkdir -p "$MODELS_DIR"
 
-        `--data-root` 下必须有一个按类分文件夹的 `train/` 目录，脚本从中抽
-        256 张校准图。产物落在 `out-rk3588/`，从那里核对并拷贝：
+        if [ -s "$MODEL" ] && echo "$SHA  $MODEL" | sha256sum -c - >/dev/null 2>&1; then
+          echo "RKNN model already present and verified: $MODEL"
+          exit 0
+        fi
 
-          sha256sum out-rk3588/efficientnet_lite0_waste8.rk3588.int8.calib256.mmse.rknn
-          # 140a51d5ca4035c446116f6b62a728ea31b6d5155cb5fea432b02ed34def5d03
+        echo "Downloading efficientnet_lite0_waste8.rk3588.int8.calib256.mmse.rknn ..."
+        curl -fSL --retry 3 -o "$MODEL.part" "$URL"
+        echo "$SHA  $MODEL.part" | sha256sum -c -
+        mv -f "$MODEL.part" "$MODEL"
+        echo "RKNN model verified: $MODEL"
+      name_i18n:
+        zh: 获取并校验 RKNN 模型
 
-          ssh <user>@<board> 'mkdir -p ~/waste'
-          scp out-rk3588/efficientnet_lite0_waste8.rk3588.int8.calib256.mmse.rknn \
-              <user>@<board>:~/waste/
+    - name: Write the source, trigger and MQTT configuration
+      env:
+        INPUT_SOURCE_URI: "{{source_uri}}"
+        INPUT_MIN_CONFIDENCE: "{{min_confidence}}"
+        INPUT_TRIGGER_SOURCES: "{{trigger_sources}}"
+        INPUT_DEBOUNCE_MS: "{{debounce_ms}}"
+        INPUT_DEVICE_NAME: "{{device_name}}"
+        INPUT_STREAM_ID: "{{stream_id}}"
+        INPUT_SOURCE_KIND: "{{source_kind}}"
+      run: |
+        set -e
+        if [ -d "assets/rk3588" ]; then WORKDIR="assets/rk3588"; else WORKDIR="."; fi
+        CONFIG="$WORKDIR/config/config.json"
+        mkdir -p "$WORKDIR/data" "$WORKDIR/captures"
+        python3 - "$CONFIG" "$WORKDIR" <<'PY'
+        import json, os, re, sys
 
-        后面几步的命令都在板子的 `~/waste` 目录下执行。
+        path = sys.argv[1]
+        workdir = sys.argv[2]
+        with open(path) as handle:
+            config = json.load(handle)
 
-        这是 INT8 版，4,044,169 字节，本套餐部署的就是它。另有 fp16 版
-        （`6225423e…`，7,399,919 字节），物料 top-1 与它相同、时延约为两倍，
-        用作怀疑量化出问题时的对照。
-    optional: false
+        config["model"]["path"] = "/models/efficientnet_lite0_waste8.rk3588.int8.calib256.mmse.rknn"
+        config["model"]["accelerator"] = "rknn"
+        config["model"]["track"] = "baseline"
+        config["model"]["backbone"] = "efficientnet_lite0"
+        config["model"]["input_range"] = "uint8"
+        config["model"]["core_mask"] = "AUTO"
+        config["model"]["onnx_sha256"] = (
+            "e9f9e847de6899ad4341d8f6084823e7c70307e84ac4d0da4bc4911b5b767391")
+        config["rules"]["min_confidence"] = float(os.environ["INPUT_MIN_CONFIDENCE"])
+        config["trigger"]["mode"] = "on_demand"
+        config["trigger"]["sources"] = os.environ["INPUT_TRIGGER_SOURCES"].split(",")
+        config["trigger"]["debounce_ms"] = int(os.environ["INPUT_DEBOUNCE_MS"])
+        device_name = os.environ["INPUT_DEVICE_NAME"]
+        stream_id = os.environ["INPUT_STREAM_ID"]
+        source_kind = os.environ["INPUT_SOURCE_KIND"]
+        config["mqtt"]["topic"] = device_name + "/waste/{stream_id}/results"
+        source_uri = os.environ.get("INPUT_SOURCE_URI", "").strip()
+        if not source_uri:
+            sys.exit("ERROR: Camera address (source_uri) cannot be empty. For USB cameras, specify /dev/video0.")
+        config["sources"] = [{
+            "stream_id": stream_id,
+            "uri": source_uri,
+            "kind": source_kind,
+        }]
 
-  - id: install_runtime
-    name: Install the RKNN Lite runtime
-    name_i18n:
-      zh: 装 RKNN Lite 运行时
-    description: >-
-      The binding's version must match the `librknnrt` already on the board.
-      Check it first — a mismatch fails at `init_runtime` with an opaque
-      `RKNN_ERR_FAIL` rather than a version message:
+        tmp = path + ".tmp"
+        with open(tmp, "w") as handle:
+            json.dump(config, handle, indent=2)
+            handle.write("\n")
+        os.replace(tmp, path)
 
-        strings /usr/lib/librknnrt.so | grep 'librknnrt version'
-        # librknnrt version: 2.3.2 (...)
+        mapped_devices = ["/dev/dri:/dev/dri"]
+        if source_kind == "usb" and source_uri.startswith("/dev/video"):
+            mapped_devices.append(f"{source_uri}:{source_uri}")
+        for compose_name in ("docker-compose.yml", ".sensecraft-compose.yml"):
+            compose_file = os.path.join(workdir, compose_name)
+            if not os.path.exists(compose_file):
+                continue
+            with open(compose_file, "r") as f:
+                c_lines = f.read().splitlines()
+            out_lines = []
+            in_svc = False
+            skipping_devs = False
+            inserted = False
+            for line in c_lines:
+                stripped = line.lstrip()
+                indent = len(line) - len(stripped)
+                if in_svc and stripped and not stripped.startswith("#") and indent <= 2:
+                    in_svc = False
+                    skipping_devs = False
+                if not in_svc and indent == 2 and stripped == "waste:":
+                    in_svc = True
+                    out_lines.append(line)
+                    if mapped_devices and not inserted:
+                        out_lines.append("    devices:")
+                        for dev in mapped_devices:
+                            out_lines.append(f'      - "{dev}"')
+                        inserted = True
+                    continue
+                if in_svc:
+                    if indent == 4 and stripped.startswith("devices:"):
+                        skipping_devs = True
+                        continue
+                    if skipping_devs:
+                        if not stripped or (stripped.startswith("#") and indent >= 4):
+                            continue
+                        if indent > 4 or (indent == 4 and stripped.startswith("-")):
+                            continue
+                        skipping_devs = False
+                out_lines.append(line)
+            tmp_compose = compose_file + ".tmp"
+            with open(tmp_compose, "w") as f:
+                f.write("\n".join(out_lines) + "\n")
+            os.replace(tmp_compose, compose_file)
+            print(f"compose  = {compose_file} (devices={mapped_devices})")
 
-      The wheels ship in the Rockchip `rknn-toolkit2` repository under
-      `rknn-toolkit-lite2/packages/`, one per Python minor version; take the
-      `aarch64` wheel whose version equals the `librknnrt` above and whose
-      `cpXX` tag matches the board's `python3 -V`. Copy it to `~/waste` and
-      install it into a virtualenv:
+        env_file = os.path.normpath(
+            os.path.join(os.path.dirname(path), os.pardir, ".env")
+        )
+        def _is_device_name(line):
+            text = line.strip()
+            if text.startswith("export"):
+                text = text[len("export"):].lstrip()
+            return text.split("=", 1)[0].strip() == "DEVICE_NAME"
 
-        python3 -m venv --system-site-packages ~/waste/venv
-        ~/waste/venv/bin/pip install ~/waste/rknn_toolkit_lite2-2.3.2-*-manylinux*aarch64.whl
-
-      `--system-site-packages` reuses the system numpy, which on this board is
-      already a version the binding accepts.
-    description_i18n:
-      zh: >-
-        绑定的版本必须和板子上已有的 `librknnrt` 一致。先查一下——版本对不上时
-        会在 `init_runtime` 处抛一个语焉不详的 `RKNN_ERR_FAIL`，
-        而不是版本不匹配的提示：
-
-          strings /usr/lib/librknnrt.so | grep 'librknnrt version'
-          # librknnrt version: 2.3.2 (...)
-
-        wheel 随 Rockchip 的 `rknn-toolkit2` 仓库发布，在
-        `rknn-toolkit-lite2/packages/` 下按 Python 小版本各有一个；取版本号与上面
-        `librknnrt` 相同、`cpXX` 标签与板子 `python3 -V` 匹配的那个 `aarch64` wheel。
-        拷到 `~/waste` 后装进 venv：
-
-          python3 -m venv --system-site-packages ~/waste/venv
-          ~/waste/venv/bin/pip install ~/waste/rknn_toolkit_lite2-2.3.2-*-manylinux*aarch64.whl
-
-        `--system-site-packages` 复用系统的 numpy——这块板上的版本绑定本来就接受。
-    optional: false
-
-  - id: prepare_frame
-    name: Prepare one input frame
-    name_i18n:
-      zh: 准备一帧输入
-    description: >-
-      The model takes a 224x224x3 uint8 RGB array. Resize the short side to
-      256, centre-crop 224, keep RGB order. ImageNet mean and standard
-      deviation are baked into the `.rknn` at conversion time, so do not
-      normalise here — doing it twice is the usual reason a working classifier
-      starts returning one class.
-
-        python3 -c "
-        import cv2, numpy as np
-        im = cv2.imread('sample.jpg')
-        h, w = im.shape[:2]; s = 256 / min(h, w)
-        im = cv2.resize(im, (round(w*s), round(h*s)))
-        y, x = (im.shape[0]-224)//2, (im.shape[1]-224)//2
-        np.save('sample.npy', np.ascontiguousarray(im[y:y+224, x:x+224, ::-1], np.uint8))"
-    description_i18n:
-      zh: >-
-        模型吃的是 224x224x3 的 uint8 RGB 数组。短边缩到 256、中心裁 224，
-        保持 RGB 顺序。ImageNet 的均值与标准差在转换时已经烘焙进 `.rknn`，
-        这里不要再归一化——归一化两次是分类器突然只输出一个类别的常见原因。
-
-          python3 -c "
-          import cv2, numpy as np
-          im = cv2.imread('sample.jpg')
-          h, w = im.shape[:2]; s = 256 / min(h, w)
-          im = cv2.resize(im, (round(w*s), round(h*s)))
-          y, x = (im.shape[0]-224)//2, (im.shape[1]-224)//2
-          np.save('sample.npy', np.ascontiguousarray(im[y:y+224, x:x+224, ::-1], np.uint8))"
-    optional: false
-
-  - id: run_and_verify
-    name: Classify one frame
-    name_i18n:
-      zh: 跑一帧
-    description: >-
-      Load the model, pick the NPU core assignment and run one frame:
-
-        ~/waste/venv/bin/python - <<'PY'
-        from rknnlite.api import RKNNLite
-        import numpy as np
-        r = RKNNLite(verbose=False)
-        assert r.load_rknn('efficientnet_lite0_waste8.rk3588.int8.calib256.mmse.rknn') == 0
-        assert r.init_runtime(core_mask=RKNNLite.NPU_CORE_AUTO) == 0
-        out = r.inference(inputs=[np.load('sample.npy')[None]])
-        print(np.asarray(out[0]).reshape(-1))
+        env_lines = []
+        if os.path.exists(env_file):
+            with open(env_file) as handle:
+                env_lines = [
+                    line for line in handle.read().splitlines()
+                    if not _is_device_name(line)
+                ]
+        env_lines.append(f"DEVICE_NAME={device_name}")
+        with open(env_file, "w") as handle:
+            handle.write("\n".join(env_lines) + "\n")
+        print(f"device   = {device_name} ({env_file})")
+        print(f"model    = {config['model']['path']} (track=baseline)")
+        safe_uri = re.sub(r'://([^:]+):([^@]+)@', r'://\1:***@', config['sources'][0]['uri'])
+        print(f"source   = {config['sources'][0]['stream_id']} ({config['sources'][0]['kind']}) <- {safe_uri}")
         PY
+      name_i18n:
+        zh: 写入视频源、触发与 MQTT 配置
 
-      Expect eight raw logits, in the class order paper, cardboard, glass,
-      metal, plastic, textile, organic, residual. Softmax and the four-way
-      lookup are not done here — they live in the shared core layer so every
-      accelerator returns the same thing.
+  after:
+    - name: Verify the runtime is up and answering triggers
+      timeout: 240
+      ignore_error: true
+      env:
+        INPUT_DEVICE_NAME: "{{device_name}}"
+        INPUT_STREAM_ID: "{{stream_id}}"
+      run: |
+        set -e
+        BROKER=edge-waste-mosquitto
+        TOPIC="$INPUT_DEVICE_NAME/waste/$INPUT_STREAM_ID/results"
+        for i in $(seq 1 24); do
+          if curl -fsS http://127.0.0.1:8080/healthz >/tmp/healthz.json 2>/dev/null; then
+            cat /tmp/healthz.json
+            docker exec "$BROKER" sh -c "mosquitto_sub -h 127.0.0.1 -t '$TOPIC' -C 1 -W 20 > /tmp/one.json" &
+            SUB=$!
+            sleep 1
+            curl -fsS -X POST http://127.0.0.1:8080/trigger >/dev/null 2>&1 || true
+            if wait $SUB; then
+              echo "MQTT result received on $TOPIC"
+              docker exec "$BROKER" cat /tmp/one.json 2>/dev/null || true
+              exit 0
+            fi
+          fi
+          sleep 5
+        done
+        echo "No verified MQTT result within timeout." >&2
+        docker logs --tail 40 edge-waste-app 2>&1 || true
+      name_i18n:
+        zh: 验证运行时已启动并能响应触发
 
-      A warning about `RKNN_QUERY_INPUT_DYNAMIC_RANGE` on a static-shape model
-      is expected and harmless; the runtime prints it for every static build.
-
-      Inference settles around 3.2 ms per frame. That figure was taken with
-      other workloads present on the board rather than on an idle machine, and
-      it is inference only — capture and preprocessing are not included.
+user_inputs:
+  - id: device_name
+    name: Device Name
+    type: text
+    default: "recomputer-rk3588"
+    required: true
+    description: First segment of the MQTT topic — name this device after the bin or the drop-off point
+    validation:
+      pattern: "^[A-Za-z0-9_-]+$"
+    name_i18n:
+      zh: 设备名称
     description_i18n:
-      zh: >-
-        加载模型、选好 NPU 核分配，然后跑一帧：
+      zh: MQTT 主题的第一段——按垃圾桶或投放点命名
+  - id: stream_id
+    name: Stream ID
+    type: text
+    default: "bin1-cam1"
+    required: true
+    description: Appended to the MQTT topic and also carried in the payload — consumers must read it there, not parse the topic
+    validation:
+      pattern: "^[A-Za-z0-9_-]+$"
+    name_i18n:
+      zh: 流编号
+    description_i18n:
+      zh: 会拼在 MQTT 主题里，同时也在 payload 里——消费者必须从 payload 读，不要解析 topic
+  - id: source_kind
+    name: Camera Type
+    type: select
+    default: usb
+    required: true
+    options:
+      - value: usb
+        label: USB camera (/dev/videoN)
+        label_i18n:
+          zh: USB 摄像头（/dev/videoN）
+      - value: rtsp
+        label: IP camera (RTSP URL)
+        label_i18n:
+          zh: IP 摄像头（RTSP 地址）
+      - value: file
+        label: Video file — for bench testing without a camera
+        label_i18n:
+          zh: 视频文件——没有相机时的台面测试
+    name_i18n:
+      zh: 相机类型
+  - id: source_uri
+    name: Camera Address
+    type: text
+    required: true
+    default_template: "/dev/video0"
+    placeholder: "/dev/video0  or  rtsp://admin:password@192.168.1.64:554/Streaming/Channels/101"
+    description: Camera device node or RTSP URL.
+    name_i18n:
+      zh: 相机地址
+    description_i18n:
+      zh: 摄像头设备节点或 RTSP 地址。
+  - id: trigger_sources
+    name: Trigger Sources
+    type: select
+    default: "http"
+    required: true
+    description: Which sources fire a capture. HTTP is POST /trigger on port 8080.
+    options:
+      - value: "http"
+        label: HTTP only — POST /trigger
+        label_i18n:
+          zh: 仅 HTTP——POST /trigger
+      - value: "http,button"
+        label: HTTP + physical button
+        label_i18n:
+          zh: HTTP + 实体按钮
+      - value: "http,motion"
+        label: HTTP + motion in frame
+        label_i18n:
+          zh: HTTP + 画面移动侦测
+      - value: "http,button,motion"
+        label: All three
+        label_i18n:
+          zh: 三者全开
+    name_i18n:
+      zh: 触发源
+    description_i18n:
+      zh: 哪些来源会触发一次拍摄。HTTP 是 8080 端口上的 POST /trigger。
+  - id: debounce_ms
+    name: Trigger Debounce (ms)
+    type: text
+    default: "800"
+    required: true
+    description: A trigger arriving within this window of the previous one is merged into the in-flight request, not queued
+    validation:
+      pattern: "^[0-9]+$"
+    name_i18n:
+      zh: 触发去抖（毫秒）
+    description_i18n:
+      zh: 在上一次触发之后这个时间窗内到达的触发会被合并进正在处理的请求，而不是排队
+  - id: min_confidence
+    name: Minimum Confidence
+    type: text
+    default: "0.5"
+    required: true
+    description: Below this the event carries rules.fallback_category (residual) instead of the argmax.
+    validation:
+      pattern: "^(0(\\.[0-9]+)?|1(\\.0+)?)$"
+    name_i18n:
+      zh: 最低置信度
+    description_i18n:
+      zh: 低于这个值时事件带 rules.fallback_category（residual）而不是 argmax。
 
-          ~/waste/venv/bin/python - <<'PY'
-          from rknnlite.api import RKNNLite
-          import numpy as np
-          r = RKNNLite(verbose=False)
-          assert r.load_rknn('efficientnet_lite0_waste8.rk3588.int8.calib256.mmse.rknn') == 0
-          assert r.init_runtime(core_mask=RKNNLite.NPU_CORE_AUTO) == 0
-          out = r.inference(inputs=[np.load('sample.npy')[None]])
-          print(np.asarray(out[0]).reshape(-1))
+remote_overrides:
+  remote_path: /home/{{username}}/edge-waste-sorting
+  compose_dir: assets/rk3588
+  detection:
+    method: network_scan
+    manual_entry: true
+
+  actions:
+    before:
+      - name: Validate the RKNN runtime and NPU device
+        run: |
+          set -e
+          if [ ! -e /dev/dri/renderD129 ] && [ ! -e /dev/dri/renderD128 ] && [ ! -c /dev/rknpu ]; then
+            echo "No Rockchip NPU device node (/dev/dri/renderD* or /dev/rknpu) found" >&2
+            exit 1
+          fi
+          RKNN_LIB="${RKNNRT_LIB:-/usr/lib/librknnrt.so}"
+          if [ ! -e "$RKNN_LIB" ]; then
+            echo "$RKNN_LIB not found — install Rockchip rknpu2 runtime (librknnrt 2.3.x) first." >&2
+            exit 1
+          fi
+          strings "$RKNN_LIB" 2>/dev/null | grep -m1 'librknnrt version' || true
+          echo "RKNN runtime OK"
+        name_i18n:
+          zh: 校验 RKNN 运行环境与 NPU 设备
+
+      - name: Ensure Docker and docker compose are ready
+        sudo: true
+        run: |
+          set -e
+          if ! docker info >/dev/null 2>&1; then
+            if [ -x /usr/sbin/iptables-legacy ]; then
+              update-alternatives --set iptables /usr/sbin/iptables-legacy 2>/dev/null || true
+              update-alternatives --set ip6tables /usr/sbin/ip6tables-legacy 2>/dev/null || true
+              systemctl reset-failed docker 2>/dev/null || true
+              systemctl start docker 2>/dev/null || true
+            fi
+          fi
+          if docker compose version >/dev/null 2>&1; then
+            echo "docker compose plugin present"
+            exit 0
+          fi
+          if docker-compose --version >/dev/null 2>&1; then
+            for d in /usr/libexec/docker/cli-plugins /usr/local/lib/docker/cli-plugins /root/.docker/cli-plugins; do
+              mkdir -p "$d"
+              ln -sf "$(command -v docker-compose)" "$d/docker-compose"
+            done
+            echo "linked standalone docker-compose into cli-plugins"
+            exit 0
+          fi
+          apt-get update
+          apt-get install -y docker-compose-plugin || \
+            apt-get install -y docker-compose-v2 || \
+            apt-get install -y docker-compose
+          docker compose version
+        name_i18n:
+          zh: 确保 Docker 与 docker compose 可用
+
+    after_upload:
+      - name: Clean macOS sidecar files from the uploaded assets
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/edge-waste-sorting/recomputer_rk3588_waste"
+          find "$WORKDIR" -name '._*' -print -delete 2>/dev/null || true
+          find "$WORKDIR" -name '.DS_Store' -print -delete 2>/dev/null || true
+          echo "sidecar cleanup done"
+        name_i18n:
+          zh: 清理上传目录里的 macOS 附属文件
+
+      - name: Fetch and verify the RKNN model
+        timeout: 900
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/edge-waste-sorting/recomputer_rk3588_waste"
+          MODELS_DIR="$WORKDIR/models"
+          MODEL="$MODELS_DIR/efficientnet_lite0_waste8.rk3588.int8.calib256.mmse.rknn"
+          SHA=140a51d5ca4035c446116f6b62a728ea31b6d5155cb5fea432b02ed34def5d03
+          URL="https://sensecraft-statics.seeed.cc/solution-app/edge_waste_sorting/models/efficientnet_lite0_waste8.rk3588.int8.calib256.mmse.rknn"
+          mkdir -p "$MODELS_DIR"
+
+          if [ -s "$MODEL" ] && echo "$SHA  $MODEL" | sha256sum -c - >/dev/null 2>&1; then
+            echo "RKNN model already present and verified: $MODEL"
+            exit 0
+          fi
+
+          echo "Downloading efficientnet_lite0_waste8.rk3588.int8.calib256.mmse.rknn ..."
+          curl -fSL --retry 3 -o "$MODEL.part" "$URL"
+          echo "$SHA  $MODEL.part" | sha256sum -c -
+          mv -f "$MODEL.part" "$MODEL"
+          echo "RKNN model verified: $MODEL"
+        name_i18n:
+          zh: 获取并校验 RKNN 模型
+
+      - name: Write the source, trigger and MQTT configuration
+        env:
+          INPUT_SOURCE_URI: "{{source_uri}}"
+        run: |
+          set -e
+          WORKDIR="/home/{{username}}/edge-waste-sorting/recomputer_rk3588_waste"
+          CONFIG="$WORKDIR/config/config.json"
+          mkdir -p "$WORKDIR/data" "$WORKDIR/captures"
+          python3 - "$CONFIG" "$WORKDIR" <<'PY'
+          import json, os, sys
+
+          path = sys.argv[1]
+          workdir = sys.argv[2]
+          with open(path) as handle:
+              config = json.load(handle)
+
+          config["model"]["path"] = "/models/efficientnet_lite0_waste8.rk3588.int8.calib256.mmse.rknn"
+          config["model"]["accelerator"] = "rknn"
+          config["model"]["track"] = "baseline"
+          config["model"]["backbone"] = "efficientnet_lite0"
+          config["model"]["input_range"] = "uint8"
+          config["model"]["core_mask"] = "AUTO"
+          config["model"]["onnx_sha256"] = (
+              "e9f9e847de6899ad4341d8f6084823e7c70307e84ac4d0da4bc4911b5b767391")
+          config["rules"]["min_confidence"] = float("{{min_confidence}}")
+          config["trigger"]["mode"] = "on_demand"
+          config["trigger"]["sources"] = "{{trigger_sources}}".split(",")
+          config["trigger"]["debounce_ms"] = int("{{debounce_ms}}")
+          config["mqtt"]["topic"] = "{{device_name}}/waste/{stream_id}/results"
+          source_uri = os.environ["INPUT_SOURCE_URI"]
+          source_kind = "{{source_kind}}"
+          config["sources"] = [{
+              "stream_id": "{{stream_id}}",
+              "uri": source_uri,
+              "kind": source_kind,
+          }]
+
+          tmp = path + ".tmp"
+          with open(tmp, "w") as handle:
+              json.dump(config, handle, indent=2)
+              handle.write("\n")
+          os.replace(tmp, path)
+
+          mapped_devices = ["/dev/dri:/dev/dri"]
+          if source_kind == "usb" and source_uri.startswith("/dev/video"):
+              mapped_devices.append(f"{source_uri}:{source_uri}")
+          for compose_name in ("docker-compose.yml", ".sensecraft-compose.yml"):
+              compose_file = os.path.join(workdir, compose_name)
+              if not os.path.exists(compose_file):
+                  continue
+              with open(compose_file, "r") as f:
+                  c_lines = f.read().splitlines()
+              out_lines = []
+              in_svc = False
+              skipping_devs = False
+              inserted = False
+              for line in c_lines:
+                  stripped = line.lstrip()
+                  indent = len(line) - len(stripped)
+                  if in_svc and stripped and not stripped.startswith("#") and indent <= 2:
+                      in_svc = False
+                      skipping_devs = False
+                  if not in_svc and indent == 2 and stripped == "waste:":
+                      in_svc = True
+                      out_lines.append(line)
+                      if mapped_devices and not inserted:
+                          out_lines.append("    devices:")
+                          for dev in mapped_devices:
+                              out_lines.append(f'      - "{dev}"')
+                          inserted = True
+                      continue
+                  if in_svc:
+                      if indent == 4 and stripped.startswith("devices:"):
+                          skipping_devs = True
+                          continue
+                      if skipping_devs:
+                          if not stripped or (stripped.startswith("#") and indent >= 4):
+                              continue
+                          if indent > 4 or (indent == 4 and stripped.startswith("-")):
+                              continue
+                          skipping_devs = False
+                  out_lines.append(line)
+              tmp_compose = compose_file + ".tmp"
+              with open(tmp_compose, "w") as f:
+                  f.write("\n".join(out_lines) + "\n")
+              os.replace(tmp_compose, compose_file)
+
+          env_file = os.path.join(workdir, ".env")
+          with open(env_file, "w") as handle:
+              handle.write("DEVICE_NAME={{device_name}}\n")
+          print(f"model    = {config['model']['path']} (track=baseline)")
+          print(f"source   = {config['sources'][0]['stream_id']} <- {config['sources'][0]['uri']}")
           PY
+        name_i18n:
+          zh: 写入视频源、触发与 MQTT 配置
 
-        预期输出 8 个原始 logits，顺序是 paper、cardboard、glass、metal、
-        plastic、textile、organic、residual。softmax 与四分类查表不在这里做——
-        它们在共用的 core 层，这样每种加速器返回的东西才一致。
+    after:
+      - name: Verify the runtime is up and answering triggers
+        timeout: 240
+        ignore_error: true
+        run: |
+          set -e
+          BROKER=edge-waste-mosquitto
+          TOPIC="{{device_name}}/waste/{{stream_id}}/results"
+          for i in $(seq 1 24); do
+            if curl -fsS http://127.0.0.1:8080/healthz >/tmp/healthz.json 2>/dev/null; then
+              cat /tmp/healthz.json
+              docker exec "$BROKER" sh -c "mosquitto_sub -h 127.0.0.1 -t '$TOPIC' -C 1 -W 20 > /tmp/one.json" &
+              SUB=$!
+              sleep 1
+              curl -fsS -X POST http://127.0.0.1:8080/trigger >/dev/null 2>&1 || true
+              if wait $SUB; then
+                echo "MQTT result received on $TOPIC"
+                docker exec "$BROKER" cat /tmp/one.json 2>/dev/null || true
+                exit 0
+              fi
+            fi
+            sleep 5
+          done
+          echo "No verified MQTT result within timeout." >&2
+          docker logs --tail 40 edge-waste-app 2>&1 || true
+        name_i18n:
+          zh: 验证运行时已启动并能响应触发
 
-        静态 shape 模型上出现 `RKNN_QUERY_INPUT_DYNAMIC_RANGE` 的告警是预期内的，
-        无害；每个静态构建运行时都会打。
-
-        单帧推理稳定在 3.2 ms 附近。这个数字是在板上还有其它负载的情况下测的，
-        不是空载；而且是纯推理，不含取图与预处理。
-    optional: false
+  user_inputs:
+    - id: host
+      name: reComputer RK3588 IP
+      type: text
+      required: true
+      placeholder: "192.168.1.101"
+      name_i18n:
+        zh: reComputer RK3588 IP
+    - id: username
+      name: SSH Username
+      type: text
+      default: recomputer
+      required: true
+      name_i18n:
+        zh: SSH 用户名
+    - id: password
+      name: SSH Password
+      type: password
+      required: true
+      name_i18n:
+        zh: SSH 密码
+    - id: device_name
+      name: Device Name
+      type: text
+      default: "recomputer-rk3588"
+      required: true
+      description: First segment of the MQTT topic — name this device after the bin or the drop-off point
+      validation:
+        pattern: "^[A-Za-z0-9_-]+$"
+      name_i18n:
+        zh: 设备名称
+      description_i18n:
+        zh: MQTT 主题的第一段——按垃圾桶或投放点命名
+    - id: stream_id
+      name: Stream ID
+      type: text
+      default: "bin1-cam1"
+      required: true
+      description: Appended to the MQTT topic and also carried in the payload — consumers must read it there, not parse the topic
+      validation:
+        pattern: "^[A-Za-z0-9_-]+$"
+      name_i18n:
+        zh: 流编号
+      description_i18n:
+        zh: 会拼在 MQTT 主题里，同时也在 payload 里——消费者必须从 payload 读，不要解析 topic
+    - id: source_kind
+      name: Camera Type
+      type: select
+      default: usb
+      required: true
+      options:
+        - value: usb
+          label: USB camera (/dev/videoN)
+          label_i18n:
+            zh: USB 摄像头（/dev/videoN）
+        - value: rtsp
+          label: IP camera (RTSP URL)
+          label_i18n:
+            zh: IP 摄像头（RTSP 地址）
+        - value: file
+          label: Video file — for bench testing without a camera
+          label_i18n:
+            zh: 视频文件——没有相机时的台面测试
+      name_i18n:
+        zh: 相机类型
+    - id: source_uri
+      name: Camera Address
+      type: text
+      required: true
+      default_template: "/dev/video0"
+      placeholder: "/dev/video0  or  rtsp://admin:password@192.168.1.64:554/Streaming/Channels/101"
+      description: Camera device node or RTSP URL.
+      name_i18n:
+        zh: 相机地址
+      description_i18n:
+        zh: 摄像头设备节点或 RTSP 地址。
+    - id: trigger_sources
+      name: Trigger Sources
+      type: select
+      default: "http"
+      required: true
+      description: Which sources fire a capture. HTTP is POST /trigger on port 8080.
+      options:
+        - value: "http"
+          label: HTTP only — POST /trigger
+          label_i18n:
+            zh: 仅 HTTP——POST /trigger
+        - value: "http,button"
+          label: HTTP + physical button
+          label_i18n:
+            zh: HTTP + 实体按钮
+        - value: "http,motion"
+          label: HTTP + motion in frame
+          label_i18n:
+            zh: HTTP + 画面移动侦测
+        - value: "http,button,motion"
+          label: All three
+          label_i18n:
+            zh: 三者全开
+      name_i18n:
+        zh: 触发源
+      description_i18n:
+        zh: 哪些来源会触发一次拍摄。HTTP 是 8080 端口上的 POST /trigger。
+    - id: debounce_ms
+      name: Trigger Debounce (ms)
+      type: text
+      default: "800"
+      required: true
+      description: A trigger arriving within this window of the previous one is merged into the in-flight request, not queued
+      validation:
+        pattern: "^[0-9]+$"
+      name_i18n:
+        zh: 触发去抖（毫秒）
+      description_i18n:
+        zh: 在上一次触发之后这个时间窗内到达的触发会被合并进正在处理的请求，而不是排队
+    - id: min_confidence
+      name: Minimum Confidence
+      type: text
+      default: "0.5"
+      required: true
+      description: Below this the event carries rules.fallback_category (residual) instead of the argmax.
+      validation:
+        pattern: "^(0(\\.[0-9]+)?|1(\\.0+)?)$"
+      name_i18n:
+        zh: 最低置信度
+      description_i18n:
+        zh: 低于这个值时事件带 rules.fallback_category（residual）而不是 argmax。

@@ -67,11 +67,11 @@ Select with `model.track` at deploy time.
 
 ## Deployment Comparison
 
-| | Camera + reComputer J30 / J40 | Camera + reComputer R2000 (Hailo-8) |
-|---|---|---|
-| Open-vocabulary mode | Yes | No |
-| Measured | **4.122 ms** per trigger | Material top-1 **0.8889**, p50 **3.166 ms** |
-| First deploy | TensorRT engine built on device, **68 seconds** measured | Three Hailo version checks must pass |
+| | Camera + reComputer J30 / J40 | Camera + reComputer R2000 (Hailo-8) | Camera + reComputer RK3588 / RK3576 |
+|---|---|---|---|
+| Open-vocabulary mode | Yes | No | No |
+| Measured | **4.122 ms** per trigger | Material top-1 **0.8889**, p50 **3.166 ms** | RK3588 material top-1 **0.8881**, p50 **2.728 ms** (RK3576 pending on-device verification) |
+| First deploy | TensorRT engine built on device, **68 seconds** measured | Three Hailo version checks must pass | Docker deploy; downloads and sha256-verifies the `.rknn` model |
 
 ## Usage Notes
 
