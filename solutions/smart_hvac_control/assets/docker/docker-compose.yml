@@ -1,10 +1,13 @@
 # Image tag policy
 #
-# Pinned to the immutable published tag `missionpack-knn:v1.6.8`. Never use `latest`:
+# Pinned to the immutable published tag `missionpack-knn:v1.7.0`. Never use `latest`:
 # the same tag must always resolve to the same content.
 #
-# Included in v1.6.8: Eastron SDM630 meter template, control rollback coordinator,
-# alarm envelope, custom derived points with sliding window statistics, and React console.
+# Included in v1.7.0: Eastron SDM630 meter template, control rollback coordinator,
+# alarm envelope, custom derived points with sliding window statistics, SI diagnostics
+# & config bundle, gateway HH/H/L/LL threshold alarms & SQLite history, Observe/Auto
+# prediction mode & archive-to-training, and React console (@suharvest/ui-kit v0.2.0
+# Seeed Studio UI).
 #
 # Modbus RTU: this profile attaches no host serial device, so an RS-485 meter needs the
 # serial-device deployment profile instead of this compose file.
@@ -14,7 +17,7 @@
 
 services:
   app:
-    image: sensecraft-missionpack.seeed.cn/solution/missionpack-knn:v1.6.8
+    image: sensecraft-missionpack.seeed.cn/solution/missionpack-knn:v1.7.0
     container_name: missionpack_knn
     ports:
       - "8280:8280"

@@ -113,6 +113,52 @@ intro:
           那一条显示"已读回 / 不一致已补偿 · 99"，其后紧跟由 plugin:prediction:rollback
           下发的补偿命令。Modbus 设备为模拟器，写入-核对-补偿链路为真实逻辑。
     - type: image
+      src: gallery/console-overview-v170-zh.png
+      caption: >-
+        v1.7.0 console overview (@suharvest/ui-kit@0.2.0) — device and point counts, active
+        alarm banner, 24-hour poll-success and write-readback trend charts, and points grouped
+        by protocol. Captured against mock_service.py on Solution_HVAC_SmartControl commit 5cfac53.
+      caption_i18n:
+        zh: >-
+          v1.7.0 监控总览（@suharvest/ui-kit@0.2.0）——设备与点位数、活动告警状态、24 小时采集
+          成功率与写入回读一致率趋势，以及按协议分组的点位统计。基于 Solution_HVAC_SmartControl
+          提交 5cfac53 的 mock_service.py 捕获。
+    - type: image
+      src: gallery/control-preview-v170-zh.png
+      caption: >-
+        v1.7.0 single-point control safety preview (@suharvest/ui-kit@0.2.0) — server-locked
+        step-2 confirmation showing current value and quality, requested vs. effective setpoint,
+        and preview expiration before final dispatch. Captured against mock_service.py on
+        Solution_HVAC_SmartControl commit 5cfac53.
+      caption_i18n:
+        zh: >-
+          v1.7.0 单点控制安全预览（@suharvest/ui-kit@0.2.0）——第 2 步服务端锁定确认弹窗，展示
+          当前值与质量、请求值/生效值及确认有效期，核对后再最终下发。基于
+          Solution_HVAC_SmartControl 提交 5cfac53 的 mock_service.py 捕获。
+    - type: image
+      src: gallery/alarms-center-v170-zh.png
+      caption: >-
+        v1.7.0 Alarm Center (@suharvest/ui-kit@0.2.0) — active alarms, history, and threshold
+        rules tabs showing gateway HH/H threshold alarms on active power alongside the top
+        unacknowledged banner. Captured against mock_service.py on Solution_HVAC_SmartControl
+        commit 5cfac53.
+      caption_i18n:
+        zh: >-
+          v1.7.0 告警中心（@suharvest/ui-kit@0.2.0）——活动告警、告警历史与阈值规则页签，展示
+          冷机瞬时功率的高高限（HH）与高限（H）越限告警及顶部未确认告警横幅。基于
+          Solution_HVAC_SmartControl 提交 5cfac53 的 mock_service.py 捕获。
+    - type: image
+      src: gallery/alarm-drawer-v170-zh.png
+      caption: >-
+        v1.7.0 alarm detail drawer (@suharvest/ui-kit@0.2.0) — slide-over drawer listing active
+        HH/H threshold alarm cards with source, point ID, timestamp, alarm ID, and acknowledge
+        actions. Captured against mock_service.py on Solution_HVAC_SmartControl commit 5cfac53.
+      caption_i18n:
+        zh: >-
+          v1.7.0 告警详情抽屉（@suharvest/ui-kit@0.2.0）——右侧抽屉展示活动 HH/H 阈值告警卡片，
+          包含来源、点位 ID、发生时间、告警编号与确认操作。基于 Solution_HVAC_SmartControl
+          提交 5cfac53 的 mock_service.py 捕获。
+    - type: image
       src: gallery/architecture.svg
       caption: Architecture — an SDM630 meter and an HVAC controller feed the point table, prediction sits alongside it, and writes go back out through a readback check
       caption_i18n:

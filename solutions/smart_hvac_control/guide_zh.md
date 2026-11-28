@@ -96,7 +96,7 @@
 
 
 - 步骤 2 的管理员账号；能看到电表本机显示；一位熟悉本机组的操作人员审阅推荐值。
-- 执行 `docker inspect -f '{{.Config.Image}}' missionpack_knn` 查看镜像版本。确认版本为 `v1.6.8`，包含完整 SDM630 模板、回滚、告警及自定义中间变量功能。
+- 执行 `docker inspect -f '{{.Config.Image}}' missionpack_knn` 查看镜像版本。确认版本为 `v1.7.0`，包含完整 SDM630 模板、回滚、告警、自定义中间变量、SI 诊断与配置包、网关 HH/H/L/LL 阈值告警与 SQLite 历史、Observe/Auto 预测模式与归档训练及 `@suharvest/ui-kit` v0.2.0 Seeed Studio UI。
 
 ### 打开写后核实（回滚）
 

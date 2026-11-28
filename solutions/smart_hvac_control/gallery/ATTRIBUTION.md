@@ -21,6 +21,10 @@ composites of unrelated screens.
 | `points-source-offline.png` | Point table with the SDM630 Modbus source stopped mid-capture, its ten points showing `offline` quality while the BACnet source stays `good` | **Yes** — `intro.gallery[]` | Screen capture, see below |
 | `alarm-banner-source-offline.png` | Point table with the alarm banner raised: one unrecovered, unacknowledged `source-offline` warning after the SDM630 simulator took `SIGTERM` | **Yes** — `intro.gallery[]` | Screen capture, see the 2026-09-06 wiring session below |
 | `control-readback-compensated.png` | Command-receipt ledger with the readback column: matched writes, one mismatched-and-compensated write showing the out-of-band value 99, and the compensation command that undid it | **Yes** — `intro.gallery[]` | Screen capture, see the 2026-09-06 wiring session below |
+| `console-overview-v170-zh.png` | v1.7.0 site overview (`@suharvest/ui-kit@0.2.0`): device/point counts, alarm status, 24-hour poll-success and write-readback trends, points by protocol | **Yes** — `intro.gallery[]` | Screen capture, 2026-11-28, see below |
+| `control-preview-v170-zh.png` | v1.7.0 single-point control modal at step 2 safety preview (`@suharvest/ui-kit@0.2.0`) | **Yes** — `intro.gallery[]` | Screen capture, 2026-11-28, see below |
+| `alarms-center-v170-zh.png` | v1.7.0 Alarm Center (`@suharvest/ui-kit@0.2.0`): active HH/H threshold alarms, history and threshold rules tabs | **Yes** — `intro.gallery[]` | Screen capture, 2026-11-28, see below |
+| `alarm-drawer-v170-zh.png` | v1.7.0 alarm detail drawer (`@suharvest/ui-kit@0.2.0`): active HH/H alarm cards with alarm IDs and acknowledge buttons | **Yes** — `intro.gallery[]` | Screen capture, 2026-11-28, see below |
 | `cover.svg` | Schematic cover drawing | No | Drawn for this package, first-party |
 | `dashboard.svg` | Sketch of a dashboard layout | No | Drawn for this package, first-party |
 | `recomputer.svg` | Schematic device outline | No | Drawn for this package, first-party |
@@ -233,6 +237,20 @@ The hits are false positives: single-stroke misreads of hyphens in point
 IDs like `ahu-01.supply-temp` and in the ledger's placeholder dashes ("一"),
 verified against the rendered screenshots — not exclusively point-ID
 hyphens.
+
+## 2026-11-28 — v1.7.0 console captures (`@suharvest/ui-kit@0.2.0`, DPR-2)
+
+Four DPR-2 screenshots of the v1.7.0 React console built with `@suharvest/ui-kit@0.2.0`
+from `Solution_HVAC_SmartControl`, branch `feat/si-gateway-all`, commit `5cfac53`.
+Captured against `mock_service.py` at viewport `1440x900` with `deviceScaleFactor: 2`
+(resulting in `2880x1800` PNGs, uncropped).
+
+| File | Bytes | Dimensions | SHA-256 | Source |
+|---|---:|---|---|---|
+| `console-overview-v170-zh.png` | 196,937 | 2880 x 1800 | `be8b6ba7916be9d526db15fdbb72b98fa294b7eede656fc6fd56cdc4b8551963` | `01_overview_kit020_2x.png` (`mock_service.py`, `5cfac53`) |
+| `control-preview-v170-zh.png` | 411,145 | 2880 x 1800 | `4cbb309db0401f855c12b28960342ee7d96c7c5f762849f2359cd6f064a6486d` | `03_control_preview_kit020_2x.png` (`mock_service.py`, `5cfac53`) |
+| `alarms-center-v170-zh.png` | 175,296 | 2880 x 1800 | `8c0831591f41f838bb2c3737688d971822a74388a92b1ffd76abefe8abfa9d95` | `05_alarms_active_kit020_2x.png` (`mock_service.py`, `5cfac53`) |
+| `alarm-drawer-v170-zh.png` | 219,978 | 2880 x 1800 | `ea82bfdd9c460e25346f9d4722df2f9e040d75e8357e611dfc776422d8251681` | `06_alarm_drawer_kit020_2x.png` (`mock_service.py`, `5cfac53`) |
 
 ## Missing: a photograph of the equipment
 
