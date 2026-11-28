@@ -9,9 +9,11 @@ type: docker_deploy
 # docker_remote views via derive_docker_views() — no need to maintain
 # parallel local.yaml + remote.yaml files.
 #
-# Image tag: assets/docker/docker-compose.yml pins `missionpack-knn:v1.6.8`.
-# That tag includes the SDM630 meter template, the control rollback coordinator,
-# the alarm envelope, and custom derived points engine with sliding window statistics.
+# Image tag: assets/docker/docker-compose.yml pins `missionpack-knn:v1.7.0`.
+# That tag includes the SDM630 meter template, control rollback coordinator,
+# alarm envelope, custom derived points engine, SI diagnostics & config bundle,
+# gateway HH/H/L/LL threshold alarms & SQLite history, Observe/Auto prediction
+# mode & archive-to-training, and @suharvest/ui-kit v0.2.0 Seeed Studio UI.
 
 detection:
   method: local

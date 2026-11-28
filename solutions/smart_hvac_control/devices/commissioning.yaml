@@ -18,13 +18,17 @@ steps:
       zh: 确认运行中的镜像 tag
     description: >-
       Run `docker inspect -f '{{.Config.Image}}' missionpack_knn` on the deployment host and
-      record the tag. Tag `missionpack-knn:v1.6.8` carries the SDM630 meter template, the control
-      rollback coordinator, alarm envelope, and custom derived points engine.
+      record the tag. Tag `missionpack-knn:v1.7.0` carries the SDM630 meter template, the control
+      rollback coordinator, alarm envelope, custom derived points engine, SI diagnostics & config
+      bundle, gateway HH/H/L/LL threshold alarms & SQLite history, Observe/Auto prediction mode &
+      archive-to-training, and the `@suharvest/ui-kit` v0.2.0 Seeed Studio UI.
     description_i18n:
       zh: >-
         在部署主机上执行 `docker inspect -f '{{.Config.Image}}' missionpack_knn` 并记录 tag。
-        已固定的 `missionpack-knn:v1.6.8` 包含 SDM630 电表模板、控制回滚协调器、告警 envelope
-        及自定义中间变量引擎，可完整执行后续所有联调与控制步骤。
+        已固定的 `missionpack-knn:v1.7.0` 包含 SDM630 电表模板、控制回滚协调器、告警 envelope、
+        自定义中间变量引擎、SI 诊断与配置包、网关 HH/H/L/LL 阈值告警与 SQLite 历史、
+        Observe/Auto 预测模式与归档训练，以及 `@suharvest/ui-kit` v0.2.0 Seeed Studio UI，
+        可完整执行后续所有联调与控制步骤。
     optional: false
 
   - id: import_meter_template
